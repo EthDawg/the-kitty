@@ -1,0 +1,18 @@
+name: test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: node --test test.js
+      - run: python3 -m py_compile build.py snapshot.py period-close/adapters.py period-close/simulate.py period-close/import_month.py
+      - run: python3 build.py && test -s dist/kitty.html
+      - name: every inline script parses
+        run: node -e "const h=require('fs').readFileSync('dist/kitty.html','utf8');for(const m of h.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);console.log('ok')"
+      - name: a repeated month appends nothing
+        run: python3 period-close/import_month.py 2027-01 | grep -q "0 rows to append"

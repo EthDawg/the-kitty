@@ -1,0 +1,112 @@
+{
+  "_about": "How a household gets its bank data into the sheet, by country. Rendered on the Setup tab and read by the bank-export skill. Paths change. Each entry says when it was documented (from product knowledge, by the agent that wrote this guide) and when, if ever, an agent verified it in a browser; the bank-export skill verifies before trusting a path and stamps 'verified'. Nothing here needs a password in a file.",
+  "countries": [
+    {
+      "code": "AU", "name": "Australia", "currency": "AUD", "fy": "1 July to 30 June",
+      "best": "The Consumer Data Right (open banking) is the regulated feed, but it reaches individuals only through accredited apps, not a personal API key. For a sheet-based household the reliable path is each bank's own CSV export, once a month, with Up's personal API as the exception that proves what the future looks like.",
+      "verdict": [
+        ["Monthly CSV export per account", "Works at every bank today, needs a person or a supervised agent, 10 to 20 minutes a month", "Recommended now"],
+        ["Up Bank personal API", "A personal access token from the Up app gives JSON for your own accounts; no scraping, no password handling", "Best in class, Up customers only"],
+        ["CDR through an accredited app (Frollo, PocketSmith, WeMoney)", "Consented, continuous, every major bank; the app then exports CSV or syncs to a sheet", "Good if you accept a third party"],
+        ["Screen-scraping aggregators", "Hold your password, break on bank changes, against most banks' terms", "Avoid"]
+      ],
+      "institutions": [
+        {"name": "Commonwealth Bank", "path": "NetBank → account → Transactions → Export (top right of the list) → choose CSV and the date range", "app": "CommBank app → account → the filter icon → Export", "formats": "CSV, OFX, QIF", "columns": "Date, Amount, Description, Balance (no header row)", "notes": "Pending transactions are left out; export after the month ends. One file per account.", "documented": "2026-11-03", "verified": null},
+        {"name": "Westpac", "path": "Online Banking → account → Export (above the transaction list) → Comma separated values, pick dates", "app": "Export is desktop-only", "formats": "CSV, OFX, QIF, QBO", "columns": "Bank Account, Date, Narrative, Debit Amount, Credit Amount, Balance, Categories, Serial", "notes": "Debit and credit are separate columns; the importer signs them.", "documented": "2026-11-03", "verified": null},
+        {"name": "ANZ", "path": "Internet Banking → account → Download transactions (under the list) → format CSV, up to 2 years", "app": "ANZ Plus app → account → Export statement", "formats": "CSV, OFX, QIF, PDF", "columns": "Date, Amount, Description", "notes": "Date is dd/mm/yyyy; description carries the card suffix.", "documented": "2026-11-03", "verified": null},
+        {"name": "NAB", "path": "NAB Internet Banking → account → Transactions → Export (CSV)", "app": "NAB app → account → Export transactions", "formats": "CSV, OFX, QIF", "columns": "Date, Amount, Account Number, Empty, Transaction Type, Transaction Details, Balance, Category, Merchant Name", "notes": "NAB's own category and merchant columns are a head start for the Meaning Rules.", "documented": "2026-11-03", "verified": null},
+        {"name": "Bankwest", "path": "Online Banking → account → Export (top of the transaction list) → CSV", "app": "Export is desktop-only", "formats": "CSV, OFX, QIF", "columns": "BSB, Account Number, Transaction Date, Narration, Cheque, Debit, Credit, Balance, Transaction Type", "notes": "Interest lines spell out the offset saving (\"DEBIT INTEREST AFTER OFFSET SAVING OF $x\"), which The Kitty reads.", "documented": "2026-11-03", "verified": null},
+        {"name": "Macquarie", "path": "Macquarie Online → account → Transactions → Download → CSV", "app": "Macquarie app → account → Download", "formats": "CSV, OFX, QIF", "columns": "Transaction Date, Details, Debit, Credit, Balance", "notes": "", "documented": "2026-11-03", "verified": null},
+        {"name": "ING", "path": "Online Banking → account → Export (above the list) → CSV, choose dates", "app": "ING app → account → Export", "formats": "CSV", "columns": "Date, Description, Credit, Debit, Balance", "notes": "", "documented": "2026-11-03", "verified": null},
+        {"name": "Up", "path": "Up app → Settings → Data sharing → Export transactions (CSV by email), or create a Personal Access Token at api.up.com.au and pull JSON", "app": "Everything is in the app", "formats": "CSV, JSON API", "columns": "API: id, status, rawText, description, amount.value, settledAt, category; CSV: Time, BSB, Account, Transaction Type, Payee, Description, Category, Subcategory, Total, Currency, Fee, Round Up, Settled", "notes": "The API is the model: a token you can revoke, scoped to read, no password ever typed by an agent.", "documented": "2026-11-03", "verified": null},
+        {"name": "American Express", "path": "amex.com.au → Statements & Activity → choose the period → Download (CSV or Excel)", "app": "Amex app → Statements → Download", "formats": "CSV, XLSX, QIF, OFX, PDF", "columns": "Date, Description, Card Member, Account #, Amount (positive = charge)", "notes": "Charges are positive and payments negative, the opposite of a bank account; the importer flips the sign. Statement periods do not match calendar months.", "documented": "2026-11-03", "verified": null}
+      ],
+      "agent": "An agent may drive the browser to the export page while the person (or their password manager) signs in. The agent never types a password or a one-time code; it never reads them. It opens the bank, waits for the person to sign in, navigates to the export, chooses CSV and the dates, saves the file into sources/<account>/<yyyy-mm-dd>/ exactly as delivered, and signs out. Up is the exception: a read-only token in the keychain, no browser at all."
+    },
+    {
+      "code": "NZ", "name": "New Zealand", "currency": "NZD", "fy": "1 April to 31 March",
+      "best": "Akahu is the standout: an open-finance platform where an individual can create a personal app, connect their own accounts and pull transactions through an API, with the banks' blessing. Otherwise every bank exports CSV.",
+      "verdict": [["Akahu personal app", "Your own API token over your own accounts, every major NZ bank", "Recommended"], ["Monthly CSV export per account", "Works everywhere", "Fallback"]],
+      "institutions": [
+        {"name": "ASB", "path": "FastNet Classic → account → Export → CSV", "formats": "CSV, OFX, QIF", "columns": "Date, Unique Id, Tran Type, Cheque Number, Payee, Memo, Amount", "documented": "2026-11-03", "verified": null},
+        {"name": "ANZ NZ", "path": "Internet Banking → account → Export transactions → CSV", "formats": "CSV, OFX, QIF", "columns": "Type, Details, Particulars, Code, Reference, Amount, Date, ForeignCurrencyAmount, ConversionCharge", "documented": "2026-11-03", "verified": null},
+        {"name": "Kiwibank", "path": "Internet banking → account → Download → CSV", "formats": "CSV, OFX, QIF", "columns": "Account, Date, Memo, Amount, Balance", "documented": "2026-11-03", "verified": null},
+        {"name": "BNZ", "path": "Internet Banking → account → Export → CSV", "formats": "CSV, OFX, QIF", "columns": "Date, Amount, Payee, Particulars, Code, Reference, Tran Type, This Party Account, Other Party Account, Serial, Transaction Code, Batch Number, Originating Bank/Branch, Processed Date", "documented": "2026-11-03", "verified": null},
+        {"name": "Westpac NZ", "path": "Westpac One → account → Export → CSV", "formats": "CSV, OFX, QIF", "columns": "Date, Amount, Other Party, Description, Reference, Particulars, Analysis Code", "documented": "2026-11-03", "verified": null}
+      ],
+      "agent": "Same rule as Australia: the agent navigates, the person signs in, the file lands in sources/. With Akahu, the agent uses the token and never opens a bank site."
+    },
+    {
+      "code": "GB", "name": "United Kingdom", "currency": "GBP", "fy": "6 April to 5 April",
+      "best": "Open Banking is mature: Monzo and Starling export CSV in-app in seconds, and every bank must offer regulated data access. Individuals get it through apps (Emma, Snoop, Money Dashboard) or Monzo's own developer API for personal use.",
+      "verdict": [["In-app CSV export (Monzo, Starling, Revolut)", "Seconds, clean columns, includes merchant and category", "Recommended"], ["Monzo developer API", "Personal access to your own account; tokens expire and need re-auth", "Good for the tinkerer"], ["Open Banking via an app", "Continuous, every bank, a third party in the middle", "Good"], ["High-street bank download", "CSV, OFX or QIF from online banking; date ranges are often capped", "Fallback"]],
+      "institutions": [
+        {"name": "Monzo", "path": "App → account → Statements & export → Export (CSV), pick dates", "formats": "CSV, QIF, PDF", "columns": "Transaction ID, Date, Time, Type, Name, Emoji, Category, Amount, Currency, Local amount, Local currency, Notes and #tags, Address, Receipt, Description, Category split", "documented": "2026-11-03", "verified": null},
+        {"name": "Starling", "path": "App → Spaces/account → Statements → CSV", "formats": "CSV, PDF", "columns": "Date, Counter Party, Reference, Type, Amount (GBP), Balance (GBP), Spending Category, Notes", "documented": "2026-11-03", "verified": null},
+        {"name": "Barclays", "path": "Online Banking → account → Export (above transactions) → CSV", "formats": "CSV, OFX, QIF", "columns": "Number, Date, Account, Amount, Subcategory, Memo", "documented": "2026-11-03", "verified": null},
+        {"name": "Lloyds / Halifax", "path": "Internet Banking → account → Export → CSV", "formats": "CSV, QIF, OFX", "columns": "Transaction Date, Transaction Type, Sort Code, Account Number, Transaction Description, Debit Amount, Credit Amount, Balance", "documented": "2026-11-03", "verified": null},
+        {"name": "HSBC", "path": "Online Banking → account → Download → CSV", "formats": "CSV, OFX, QIF", "columns": "Date, Description, Amount", "documented": "2026-11-03", "verified": null},
+        {"name": "Revolut", "path": "App → account → Statement → Excel (CSV)", "formats": "CSV, PDF", "columns": "Type, Product, Started Date, Completed Date, Description, Amount, Fee, Currency, State, Balance", "documented": "2026-11-03", "verified": null}
+      ],
+      "agent": "Monzo and Starling exports are a two-tap job for the person; an agent adds nothing. For high-street banks the supervised-browser rule applies."
+    },
+    {
+      "code": "US", "name": "United States", "currency": "USD", "fy": "Calendar year",
+      "best": "There is no regulated personal feed yet (the CFPB's section 1033 rule is phasing in), so the practical path is either each bank's CSV download or a paid aggregator that lands rows straight in Google Sheets. Tiller Money does exactly that, which makes it the natural partner for a sheet-based household.",
+      "verdict": [["Tiller Money (Plaid feed into Google Sheets)", "Transactions appear in your own sheet daily; you keep the sheet if you leave", "Recommended for a hands-off household"], ["Bank CSV / QFX download", "Free, works everywhere, monthly chore", "Recommended for a hands-on one"], ["Plaid through a budgeting app (Monarch, Copilot, YNAB)", "Good apps, your data lives in theirs", "Fine"], ["Lunch Money API", "A budgeting app with a real personal API", "Good for the tinkerer"]],
+      "institutions": [
+        {"name": "Chase", "path": "chase.com → account → Download account activity (icon above the list) → CSV, pick dates", "formats": "CSV, QFX, QBO, OFX", "columns": "Transaction Date, Post Date, Description, Category, Type, Amount, Memo", "documented": "2026-11-03", "verified": null},
+        {"name": "Bank of America", "path": "Online Banking → account → Download (above transactions) → Microsoft Excel/CSV", "formats": "CSV, QFX, QBO, TXT", "columns": "Date, Description, Amount, Running Bal.", "documented": "2026-11-03", "verified": null},
+        {"name": "Wells Fargo", "path": "Account Activity → Download Account Activity → Comma Delimited", "formats": "CSV, QFX, QBO", "columns": "Date, Amount, *, *, Description (no header row)", "documented": "2026-11-03", "verified": null},
+        {"name": "Capital One", "path": "Account → Download transactions → CSV", "formats": "CSV, QFX, QBO, OFX", "columns": "Transaction Date, Posted Date, Card No., Description, Category, Debit, Credit", "documented": "2026-11-03", "verified": null},
+        {"name": "American Express", "path": "americanexpress.com → Statements & Activity → Download → CSV", "formats": "CSV, XLSX, QFX, QBO, OFX", "columns": "Date, Description, Amount, Extended Details, Appears On Your Statement As, Address, City/State, Zip Code, Country, Reference, Category", "documented": "2026-11-03", "verified": null}
+      ],
+      "agent": "Supervised browser for downloads; with Tiller there is nothing to download, the rows are already in the sheet and the Kitty's importer only categorises them."
+    },
+    {
+      "code": "CA", "name": "Canada", "currency": "CAD", "fy": "Calendar year",
+      "best": "Open banking legislation is in progress; until it lands, every big bank exports CSV and the aggregators (Flinks, Plaid) reach individuals only through apps.",
+      "verdict": [["Bank CSV download", "Free, everywhere", "Recommended"], ["Wealthsimple / Koho in-app export", "Clean CSV", "Good"], ["Aggregator through an app", "Continuous, third party", "Fine"]],
+      "institutions": [
+        {"name": "RBC", "path": "Online Banking → Download transactions (under Account services) → CSV", "formats": "CSV, QFX, QBO, OFX", "columns": "Account Type, Account Number, Transaction Date, Cheque Number, Description 1, Description 2, CAD$, USD$", "documented": "2026-11-03", "verified": null},
+        {"name": "TD", "path": "EasyWeb → account → Download → CSV", "formats": "CSV, QFX, QBO, OFX", "columns": "Date, Description, Debit, Credit, Balance (no header row)", "documented": "2026-11-03", "verified": null},
+        {"name": "Scotiabank", "path": "Scotia OnLine → account → Download → CSV", "formats": "CSV, QFX, QBO, OFX", "columns": "Date, Amount, *, Type, Description", "documented": "2026-11-03", "verified": null},
+        {"name": "BMO", "path": "Online Banking → account → Download transactions → CSV", "formats": "CSV, QFX, QBO, OFX", "columns": "First Bank Card, Transaction Type, Date Posted, Transaction Amount, Description", "documented": "2026-11-03", "verified": null}
+      ],
+      "agent": "Supervised browser for downloads."
+    },
+    {
+      "code": "EU", "name": "Eurozone", "currency": "EUR", "fy": "Calendar year (most)",
+      "best": "PSD2 gives every account holder a right to regulated access, and GoCardless Bank Account Data (the former Nordigen) offers a free tier an individual can use for their own accounts. Neobanks (N26, bunq, Revolut) export CSV in-app; bunq also has a personal API.",
+      "verdict": [["GoCardless Bank Account Data, free tier", "Your own accounts, 2,300 banks, an API you own", "Recommended for the tinkerer"], ["In-app CSV export (N26, bunq, Revolut)", "Seconds", "Recommended"], ["Traditional bank CSV/MT940/CAMT", "Works, formats vary by country", "Fallback"]],
+      "institutions": [
+        {"name": "N26", "path": "Web app → My Account → Download statements → CSV", "formats": "CSV, PDF", "columns": "Date, Payee, Account number, Transaction type, Payment reference, Amount (EUR), Amount (Foreign Currency), Type Foreign Currency, Exchange Rate", "documented": "2026-11-03", "verified": null},
+        {"name": "bunq", "path": "App → account → Export → CSV, or a personal API key", "formats": "CSV, MT940, JSON API", "columns": "Date, Interest Date, Amount, Account, Counterparty, Name, Description", "documented": "2026-11-03", "verified": null},
+        {"name": "ING (NL/DE/BE)", "path": "Mijn ING / Banking → account → Download → CSV", "formats": "CSV, MT940, CAMT.053", "columns": "Datum, Naam/Omschrijving, Rekening, Tegenrekening, Code, Af Bij, Bedrag (EUR), Mutatiesoort, Mededelingen", "documented": "2026-11-03", "verified": null}
+      ],
+      "agent": "Token-based access first; supervised browser otherwise."
+    },
+    {
+      "code": "SG", "name": "Singapore", "currency": "SGD", "fy": "Calendar year",
+      "best": "SGFinDex lets a person pull their own data from every bank into approved apps; banks export CSV from internet banking.",
+      "verdict": [["SGFinDex through an approved app", "Consented, every bank", "Recommended"], ["Bank CSV download", "Works", "Fallback"]],
+      "institutions": [
+        {"name": "DBS / POSB", "path": "digibank → account → Download (CSV)", "formats": "CSV", "columns": "Transaction Date, Reference, Debit Amount, Credit Amount, Transaction Ref1/2/3", "documented": "2026-11-03", "verified": null},
+        {"name": "OCBC", "path": "Internet Banking → account → Download → CSV", "formats": "CSV", "columns": "Transaction date, Value date, Description, Withdrawals (SGD), Deposits (SGD)", "documented": "2026-11-03", "verified": null}
+      ],
+      "agent": "Supervised browser for downloads."
+    }
+  ],
+  "landing": {
+    "rule": "A file is never edited. It is saved as delivered into sources/<account>/<download date>/, then an importer reads it, maps its columns to the Transactions tab (Txn ID, Date, Account ID, Bank description, Merchant, Amount, Category ID, Person, Receipt held, Note), de-duplicates against what the sheet already holds, categorises against the household's rules and history, and writes a review list for anything it is not sure of. Only after a person settles the review does it append rows. Nothing is ever appended twice because the Txn ID carries on from the last one in the sheet and the Compliance Checks tab fails on repeats.",
+    "map": [
+      ["Date", "Parsed in the bank's own format (dd/mm/yyyy in AU, mm/dd/yyyy in the US, ISO from APIs); stored as a date"],
+      ["Amount", "One signed number: money in positive, money out negative. Debit/credit pairs and card-style positives are folded here"],
+      ["Bank description", "Exactly as delivered, so a row can always be found in the bank's own records"],
+      ["Merchant", "A cleaned name (\"WOOLWORTHS 3021 BRUNSWICK\" → Woolworths) from the household's rules; new ones are proposed, never guessed into history"],
+      ["Category ID", "From the Categories tab only; an unknown ID shows up in Compliance Checks"],
+      ["Person", "Jordan, Mia or Joint from the account or the card suffix"],
+      ["Receipt held / Note", "Left blank by the importer; a person adds them when it matters for tax"]
+    ]
+  }
+}
