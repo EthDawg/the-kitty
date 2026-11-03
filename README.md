@@ -85,6 +85,7 @@ python3 period-close/import_month.py 2027-02  # reads sources/, refuses rows alr
   ARRAYFORMULAs, so appended rows need nothing else. The one thing to get right by hand is the first empty
   row: the header makes T0001 row 2.
 - The close is done when every Close check on Compliance Checks is OK and `close.items_missing` is 0.
+- The sheet's bound Apps Script serves the JSON feed only while the Kitty tab says `public_feed = yes`. The demo sheet says yes because every number in it is fictional; a household with real money leaves it off and reads live through the connector instead.
 
 ## Make it yours
 

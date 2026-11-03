@@ -7,12 +7,26 @@
 // snapshots, and for The Kitty's bundled demo data (kitty/snapshot.py).
 function doGet(e) {
   if (e && e.parameter && e.parameter.format === 'json') {
+    // The feed is public by design for a fictional sheet. A household that keeps real money here must not
+    // turn it on: it serves only when the Kitty tab says public_feed = yes.
+    if (!publicFeedAllowed()) {
+      return ContentService.createTextOutput(JSON.stringify({ error: 'feed_off', message: 'This sheet does not publish a JSON feed. Set public_feed to yes on the Kitty tab only if every number in the sheet may be public.' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     return ContentService.createTextOutput(JSON.stringify(getData())).setMimeType(ContentService.MimeType.JSON);
   }
   return HtmlService.createTemplateFromFile('index').evaluate()
     .setTitle('Davies Household Finance')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function publicFeedAllowed() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Kitty');
+  if (!sh || sh.getLastRow() < 2) return false;
+  const rows = sh.getRange(1, 1, sh.getLastRow(), 2).getValues();
+  const row = rows.find((r) => String(r[0]).trim() === 'public_feed');
+  return !!row && String(row[1]).trim().toLowerCase() === 'yes';
 }
 
 // One call returns every table the pages draw, as raw cell values (not display text).
