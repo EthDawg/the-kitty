@@ -18,6 +18,8 @@ Reproduce the Node checks from the repository root:
 node --test native-core/import.test.js import-service/core.test.mjs ai-service/ask.test.mjs service/server.test.mjs ios/scripts/projection.test.cjs test.js
 ```
 
+Repository CI now includes these checks and a macOS simulator job for native unit tests and fictional household journeys. The workflow YAML and deterministic project generation were checked locally; the new GitHub jobs have not run because this branch has not been pushed.
+
 The [screenshot inventory](evidence/SCREENSHOTS.md) retains 26 full-resolution originals with workflow and evidence limits. The paired iPhone was available with Developer Mode enabled, but installation stopped at the developer-image mount because the phone was locked. Installation and physical-phone acceptance remain unverified; unlock the phone before retrying. Raw device logs stay local because they include device identifiers.
 
 ## Integration before submission

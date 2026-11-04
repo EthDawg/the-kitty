@@ -9,7 +9,10 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: node --test test.js
+      - name: artifact, native projection, import and Ask checks
+        run: node --test native-core/import.test.js import-service/core.test.mjs ai-service/ask.test.mjs service/server.test.mjs ios/scripts/projection.test.cjs test.js
+      - name: bundled importer matches the shared source
+        run: cmp native-core/import.js ios/Kitty/Resources/import.js
       - run: python3 -m py_compile build.py snapshot.py period-close/adapters.py period-close/simulate.py period-close/import_month.py
       - run: python3 build.py && test -s dist/kitty.html
       - name: every inline script parses

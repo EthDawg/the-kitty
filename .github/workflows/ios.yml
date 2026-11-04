@@ -1,0 +1,48 @@
+name: iOS
+
+on: [push, pull_request]
+
+jobs:
+  native:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Regenerate the Xcode project
+        run: |
+          python3 ios/scripts/generate_project.py
+          git diff --exit-code -- ios/Kitty.xcodeproj
+      - name: Select an available iPhone simulator
+        id: simulator
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, uuid
+          inventory = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "--json"]))
+          phones = [device for runtime, devices in inventory["devices"].items()
+                    if ".iOS-" in runtime for device in devices
+                    if device["name"].startswith("iPhone") and device["isAvailable"]]
+          if not phones:
+              raise SystemExit("The runner has no available iPhone simulator.")
+          device = phones[0]
+          identifier = device["udid"]
+          uuid.UUID(identifier)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("id=" + identifier + "\n")
+          print("Selected " + device["name"])
+          PY
+      - name: Run native tests and fictional household journeys
+        run: |
+          xcodebuild -project ios/Kitty.xcodeproj -scheme Kitty -configuration Debug \
+            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}' \
+            -derivedDataPath ios/build -resultBundlePath ios/evidence/ci.xcresult \
+            -parallel-testing-enabled NO -test-timeouts-enabled YES \
+            -maximum-test-execution-time-allowance 150 CODE_SIGNING_ALLOWED=NO test
+      - name: Retain test results and full-resolution screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kitty-ios-test-results
+          path: ios/evidence/ci.xcresult
+          if-no-files-found: ignore
+          retention-days: 14
