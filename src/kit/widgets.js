@@ -69,6 +69,8 @@
     items.sort((a, b) => a.y - b.y || a.x - b.x);
     return { items, added: added.map((w) => w.id), hiddenOn: ws.filter((w) => hidden.has(w.id)).map((w) => w.id) };
   };
+  // Saving keeps what a lost signal took off the page, so it can come back where it was; a hidden widget was taken off on purpose.
+  K.keepAbsent = (items, prior, hidden) => { const here = new Set(items.map((i) => i.id)), off = new Set(hidden || []); return items.concat((prior || []).filter((i) => !here.has(i.id) && !off.has(i.id))); };
   // Move an item up or down the reading order; the arrows land here, and the page packs the result.
   K.reorder = (items, id, delta) => {
     const a = items.slice(); const i = a.findIndex((x) => x.id === id), j = i + delta; if (i < 0 || j < 0 || j >= a.length) return items;

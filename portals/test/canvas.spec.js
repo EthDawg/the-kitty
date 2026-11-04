@@ -91,3 +91,9 @@ test.describe("phone", () => {
     await open(page); expect((await ids(page)).slice(0, 3)).toEqual(["hero", "review", "needs"]);
   });
 });
+
+test("the undo cannot be clicked once the toast has gone", async ({ page }) => {
+  await open(page); await expect(page.locator("#toast")).toHaveClass(/on/);
+  await expect(page.locator("#toast")).not.toHaveClass(/on/, { timeout: 9000 });
+  await expect(page.locator("#toast button")).toHaveCount(0);
+});

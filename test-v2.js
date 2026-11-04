@@ -248,3 +248,11 @@ test("resize is a variant, not a stretch; reorder swaps neighbours and stops at 
   const items = [{ id: "a" }, { id: "b" }, { id: "c" }];
   assert.deepEqual(W.reorder(items, "b", -1).map((i) => i.id), ["b", "a", "c"]); assert.equal(W.reorder(items, "a", -1), items); assert.equal(W.reorder(items, "c", 1), items);
 });
+
+test("widgets: saving keeps what a lost signal took off the page, and never what was hidden", () => {
+  const prior = [{ id: "hero", x: 0, y: 0, w: 12 }, { id: "property", x: 0, y: 1, w: 6 }, { id: "super", x: 6, y: 1, w: 6 }];
+  const kept = W.keepAbsent([{ id: "hero", x: 0, y: 0, w: 12 }], prior, ["super"]);
+  assert.deepEqual(kept.map((i) => i.id), ["hero", "property"]);
+  assert.deepEqual(kept[1], prior[1]);
+  assert.deepEqual(W.keepAbsent(kept, undefined, []).map((i) => i.id), ["hero", "property"]);
+});
