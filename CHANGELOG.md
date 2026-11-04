@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0, in progress
+
+- Importer: overlapping exports in one run take each row once (a card calendar export plus a statement export gave 38 rows for 25), and a closing balance that disagrees with the ledger holds the run. Tests in `period-close/test_import_month.py`.
+- Portals on Vercel (phase E): https://the-kitty-portals.vercel.app. Seven parody portals with original wordmarks and a DEMO banner (Westpaw, CommBark, Amewx, PING, PropertyMeow, Pawroll, Purrsure) sign in with any name and the password `demo` and return server-generated downloads in the real institutions' column shapes, PDFs through pdf-lib. `portals/build-data.py` builds the data from the sheet's snapshot and the simulator, so a closed month downloaded there is byte-identical to the file under `sources/`. The CommBank headerless shape joins `period-close/adapters.py`; `import_month.py` takes `--sources` and `--out` and reads each account's institution from the sheet's Accounts tab. A Playwright job in CI downloads every shape, imports, reconciles, and shows a repeated month appends nothing. Jordan's old everyday at CommBark exists only in the portals, labelled.
+
 ## 2.0, phase A: the ledger — 4 November 2026 (unreleased, branch `v2-ledger`)
 - A copy of the demo sheet, "Digital Davies v2" (`kitty.config.json`, `v2_sheet`), migrated to the ledger model. The published 1.1 page and the sheet it reads are untouched; the artifact was not republished.
 - New tabs: Accounts extended to every store of value (the six cash accounts, the home, the Geelong townhouse, both loans, two supers, the ETFs, the car) with class, valuation method, currency, status, purpose and linked account; Entries (925 transactions with Up's vocabulary, 152 valuations from appraisals and statements, one trade); Balances (every account at every month end, by formula: anchor plus entries, or the last valuation carried forward); Contracts (17 subscriptions and policies, the two loan terms, the lease); Decisions (keep or cancel per contract, a planned refresh); Rules (85 descriptor patterns from history).

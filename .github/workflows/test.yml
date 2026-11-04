@@ -10,6 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: node --test test.js test-v2.js
+      - run: python3 -m unittest discover -s period-close
       - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py
       - run: python3 build.py && test -s dist/kitty.html
       - run: python3 build.py --v2 && test -s dist/kitty-v2.html
@@ -21,3 +22,24 @@ jobs:
         run: python3 period-close/import_month.py 2027-01 --sheet data/snapshot-v2.json | grep -q "0 rows to append"
       - name: the fixtures are exactly what the snapshot cuts
         run: python3 fixtures/make-v2-fixtures.py && git diff --exit-code --stat fixtures/
+
+  portals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: npm ci
+        working-directory: portals
+      - name: the simulator still builds the portals' data
+        run: python3 portals/build-data.py --out /tmp/months.json
+      - run: npx playwright install --with-deps chromium
+        working-directory: portals
+      - name: sign in, download every shape, import, reconcile, repeat appends nothing
+        run: npx playwright test
+        working-directory: portals
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: portals/playwright-report, retention-days: 7 }
