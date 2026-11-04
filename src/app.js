@@ -179,7 +179,7 @@
   const canWriteSheet = () => S.mode === "live" && S.canWrite;
 
   // ---------- small UI helpers ----------
-  function toast(msg, ms = 2600) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.remove("on"), ms); }
+  function toast(msg, ms = 2600, action) { const t = $("#toast"); t.textContent = msg; if (action) { const b = document.createElement("button"); b.textContent = action.label; b.addEventListener("click", () => { t.classList.remove("on"); action.fn(); }); t.append(" ", b); } t.classList.add("on"); clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.remove("on"), ms); }
   function setPill(kind, text) { const p = $("#trustpill"); p.className = "pill " + kind + (kind === "live" ? " live" : ""); p.querySelector(".txt").textContent = text; }
   function ago(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; }
   function readAgeText() { if (S.mode !== "live") return ""; if (S.unknownReadAge || S.storedAt == null) return "Connector read age unavailable; Refresh asks for fresh data."; return `Oldest connector read ${ago(S.storedAt)}. That is the connector's cache, not the date of the money.`; }
@@ -329,16 +329,80 @@
   }
 
   // ----- Home -----
+  // ----- Home is the canvas: widgets from the kit, laid out per person. The page is a plain CSS grid until GridStack mounts on it, so a
+  // blocked script costs dragging, not the page. Heights follow the content; a width snaps to a size the manifest declares. -----
+  const isPhone = () => window.matchMedia("(max-width:819px)").matches;
+  const fixedLayout = () => FLAGS.get("layout") === "default";   // ?layout=default for screenshots: no saved layout, nothing written
+  const WID = (m) => Kit.eligible(m, E.signals(m));
+  const savedLayout = () => (fixedLayout() ? null : S.prefs.layout || null);
+  const saveLayout = (items) => { if (fixedLayout()) return; const l = S.prefs.layout || {}; savePrefs({ layout: { items, hidden: l.hidden || [], seen: l.seen || [] } }); };
+  function homeLayout() {
+    const lay = Kit.layout(WID(S.m), savedLayout());
+    if (lay.added.length && !fixedLayout()) {
+      const was = S.prefs.layout || {}; const hidden = was.hidden || [], seen = (was.seen || []).concat(lay.added), added = lay.added;
+      savePrefs({ layout: { items: lay.items, hidden, seen } });
+      const names = added.map((id) => Kit.widget(id).title);
+      toast(`New on Home: ${names.join(", ")}, because your sheet has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; savePrefs({ layout: { items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen } }); renderHome(); mountCanvas(); } });
+    }
+    return lay;
+  }
+  function canvasHTML(lay) {
+    const m = S.m; const a = !!S.arrange, phone = isPhone();
+    const cell = (it, i, n) => {
+      const w = Kit.widget(it.id), variant = Kit.variant(w, it.w);
+      const body = w.core ? w.render(w.data(m), variant) : `<div class="card">${w.render(w.data(m), variant)}</div>`;
+      const tools = a ? `<div class="wtools"><span class="whandle" aria-hidden="true">⠿</span><span class="wname">${esc(w.title)}</span><button class="wbtn" data-wmove="${esc(it.id)}:-1" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(w.title)} up">↑</button><button class="wbtn" data-wmove="${esc(it.id)}:1" ${i === n - 1 ? "disabled" : ""} aria-label="Move ${esc(w.title)} down">↓</button><button class="wbtn" data-whide="${esc(it.id)}" aria-label="Hide ${esc(w.title)}">Hide</button></div>` : "";
+      return `<div class="wcell grid-stack-item" data-wid="${esc(it.id)}" gs-id="${esc(it.id)}" gs-x="${it.x}" gs-y="${it.y}" gs-w="${it.w}" gs-h="1" gs-min-w="${Math.min(...w.sizes.map((s) => s.w))}" gs-size-to-content="true" style="--ww:${it.w};--i:${Math.min(i, 5)}"><div class="grid-stack-item-content"><div class="wbox">${tools}${body}</div></div></div>`;
+    };
+    const hiddenOn = lay.hiddenOn;
+    const bar = `<div class="arrangebar">${a ? `${hiddenOn.length ? `<span class="sub">Hidden:</span>${hiddenOn.map((id) => `<button class="chip" data-wshow="${esc(id)}">+ ${esc(Kit.widget(id).title)}</button>`).join("")}` : ""}<button class="linkbtn" data-wreset>Back to the default</button><button class="btn sm" data-arrange>Done</button>` : `<button class="linkbtn" data-arrange>Arrange this page</button>`}</div>`;
+    return `<div class="canvas${a ? " arranging" : ""}${phone ? " phone" : ""}" id="canvas">${lay.items.map((it, i) => cell(it, i, lay.items.length)).join("")}</div>${fixedLayout() ? "" : bar}`;
+  }
+  function unmountCanvas() { if (S.grid) { try { S.grid.destroy(false); } catch (e) { /* the DOM is about to go */ } S.grid = null; } }
+  // GridStack measures, so it mounts only on a visible Home: renderAll also runs behind other tabs.
+  function mountCanvas() {
+    const el = $("#canvas"); if (!el || S.grid || S.tab !== "home" || isPhone() || !window.GridStack) return;
+    el.classList.add("grid-stack");
+    try {
+      S.grid = window.GridStack.init({ column: 12, cellHeight: 8, margin: 8, float: false, sizeToContent: true, animate: false, staticGrid: !S.arrange, resizable: { handles: "e" }, alwaysShowResizeHandle: true, cancel: ".wbtn" }, el);
+      S.grid.on("dragstop resizestop", (ev, item) => {
+        const w = Kit.widget(item.getAttribute("gs-id")); const node = item.gridstackNode;
+        if (ev.type === "resizestop") { const size = Kit.snapWidth(w, node.w); if (size.w !== node.w) S.grid.update(item, { w: size.w }); }
+        saveLayout(S.grid.engine.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w: n.w })).sort((a, b) => a.y - b.y || a.x - b.x));
+        if (ev.type === "resizestop") setTimeout(renderHome);   // a new width can mean a new variant; never destroy the grid inside its own event
+      });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S.grid) S.grid.engine.nodes.forEach((n) => S.grid.resizeToContent(n.el)); });
+    } catch (e) { console.error("canvas", e); S.grid = null; el.classList.remove("grid-stack"); }
+  }
+  // the reading order, for the phone's handle and for the arrows
+  const currentItems = () => Kit.layout(WID(S.m), savedLayout()).items;
+  function applyOrder(items) { saveLayout(Kit.pack(items)); renderHome(); }
+  function bindCanvas(v) {
+    $$("[data-arrange]", v).forEach((b) => b.addEventListener("click", () => { S.arrange = !S.arrange; renderHome(); }));
+    $$("[data-wreset]", v).forEach((b) => b.addEventListener("click", () => { const ws = WID(S.m); savePrefs({ layout: { items: Kit.layout(ws, null).items, hidden: [], seen: ws.filter((w) => !w.core).map((w) => w.id) } }); renderHome(); toast("Back to the default page"); }));
+    $$("[data-wmove]", v).forEach((b) => b.addEventListener("click", () => { const [id, d] = b.dataset.wmove.split(":"); applyOrder(Kit.reorder(currentItems(), id, +d)); const n = $(`[data-wmove="${id}:${d}"]`); if (n && !n.disabled) n.focus(); }));
+    $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; savePrefs({ layout: { items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] } }); renderHome(); }));
+    $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); savePrefs({ layout: { items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] } }); renderHome(); }));
+    // the phone reorders by a handle: drag it past a neighbour and the cells swap, keeping the reading order as the only state
+    const c = $("#canvas"); if (!c || !c.classList.contains("phone") || !S.arrange) return;
+    $$(".whandle", c).forEach((h) => h.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault(); const cell = h.closest(".wcell"); cell.classList.add("lifted");   // on window, because moving the cell drops any pointer capture
+      const move = (e) => { const over = document.elementFromPoint(e.clientX, e.clientY); const t = over && over.closest(".wcell"); if (!t || t === cell) return; const r = t.getBoundingClientRect(); c.insertBefore(cell, e.clientY > r.top + r.height / 2 ? t.nextSibling : t); };
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up); cell.classList.remove("lifted"); const byId = new Map(currentItems().map((i) => [i.id, i])); applyOrder($$(".wcell", c).map((x) => byId.get(x.dataset.wid))); };
+      window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+    }));
+  }
   function renderHome() {
     const m = S.m, v = $("#v-home");
+    unmountCanvas();
     if (!m.tx.length) { v.innerHTML = `<div class="card hero"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">Your sheet is set up. It just has no transactions yet.</h1><p class="vs">Bring in the last three months from each account (Setup → Getting your data in), run the importer, append the rows, move the As-of date. The page fills in as the sheet does.</p><div class="heronum"><button class="btn lime" data-go="setup">How to bring data in</button></div></div>`; bindCommon(v); return; }
     const nd = E.needs(m); const last = m.cashflow[m.cashflow.length - 1];
     const nw = m.metrics["networth.total"], sr = m.metrics["cashflow.savings_rate.3m"], cash = m.metrics["networth.cash"], sav = m.metrics["savings.recurring_per_year"];
     const sf = E.safety(m); const up = E.upcoming(m); const ahead = E.num(m.kitty.look_ahead_days) || 35; const pay = E.payday(m)[0]; const lead = leadGoal();
     const nwDelta = nw && nw.comp != null ? nw.num - nw.comp : null;
     const hour = new Date().getHours(); const hello = hour < 5 ? "Still up" : hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-    v.innerHTML = `
-      <div class="card hero" style="--i:0"><div class="blob"></div><div class="blob2"></div>
+    const parts = {
+      hero: `<div class="card hero"><div class="blob"></div><div class="blob2"></div>
         <div class="hi"><span>${hello}, ${esc(greeting())}</span><span class="wave" aria-hidden="true">👋</span>${greeting() !== m.householdName.replace(/^The /, "") ? `<span class="muted">· ${esc(m.householdName)}</span>` : ""}</div>
         <h1 class="vh">${esc(nd.verdict)}</h1>
         <p class="vs">${esc(nd.line)} ${last ? `In ${E.fmtMonth(last.month).split(" ")[0]} you kept <b>${fmt0(last.net)}</b> of the <b>${fmt0(last.income)}</b> that came in.` : ""}</p>
@@ -349,35 +413,37 @@
           <button class="fact" data-go="goals"><b class="num">${sf.months != null ? sf.months.toFixed(1) : "—"} of ${sf.target}</b><span class="k">months of safety net</span>${sf.months != null ? `<span class="d ${sf.months >= sf.target ? "gain" : "loss"}">${sf.months >= sf.target ? "covered" : `${fmtS(sf.short)} short`}</span>` : ""}</button>
           <button class="fact" data-go="goals:save"><b class="num">${fmtS(sav ? sav.num : null)}</b><span class="k">a year the sheet found to save</span><span class="d">${m.savings.length} ideas</span></button>
         </div>
-      </div>
-      ${review().items.length ? `<button class="card rtile" style="--i:0.5" data-go="review"><span class="ric">${ico("i-review")}</span><span class="mid"><span class="t">${review().items.length === 1 ? "One entry needs a look" : `${review().items.length} entries need a look`}</span><span class="s">${Object.entries(review().counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "uncategorised", unresolved: "no rule knows", duplicate: "doubled", unpaired: "unpaired transfer", first_big: "first big bill" }[k]}`).join(" · ")} · one or two taps each</span></span>${ico("i-chev", "chev")}</button>` : ""}
-      <div class="card needs" style="--i:1">
+      </div>`,
+      review: review().items.length ? `<button class="card rtile" data-go="review"><span class="ric">${ico("i-review")}</span><span class="mid"><span class="t">${review().items.length === 1 ? "One entry needs a look" : `${review().items.length} entries need a look`}</span><span class="s">${Object.entries(review().counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "uncategorised", unresolved: "no rule knows", duplicate: "doubled", unpaired: "unpaired transfer", first_big: "first big bill" }[k]}`).join(" · ")} · one or two taps each</span></span>${ico("i-chev", "chev")}</button>` : "" || null,
+      needs: `<div class="card needs">
         <div class="cardhead"><span class="q">What needs you</span>${nd.more ? `<button class="linkbtn" data-open="needs">All ${nd.all.length} →</button>` : ""}</div>
         ${nd.items.length ? `<div class="nlist">${nd.items.map(needHTML).join("")}</div>` : `<div class="okline">${ico("i-check")} Nothing needs you today.</div>`}
-      </div>
-      <div class="grid" style="--i:2">
-        <div class="card span-5">
+      </div>`,
+      upcoming: `<div class="card">
           <div class="cardhead"><span class="q">What's coming up</span><button class="linkbtn" data-open="upcoming">Next ${ahead} days →</button></div>
           ${pay ? (() => { const sp = E.sinceLastPay(m); return `<div class="payday"><span class="n num">${pay.days}</span><span><span>day${pay.days === 1 ? "" : "s"} to ${esc(pay.person)}'s pay day</span><span class="s"> · about ${fmt0(pay.net)} on ${E.weekday(pay.next)}</span>${sp ? `<span class="s" style="display:block">Since the last pay (${E.fmtDay(sp.date)}): ${fmt0(sp.out)} spent, ${sp.days} day${sp.days === 1 ? "" : "s"}</span>` : ""}</span></div>`; })() : ""}
           <div class="uplist" style="margin-top:10px">${up.filter((u) => u.kind !== "pay").slice(0, 5).map(upHTML).join("") || `<div class="empty">Nothing due in the next ${ahead} days.</div>`}</div>
-        </div>
-        <div class="card span-7">
+        </div>`,
+      months: `<div class="card">
           <div class="cardhead"><span class="q">The last 12 months</span><button class="linkbtn" data-go="insights">Insights →</button></div>
           <div class="statline">${last ? `<div class="stat"><div class="k">In · ${E.fmtMonth(last.month, true)}</div><div class="v num" style="color:var(--c-in)">${fmt0(last.income)}</div></div><div class="stat"><div class="k">Out</div><div class="v num" style="color:var(--c-out)">${fmt0(last.spending)}</div></div><div class="stat"><div class="k">Kept</div><div class="v num" style="color:${last.net >= 0 ? "var(--c-kept)" : "var(--c-dip)"}">${fmt0(last.net)}<small>${E.fmtPct(last.rate, 0)}</small></div></div>` : ""}</div>
           <div id="homebars">${monthBarsSVG(m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending })))}</div>
-        </div>
-      </div>
-      <div class="card" style="--i:3">
+        </div>`,
+      goals: m.goals.length ? `<div class="card">
         <div class="cardhead"><span class="q">Saving for</span><button class="linkbtn" data-go="goals">Goals →</button></div>
         <div class="gtiles" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">${m.goals.map((g) => goalTile(g, g === lead)).join("")}</div>
-      </div>
-      <div class="card" style="--i:4">
+      </div>` : null,
+      ideas: m.savings.length ? `<div class="card">
         <div class="cardhead"><span class="q">Ways to get there faster</span><button class="linkbtn" data-go="goals:save">All ${m.savings.length} →</button></div>
         <div class="gtiles" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">${m.savings.slice(0, 3).map(ideaTile).join("")}</div>
-      </div>
-      <p class="sub" style="--i:5;padding:0 6px">${S.mode === "live" ? `Live from ${isDemoSheet() ? "the demo sheet" : "your sheet"}. ${esc(readAgeText())}` : "Demo household: the Davies, a fictional family in Melbourne, numbers made up to tell a story."} <button class="linkbtn" data-open="trust">Where the numbers come from</button></p>`;
+      </div>` : null,
+    };
+    Kit.bindCore(Object.fromEntries(Object.entries(parts).map(([id, html]) => [id, { data: () => html, render: (p) => p }])));
+    const lay = homeLayout();
+    v.innerHTML = `${canvasHTML(lay)}
+      <p class="sub" style="padding:0 6px">${S.mode === "live" ? `Live from ${isDemoSheet() ? "the demo sheet" : "your sheet"}. ${esc(readAgeText())}` : "Demo household: the Davies, a fictional family in Melbourne, numbers made up to tell a story."} <button class="linkbtn" data-open="trust">Where the numbers come from</button></p>`;
     const hv = $("#heroval"); if (hv && cash) countUp(hv, cash.num, (x) => fmt0(x), "hero");
-    bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending })));
+    bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending }))); bindCanvas(v); mountCanvas();
     // confetti once per device, and only when the person is looking at Home
     if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name) && S.tab === "home" && document.visibilityState === "visible") { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 500); }
   }
@@ -1235,7 +1301,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
     $$("section.view").forEach((s) => s.classList.toggle("on", s.id === `v-${t}`));
     moveGlow(); closeDrawer();
-    if (t === "home" && was !== "home" && S.m) { const lead = leadGoal(); if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name)) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 400); } }
+    if (t === "home" && was !== "home" && S.m) { mountCanvas(); const lead = leadGoal(); if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name)) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 400); } }
     if (!quiet) { window.scrollTo({ top: 0, behavior: "auto" }); if (was !== t) buzz(); }
     store.set("tab", t);
   }
@@ -1245,6 +1311,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   // worth_it_min is a Kitty-tab key (default 40); written once if the sheet lacks it, so the threshold has a sheet owner
   async function ensureWorthKey() { if (!canWriteSheet() || S.m.sheetVersion < 2 || S.m.kitty.worth_it_min != null && S.m.kitty.worth_it_min !== "" || S.wroteWorthKey) return; S.wroteWorthKey = true; try { await writeKitty("worth_it_min", 40); S.m.kitty.worth_it_min = "40"; } catch (e) { /* the default stands */ } }
   async function boot() {
+    window.matchMedia("(max-width:819px)").addEventListener("change", () => { if (S.m) renderHome(); });
     const saved = store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
     if (SNAP) { setModel(demoModel()); renderAll(); }
     if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);

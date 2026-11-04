@@ -55,7 +55,7 @@ sprite_start = shell.index('<svg width="0" height="0"')
 sprite_end = shell.index('</svg>', sprite_start) + len('</svg>')
 shell = shell[:sprite_start] + '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' + symbols + '</defs></svg>' + shell[sprite_end:]
 page = (shell
-        .replace('/*STYLE*/', read(SRC, 'style.css') + '\n' + read(BRAND, 'motion', 'motion.css'))
+        .replace('/*STYLE*/', read(SRC, 'vendor', 'gridstack-14.0.0.min.css') + '\n' + read(SRC, 'style.css') + '\n' + read(BRAND, 'motion', 'motion.css'))
         .replace('/*SOURCES*/', 'window.KITTY_SOURCES=' + js(sources) + ';window.KITTY_MERCHANTS=' + js(merchants) + ';window.KITTY_ART=' + js(art) + ';window.KITTY_LOGOS=' + js(logos) + ';')
         .replace('/*SNAPSHOT*/', 'window.KITTY_SNAPSHOT=' + js(snapshot) + ';window.KITTY_PAGE_URL=' + js(PAGE_URL) + ';window.KITTY_SHEET=' + js(sheet_id) + ';')
         .replace('/*MOTION*/', read(BRAND, 'motion', 'motion.js'))

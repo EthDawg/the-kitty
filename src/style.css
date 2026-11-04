@@ -490,10 +490,38 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .cost .c span{font-size:13px;color:var(--ink2)}
 .srcbook{display:flex;gap:10px;align-items:baseline;margin:12px 0 4px;font-size:14px;flex-wrap:wrap}
 
+/* ---------- the canvas: a plain grid until GridStack mounts ---------- */
+.canvas{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.canvas>.wcell{grid-column:span var(--ww);min-width:0}
+.canvas>.wcell>.grid-stack-item-content{height:100%}
+.wbox{height:100%;display:flex;flex-direction:column;min-width:0}.wbox>.card{flex:1}
+.canvas.grid-stack{display:block;margin:-8px}
+.canvas.grid-stack .wbox{height:auto}
+.canvas.grid-stack>.grid-stack-item>.grid-stack-item-content{overflow:visible}
+.anim .view.on .canvas>.wcell{animation:rise .55s var(--ease) both;animation-delay:calc(var(--i,0) * 60ms)}
+.canvas .grid-stack-placeholder>.placeholder-content{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:var(--r)}
+.canvas.arranging .wbox>:not(.wtools){pointer-events:none}
+.canvas.arranging .wbox{outline:2px dashed var(--line);outline-offset:2px;border-radius:var(--r);cursor:grab}
+.wtools{display:flex;align-items:center;gap:6px;padding:0 4px 8px;font-size:13px;color:var(--ink2)}
+.wtools .wname{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whandle{display:inline-flex;touch-action:none;cursor:grab;padding:6px;color:var(--muted)}.whandle svg{width:18px;height:18px}
+.wbtn{min-width:36px;min-height:36px;padding:4px 10px;border-radius:10px;background:var(--surface2);color:var(--ink);font:inherit;font-size:13px}
+.wbtn:disabled{opacity:.4}
+.wcell.lifted{opacity:.7}
+.canvas.phone.arranging .wbox>:not(.wtools){max-height:92px;overflow:hidden}
+.canvas .ui-resizable-e{width:14px;right:-2px;top:12px;bottom:12px;cursor:ew-resize;border-radius:7px;background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.arrangebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end;padding:12px 6px 4px}
+.wlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.wrow{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.wrow .mid{display:flex;flex-direction:column;min-width:0}.wrow .t{font-weight:600}.wrow .s{font-size:12.5px;color:var(--muted)}
+.wtotal{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.toast button{pointer-events:auto;margin-left:8px;color:inherit;font:inherit;text-decoration:underline;background:none}
+
 /* ---------- responsive ---------- */
 @media (max-width:819px){
   header.top{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}
   .span-8,.span-7,.span-6,.span-5,.span-4{grid-column:span 12}
+  .canvas>.wcell{grid-column:span 12}
   nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);justify-content:space-around;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));gap:0}
   nav.tabs button{flex:1;flex-direction:column;gap:3px;font-size:11px;padding:6px 4px;border-radius:14px;color:var(--muted);min-width:0}
   nav.tabs .ic{width:24px;height:24px;transition:transform .35s var(--spring)}

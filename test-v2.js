@@ -207,3 +207,44 @@ test("5,000 entries: the model builds and the list for the first screen renders 
   const t1 = Date.now(); const rv = E.review(m); const ctx = Kit.context(m, { reviewIds: rv.byId }); const rows = m.entries.slice().reverse().filter((e) => e.kind === "transaction" && e.flow !== "Transfer").slice(0, 80); const html = Kit.EntryList(rows, ctx); const drew = Date.now() - t1;
   assert.ok(html.length > 10000); assert.ok(drew < 200, `${drew} ms to derive and render the first screen over ${m.entries.length} entries (model ${built} ms)`);
 });
+
+// ---------- phase C: widgets, signals, the canvas ----------
+const W = require("./src/kit/widgets.js");
+const shown = (sn, saved) => { const m = E.model(sn); const ws = W.eligible(m, E.signals(m)); return { m, ws, l: W.layout(ws, saved) }; };
+test("manifests: unique ids, every required signal exists, declared sizes fit the twelve columns, every widget says where it drills", () => {
+  const signals = E.signals(E.model(live)); const ids = W.WIDGETS.map((w) => w.id);
+  assert.equal(new Set(ids).size, ids.length);
+  for (const w of W.WIDGETS) {
+    assert.ok(w.domain && w.title && w.drill, w.id); assert.ok(w.sizes.length && w.sizes.every((s) => s.w >= 1 && s.w <= 12 && s.variant), w.id);
+    for (const r of w.requires) assert.ok(r in signals, `${w.id} requires ${r}`);
+    if (!w.core) { assert.equal(typeof w.data, "function", w.id); assert.equal(typeof w.render, "function", w.id); }
+  }
+});
+test("everyday-only shows no property widget and no empty tile; everyday+property turns the property widget on", () => {
+  const e = shown(everyday); const eIds = e.ws.map((w) => w.id);
+  for (const id of ["property", "super", "shares", "crypto", "things"]) assert.ok(!eIds.includes(id), id);
+  for (const w of e.ws) if (w.data) { const html = w.render(w.data(e.m), "half"); assert.ok(html.length > 40 && !/undefined|NaN/.test(html), `${w.id}: ${html}`); }
+  const p = shown(property); assert.ok(p.ws.some((w) => w.id === "property")); assert.ok(p.l.added.includes("property"));
+  const pw = W.widget("property"), data = pw.data(p.m);
+  near(data.total, p.m.accounts.filter((a) => a.type === "Property" && a.status === "active").reduce((s, a) => s + a.balance, 0), 0.01);
+});
+test("beta accounts never turn a widget on, and a held widget's total equals the sheet's balances", () => {
+  const { m, ws } = shown(live); assert.ok(!ws.some((w) => w.id === "crypto"), "CRYPTO is beta");
+  near(W.widget("super").data(m).total, m.accounts.filter((a) => a.type === "Super" && a.status === "active").reduce((s, a) => s + a.balance, 0), 0.01);
+  assert.ok(!W.widget("super").data(m).rows.some((r) => r.id === "SMSF"), "SMSF is beta");
+});
+test("a signal's widgets are added once: a first visit adds them, then they are seen; hiding sticks; a lost signal keeps its place", () => {
+  const first = shown(live); assert.ok(first.l.added.length >= 3); assert.ok(first.l.items.some((i) => i.id === "property"));
+  const saved = { items: first.l.items, hidden: [], seen: first.l.added };
+  assert.deepEqual(shown(live, saved).l.added, []);
+  const hid = { items: first.l.items, hidden: ["property"], seen: first.l.added };
+  const after = shown(live, hid); assert.ok(!after.l.items.some((i) => i.id === "property")); assert.deepEqual(after.l.added, []); assert.deepEqual(after.l.hiddenOn, ["property"]);
+  const fewer = shown(everyday, saved); assert.ok(!fewer.l.items.some((i) => i.id === "property"), "no signal, no tile");
+  const undone = { items: first.l.items.filter((i) => !first.l.added.includes(i.id)), hidden: first.l.added, seen: first.l.added };
+  assert.deepEqual(shown(live, undone).l.added, [], "the undo sticks");
+});
+test("resize is a variant, not a stretch; reorder swaps neighbours and stops at the ends", () => {
+  const w = W.widget("upcoming"); assert.equal(W.snapWidth(w, 4).w, 5); assert.equal(W.snapWidth(w, 10).w, 12); assert.equal(W.variant(w, 12), "wide");
+  const items = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  assert.deepEqual(W.reorder(items, "b", -1).map((i) => i.id), ["b", "a", "c"]); assert.equal(W.reorder(items, "a", -1), items); assert.equal(W.reorder(items, "c", 1), items);
+});
