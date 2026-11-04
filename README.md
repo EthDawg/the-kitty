@@ -47,7 +47,8 @@ reading the original sheet until phase C cuts over. `python3 build.py --v2` buil
 | `test.js` | Pinned tests on a frozen month (`fixtures/snapshot-2026-11.json`) plus invariants that also run on the live snapshot: transactions add up to the Cash Flow tab every month, accounts to the Cash metric, IDs unique. |
 | `test-v2.js` | The ledger's tests: the sheet's Balances tab is the oracle for every account at every month end; the transfer invariant; signals; on the live v2 snapshot and the fixtures `everyday-only` and `everyday+property` (cut by `fixtures/make-v2-fixtures.py`). |
 | `skills/bank-export/SKILL.md` | The agent skill for the monthly export, country-aware, credential-free. |
-| `portals/` | The parody portals on Vercel (https://the-kitty-portals.vercel.app): static pages, four Node functions, `build-data.py`, the Playwright proof. |
+| `portals/` | The parody portals on Vercel (https://the-kitty-portals.vercel.app): eight years of the household's files, static pages, four Node functions, `history.py` and `build-data.py`, the Playwright proof. |
+| `sources/` | The bank files as delivered, one per account per month since March 2019, in each institution's shape; what the importer reads. |
 
 ## Build, test, publish
 
@@ -121,36 +122,43 @@ python3 period-close/import_month.py 2027-02  # reads sources/, refuses rows alr
 
 ## Portals (the end-to-end proof)
 
-**https://the-kitty-portals.vercel.app** serves the Davies household's files from seven parody portals, in a plain
-browser, as real downloads: Westpaw (the Westpac CSV shape), CommBark (CommBank's headerless four-column export),
-Amewx (the American Express statement shape, with statement periods that close mid-month), PING (the ING shape),
-PropertyMeow (owner statements per investment property), Pawroll (payslips) and Purrsure (landlord and home
-insurance renewals). Sign in with **any name and the password `demo`**. Each portal lists its accounts, takes a date
-range and a format, and the Export button returns a server-generated file with `Content-Disposition: attachment`:
-CSV in the institution's exact column shape, PDF through pdf-lib for statements, loan statements, owner statements,
-payslips and renewal notices.
+**https://the-kitty-portals.vercel.app** holds the fictional Davies household's whole financial life, from the day the
+home settled in March 2019 to two months past the sheet's as-of date, behind seven parody portals that work the way
+the real ones do: Westpaw (the Westpac CSV shape), CommBark (CommBank's headerless four-column export), Amewx (the
+American Express statement shape, statement periods closing on the 14th), PING (the ING shape), PropertyMeow (owner
+statements per investment property), Pawroll (payslips and income statements) and Purrsure (landlord, home and car
+insurance renewals). Sign in with **any name and the password `demo`**. Each portal has an overview with balances, an
+activity page per account with period presets (every financial year, the last two years of months, everything since
+the account opened), search, paging through thousands of rows, an Export panel, and a Statements & documents page
+listing every monthly statement, end-of-year summary, payslip and renewal by financial year. Every download is
+generated on the server with `Content-Disposition: attachment`: CSV in the institution's exact column shape, PDF
+through pdf-lib.
 
-The files agree with the sheet. `portals/build-data.py` builds `portals/data/months.json` from `data/snapshot.json`
-(every month the sheet holds) and from `period-close/simulate.py` run in a scratch copy (the next two months), so a
-closed month downloaded from a portal is byte-identical to the file under `sources/`. The CI job `portals` proves
-the path with Playwright (Chromium only): sign in, download every shape for the first month after the sheet's as-of
-date, run `period-close/import_month.py` against a scratch copy of the snapshot, check IDs, accounts, categories and
-per-account totals against the simulator, build the engine's model over the result, then import the same files again
-and get nothing to append. One account is not on the sheet: Jordan's old everyday at CommBark exists only in the
-portals, so the CommBank shape has an account behind it; it is labelled on the page.
+The data is one dataset, `portals/data/months.json` (8 years, 4,179 transactions over 7 accounts, 417 payslips,
+about 1,250 documents), built by `portals/build-data.py` from three sources that never disagree: `portals/history.py`
+invents March 2019 to June 2025 (a refinance, the Geelong rental bought in 2021, a card in 2020, a saver in 2022, a
+baby, a car, rate rises, pay rises, price rises) and lands every account to the cent on the sheet's opening balances;
+`data/snapshot.json` supplies every month the sheet holds unchanged; `period-close/simulate.py`, run in a scratch copy,
+supplies the two months ahead. The same build writes the history as the banks would have delivered it, one file per
+account per month under `sources/<account>/<download date>/` (`--write-sources`; 417 files, the simulator's own
+closed months left byte-identical), so an agent can rebuild the sheet from files alone: open each account on the
+Accounts tab at its balance the day before the first file, then import month by month in order. The importer's
+closing-balance check holds a month imported out of order. One account, Jordan's old everyday at CommBark, is not on
+the sheet and not under `sources/`; it exists so the CommBank shape has an account behind it, and it is labelled.
 
-Rules: no real bank's name, logo or mark anywhere, only parody names and original wordmarks; no real credential
-anywhere, and the bank-export skill still never types, reads or stores a password or a one-time code; every
-dependency pinned to an exact version. The Vercel project `the-kitty-portals` has its root directory set to
-`portals/`; what is live was deployed with `vercel --prod` from that folder. Auto-deploys from `main` and a preview
-URL per pull request need the Vercel account's GitHub login connection, which the CLI reported missing on 4 November
-2026 (`vercel git connect` in `portals/` once it is added). Run it locally with `cd portals && npm ci && npm start` (http://127.0.0.1:4173), rebuild
-the data after a month-end close with `python3 portals/build-data.py`, and run the proof with `npx playwright test`.
+The CI job `portals` proves the path with Playwright (Chromium only): sign in, download every bank shape for the first
+month after the sheet's as-of date, check names, headers, CRLF and closing balances against the simulator, import
+against a scratch copy of the snapshot, check IDs, accounts, categories and totals, re-import and get nothing to
+append, show the card's straddling statement imports only the month asked for, export a whole financial year of 2021-22
+and import its twelve months in order (with September-before-July held), and download statements, owner statements,
+payslips, income statements and renewals from every portal. See `portals/README.md` for the descriptor conventions,
+the data pipeline and the deploy notes.
 
 | | |
 |---|---|
-| ![Westpaw](docs/screenshots/portals/westpaw.png) | ![CommBark](docs/screenshots/portals/commbark.png) |
-| ![PropertyMeow](docs/screenshots/portals/propertymeow.png) | ![Purrsure](docs/screenshots/portals/purrsure.png) |
+| ![Westpaw overview](docs/screenshots/portals/westpaw.png) | ![Westpaw activity and export](docs/screenshots/portals/westpaw-activity.png) |
+| ![Statements by year](docs/screenshots/portals/westpaw-documents.png) | ![Amewx](docs/screenshots/portals/amewx.png) |
+| ![PropertyMeow](docs/screenshots/portals/propertymeow.png) | ![Pawroll](docs/screenshots/portals/pawroll.png) |
 
 ## Make it yours
 

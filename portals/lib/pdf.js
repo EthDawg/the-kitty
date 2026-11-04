@@ -2,7 +2,7 @@
 // Every page carries the brand's original wordmark, a DEMO watermark and a footer that says what this is.
 "use strict";
 const { PDFDocument, StandardFonts, rgb, degrees } = require("pdf-lib");
-const { fmtDate, fmtMonth, D, fyStart, round2 } = require("./data");
+const { fmtDate, fmtMonth, D, fyStart, fyLabel, round2 } = require("./data");
 
 const A4 = [595.28, 841.89];
 const M = 44; // margin
@@ -130,10 +130,9 @@ async function loanStatement({ brand, loanId, loan, months, from, to }) {
     ["Opening balance", aud(first.opening)], ["Closing balance", aud(last.closing)], ["Interest charged", aud(interest)], ["Repayments received", aud(repaid)],
     ["Repaid from", D.accounts.find((a) => a.id === loan.repaid_from)?.name || loan.repaid_from], ["Offset account", loan.offset_account ? (D.accounts.find((a) => a.id === loan.offset_account)?.name || loan.offset_account) : "None"], ["Loan ends", fmtDate(loan.end_date)], ["Purpose", loan.purpose]], 4);
   d.h2("Monthly summary");
-  d.table([{ label: "Month", w: 110 }, { label: "Opening", w: 90, align: "right" }, { label: "Interest charged", w: 90, align: "right" }, { label: "Repayments", w: 90, align: "right" }, { label: "Closing", w: 90, align: "right" }],
-    months.map(([m, x]) => [fmtMonth(m), money(x.opening), money(x.interest), money(x.repayments), money(x.closing)]), { foot: ["Total", "", money(interest), money(repaid), money(last.closing)] });
-  if (months.some(([, x]) => x.derived)) d.para("Months before October 2025 are derived from the loan's own schedule; the household's sheet starts its Net Worth history that month.", { color: MUTED, size: 8.5 });
-  d.para(`Interest is calculated daily and charged on the last day of the month. The closing balance on ${fmtDate(to)} agrees with the Valuations tab of the household's sheet for that month end.`, { color: MUTED, size: 8.5 });
+  d.table([{ label: "Month", w: 100 }, { label: "Rate", w: 50, align: "right" }, { label: "Opening", w: 85, align: "right" }, { label: "Interest charged", w: 85, align: "right" }, { label: "Repayments", w: 85, align: "right" }, { label: "Closing", w: 85, align: "right" }],
+    months.map(([m, x]) => [fmtMonth(m), `${x.rate.toFixed(2)}%`, money(x.opening), money(x.interest), money(x.repayments), money(x.closing)]), { foot: ["Total", "", "", money(interest), money(repaid), money(last.closing)] });
+  d.para(`Interest is calculated daily on the balance less any linked offset and charged on the last day of the month. Repayments include any extra repayments made from the offset account. The rate column shows the variable rate that applied at the start of each month.`, { color: MUTED, size: 8.5 });
   return d.finish();
 }
 
@@ -179,9 +178,30 @@ async function payslips({ brand, person, employer, rows, from, to }) {
       ["PAYG withholding", money(-tax), money(-sum(4))],
       ["Superannuation guarantee (paid to fund quarterly)", money(sup), money(sum(5))],
     ], { foot: ["Net pay, to Everyday joint", money(net), money(sum(6))] });
-    d.para(`Net pay of ${aud(net)} was paid on ${fmtDate(dt)} to the account ending ${person === "Jordan" ? "4771" : "4771"} with the description SALARY ${employer.toUpperCase()}. Year to date covers the financial year from ${fmtDate(fy)}.`, { color: MUTED, size: 8.5 });
+    d.para(`Net pay of ${aud(net)} was paid on ${fmtDate(dt)} to the account ending 4771 with the description SALARY ${employer.toUpperCase()}. Year to date covers the financial year from ${fmtDate(fy)}.`, { color: MUTED, size: 8.5 });
   });
   if (!rows.length) { d.h1(`Payslips for ${person} Davies`); d.para("No pay dates in this period."); }
+  return d.finish();
+}
+
+async function incomeStatement({ brand, person, employer, rows, fy, to }) {
+  const d = await Doc.create(brand, "Income statement", `${fyLabel(fy)}, 1 Jul ${fy - 1} to ${fmtDate(to)}`);
+  d.h1(`Income statement for ${person} Davies`);
+  const sum = (i) => round2(rows.reduce((s, p) => s + p[i], 0));
+  const final = to >= `${fy}-06-30`;
+  d.kv([["Payer", employer], ["Payee", `${person} Davies`], ["Income year", `1 July ${fy - 1} to 30 June ${fy}`], ["Status", final ? "Tax ready" : `Year to date, to ${fmtDate(to)}`], ["Pays in the year", String(rows.length)], ["Payment basis", "Salary and wages, fortnightly"]], 3);
+  d.h2("Amounts reported");
+  d.table([{ label: "Item", w: 300 }, { label: "Amount", w: 100, align: "right" }], [
+    ["Gross payments (salary, wages, allowances, bonuses)", money(sum(3))],
+    ["Tax withheld (PAYG withholding)", money(sum(4))],
+    ["Reportable employer superannuation contributions", money(0)],
+    ["Superannuation guarantee paid on your behalf (for information)", money(sum(5))],
+    ["Net pay received", money(sum(6))],
+  ]);
+  d.h2("Pays in the year");
+  d.table([{ label: "Pay date", w: 90 }, { label: "Gross", w: 80, align: "right" }, { label: "Tax withheld", w: 80, align: "right" }, { label: "Super", w: 80, align: "right" }, { label: "Net", w: 80, align: "right" }],
+    rows.map((p) => [fmtDate(p[0]), money(p[3]), money(p[4]), money(p[5]), money(p[6])]), { foot: ["Total", money(sum(3)), money(sum(4)), money(sum(5)), money(sum(6))] });
+  d.para("An income statement is what an employer reports to the tax office each year through Single Touch Payroll; the figures here add up the payslips above. Fictional employer, fictional employee.", { color: MUTED, size: 8.5 });
   return d.finish();
 }
 
@@ -207,4 +227,4 @@ async function certificate({ brand, policy, per }) {
   return d.finish();
 }
 
-module.exports = { bankStatement, loanStatement, ownerStatement, payslips, renewalNotice, certificate, money };
+module.exports = { bankStatement, loanStatement, ownerStatement, payslips, incomeStatement, renewalNotice, certificate, money };

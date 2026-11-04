@@ -22,7 +22,7 @@ run) and payslips (one per pay date, person and employer).
 Fail loud. An unknown account folder, a folder that is not a download date, an unrecognised shape, a header that
 differs from the shape, a PDF with no adapter, a zero-byte file, a file that is not UTF-8, a date read in the wrong
 order (every shape declares its order; 13 as a month fails), a day that does not exist, a row dated after the day its
-file was downloaded or after --as-of, a row before the account opened: each stops the run with exit 1 and a review.md
+file was downloaded or after --as-of, a row before the account opened (in a file that reaches the months being imported; a file wholly older is history, counted as outside the month): each stops the run with exit 1 and a review.md
 that names the file, the row and what to do. A closing balance, an owner statement or a valuation that disagrees with
 the ledger holds the run with exit 2: the rows wait in *.held.json and the plan is empty. Nothing is skipped silently:
 rows outside the month, rows already in the sheet and copies repeated across overlapping files are all counted and
@@ -209,7 +209,7 @@ def classify(name, sheet, folder):
                         'add the account to the Accounts tab (institution, type, opening balance and opening date) before importing its files, or rename the folder to the account id it belongs to. Nothing in this folder was read')
 
 
-def gather(root, sheet, as_of=None):
+def gather(root, sheet, as_of=None, first_day=None):
     """Every file under sources/, read through its adapter, as readings; raises Stop with every fault found."""
     root = Path(root)
     if not root.is_dir():
@@ -245,7 +245,7 @@ def gather(root, sheet, as_of=None):
                     continue
                 rel = f.relative_to(root).as_posix()
                 try:
-                    readings.append(read_one(f, rel, kind, acct_dir.name, account, sheet, download_day, opening_date, as_of))
+                    readings.append(read_one(f, rel, kind, acct_dir.name, account, sheet, download_day, opening_date, as_of, first_day))
                 except A.ImportFault as e:
                     e.file = rel if e.file in (str(f), rel) else e.file
                     faults.append(e)
@@ -254,7 +254,7 @@ def gather(root, sheet, as_of=None):
     return readings
 
 
-def read_one(f, rel, kind, acct, account, sheet, download_day, opening_date, as_of):
+def read_one(f, rel, kind, acct, account, sheet, download_day, opening_date, as_of, first_day=None):
     if f.is_dir():
         raise A.ImportFault(rel, 'a folder inside a download-date folder', 'files sit directly in sources/<account>/<download date>/; nested folders are not read')
     ext = f.suffix.lower()
@@ -277,14 +277,14 @@ def read_one(f, rel, kind, acct, account, sheet, download_day, opening_date, as_
         expected = sheet.institution(acct)
         if shape != expected:
             raise A.ImportFault(rel, f'a {shape} file in the {acct} folder, whose institution is {expected}', 'the file is in the wrong account folder, or the Accounts tab names the wrong institution for this account')
-        rows = A.read_rows(f, shape, download_day, opening_date, as_of)
+        rows = A.read_rows(f, shape, download_day, opening_date, as_of, first_day)
     elif kind == 'loan':
         if shape not in A.BANK_SHAPES or not A.SHAPES[shape][3]:
             raise A.ImportFault(rel, f'a {shape} file in the loan folder {acct}', 'a loan statement comes in the lender\'s transaction columns with a running balance (the Westpac shape here); download the loan\'s CSV export')
         expected = sheet.institution(acct)
         if expected in A.BANK_SHAPES and shape != expected:
             raise A.ImportFault(rel, f'a {shape} file for {acct}, whose lender is {expected}', 'the file is in the wrong folder, or the Accounts tab names the wrong lender')
-        rows = A.read_rows(f, shape, download_day, opening_date, as_of)
+        rows = A.read_rows(f, shape, download_day, opening_date, as_of, first_day)
     elif kind == 'owner':
         if shape != 'Owner statement':
             raise A.ImportFault(rel, f'a {shape} file in the property folder {acct}', 'a property folder takes the agent\'s owner statement lines (Date, Description, Rental schedule line, Money in, Money out, Handled by); bank files go under the bank account')
@@ -455,7 +455,7 @@ def run(args):
     rows, loan_tx, loan_pairs, valuations, payslips, pair_updates, contract_updates = [], [], [], [], [], [], []
     plan_notes = []
     try:
-        readings = gather(args.sources, sheet, args.as_of)
+        readings = gather(args.sources, sheet, args.as_of, months[0] + '-01')
         in_window = lambda r: first_day <= r['date'] <= last_day  # noqa: E731
 
         # ---- bank rows: identity de-duplication, then categorising
