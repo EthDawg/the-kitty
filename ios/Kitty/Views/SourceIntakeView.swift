@@ -5,11 +5,13 @@ struct SourceIntakeSection: View {
   @EnvironmentObject var store: KittyStore
   @State private var chooseDocument = false
   var body: some View {
-    Section("Documents and balances") {
+    Section {
       Text("Keep the original PDF or CSV, then review each payslip, valuation or statement balance. Scanned PDFs are read on this device.")
         .font(.caption).foregroundStyle(KittyTheme.secondary)
       Button { chooseDocument = true } label: {
         Label("Choose a source document", systemImage: "doc.viewfinder")
+          .font(.body).fixedSize(horizontal: false, vertical: true)
+          .frame(minHeight: 44, alignment: .leading)
       }.disabled(store.importLocked).accessibilityIdentifier("chooseSourceDocument")
       if store.isDemo {
         Button {
@@ -21,7 +23,11 @@ struct SourceIntakeSection: View {
               store.addSourceReview(documentID: doc.id, kind: .payslip)
             }
           }
-        } label: { Label("Try a sample payslip", systemImage: "sparkles") }
+        } label: {
+          Label("Try a sample payslip", systemImage: "sparkles")
+            .font(.body).fixedSize(horizontal: false, vertical: true)
+            .frame(minHeight: 44, alignment: .leading)
+        }
           .disabled(store.importLocked).accessibilityIdentifier("samplePayslip")
       }
       ForEach(store.draft.documents) { document in
@@ -59,6 +65,9 @@ struct SourceIntakeSection: View {
         Text(note).font(.caption).foregroundStyle(KittyTheme.warning)
           .accessibilityIdentifier("sourceReviewNotice")
       }
+    } header: {
+      Text("Documents and balances").font(.subheadline.weight(.semibold))
+        .foregroundStyle(KittyTheme.secondary).fixedSize(horizontal: false, vertical: true)
     }
     .fileImporter(isPresented: $chooseDocument, allowedContentTypes: [.pdf, .commaSeparatedText], allowsMultipleSelection: true) { result in
       switch result {

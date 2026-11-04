@@ -205,7 +205,11 @@ struct SourceLink: View {
           "https://docs.google.com/spreadsheets/d/\(store.selectedSheetID)/edit#range=\(range.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) ?? "")"
       )
     {
-      Link(destination: url) { Label("Open \(label)", systemImage: "arrow.up.right.square") }
+      Link(destination: url) {
+        Label("Open \(label)", systemImage: "arrow.up.right.square")
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(minHeight: 44, alignment: .leading).contentShape(Rectangle())
+      }
     } else {
       Label("Source: \(label) · fictional demo", systemImage: "tablecells").font(.caption)
         .foregroundStyle(KittyTheme.secondary)

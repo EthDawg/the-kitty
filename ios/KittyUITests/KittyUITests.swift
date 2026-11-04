@@ -215,6 +215,27 @@ final class KittyUITests: XCTestCase {
     capture("18-rental-recorded-cash-flow")
   }
 
+  func testImportAccountSelectionEnablesFileChoice() {
+    app.buttons["importStatement"].tap()
+    XCTAssertTrue(app.navigationBars["Import your records"].waitForExistence(timeout: 5))
+    let account = app.buttons["importAccount"]
+    revealPrecisely(account)
+    XCTAssertEqual(account.value as? String, "Choose an account")
+    let chooseCSV = app.buttons["chooseCSV"]
+    revealPrecisely(chooseCSV)
+    XCTAssertFalse(chooseCSV.isEnabled)
+    // The selected account is part of every staged CSV's source identity.
+    if !account.isHittable { app.swipeDown() }
+    account.tap()
+    let everyday = app.buttons["Everyday joint"].firstMatch
+    XCTAssertTrue(everyday.waitForExistence(timeout: 5))
+    everyday.tap()
+    XCTAssertEqual(account.value as? String, "Everyday joint")
+    revealPrecisely(chooseCSV)
+    XCTAssertTrue(chooseCSV.isEnabled)
+    capture("25-import-account-selected")
+  }
+
   func testSampleImportShowsUnresolvedCategoriesAndCannotClaimSaved() {
     app.buttons["importStatement"].tap()
     XCTAssertTrue(app.navigationBars["Import your records"].waitForExistence(timeout: 5))

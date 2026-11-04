@@ -130,15 +130,30 @@ struct ImportView: View {
     }
   }
   private var sources: some View {
-    Section("1 · Choose your statement") {
-      Picker("Account", selection: $accountID) {
-        Text("Choose an account").tag("")
-        ForEach(store.household?.accounts ?? []) { Text($0.name).tag($0.id) }
-      }
+    Section {
+      Menu {
+        Picker("Account", selection: $accountID) {
+          Text("Choose an account").tag("")
+          ForEach(store.household?.accounts ?? []) { Text($0.name).tag($0.id) }
+        }
+      } label: {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Account").font(.caption).foregroundStyle(KittyTheme.secondary)
+          HStack(alignment: .firstTextBaseline) {
+            Text(selectedAccountName).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.up.chevron.down").font(.caption)
+          }
+        }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+          .contentShape(Rectangle())
+      }.accessibilityLabel("Account").accessibilityValue(selectedAccountName)
+        .accessibilityIdentifier("importAccount")
       Button {
         filePicker = true
       } label: {
         Label("Choose CSV files", systemImage: "doc.badge.plus")
+          .font(.body).fixedSize(horizontal: false, vertical: true)
+          .frame(minHeight: 44, alignment: .leading)
       }
       .disabled(accountID.isEmpty || store.importBusy).accessibilityIdentifier("chooseCSV")
       if store.isDemo {
@@ -146,6 +161,8 @@ struct ImportView: View {
           store.sampleImport()
         } label: {
           Label("Try a sample statement", systemImage: "sparkles")
+            .font(.body).fixedSize(horizontal: false, vertical: true)
+            .frame(minHeight: 44, alignment: .leading)
         }
         .accessibilityIdentifier("sampleImport")
       }
@@ -167,7 +184,13 @@ struct ImportView: View {
           }
         }
       }
+    } header: {
+      Text("1 · Choose your statement").font(.subheadline.weight(.semibold))
+        .foregroundStyle(KittyTheme.secondary).fixedSize(horizontal: false, vertical: true)
     }
+  }
+  private var selectedAccountName: String {
+    store.household?.accounts.first(where: { $0.id == accountID })?.name ?? "Choose an account"
   }
   private func review(_ proposal: ImportProposal) -> some View {
     Section("2 · Review what we found") {

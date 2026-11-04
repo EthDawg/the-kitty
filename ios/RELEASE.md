@@ -7,8 +7,8 @@ The Kitty is a spreadsheet-backed household budgeting app with reviewed bank CSV
 | Area | Observed result and limit |
 |---|---|
 | Shared code and services | 218 Node checks pass across import core, writer, Ask, gateway, native projection and original app tests. |
-| Native workflows | 90 native tests and all 12 UI journeys pass in [typed-acceptance-final.xcresult](evidence/typed-acceptance-final.xcresult) on iPhone SE, dark mode, accessibility extra-large text. This includes planning, original-document review and relaunch, month-end practice, explicit transfer decisions, practice import and zero-row replay. These are simulator results. |
-| Signing | The current Apple Development-signed arm64 Release archive, including typed document intake, succeeded and strict `codesign` verification passed: `build/TheKitty-typed-final.xcarchive`. No upload or TestFlight acceptance is established. |
+| Native workflows | The last full run passes 90 native tests and all 12 UI journeys in [typed-acceptance-final.xcresult](evidence/typed-acceptance-final.xcresult) on iPhone SE, dark mode, accessibility extra-large text. Subsequent accessibility view changes pass five affected journeys and the bounded control audit in [accessibility-se-03.xcresult](evidence/accessibility-se-03.xcresult); the regular-size control audit and new account-selection journey also pass. These are simulator results. |
+| Signing | The current Apple Development-signed arm64 Release archive, including typed document intake and accessibility layout changes, succeeded and strict `codesign` verification passed: `build/TheKitty-accessibility-final.xcarchive`. No upload or TestFlight acceptance is established. |
 | Provider primitive | The [private synthetic Sheet test](../import-service/evidence/LIVE-ACCEPTANCE.md) preserved existing rows and 1,386 inspected formulas. It did not exercise app OAuth or the hosted service. |
 | Existing artifact | Rebuilt and tested intact. |
 
@@ -20,15 +20,19 @@ node --test native-core/*.test.js import-service/*.test.mjs ai-service/ask.test.
 
 Repository CI now includes these checks and a macOS simulator job for native unit tests and fictional household journeys. The workflow YAML and deterministic project generation were checked locally; the new GitHub jobs have not run because this branch has not been pushed.
 
-The [screenshot inventory](evidence/SCREENSHOTS.md) retains 60 full-resolution originals with workflow and evidence limits, including 24 from the final expanded run. The paired iPhone was available with Developer Mode enabled, but installation stopped at the developer-image mount because the phone was locked. Installation and physical-phone acceptance remain unverified; unlock the phone before retrying. Raw device logs stay local because they include device identifiers.
+The [screenshot inventory](evidence/SCREENSHOTS.md) retains 81 full-resolution originals with workflow and evidence limits, including 24 from the expanded run and 21 from the accessibility follow-up. The paired iPhone was available with Developer Mode enabled, but installation stopped at the developer-image mount because the phone was locked; a fresh installation attempt encountered the same lock. Installation and physical-phone acceptance remain unverified; unlock the phone before retrying. Raw device logs stay local because they include device identifiers.
 
 ## Document and planning extension
 
 The added planning views retain Sheet-provided mortgage scenarios, upcoming pay, payslip history, tax periods, safety coverage and dated rental cash flow. Earlier focused planning and document runs are retained in `planning-acceptance-01.xcresult` and `source-ui-03.xcresult`. The final expanded run passes all 90 unit tests and 12 UI journeys; the latter completed in 530 seconds with zero failures. The shared Node suite passes all 218 checks. The original artifact also builds, all four inline scripts parse, and January reimport reports zero rows to append.
 
-The current signed archive's app binary SHA-256 is `43a0f07f3b420f655eea27ff512d36cd62c2b833b929a704e4a3f64a5f42a202`. The archive remains local and excluded from Git.
+The current signed archive's app binary SHA-256 is `aefacb6546ad5359e9af84a990d9f6a60e6dc55c8f178dfd266e2114627a5ec4`. The archive remains local and excluded from Git. The earlier `TheKitty-typed-final.xcarchive` is historical; it predates the accessibility layout changes.
 
 The writer now accepts one combined CSV/document proposal, keeps binary originals, preserves raw input/helper boundaries, allows statement-only evidence receipts, and separates `verified_intake` from `verified_close`. See [the protocol](../import-service/CONTRACT-2.md) and [shared record/close rules](../native-core/records-close.md). Source-backed salary and transfer decisions are explicit; a client-supplied success flag cannot close a month.
+
+## Accessibility follow-up
+
+The Ask heading, import actions and account selector now allow more room at large text sizes. Source links retain native link semantics and gain minimum touch height. Both tested simulator sizes pass the control-description, trait and hit-region check on six primary screen states. The complete visual audit still reports contrast, clipping, Dynamic Type and chart text-detection findings; these are retained in [the accessibility review](evidence/ACCESSIBILITY.md), not claimed as resolved. Actual VoiceOver use remains unverified.
 
 ## Integration before submission
 

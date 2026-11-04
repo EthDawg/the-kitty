@@ -9,6 +9,7 @@ private struct AskReview: Identifiable {
 
 struct AskView: View {
   @EnvironmentObject var store: KittyStore
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @State private var scope: AskScope = .overview
   @State private var destination = "external"
   @State private var providers: [AskProviderOption] = []
@@ -30,11 +31,14 @@ struct AskView: View {
           VStack(alignment: .leading, spacing: 8) {
             Text("A clearer picture,\none question at a time.")
               .font(.system(.title, design: .rounded, weight: .semibold))
+              .fixedSize(horizontal: false, vertical: true)
             Text("Answers with your numbers in view.")
               .font(.subheadline).foregroundStyle(KittyTheme.secondary)
           }
-          Spacer(minLength: 8)
-          Image("Welcome").resizable().scaledToFit().frame(width: 64).accessibilityHidden(true)
+          if !dynamicTypeSize.isAccessibilitySize {
+            Spacer(minLength: 8)
+            Image("Welcome").resizable().scaledToFit().frame(width: 64).accessibilityHidden(true)
+          }
         }
         DataStatusView()
         KittyCard {

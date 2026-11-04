@@ -16,7 +16,7 @@ Objective: a seamless native iOS replacement for The Kitty, with user-owned Goog
 | Formula preservation | Private synthetic Google write preserved 925 original transactions and 1,386 inspected formulas; details in LIVE-ACCEPTANCE.md. | This is a bounded v1 provider primitive, not hosted service or v2 live acceptance. |
 | Full month close | Typed records, all-account statement reconciliation (including no activity), valuation and payslip evidence, explicit transfer/salary decisions, controlled As-of and post-write checks are implemented. Shared and mocked writer tests exercise v1/v2 and refuse incomplete evidence. | Full app-to-hosted-service acceptance against private v1/v2 copies; real source formats and post-close formulas. No live month has been closed by this build. |
 | Ask Claude / ChatGPT | Scoped dated preview, explicit sharing, external handoff and read-only optional provider service; mock tests and simulator preview pass. | Actual provider configuration, paid-call limits and answer quality on approved fixtures. External app receipt of a handoff remains unverified. |
-| Seamless usability | Full-resolution regular-size and small-screen screenshots retained. The final iPhone SE run in dark mode and accessibility extra-large text passes all 12 journeys after layout and test repairs. | VoiceOver and physical-phone acceptance. |
+| Seamless usability | Full-resolution regular-size and small-screen screenshots retained. The full iPhone SE run passes all 12 journeys; subsequent view changes pass five affected journeys and a bounded control audit. Account selection now has its own tested journey. | Remaining [visual audit findings](evidence/ACCESSIBILITY.md), VoiceOver and physical-phone acceptance. |
 | Distribution | Existing Apple signing account produced a valid development-signed archive. No upload occurred. | Public privacy policy, private support contact, deployment disclosures, App Store Connect metadata, TestFlight and review. |
 
 ## Critique and repair evidence
@@ -33,6 +33,7 @@ Objective: a seamless native iOS replacement for The Kitty, with user-owned Goog
 - Combined uploads preserve the preview's CSV order, so overlapping exports keep the exact review decision when the service reruns the parser. A regression exercises the reviewed proposal with both bank originals and a payslip.
 - Document confirmation actions have 44-point minimum touch targets. Transfer search stays within its editor, and review explanation fields have a keyboard Done control. Small-screen tests use controlled scrolling for tall accessibility rows and verify date-filter state explicitly.
 - Disconnecting removes completed local source receipts while retaining only unresolved recovery records; the lifecycle test checks both outcomes.
+- Ask and import text can grow vertically at large sizes; account selection has a full-width labelled control. The selected-account and CSV-enable transition passes on both simulator sizes. Automated control checks pass on six screen states, while visual audit findings remain explicitly open.
 
 ## Completion rule
 

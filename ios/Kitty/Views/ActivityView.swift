@@ -42,7 +42,7 @@ struct ActivityView: View {
           .font(.caption).foregroundStyle(KittyTheme.secondary)
       }
     }.scrollContentBackground(.hidden).kittyBackground().navigationTitle("Activity")
-      .searchable(text: $query, prompt: "Merchant, category or date").accessibilityIdentifier(
+      .searchable(text: $query, prompt: "Search activity").accessibilityIdentifier(
         "activityList"
       )
       .toolbar {

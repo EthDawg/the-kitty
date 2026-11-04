@@ -42,7 +42,10 @@ struct Pill: View {
   let title: String
   var symbol: String = "checkmark.shield"
   var body: some View {
-    Label(title, systemImage: symbol).font(.caption.weight(.medium)).padding(.horizontal, 10)
+    Label {
+      Text(title).fixedSize(horizontal: false, vertical: true)
+    } icon: { Image(systemName: symbol) }
+      .font(.caption.weight(.medium)).padding(.horizontal, 10)
       .padding(.vertical, 7).background(KittyTheme.soft, in: Capsule()).foregroundStyle(
         KittyTheme.accent)
   }
