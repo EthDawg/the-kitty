@@ -10,8 +10,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: node --test test.js test-v2.js
-      - run: python3 -m unittest discover -s period-close
-      - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py
+      - name: the importer's promises (identity, fail loud, shapes, plan, verify)
+        run: python3 -m unittest discover -s period-close -v
+      - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py period-close/writeplan.py period-close/verify.py period-close/pdftext.py period-close/pull_portals.py
       - run: python3 build.py && test -s dist/kitty.html
       - run: python3 build.py --v2 && test -s dist/kitty-v2.html
       - name: every inline script parses, in both builds
@@ -20,6 +21,8 @@ jobs:
         run: python3 period-close/import_month.py 2027-01 | grep -q "0 rows to append"
       - name: a repeated month appends nothing (the ledger)
         run: python3 period-close/import_month.py 2027-01 --sheet data/snapshot-v2.json | grep -q "0 rows to append"
+      - name: a repeated month plans no write (the ledger)
+        run: python3 period-close/import_month.py 2027-01 --sheet data/snapshot-v2.json >/dev/null && python3 -c "import json; p=json.load(open('period-close/2027-01/write-plan.json')); assert p['status']=='ready' and p['writes']==[], p['totals']; print('plans nothing:', p['totals'])"
       - name: the fixtures are exactly what the snapshot cuts
         run: python3 fixtures/make-v2-fixtures.py && git diff --exit-code --stat fixtures/
 
