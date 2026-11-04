@@ -249,10 +249,12 @@ def sniff(path):
     raise ImportFault(path, f'unrecognised shape, first line {head[:8]}', 'no adapter reads this file. Add one to adapters.py or export in a format the importer knows (see data-sources.json)')
 
 
-def read_rows(path, shape, download_day=None, opening_date=None, as_of=None):
+def read_rows(path, shape, download_day=None, opening_date=None, as_of=None, first_day=None):
     """Every row of a delivered file as a dict: date, description, amount, balance (None when the shape prints none),
     line (1-based). Checks the header, the date order, the sequence, the window; faults instead of guessing.
-    download_day / as_of: no row may be dated after them. opening_date: no row may be dated before it."""
+    download_day / as_of: no row may be dated after them. opening_date: no row may be dated before it, except in a
+    file that ends by the opening date and before first_day, the first day of the months being imported: that is
+    history from before the ledger, counted as outside the month like any other row."""
     text, bom = read_text(path)
     rows = cells(text)
     expected, order, sequence, has_balance = SHAPES[shape]
@@ -298,12 +300,15 @@ def read_rows(path, shape, download_day=None, opening_date=None, as_of=None):
             out.append({'date': parse_date(r[0], order, path, line), 'person': r[1].strip(), 'employer': r[2].strip(), 'gross': round(money(r[3], path, line), 2),
                         'tax': round(money(r[4], path, line), 2), 'super': round(money(r[5], path, line), 2), 'net': round(money(r[6], path, line), 2),
                         'description': f'{r[1].strip()} {r[2].strip()}', 'amount': round(money(r[6], path, line), 2), 'balance': None, 'line': line})
-    check_window(path, out, download_day, opening_date, as_of)
+    check_window(path, out, download_day, opening_date, as_of, first_day)
     check_sequence(path, out, sequence)
     return out
 
 
-def check_window(path, rows, download_day=None, opening_date=None, as_of=None):
+def check_window(path, rows, download_day=None, opening_date=None, as_of=None, first_day=None):
+    last = max((r['date'] for r in rows), default=None)
+    if last and opening_date and first_day and last <= opening_date and last < first_day:
+        opening_date = None
     for r in rows:
         y = int(r['date'][:4])
         if y < 2000 or y > 2100:

@@ -234,6 +234,18 @@ class FailLoud(Base):
         self.file('ACC-CC', '2027-03-01', CARD, [['02/02/2025', 'OLD', 'J', '-41007', '10.00'], card(2)])
         self.assertIn('before the account opened on 2025-06-30', self.stop())
 
+    def test_a_file_ending_before_the_account_opened_is_history_not_a_fault(self):
+        self.file('ACC-CC', '2025-03-02', CARD, [['02/02/2025', 'OLD', 'J', '-41007', '10.00']])
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2)])
+        run, rows, _, plan = self.run_import()
+        self.assertEqual(plan['status'], 'ready')
+        self.assertEqual(len(rows), 1)
+        self.assertNotIn('OLD', str(rows))
+
+    def test_importing_a_month_before_the_account_opened_still_stops(self):
+        self.file('ACC-CC', '2025-03-02', CARD, [['02/02/2025', 'OLD', 'J', '-41007', '10.00']])
+        self.assertIn('before the account opened on 2025-06-30', self.stop(month='2025-02'))
+
     def test_dates_that_zigzag_fail_loud(self):
         self.file('ACC-CC', '2027-03-01', CARD, [card(2), card(9), card(4)])
         self.assertIn('dates run out of order', self.stop())
