@@ -6,8 +6,7 @@
 
 The v2 build also writes dist/kit.html, the component gallery. Also writes dist/local.html (or dist/local-v2.html), the same page wrapped in the viewer's document skeleton,
 for local checks (serve dist/ with `python3 -m http.server`; the page runs without any connector on the bundled
-data). Sheet IDs and the page URL come from kitty.config.json; the published 1.1 page keeps reading the 1.1
-demo sheet until phase C cuts the artifact over to v2 (the v2 build's QR points at staging_url while it exists).
+data). Sheet IDs and the page URL come from kitty.config.json. The published page is the v2 build.
 
 Bundled at build time: the brand icon sprite (brand/icons/sprite.svg replaces the shell's inline symbols, same ids),
 the motion helpers (brand/motion), the merchant dictionary (merchants/), the fortune cookie, the empty-state
@@ -30,7 +29,7 @@ snapshot_file = 'snapshot-v2.json' if v2 else 'snapshot.json'
 snapshot = None if no_snapshot else json.load(open(os.path.join(K, 'data', snapshot_file)))
 sheet_id = CONFIG['v2_sheet'] if v2 else CONFIG['demo_sheet']
 # the published page's own address (set after the first publish); the Setup tab's QR code points here
-PAGE_URL = (CONFIG.get('staging_url') or CONFIG['page_url']) if v2 else CONFIG['page_url']
+PAGE_URL = CONFIG['page_url']
 js = lambda v: json.dumps(v, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
 BRAND = os.path.join(K, 'brand')
 # the brand sprite: its <symbol>s go where the shell's hand-drawn sprite used to be, under the same ids

@@ -8,7 +8,7 @@ where the money went, tracks goals as money ("$11k of $12k"), installs on a phon
 as a planner's note. No server, no database, no telemetry, nothing to pay for.
 
 **Try it:** https://claude.ai/artifact/QH2gsDP8sHZmgMVKBtkwxn (the fictional Davies household; works on a phone,
-add it to your home screen). **Copy the sheet:** https://docs.google.com/spreadsheets/d/1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM/copy
+add it to your home screen). **Copy the sheet:** https://docs.google.com/spreadsheets/d/16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA/copy
 
 | | |
 |---|---|
@@ -17,19 +17,18 @@ add it to your home screen). **Copy the sheet:** https://docs.google.com/spreads
 
 ## Status
 
-Version 1.1, shipped. Verified live on 3 November 2026: live read and write through the viewer's Google Sheets
+Version 2.0 is the published page, reading the "Digital Davies v2" ledger sheet. Version 1.1 was verified live on 3 November 2026: live read and write through the viewer's Google Sheets
 connector, the onboarding's writes, Ask the Kitty, two month-end closes through the import pipeline, light and
 dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the end of this file.
 
-**2.0, phase C (widgets, signals, the canvas, the kit gallery), 5 November 2026:** Home is widgets the sheet switches on, arranged per person, on GridStack. The published 1.1 page has not been cut over: that waits on the phase B checks on the staging artifact. See `CHANGELOG.md`.
+**2.0, phase C (widgets, signals, the canvas, the kit gallery), 5 November 2026:** Home is widgets the sheet switches on, arranged per person, on GridStack.
 
 **2.0, phase B (the row and the review), 4 November 2026:** Activity on `EntryRow` with monograms and
 brand icons, the merchant dictionary, the Review queue with its sheet writes, the fortune cookie that proposes rules, and
-"Worth it?"; verified on a private staging artifact against the v2 sheet. See `CHANGELOG.md`.
+"Worth it?"; the fortune cookie's proposal, rule write, category write and Decisions row verified live against the v2 sheet (rule `R0086`). See `CHANGELOG.md`.
 
 **2.0, phase A (the ledger), 4 November 2026, on branch `v2-ledger`:** the data model below now carries every store
-of value, on a copy of the demo sheet ("Digital Davies v2", `kitty.config.json`). The published 1.1 page keeps
-reading the original sheet until phase C cuts over. `python3 build.py --v2` builds a local page against the copy.
+of value, on a copy of the demo sheet ("Digital Davies v2", `kitty.config.json`). `python3 build.py --v2` builds the published page.
 
 
 ## What is in here
