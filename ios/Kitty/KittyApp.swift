@@ -28,6 +28,9 @@ struct RootView: View {
             Label("Ask", systemImage: "bubble.left.and.bubble.right")
           }.tag(4)
         }
+        // Row IDs are local to one Sheet. A different household must not inherit
+        // a detail, search, or presentation selected in the previous one.
+        .id("\(store.mode.rawValue):\(store.selectedSheetID)")
       }
     }
     .foregroundStyle(KittyTheme.ink)

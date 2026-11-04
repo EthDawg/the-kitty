@@ -139,4 +139,37 @@ final class HouseholdSetupUITests: XCTestCase {
     XCTAssertFalse(app.activityExportButton().isEnabled)
     capture(app, "34-opening-household-empty-activity")
   }
+
+  func testSwitchingToDemoRemovesPreviousHouseholdGoalNavigation() throws {
+    let bytes = try XCTUnwrap(Data(base64Encoded: fixture("opening-household-grids")))
+    var grids = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+    var goals = try XCTUnwrap(grids["goals"] as? [[Any]])
+    goals.append(["Taylor cabin fund", 5000, "2027-06-30", "ACC-SOLO", 1234.56,
+      0.246912, 12, 313.79, 0, "Saving"])
+    grids["goals"] = goals
+    let app = XCUIApplication()
+    app.launchArguments = ["--uitest-reset", "--uitest-fixtures"]
+    app.launchEnvironment["KITTY_UI_HOUSEHOLD_GRIDS"] = try JSONSerialization.data(withJSONObject: grids).base64EncodedString()
+    app.launchEnvironment["KITTY_UI_CACHED_HOUSEHOLD"] = "1"
+    app.launch()
+    XCTAssertTrue(app.staticTexts["QA fixture - Solo (fictional)"].waitForExistence(timeout: 12))
+    app.kittyTab("Goals").tap()
+    let goal = app.buttons["goalCard.2"]
+    XCTAssertTrue(goal.waitForExistence(timeout: 5)); goal.tap()
+    XCTAssertTrue(app.navigationBars["Taylor cabin fund"].waitForExistence(timeout: 5))
+    capture(app, "59-previous-household-goal")
+    app.kittyTab("Home").tap()
+    app.buttons["Settings"].tap()
+    let demo = app.buttons["Explore the fictional demo"]
+    reveal(demo, in: app); XCTAssertTrue(demo.isHittable); demo.tap()
+    XCTAssertTrue(app.staticTexts["The Davies"].waitForExistence(timeout: 5))
+    app.kittyTab("Goals").tap()
+    XCTAssertTrue(app.navigationBars["Goals"].waitForExistence(timeout: 5),
+      "Changing households must return to the goal list, not reuse a row-selected detail.")
+    XCTAssertFalse(app.navigationBars["Taylor cabin fund"].exists)
+    XCTAssertFalse(app.navigationBars["Emergency fund"].exists)
+    XCTAssertFalse(app.staticTexts["Taylor cabin fund"].exists)
+    XCTAssertTrue(app.buttons["goalCard.2"].exists)
+    capture(app, "60-goals-after-household-switch")
+  }
 }

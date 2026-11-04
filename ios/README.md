@@ -22,6 +22,8 @@ python3 ios/scripts/prepare_files_fixture.py '<SIMULATOR_UUID>'
 
 This boots that simulator and adds only `Kitty QA / fictional-bank.csv` under **On My iPhone** or **On My iPad**, preserving the bundled original bytes. It refuses to replace a different existing file. The test then uses the regular account chooser, Files picker, column mapping and saved review. CI prepares the same fixture. For a focused run, select `KittyUITests/FilePickerUITests` in Xcode or with `xcodebuild -only-testing:KittyUITests/FilePickerUITests test` and the same simulator destination. Export tests use unique filenames so repeated runs do not replace an earlier export.
 
+The household-switch UI test uses a Debug-only fictional cached household and the normal Settings action to open the Davies demo. The fixture supplies no Sheet ID or Google identity, so it cannot exercise provider reads or authorization. It checks that a goal selected in the first household does not become an unrelated detail in the second household. Release builds exclude the fixture hook.
+
 Real Google access requires an iOS OAuth client for `com.ethdawg.kitty`, its reversed-client URL scheme and `drive.file` permission. Set public client identifiers and the HTTPS service URL in ignored `Config.local.xcconfig`; never bundle provider secrets. Currently that local file contains Apple signing configuration only: the native Google client ID and service URL remain blank. See [Google access notes](IntegrationNotes/GOOGLE-ACCESS.md).
 
 ## Architecture

@@ -20,11 +20,14 @@ import Foundation
         let snapshot = try engine.snapshot(grids: grids)
         household = try engine.project(snapshot)
         snapshotData = snapshot
-        mode = .demo
+        let cachedHousehold = process.environment["KITTY_UI_CACHED_HOUSEHOLD"] == "1"
+        mode = cachedHousehold ? .connected : .demo
+        // A fictional cached screen exercises the normal switch-to-demo action.
+        // No Sheet ID or Google identity is installed, so refresh cannot contact a provider.
         selectedSheetID = ""
         selectedSheetName = household?.household ?? "Fictional test household"
         sheetCanEdit = false
-        isOffline = false
+        isOffline = cachedHousehold
         lastSynced = nil
         draft = ImportDraft()
         proposal = nil
