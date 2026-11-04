@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex">
+<title>The Kitty's demo portals</title>
+<meta name="description" content="Seven parody portals that serve the Davies household's fictional bank files, statements, payslips and renewals, so The Kitty can be proved end to end.">
+<link rel="stylesheet" href="/portal.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M8 18 L12 4 L20 13 Z' fill='%2317122B'/%3E%3Cpath d='M32 18 L28 4 L20 13 Z' fill='%2317122B'/%3E%3Ccircle cx='20' cy='24' r='13' fill='%2317122B'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="demo" role="note"><b>DEMO</b><span>Fictional household, fictional institutions, no real money. Sign in with any name and the password <strong>demo</strong>.</span><a href="https://github.com/EthDawg/the-kitty">The Kitty on GitHub</a></div>
+<header class="top" style="--brand:#17122B;--brand-ink:#F7F4EE">
+  <div class="wrap">
+    <a class="mark" href="/"><span id="homemark"></span><span><span class="n">The Kitty's portals</span><span class="t">the end-to-end proof, in a plain browser</span></span></a>
+    <a class="btn secondary" href="https://claude.ai/artifact/QH2gsDP8sHZmgMVKBtkwxn">Open The Kitty</a>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Seven portals, one household</div>
+      <h1>Where the Davies' money files come from.</h1>
+      <p class="lede" style="margin-top:12px">The Kitty reads one Google Sheet. The sheet is fed by files a household downloads from its bank, its property manager, its payroll and its insurer. These parody portals serve those files for the fictional Davies household, in each real institution's exact column shape, generated on the server as true downloads. Export a month here, run the importer, and the numbers land on the page.</p>
+    </section>
+    <section class="grid cards" id="cards" aria-label="Portals"></section>
+    <section class="card rules">
+      <h2 style="font-size:18px">The rules</h2>
+      <ul>
+        <li><b>No real marks.</b> Westpaw, CommBark, Amewx, PING, PropertyMeow, Pawroll and Purrsure are parodies with original wordmarks. The column shapes are the real ones; the names and logos are not.</li>
+        <li><b>No real credentials, ever.</b> Any name signs in with the password <code>demo</code>. The bank-export skill never types, reads or stores a password or a one-time code; the person or their password manager does that, here as anywhere.</li>
+        <li><b>The files agree with the sheet.</b> Every closed month downloaded here is byte-identical to the file the month-end simulator put under <code>sources/</code>; the two months ahead come from the same simulator. Loan, owner, payslip and renewal documents are derived from those rows.</li>
+        <li><b>One account is not on the sheet.</b> Jordan's old everyday at CommBark exists only here, so the CommBank shape has a real account behind it. It is labelled.</li>
+      </ul>
+      <p class="small muted" style="margin-top:12px">Source: <a href="https://github.com/EthDawg/the-kitty/tree/main/portals">portals/</a> in the repository, MIT. Deployed on Vercel from <code>main</code>; pull requests get a preview URL.</p>
+    </section>
+  </div>
+</main>
+<footer><div class="wrap">Fictional. The Davies household does not exist; nothing here is advice. Built for <a href="https://github.com/EthDawg/the-kitty">The Kitty</a>.</div></footer>
+<script src="/marks.js"></script>
+<script>
+fetch('/brands.json').then(r => r.json()).then(brands => {
+  document.getElementById('homemark').innerHTML = KittyMark({ colors: { ink: '#F7F4EE', brand: '#17122B', accent: '#D9F94B' } }, 40);
+  const what = { bank: 'Transactions as CSV in the institution\'s shape, statements as PDF.', card: 'Statement periods that close mid-month, charges positive, as the card company exports them.', property: 'Owner statements per investment property: rent, agent fees, repairs and water, with the ATO rental schedule lines.', payroll: 'Payslips as PDF, or the CSV the month-end close appends to the sheet.', policy: 'Renewal notices and certificates of currency for the landlord and home policies.' };
+  document.getElementById('cards').innerHTML = brands.map(b => `<a class="brandcard" href="/${b.id}"><div class="band" style="background:${b.colors.brand}">${KittyMark(b, 36)}<span><span class="n">${b.name}</span><br><span class="small" style="opacity:.9">${b.tagline}</span></span></div><div class="body"><b>Stands in for ${b.standsInFor}.</b> ${what[b.kind]}</div></a>`).join('');
+});
+</script>
+</body>
+</html>

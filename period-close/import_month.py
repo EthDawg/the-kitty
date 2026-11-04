@@ -9,6 +9,12 @@ survives while a file imported twice does not). The sheet's current rows come fr
 data/snapshot.json (run snapshot.py first); history for categorising is that plus, optionally,
 the generator's history. The next Txn ID follows the last one in the sheet.
 
+Overlapping files are safe in one run: the Nth copy of a row counts once however many files carry it, so the most
+copies in any one file is how many are real. Where a file prints a running balance, its last balance in the month
+must equal the sheet's opening balance plus every row to that date, the new rows included. If any file disagrees the
+run holds: rows.json and entries.json are empty, the rows wait in rows.held.json and entries.held.json, and the exit
+code is 2.
+
 Each description is matched against history: exact first, then with month names, card numbers
 and the word REFUND removed. A description seen with more than one category takes the most
 common and says so. Anything never seen before is Uncategorised and listed for review.
@@ -18,11 +24,15 @@ Writes rows.json (Transactions columns A to J, ready to append), entries.json (t
 Entries tab's columns A to T for a sheet_version 2 sheet: kind transaction, status settled, created at the
 settled date, transfer ids left for the review to pair) and review.md. Rows land in the sheet by an explicit
 range write starting at the first empty row (T0001 is row 2), never by appending to a tab with helper columns.
+--sources and --out point the run at another sources/ folder and another output folder (the portals'
+end-to-end test runs against a scratch copy); the account-to-institution map comes from the sheet's
+Accounts tab when the snapshot carries one, so the sheet owns which shape each account is read in.
 """
 import argparse
 import csv
 import json
 import re
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -38,21 +48,48 @@ def normalise(desc):
     return re.sub(r'\s+', ' ', d).strip()
 
 
+def closing_checks(doc, sheet, rows, files):
+    """Each file's last balance in the month against the sheet's opening balance plus every row to that date, the
+    rows about to be appended included. Returns the review lines and whether any file disagrees."""
+    opening = {a['account_id']: float(a['opening_balance'] or 0) for a in doc.get('accounts', []) if a.get('account_id')}
+    book = [(t['date'], t['account_id'], float(t['amount'])) for t in sheet] + [(r[1], r[2], r[5]) for r in rows]
+    lines, held = [], False
+    for path, frows, closing in files:
+        acct = path.split('/')[0]
+        if not closing:
+            if frows:
+                lines.append(f'- {path}: not checked, this format prints no balance')
+            continue
+        if acct not in opening:
+            lines.append(f'- {path}: not checked, {acct} is not on the Accounts tab')
+            continue
+        day, printed = closing
+        worked = round(opening[acct] + sum(a for d, ac, a in book if ac == acct and d <= day), 2)
+        ok = abs(worked - printed) < 0.005
+        held = held or not ok
+        lines.append(f'- {path}: {day} file {printed:,.2f}, ledger {worked:,.2f}, ' + ('OK' if ok else f'MISMATCH of {worked - printed:+,.2f}'))
+    return lines, held
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('month', help='YYYY-MM')
     p.add_argument('--sheet', default=ROOT / 'data' / 'snapshot.json', help='the sheet as last snapshotted')
     p.add_argument('--history', default=None, help='optional older history (the generator\'s data.json) for categorising')
+    p.add_argument('--sources', default=ROOT / 'sources', help='the sources/ folder to read (default: the repo\'s)')
+    p.add_argument('--out', default=None, help='where rows.json and review.md go (default: period-close/<month>/)')
     args = p.parse_args()
-    folder = Path(__file__).parent / args.month
-    folder.mkdir(exist_ok=True)
+    folder = Path(args.out) if args.out else Path(__file__).parent / args.month
+    folder.mkdir(parents=True, exist_ok=True)
 
-    snap = json.loads(Path(args.sheet).read_text())
+    doc = json.loads(Path(args.sheet).read_text())
     # a 1.1 snapshot carries Transactions; a sheet_version 2 one carries the same rows as Entries of kind transaction
-    sheet = snap.get('transactions') or [
+    sheet = doc.get('transactions') or [
         {'txn_id': e['entry_id'], 'date': e['settled_at'], 'account_id': e['account_id'], 'bank_description': e['raw_text'], 'merchant': e['description'],
          'amount': e['amount'], 'category_id': e['category_id'], 'person': e['person'], 'receipt_held': e.get('receipt_held'), 'note': e.get('note')}
-        for e in snap.get('entries', []) if (e.get('kind') or 'transaction') == 'transaction']
+        for e in doc.get('entries', []) if (e.get('kind') or 'transaction') == 'transaction']
+    institutions = dict(A.INSTITUTION)
+    institutions.update({a['account_id']: a['institution'] for a in doc.get('accounts', []) if a.get('account_id') and a.get('institution') in A.FORMATS})
     existing = Counter((t['date'], t['account_id'], (t['bank_description'] or '').strip(), round(float(t['amount']), 2)) for t in sheet)
     last_id = max(int(t['txn_id'][1:]) for t in sheet)
     exact, loose = defaultdict(Counter), defaultdict(Counter)
@@ -70,16 +107,21 @@ def main():
         with open(folder / 'overrides.csv') as f:
             overrides = {r['Description']: r for r in csv.DictReader(f)}
 
-    files = A.read_sources(ROOT / 'sources', args.month)
-    rows, review, skipped, seen_now = [], [], [], Counter()
-    for path, frows in files:
+    files = A.read_sources(Path(args.sources), args.month, institutions)
+    rows, review, skipped, repeated, taken = [], [], [], [], Counter()
+    for path, frows, _ in files:
         kept = 0
+        occurrence = Counter()
         for d, acct, desc, amount in frows:
             key = (d, acct, desc, amount)
-            seen_now[key] += 1
-            if seen_now[key] <= existing.get(key, 0):
+            occurrence[key] += 1
+            if occurrence[key] <= existing.get(key, 0):
                 skipped.append(f'{path}: {d} {desc} {amount:+.2f}')
                 continue
+            if occurrence[key] <= taken[key]:
+                repeated.append(f'{path}: {d} {desc} {amount:+.2f}')
+                continue
+            taken[key] = occurrence[key]
             receipt = note = ''
             if desc in overrides:
                 o = overrides[desc]
@@ -102,15 +144,27 @@ def main():
     for i, r in enumerate(rows):
         r[0] = f'T{last_id + 1 + i:04d}'
 
-    (folder / 'rows.json').write_text(json.dumps(rows, indent=1))
+    balance, held = closing_checks(doc, sheet, rows, files)
     entries = [[r[0], 'transaction', r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], 'settled', r[1], '', '', '', '', '', '', 'bank export'] for r in rows]
-    (folder / 'entries.json').write_text(json.dumps(entries, indent=1))
-    body = [f'# {args.month} import review', '', f'{len(rows)} rows to append' + (f', T{last_id + 1:04d} to T{last_id + len(rows):04d}' if rows else '') + f'; {len(skipped)} already in the sheet.', '']
+    for name, payload in (('rows', rows), ('entries', entries)):
+        (folder / f'{name}.json').write_text(json.dumps([] if held else payload, indent=1))
+        (folder / f'{name}.held.json').unlink(missing_ok=True)
+        if held:
+            (folder / f'{name}.held.json').write_text(json.dumps(payload, indent=1))
+    body = [f'# {args.month} import review', '']
+    if held:
+        body += ['**HOLD: do not append.** A closing balance disagrees, so the rows wait in rows.held.json and entries.held.json, and rows.json and entries.json are empty.', '']
+    body += [f'{len(rows)} rows to append' + (f', T{last_id + 1:04d} to T{last_id + len(rows):04d}' if rows else '') + f'; {len(skipped)} already in the sheet' + (f'; {len(repeated)} repeated across overlapping files' if repeated else '') + '.', '']
+    body += ['## Closing balances'] + (balance or ['- No file printed a balance for this month.']) + ['']
     body += review or ['Nothing to review.']
     if skipped:
         body += ['', '## Already in the sheet (not appended)'] + [f'- {s}' for s in skipped[:40]] + ([f'- … and {len(skipped) - 40} more'] if len(skipped) > 40 else [])
+    if repeated:
+        body += ['', '## Repeated across overlapping files (taken once)'] + [f'- {s}' for s in repeated[:40]] + ([f'- … and {len(repeated) - 40} more'] if len(repeated) > 40 else [])
     (folder / 'review.md').write_text('\n'.join(body) + '\n')
     print((folder / 'review.md').read_text())
+    if held:
+        sys.exit(2)
 
 
 if __name__ == '__main__':

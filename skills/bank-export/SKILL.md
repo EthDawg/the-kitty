@@ -53,7 +53,7 @@ run the importer and hand back its review list. Nothing else.
 
 ## Land it
 
-- Run the importer (`period-close/import_month.py <yyyy-mm> --next-id <last id + 1>` in this repo, or
+- Run the importer (`period-close/import_month.py <yyyy-mm>` in this repo, or
   the household's own). It maps the file's columns to the sheet's Transactions tab (Txn ID, Date,
   Account ID, Bank description, Merchant, Amount, Category ID, Person, Receipt held, Note), signs the
   amounts (debit/credit pairs and card-style positives folded to one signed number), de-duplicates
