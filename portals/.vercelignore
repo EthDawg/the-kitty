@@ -1,0 +1,7 @@
+node_modules
+test
+test-results
+playwright-report
+build-data.py
+server.js
+playwright.config.js

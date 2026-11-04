@@ -1,0 +1,23 @@
+[
+  {"id": "westpaw", "name": "Westpaw", "kind": "bank", "institution": "Harbour Bank", "shape": "westpac", "standsInFor": "Westpac",
+   "tagline": "The bank that lands on its feet.", "csvName": "Data.csv", "loans": true,
+   "colors": {"brand": "#0B6E6B", "ink": "#FFFFFF", "soft": "#DDF2F0", "bg": "#F3FAF9", "accent": "#E8A33D"}},
+  {"id": "commbark", "name": "CommBark", "kind": "bank", "institution": "Bark Bank", "shape": "cba", "standsInFor": "Commonwealth Bank",
+   "tagline": "Can do. With claws.", "csvName": "CSVData.csv",
+   "colors": {"brand": "#5B2D6E", "ink": "#FFFFFF", "soft": "#F0E4F5", "bg": "#FAF6FC", "accent": "#F2C14E"}},
+  {"id": "amewx", "name": "Amewx", "kind": "card", "institution": "Southern Card", "shape": "amex", "standsInFor": "American Express",
+   "tagline": "Don't leave home without your human.", "csvName": "activity.csv", "statementCloses": 14,
+   "colors": {"brand": "#1F6B3A", "ink": "#FFFFFF", "soft": "#DFF1E4", "bg": "#F4FAF6", "accent": "#C9D64A"}},
+  {"id": "ping", "name": "PING", "kind": "bank", "institution": "Wattle Credit Union", "shape": "ing", "standsInFor": "ING",
+   "tagline": "Save like nobody's watching. The cat is.", "csvName": "Transactions.csv",
+   "colors": {"brand": "#2F3E9E", "ink": "#FFFFFF", "soft": "#E3E6F8", "bg": "#F5F6FC", "accent": "#FF8A5C"}},
+  {"id": "propertymeow", "name": "PropertyMeow", "kind": "property", "standsInFor": "a property manager's owner portal",
+   "tagline": "Managing homes for people with cats.",
+   "colors": {"brand": "#B4532A", "ink": "#FFFFFF", "soft": "#F8E5DC", "bg": "#FCF6F3", "accent": "#2E6E5A"}},
+  {"id": "pawroll", "name": "Pawroll", "kind": "payroll", "standsInFor": "an employer's payroll portal",
+   "tagline": "Payday, purrfectly on time.",
+   "colors": {"brand": "#3C5A6E", "ink": "#FFFFFF", "soft": "#E1EAF0", "bg": "#F4F7F9", "accent": "#D9A441"}},
+  {"id": "purrsure", "name": "Purrsure", "kind": "policy", "standsInFor": "an insurer's policy portal",
+   "tagline": "Cover for the curious.",
+   "colors": {"brand": "#9A6A0B", "ink": "#FFFFFF", "soft": "#F7EBCF", "bg": "#FCF8EF", "accent": "#2B4A8A"}}
+]

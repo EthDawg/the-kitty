@@ -8,9 +8,11 @@ files the way the bank would, so the import step has the real work to do.
 Institutions here are fictional; the shapes are the real Australian ones they stand in for
 (kitty/src/data-sources.json): Harbour Bank writes like Westpac (debit and credit columns, running
 balance), Southern Card like American Express (charges positive, payments negative, no balance),
-Wattle Credit Union like ING (credit and debit columns, debits negative, dd/mm/yyyy).
+Wattle Credit Union like ING (credit and debit columns, debits negative, dd/mm/yyyy), Bark Bank
+like CommBank (no header row: Date, Amount, Description, Balance; newest first; signed amounts).
 """
 import csv
+import re
 from datetime import date
 from pathlib import Path
 
@@ -110,30 +112,65 @@ def read_wattle(path, account):
         return [(ymd(row['Date']), account, row['Description'].strip(), round(money(row['Credit']) + money(row['Debit']), 2)) for row in r]
 
 
+# ---------- Bark Bank: CommBank shape ----------
+# No header row. Date, Amount, Description, Balance; newest first; amounts carry an explicit sign and
+# thousands separators ("+2,470.00"); every field after the date is quoted.
+BARK_HEAD = None
+BARK_DATE = re.compile(r'\d{1,2}/\d{1,2}/\d{4}')
+
+
+def signed(n):
+    return f'{"+" if n >= 0 else "-"}{abs(n):,.2f}'
+
+
+def write_bark(path, account, rows, opening):
+    bal = opening
+    lines = []
+    for d, desc, amt in rows:
+        bal = round(bal + amt, 2)
+        lines.append(f'{dmy(d)},"{signed(amt)}","{desc.replace(chr(34), chr(34) * 2)}","{signed(bal)}"')
+    with open(path, 'w', newline='') as f:
+        f.write(''.join(line + '\r\n' for line in reversed(lines)))
+    return bal
+
+
+def read_bark(path, account):
+    with open(path, newline='') as f:
+        lines = [r for r in csv.reader(f) if r]
+    assert lines and all(len(r) == 4 and BARK_DATE.fullmatch(r[0].strip()) for r in lines), f'{path}: not a Bark Bank export'
+    return [(ymd(r[0]), account, r[2].strip(), round(money(r[1]), 2)) for r in reversed(lines)]
+
+
 FORMATS = {'Harbour Bank': (write_harbour, read_harbour, 'Harbour-Transactions-{acct}-{month}.csv'),
            'Southern Card': (write_southern, read_southern, 'activity-{month}.csv'),
-           'Wattle Credit Union': (write_wattle, read_wattle, 'Transactions-{month}.csv')}
+           'Wattle Credit Union': (write_wattle, read_wattle, 'Transactions-{month}.csv'),
+           'Bark Bank': (write_bark, read_bark, 'CSVData-{month}.csv')}
+HEADS = {'Harbour Bank': HARBOUR_HEAD, 'Southern Card': SOUTHERN_HEAD, 'Wattle Credit Union': WATTLE_HEAD}
 
 
 def sniff(path):
     with open(path, newline='') as f:
         head = next(csv.reader(f))
     for name, (_, read, _) in FORMATS.items():
-        if head == {'Harbour Bank': HARBOUR_HEAD, 'Southern Card': SOUTHERN_HEAD, 'Wattle Credit Union': WATTLE_HEAD}[name]:
+        if head == HEADS.get(name):
             return name, read
+    if len(head) == 4 and BARK_DATE.fullmatch(head[0].strip()):
+        return 'Bark Bank', read_bark
     raise SystemExit(f'{path}: unknown format, header {head}')
 
 
-def read_sources(root, month):
-    """Every file under sources/<account>/<download date>/ whose rows fall in the month. Account from the folder."""
+def read_sources(root, month, institutions=None):
+    """Every file under sources/<account>/<download date>/ whose rows fall in the month. Account from the folder.
+    institutions: account id -> institution name; the sheet's Accounts tab when the caller has it, else INSTITUTION."""
+    institutions = institutions or INSTITUTION
     out = []
     for acct_dir in sorted(Path(root).iterdir()):
-        if not acct_dir.is_dir() or acct_dir.name not in INSTITUTION:
+        if not acct_dir.is_dir() or acct_dir.name not in institutions:
             continue
         for day_dir in sorted(acct_dir.iterdir()):
             for f in sorted(day_dir.glob('*.csv')):
                 name, read = sniff(f)
-                expected = INSTITUTION[acct_dir.name]
+                expected = institutions[acct_dir.name]
                 assert name == expected, f'{f}: a {name} file in the {acct_dir.name} folder ({expected})'
                 rows = [r for r in read(f, acct_dir.name) if r[0][:7] == month]
                 out.append((f.relative_to(root).as_posix(), rows))

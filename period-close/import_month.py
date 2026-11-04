@@ -15,6 +15,9 @@ common and says so. Anything never seen before is Uncategorised and listed for r
 overrides.csv in the month folder records the review decisions and wins over the history match.
 
 Writes rows.json (Transactions columns A to J, ready to append) and review.md.
+--sources and --out point the run at another sources/ folder and another output folder (the portals'
+end-to-end test runs against a scratch copy); the account-to-institution map comes from the sheet's
+Accounts tab when the snapshot carries one, so the sheet owns which shape each account is read in.
 """
 import argparse
 import csv
@@ -40,11 +43,16 @@ def main():
     p.add_argument('month', help='YYYY-MM')
     p.add_argument('--sheet', default=ROOT / 'data' / 'snapshot.json', help='the sheet as last snapshotted')
     p.add_argument('--history', default=None, help='optional older history (the generator\'s data.json) for categorising')
+    p.add_argument('--sources', default=ROOT / 'sources', help='the sources/ folder to read (default: the repo\'s)')
+    p.add_argument('--out', default=None, help='where rows.json and review.md go (default: period-close/<month>/)')
     args = p.parse_args()
-    folder = Path(__file__).parent / args.month
-    folder.mkdir(exist_ok=True)
+    folder = Path(args.out) if args.out else Path(__file__).parent / args.month
+    folder.mkdir(parents=True, exist_ok=True)
 
-    sheet = json.loads(Path(args.sheet).read_text())['transactions']
+    doc = json.loads(Path(args.sheet).read_text())
+    sheet = doc['transactions']
+    institutions = dict(A.INSTITUTION)
+    institutions.update({a['account_id']: a['institution'] for a in doc.get('accounts', []) if a.get('account_id') and a.get('institution') in A.FORMATS})
     existing = Counter((t['date'], t['account_id'], (t['bank_description'] or '').strip(), round(float(t['amount']), 2)) for t in sheet)
     last_id = max(int(t['txn_id'][1:]) for t in sheet)
     exact, loose = defaultdict(Counter), defaultdict(Counter)
@@ -62,7 +70,7 @@ def main():
         with open(folder / 'overrides.csv') as f:
             overrides = {r['Description']: r for r in csv.DictReader(f)}
 
-    files = A.read_sources(ROOT / 'sources', args.month)
+    files = A.read_sources(Path(args.sources), args.month, institutions)
     rows, review, skipped, seen_now = [], [], [], Counter()
     for path, frows in files:
         kept = 0

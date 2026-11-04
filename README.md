@@ -35,6 +35,7 @@ dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the e
 | `build.py` | Bundles `dist/kitty.html` (publish this) and `dist/local.html` (open locally). `--no-snapshot` for a page with no data in it. |
 | `test.js` | Pinned tests on a frozen month (`fixtures/snapshot-2026-11.json`) plus invariants that also run on the live snapshot: transactions add up to the Cash Flow tab every month, accounts to the Cash metric, IDs unique. |
 | `skills/bank-export/SKILL.md` | The agent skill for the monthly export, country-aware, credential-free. |
+| `portals/` | The parody portals on Vercel (https://the-kitty-portals.vercel.app): static pages, four Node functions, `build-data.py`, the Playwright proof. |
 
 ## Build, test, publish
 
@@ -87,6 +88,39 @@ python3 period-close/import_month.py 2027-02  # reads sources/, refuses rows alr
 - The close is done when every Close check on Compliance Checks is OK and `close.items_missing` is 0.
 - The sheet's bound Apps Script serves the JSON feed only while the Kitty tab says `public_feed = yes`. The demo sheet says yes because every number in it is fictional; a household with real money leaves it off and reads live through the connector instead.
 
+## Portals (the end-to-end proof)
+
+**https://the-kitty-portals.vercel.app** serves the Davies household's files from seven parody portals, in a plain
+browser, as real downloads: Westpaw (the Westpac CSV shape), CommBark (CommBank's headerless four-column export),
+Amewx (the American Express statement shape, with statement periods that close mid-month), PING (the ING shape),
+PropertyMeow (owner statements per investment property), Pawroll (payslips) and Purrsure (landlord and home
+insurance renewals). Sign in with **any name and the password `demo`**. Each portal lists its accounts, takes a date
+range and a format, and the Export button returns a server-generated file with `Content-Disposition: attachment`:
+CSV in the institution's exact column shape, PDF through pdf-lib for statements, loan statements, owner statements,
+payslips and renewal notices.
+
+The files agree with the sheet. `portals/build-data.py` builds `portals/data/months.json` from `data/snapshot.json`
+(every month the sheet holds) and from `period-close/simulate.py` run in a scratch copy (the next two months), so a
+closed month downloaded from a portal is byte-identical to the file under `sources/`. The CI job `portals` proves
+the path with Playwright (Chromium only): sign in, download every shape for the first month after the sheet's as-of
+date, run `period-close/import_month.py` against a scratch copy of the snapshot, check IDs, accounts, categories and
+per-account totals against the simulator, build the engine's model over the result, then import the same files again
+and get nothing to append. One account is not on the sheet: Jordan's old everyday at CommBark exists only in the
+portals, so the CommBank shape has an account behind it; it is labelled on the page.
+
+Rules: no real bank's name, logo or mark anywhere, only parody names and original wordmarks; no real credential
+anywhere, and the bank-export skill still never types, reads or stores a password or a one-time code; every
+dependency pinned to an exact version. The Vercel project `the-kitty-portals` has its root directory set to
+`portals/`; what is live was deployed with `vercel --prod` from that folder. Auto-deploys from `main` and a preview
+URL per pull request need the Vercel account's GitHub login connection, which the CLI reported missing on 4 November
+2026 (`vercel git connect` in `portals/` once it is added). Run it locally with `cd portals && npm ci && npm start` (http://127.0.0.1:4173), rebuild
+the data after a month-end close with `python3 portals/build-data.py`, and run the proof with `npx playwright test`.
+
+| | |
+|---|---|
+| ![Westpaw](docs/screenshots/portals/westpaw.png) | ![CommBark](docs/screenshots/portals/commbark.png) |
+| ![PropertyMeow](docs/screenshots/portals/propertymeow.png) | ![Purrsure](docs/screenshots/portals/purrsure.png) |
+
 ## Make it yours
 
 1. File → Make a copy of the demo sheet. Clear the three raw tabs; fill the input tabs.
@@ -100,7 +134,7 @@ python3 period-close/import_month.py 2027-02  # reads sources/, refuses rows alr
 
 - English copy only; currency and date order follow the Kitty tab's country, nothing else is localised.
 - One sheet shape. A household with different tab names or columns needs the sheet template, not this page.
-- Bank export paths are documented from product knowledge, not yet verified on each bank's site; the skill stamps them as it verifies.
+- Bank export paths for the real banks are documented from product knowledge, not yet verified on each bank's site; the skill stamps them as it verifies. The parody portals' paths are the first verified entries (`demo` in `src/data-sources.json`).
 - The import pipeline is Python on a laptop; a scheduled, supervised version is the next real step.
 - Tested with a 925-row sheet; reads are chunked for larger ones but not yet exercised past a few thousand rows.
 - Verified on Chrome, Safari (iOS) and the Claude apps. Not tested on Firefox.
