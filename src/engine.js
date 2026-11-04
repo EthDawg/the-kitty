@@ -164,15 +164,34 @@
     const entries = (snap.entries && snap.entries.length ? snap.entries.map((e) => ({ id: e.entry_id, kind: String(e.kind || "transaction").toLowerCase(), date: E.date(e.settled_at || e.date), acct: e.account_id, raw: e.raw_text || "", desc: e.description || e.raw_text || "", amount: E.num(e.amount) || 0, cat: e.category_id || "", person: e.person || "", receipt: e.receipt_held || "", note: e.note || "", status: String(e.status || "settled").toLowerCase(), created: E.date(e.created_at) || E.date(e.settled_at || e.date), transferId: e.transfer_id || "", transferAcct: e.transfer_account || "", foreign: E.num(e.foreign_amount), foreignCcy: e.foreign_currency || "", units: E.num(e.units), price: E.num(e.unit_price), source: e.source || "" }))
       : tx.map((t) => ({ id: t.id, kind: "transaction", date: t.date, acct: t.acct, raw: t.desc, desc: t.merchant, amount: t.amount, cat: t.cat, person: t.person, receipt: t.receipt, note: t.note, status: "settled", created: t.date, transferId: "", transferAcct: "", foreign: null, foreignCcy: "", units: null, price: null, source: "" })))
       .filter((e) => e.id && e.date).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1));
+    const decisions = (snap.decisions || []).map((d) => ({ id: d.decision_id, refKind: d.ref_kind || "", ref: d.ref_id || "", decision: d.decision || "", value: /refresh|date|until|by/.test(String(d.decision)) && E.date(d.value) ? E.date(d.value) : d.value == null ? "" : String(d.value), by: d.by || "", at: E.date(d.at), note: d.note || "" })).filter((d) => d.id);
+    const rules = (snap.rules || []).map((r) => ({ id: r.rule_id, pattern: r.pattern || "", match: r.match || "normalised", merchant: r.merchant || "", cat: r.category_id || "", person: r.person || "", tax: r.tax_label || "", property: r.property || "", source: r.source || "", note: r.note || "" })).filter((r) => r.id && r.pattern);
+    const entryById = Object.fromEntries(entries.map((e) => [e.id, e]));
+    // Decisions overlay the model on read: a categorise lands in the Entries cell too, the rest live only here, so the page
+    // agrees with the sheet the moment a Decisions row is written and never remembers a judgment the sheet does not have.
+    for (const d of decisions) {
+      if (d.refKind !== "entry") continue; const e = entryById[d.ref]; if (!e) continue;
+      (e.decisions = e.decisions || []).push(d);
+      if (d.decision === "categorise" && d.value && catById[d.value]) { e.cat = d.value; e.reviewed = true; const t = txById[e.id]; if (t) { const c = catById[d.value]; t.cat = d.value; t.catName = c.name; t.group = c.group; t.flow = c.flow; } }
+      else if (d.decision === "confirm") e.reviewed = true;
+      else if (d.decision === "merge_duplicate") { e.dupOf = d.value; e.reviewed = true; }
+      else if (d.decision === "match_transfer") { e.matchedWith = d.value; e.reviewed = true; const mate = entryById[d.value]; if (mate) mate.matchedWith = e.id; }
+      else if (d.decision === "split") { e.split = E.parseSplit(d.value); e.reviewed = true; }
+      else if (d.decision === "worth_it") e.worth = String(d.value || "").toLowerCase();
+    }
+    const firstSeen = new Set(), seenMerchant = new Set(), dupKey = new Map(), dupes = new Map();
     for (const e of entries) {
       e.flow = e.kind === "transaction" ? ((catById[e.cat] || {}).flow || "Expense") : e.kind;
       if (acctById[e.acct]) acctById[e.acct].entries.push(e);
       if (e.transferId && txById[e.id]) txById[e.id].transferId = e.transferId;
+      if (e.kind === "transaction") {
+        const name = e.desc || e.raw; if (name && !seenMerchant.has(name)) { seenMerchant.add(name); firstSeen.add(e.id); }
+        // the sheet's own duplicate check: same merchant, amount, account and day; the later row is the suspect
+        if (e.flow === "Expense") { const k = `${e.date}|${e.acct}|${name}|${e.amount}`; if (dupKey.has(k)) dupes.set(e.id, dupKey.get(k)); else dupKey.set(k, e.id); }
+      }
     }
     const balances = (snap.balances || []).map((b) => ({ month: E.date(b.month_end), acct: b.account_id, balance: E.num(b.balance), cls: b.class || "", method: String(b.method || "").toLowerCase(), status: String(b.status || "active").toLowerCase() })).filter((b) => b.month && b.acct);
     const contracts = (snap.contracts || []).map((c) => ({ id: c.contract_id, kind: String(c.kind || "").toLowerCase(), name: c.name, provider: c.provider || "", owner: c.owner || "", acct: c.account_id || "", cat: c.category_id || "", cadence: c.cadence || "Monthly", amount: E.num(c.amount), rate: E.pct(c.rate), start: E.date(c.start_date), end: E.date(c.end_date), next: E.date(c.next_date), lastUsed: E.date(c.last_used), lastUsedRaw: c.last_used, cover: c.cover || "", status: String(c.status || "active").toLowerCase(), note: c.note || "" })).filter((c) => c.id);
-    const decisions = (snap.decisions || []).map((d) => ({ id: d.decision_id, refKind: d.ref_kind || "", ref: d.ref_id || "", decision: d.decision || "", value: /refresh|date|until|by/.test(String(d.decision)) && E.date(d.value) ? E.date(d.value) : d.value == null ? "" : String(d.value), by: d.by || "", at: E.date(d.at), note: d.note || "" })).filter((d) => d.id);
-    const rules = (snap.rules || []).map((r) => ({ id: r.rule_id, pattern: r.pattern || "", match: r.match || "normalised", merchant: r.merchant || "", cat: r.category_id || "", person: r.person || "", tax: r.tax_label || "", property: r.property || "", source: r.source || "", note: r.note || "" })).filter((r) => r.id && r.pattern);
     const sheetVersion = E.num(kitty.sheet_version) || 1;
     const asOf = E.date(settings["As-of date"]) || (tx[0] && tx[0].date) || iso(new Date());
     const goals = (snap.goals || []).map((g, i) => ({ row: i + 2, name: g.goal, target: E.num(g.target_amount), date: E.date(g.target_date), acct: g.linked_account, balance: E.num(g.balance_now), progress: E.pct(g.progress), monthsLeft: E.num(g.months_left), needPm: E.num(g.needed_per_month), savedPm: E.num(g.saved_per_month_last_3_months), status: g.status || "" })).filter((g) => g.name);
@@ -197,7 +216,11 @@
     const people = (kitty.people || "").split(",").map((s) => s.trim()).filter(Boolean);
     if (!people.length) for (const p of payslips) if (!people.includes(p.person)) people.push(p.person);
     const householdName = kitty.household_name || (settings.Household ? String(settings.Household).replace(/\s*\(.*\)\s*$/, "") : "This household");
-    return { asOf, settings, kitty, sheetVersion, householdName, people, cats, catById, accounts, acctById, tx, entries, balances, contracts, decisions, rules, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, fetchedAt: snap.fetchedAt || null };
+    const m = { asOf, settings, kitty, sheetVersion, householdName, people, cats, catById, accounts, acctById, tx, entries, entryById, balances, contracts, decisions, rules, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, firstSeen, dupes, fetchedAt: snap.fetchedAt || null };
+    // every transaction carries its merchant resolution: the sheet's Rules first, then the dictionary, then a flagged fallback
+    m.merMemo = new Map(); m.ruleIndex = null;
+    for (const e of entries) if (e.kind === "transaction") { e.mer = E.merchant(e.raw || e.desc, m); const t = txById[e.id]; if (t) t.mer = e.mer; }
+    return m;
   };
 
   // ---------- windows and spending ----------
@@ -372,17 +395,19 @@
     }
     return f;
   };
-  E.match = (m, q) => {
+  E.match = (m, q, rows) => {
     const f = E.parseQuery(q, m);
     const catIds = f.cat ? m.cats.filter((c) => c.id.toLowerCase() === f.cat || c.name.toLowerCase().includes(f.cat) || c.group.toLowerCase() === f.cat).map((c) => c.id) : null;
-    return m.tx.filter((t) => {
-      if (f.person && t.person.toLowerCase() !== f.person) return false;
+    return (rows || m.tx).filter((t) => {
+      if (f.person && String(t.person || "").toLowerCase() !== f.person) return false;
       if (catIds && !catIds.includes(t.cat)) return false;
-      if (f.acct && t.acct.toLowerCase() !== f.acct) return false;
+      if (f.acct && String(t.acct || "").toLowerCase() !== f.acct) return false;
       if (f.min != null && Math.abs(t.amount) < f.min) return false;
       if (f.max != null && Math.abs(t.amount) > f.max) return false;
       if (f.from && (t.date < f.from || t.date > f.to)) return false;
-      const hay = `${t.merchant} ${t.desc} ${t.catName} ${t.group} ${t.note} ${t.person}`.toLowerCase();
+      if (!f.text.length) return true;
+      const c = m.catById[t.cat]; const acct = m.acctById[t.acct];
+      const hay = `${t.merchant || ""} ${t.desc || ""} ${t.raw || ""} ${t.mer ? t.mer.name : ""} ${t.catName || (c ? c.name : "")} ${t.group || (c ? c.group : "")} ${t.note || ""} ${t.person || ""} ${acct ? acct.name : ""} ${t.kind || ""}`.toLowerCase();
       return f.text.every((w) => hay.includes(w));
     });
   };
@@ -465,6 +490,154 @@
     }
     if (m.sheetVersion >= 2) for (const inv of E.invariants(m)) out.push(inv);
     return out;
+  };
+
+  // ---------- merchants: normalise a bank descriptor, then resolve it (Rules, then the dictionary, then a flagged fallback) ----------
+  // The dictionary is a repo asset (merchants/merchants.json + categories.json); the page bundles it, node tests load it.
+  const DICT = { merchants: [], byId: {}, byName: {}, categories: {}, groups: {}, kinds: {}, compiled: [] };
+  E.loadMerchants = (pack) => {
+    const ms = (pack && pack.merchants && pack.merchants.merchants) || (pack && pack.merchants) || [];
+    const cats = (pack && pack.categories && pack.categories.categories) || {};
+    DICT.merchants = Array.isArray(ms) ? ms : []; DICT.byId = {}; DICT.byName = {}; DICT.compiled = [];
+    DICT.categories = cats; DICT.groups = (pack && pack.categories && pack.categories.groups) || {}; DICT.kinds = (pack && pack.categories && pack.categories.kinds) || {};
+    for (const d of DICT.merchants) {
+      DICT.byId[d.id] = d; DICT.byName[String(d.name).toLowerCase()] = d;
+      for (const p of d.patterns || []) { try { DICT.compiled.push({ re: new RegExp(p), d, lit: p.replace(/\\b|\(\?!.*?\)|[\\^$()?:*+|\[\]]/g, "").length }); } catch (e) { /* a bad pattern never breaks the page */ } }
+    }
+    DICT.compiled.sort((a, b) => b.lit - a.lit);
+    return DICT;
+  };
+  E.dictionary = () => DICT;
+  const PROTECT = [[/\b7[\s-]?ELEVEN\b/g, "SEVENELEVEN"], [/\bF45\b/g, "FFORTYFIVE"], [/\b13\s?CABS\b/g, "THIRTEENCABS"]];
+  const NOISE = /\b(?:VISA PURCHASE|VISA DEBIT|DEBIT CARD PURCHASE|EFTPOS PURCHASE|EFTPOS|TAP AND PAY|PAYWAVE|CONTACTLESS|MASTERCARD PURCHASE|CARD PURCHASE|POS PURCHASE|VALUE DATE|EFFECTIVE DATE|DIRECT DEBIT|DIRECT CREDIT|AUTHORISATION|PENDING|RECEIPT NO|REF NO|REFERENCE)\b/g;
+  const MONTHWORD = /\b(?:JAN(?:UARY)?|FEB(?:RUARY)?|MAR(?:CH)?|APR(?:IL)?|MAY|JUNE?|JULY?|AUG(?:UST)?|SEPT?(?:EMBER)?|OCT(?:OBER)?|NOV(?:EMBER)?|DEC(?:EMBER)?)\b/g;
+  const CITY = /\s+(?:SYDNEY|MELBOURNE|BRISBANE|PERTH|ADELAIDE|HOBART|DARWIN|CANBERRA|GOLD COAST|NEWCASTLE|WOLLONGONG|GEELONG|SUNSHINE COAST|TOWNSVILLE|CAIRNS)(?:\s+(?:SOUTH|NORTH|EAST|WEST|CBD|CENTRAL|CITY|AIRPORT|OLYMPIC PARK))?\s*$/;
+  const STATE = /\s+(?:NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\s*$/;
+  E.normalise = (raw) => {
+    let s = String(raw == null ? "" : raw).toUpperCase();
+    for (const [re, to] of PROTECT) s = s.replace(re, to);
+    s = s.replace(/\b(?:CARD|CRD)\s*(?:X+|\*+|#)?\s*\d{2,4}\b/g, " ").replace(/\b(?:X{2,}|\*{2,})\d{2,4}\b/g, " ");   // card suffixes
+    s = s.replace(/[*#_|~]+/g, " ").replace(NOISE, " ");
+    s = s.replace(/\b(?:AUD|USD|EUR|GBP|NZD|JPY|SGD|CAD|HKD|INR)\s?\d[\d,]*(?:\.\d+)?\b/g, " ").replace(/\b\d[\d,]*\.\d{2}\b/g, " ").replace(/\b(?:AUD|USD|EUR|GBP|NZD|JPY|SGD|CAD|HKD|INR)\b/g, " ");   // amounts, then stray currency codes
+    s = s.replace(/\b\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{2,4})?\b/g, " ");                                        // 14/10, 14/10/2025
+    s = s.replace(/\b\d{1,2}\s?(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*(?:\s?\d{2,4})?\b/g, " ");   // 14 OCT, 14OCT25
+    s = s.replace(MONTHWORD, " ");
+    s = s.replace(/\b(?:PTY|LTD|LIMITED|P\/L|INC|LLC|CORP)\b/g, " ").replace(/\b(?:AUS?)\b/g, " ");
+    s = s.replace(/\s+/g, " ").replace(STATE, " ").replace(CITY, " ").replace(STATE, " ");
+    s = s.replace(/\b[A-Z]*\d+[A-Z\d]*\b/g, " ");                                                              // store numbers and codes
+    s = s.replace(/[^A-Z&' ]+/g, " ").replace(/\s+/g, " ").trim();
+    return s;
+  };
+  const toks = (s) => s.split(" ").filter(Boolean);
+  // A rule's tokens appear in order and together in the descriptor's tokens; a descriptor cut short by a bank (24 characters is common)
+  // still matches when its last token is the start of the rule's next token.
+  function tokensMatch(ruleT, rawT) {
+    if (!ruleT.length || !rawT.length) return false;
+    for (let i = 0; i < rawT.length; i++) {
+      let ok = true;
+      for (let j = 0; j < ruleT.length; j++) {
+        const r = rawT[i + j];
+        if (r === undefined) { ok = false; break; }
+        if (r === ruleT[j]) continue;
+        if (i + j === rawT.length - 1 && r !== ruleT[j] && ruleT[j].startsWith(r) && (r.length >= 4 || j >= 2)) continue;
+        ok = false; break;
+      }
+      if (ok) return true;
+    }
+    return false;
+  }
+  function ruleIndex(m) {
+    if (m.ruleIndex) return m.ruleIndex;
+    const idx = m.rules.map((r) => { const n = E.normalise(r.pattern); return { r, kind: String(r.match || "normalised").toLowerCase(), tokens: toks(n || r.pattern.toUpperCase()), upper: r.pattern.toUpperCase(), re: null }; });
+    for (const x of idx) if (x.kind === "regex") { try { x.re = new RegExp(x.r.pattern, "i"); } catch (e) { x.re = null; } }
+    idx.sort((a, b) => b.tokens.length - a.tokens.length || b.upper.length - a.upper.length);
+    m.ruleIndex = idx; return idx;
+  }
+  const hashHue = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
+  const titleCase = (s) => s.toLowerCase().replace(/(^|[\s'&-])([a-z])/g, (m0, a, b) => a + b.toUpperCase()).replace(/\bAnd\b/g, "and");
+  const PROCESSOR = /^(?:SQ|SP|TST|PP|PAYPAL|ZLR|PYR|IZ)\s+/;
+  E.merchant = (raw, m) => {
+    const key = raw == null ? "" : String(raw); const memo = m && m.merMemo;
+    if (memo && memo.has(key)) return memo.get(key);
+    const norm = E.normalise(key); const rawT = toks(norm); const up = key.toUpperCase().trim();
+    let out = null;
+    if (m && m.rules && m.rules.length) {
+      for (const x of ruleIndex(m)) {
+        const hit = x.kind === "exact" ? up === x.upper : x.kind === "contains" ? up.includes(x.upper) : x.kind === "regex" ? !!(x.re && x.re.test(key)) : tokensMatch(x.tokens, rawT);
+        if (hit) { const r = x.r; const d = DICT.byName[r.merchant.toLowerCase()] || null; out = { name: r.merchant || titleCase(norm), cat: r.cat, person: r.person, tax: r.tax, property: r.property, source: "rule", rule: r, dict: d, unresolved: false }; break; }
+      }
+    }
+    if (!out && DICT.compiled.length) {
+      let best = null, bestLen = 0;
+      for (const c of DICT.compiled) { const mm = c.re.exec(norm); if (mm && mm[0].length > bestLen) { best = c.d; bestLen = mm[0].length; } }
+      if (best) out = { name: best.name, cat: best.category_id || "", person: "", tax: "", property: "", source: "dictionary", rule: null, dict: best, unresolved: false };
+    }
+    if (!out) { const clean = norm.replace(PROCESSOR, ""); out = { name: titleCase(clean || norm || key) || "Unknown", cat: "", person: "", tax: "", property: "", source: "fallback", rule: null, dict: null, unresolved: true }; }
+    const d = out.dict; out.norm = norm; out.id = d ? d.id : null; out.kind = d ? d.kind || "merchant" : out.source === "fallback" ? "merchant" : /transfer/i.test(out.name) ? "transfer" : "merchant";
+    out.hue = d && d.hue ? d.hue : `hsl(${hashHue(out.name)} 52% 46%)`; out.website = d ? d.website || "" : ""; out.icon = d && d.icon ? d.icon : "";
+    if (memo) memo.set(key, out);
+    return out;
+  };
+  // The dictionary's nearest entries to a descriptor, for the fortune cookie's prompt and the review card's suggestions.
+  E.candidates = (raw, n = 5) => {
+    const t = new Set(toks(E.normalise(raw))); if (!t.size) return [];
+    const words = (d) => new Set(toks(String(d.name).toUpperCase().replace(/[^A-Z&' ]+/g, " ")).concat((d.patterns || []).flatMap((p) => toks(p.replace(/\\b|\(\?!.*?\)|[\\^$()?:*+|\[\].]/g, " ").toUpperCase()))));
+    const scored = DICT.merchants.map((d) => { let sc = 0; const w = words(d); for (const a of t) for (const b of w) { if (a === b) sc += 3; else if (a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a))) sc += 1; } return { d, sc }; }).filter((x) => x.sc > 0).sort((a, b) => b.sc - a.sc);
+    return scored.slice(0, n).map((x) => ({ id: x.d.id, name: x.d.name, category_id: x.d.category_id, kind: x.d.kind, score: x.sc }));
+  };
+  E.catIcon = (cat, m) => { const c = DICT.categories[cat]; if (c && c.icon) return c.icon; const g = m && m.catById[cat] ? DICT.groups[m.catById[cat].group] : null; return g && g.icon ? g.icon : "receipt"; };
+  E.catHue = (cat, m) => { const c = DICT.categories[cat]; if (c && c.hue) return c.hue; const g = m && m.catById[cat] ? DICT.groups[m.catById[cat].group] : null; return g && g.hue ? g.hue : `hsl(${hashHue(cat)} 52% 46%)`; };
+  E.kindIcon = (k) => (DICT.kinds[String(k || "").toLowerCase()] || {}).icon || "stack";
+  // "GROCERIES 60.00 | DINING 24.20" → parts; the sheet's Decisions value for a split
+  E.parseSplit = (v) => String(v || "").split(/\s*[|;,]\s*/).map((p) => { const mm = p.trim().match(/^([A-Z0-9-]+)\s+(-?[\d.]+)$/i); return mm ? { cat: mm[1].toUpperCase(), amount: +mm[2] } : null; }).filter(Boolean);
+  E.formatSplit = (parts) => parts.map((p) => `${p.cat} ${Math.abs(p.amount).toFixed(2)}`).join(" | ");
+
+  // ---------- the review queue: what needs a person, derived from the model and the sheet's own checks ----------
+  // uncategorised rows, descriptors no rule or dictionary entry knows, the sheet's possible duplicates (same merchant, amount,
+  // account and day), transfers without a mate, and a first visit to a merchant above big_bill_amount in the as-of month.
+  // A Decisions row (categorise, confirm, merge_duplicate, match_transfer, split) settles a row; nothing else does.
+  E.review = (m) => {
+    const bigAt = E.num(m.kitty.big_bill_amount) || 500; const month = E.window("month", m.asOf);
+    const tr = E.transfers(m); const orphan = new Set(tr.orphans.map((e) => e.id)); for (const p of tr.bad) for (const e of p.entries) orphan.add(e.id);
+    const items = []; const counts = { uncategorised: 0, unresolved: 0, duplicate: 0, unpaired: 0, first_big: 0 };
+    for (const e of m.entries) {
+      if (e.kind !== "transaction" || e.reviewed) continue;
+      const reasons = [];
+      if (!e.cat || e.cat === "UNCAT" || !m.catById[e.cat]) reasons.push("uncategorised");
+      if (e.mer && e.mer.unresolved) reasons.push("unresolved");
+      if (m.dupes.has(e.id)) reasons.push("duplicate");
+      if (orphan.has(e.id) && !e.matchedWith) reasons.push("unpaired");
+      if (m.firstSeen.has(e.id) && e.flow === "Expense" && Math.abs(e.amount) >= bigAt && E.inWin(e, month)) reasons.push("first_big");
+      if (!reasons.length) continue;
+      for (const r of reasons) counts[r]++;
+      items.push({ id: e.id, entry: e, reasons, dupOf: m.dupes.get(e.id) || null, why: reasons.map((r) => E.reviewWhy(r, e, m)).join(" · ") });
+    }
+    items.sort((a, b) => (a.entry.date < b.entry.date ? 1 : a.entry.date > b.entry.date ? -1 : 0));
+    return { items, counts, byId: new Set(items.map((i) => i.id)), hasRule: (e) => !!(e.mer && e.mer.source === "rule" && e.mer.cat && e.mer.cat !== "UNCAT") };
+  };
+  E.reviewWhy = (r, e, m) => ({ uncategorised: "needs a category", unresolved: "no rule knows this descriptor", duplicate: `looks like a double of ${m.dupes.get(e.id) || "another row"}`, unpaired: "a transfer with no mate", first_big: `first time here, over ${E.fmt0(E.num(m.kitty.big_bill_amount) || 500)}` }[r] || r);
+  // mates a transfer could pair with: the opposite amount, another account, within four days, not already paired
+  E.transferMates = (m, e) => m.entries.filter((x) => x.kind === "transaction" && x.id !== e.id && x.acct !== e.acct && Math.abs(x.amount + e.amount) < 0.005 && Math.abs(E.daysBetween(x.date, e.date)) <= 4 && !x.transferId && !x.matchedWith);
+  // every unreviewed row whose descriptor a rule pattern would match: what "Make it a rule" applies the category to
+  E.rowsForPattern = (m, pattern, excludeId) => { const t = toks(E.normalise(pattern) || String(pattern).toUpperCase()); return m.entries.filter((e) => e.kind === "transaction" && e.id !== excludeId && !e.reviewed && (!e.cat || e.cat === "UNCAT" || (e.mer && e.mer.unresolved)) && tokensMatch(t, toks(E.normalise(e.raw)))); };
+
+  // ---------- worth it? one tap on a handful of discretionary rows a week, grounded in Dunn, Gilbert and Wilson ----------
+  const DISC_GROUPS = new Set(["Housing", "Property", "Fees", "Transfers", "Uncategorised", "Income"]);
+  E.discretionary = (e, m) => { const c = m.catById[e.cat]; return !!c && c.flow === "Expense" && !c.essential && !DISC_GROUPS.has(c.group) && e.kind === "transaction" && e.amount < 0; };
+  E.worthCandidates = (m, min) => {
+    const floor = min != null ? min : E.num(m.kitty.worth_it_min) || 40;
+    const pool = m.entries.filter((e) => E.discretionary(e, m) && Math.abs(e.amount) >= floor && !e.worth && !e.dupOf);
+    for (let back = 0; back < 4; back++) {   // the most recent week that has anything to ask about, within four weeks of the as-of date
+      const to = E.addDays(m.asOf, -7 * back), from = E.addDays(to, -6);
+      const week = pool.filter((e) => e.date >= from && e.date <= to).sort((a, b) => a.amount - b.amount).slice(0, 5);
+      if (week.length) return { from, to, items: week, floor };
+    }
+    return { from: null, to: null, items: [], floor };
+  };
+  E.worthSummary = (m) => {
+    const answered = m.entries.filter((e) => e.worth); const yes = answered.filter((e) => e.worth === "yes");
+    const by = (xs, f) => { const mm = new Map(); for (const e of xs) mm.set(f(e), (mm.get(f(e)) || 0) - e.amount); return [...mm.entries()].sort((a, b) => b[1] - a[1]); };
+    return { count: answered.length, yes: yes.length, meh: answered.filter((e) => e.worth === "meh").length, no: answered.filter((e) => e.worth === "no").length, yesTotal: -yes.reduce((a, e) => a + e.amount, 0), total: -answered.reduce((a, e) => a + e.amount, 0), byCat: by(yes, (e) => (m.catById[e.cat] || {}).name || e.cat), byMerchant: by(yes, (e) => (e.mer && e.mer.name) || e.desc), noByMerchant: by(answered.filter((e) => e.worth === "no"), (e) => (e.mer && e.mer.name) || e.desc) };
   };
 
   return E;

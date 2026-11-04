@@ -5,10 +5,12 @@
 (function () {
   "use strict";
   const E = window.Engine, SOURCES = window.KITTY_SOURCES || { countries: [] }, SNAP = window.KITTY_SNAPSHOT || null;
+  if (window.KITTY_MERCHANTS) E.loadMerchants(window.KITTY_MERCHANTS);   // the merchant dictionary (merchants/), bundled at build
+  const Kit = window.Kit, ART = window.KITTY_ART || {}, LOGOS = window.KITTY_LOGOS || {}, Motion = window.KittyMotion || null;
   const GS = "Google Sheets";
   const DEMO_SHEET = window.KITTY_SHEET || "1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM";   // the sheet the bundled snapshot came from; `build.py --v2` points it at the v2 sheet
   const PAGE_URL = window.KITTY_PAGE_URL || "";
-  const VERSION = "1.1"; const REPO = "https://github.com/EthDawg/the-kitty";
+  const VERSION = "2.0 (phase B)"; const REPO = "https://github.com/EthDawg/the-kitty";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -28,7 +30,8 @@
     tab: "home", m: null, grids: null, mode: SNAP ? "demo" : "none", mcp: null, user: null, db: null, sample: null, downloads: null,
     storedAt: null, unknownReadAge: false, err: {}, loading: false, liveTried: false, isOwner: false, canWrite: false,
     prefs: Object.assign({}, DEFAULT_PREFS, store.get("prefs", {})), period: { kind: "month", anchor: null },
-    feed: { person: "", flow: "", q: "", limit: 80 }, chat: [], asking: false, kittyRows: null, settingsRows: null, goalsRowBase: 2,
+    feed: { person: "", flow: "", q: "", limit: 80, period: { kind: "all", anchor: null } }, chat: [], asking: false, kittyRows: null, settingsRows: null, goalsRowBase: 2,
+    sessionDecisions: [], sessionCats: {}, cookie: null, perf: {},
   };
   if (window.__LOCAL__) S.mode = "local";
   // test flags for local checks: ?noonb skips the tour, ?noanim freezes motion, ?tab=insights opens a tab
@@ -39,6 +42,13 @@
   // entrance animations only while the page is visible: a hidden tab pauses CSS animations at their first frame
   const setAnim = () => document.documentElement.classList.toggle("anim", document.visibilityState === "visible" && !FLAGS.has("noanim") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   setAnim(); document.addEventListener("visibilitychange", setAnim);
+  // every model goes through here so the per-render caches (merchant context, review queue) reset with it
+  let CTX = null, REVIEW = null;
+  const setModel = (m) => { S.m = m; CTX = null; REVIEW = null; return m; };
+  const review = () => REVIEW || (REVIEW = E.review(S.m));
+  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, cookie: ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
+  // the demo and a read-only sheet keep this visit's judgments in memory only: the sheet is never written and nothing is remembered
+  const demoModel = () => { if (!SNAP) return null; const snap = Object.assign({}, SNAP, { decisions: (SNAP.decisions || []).concat(S.sessionDecisions), entries: Object.keys(S.sessionCats).length ? (SNAP.entries || []).map((e) => (S.sessionCats[e.entry_id] ? Object.assign({}, e, { category_id: S.sessionCats[e.entry_id] }) : e)) : SNAP.entries }); return applyLocalGoals(E.model(snap)); };
   const sheetId = () => (S.prefs.sheet || DEMO_SHEET).trim();
   const isDemoSheet = () => sheetId() === DEMO_SHEET;
   const savePrefs = (patch) => { Object.assign(S.prefs, patch); store.set("prefs", S.prefs); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: Date.now() }).catch(() => {}); };
@@ -144,7 +154,7 @@
       snap.fetchedAt = null;
       const m = E.model(snap);
       if (!m.accounts.length) throw { code: "invalid_response" };
-      S.grids = grids; S.m = m; S.mode = "live"; S.liveErr = null;
+      S.grids = grids; setModel(m); S.mode = "live"; S.liveErr = null;
       S.kittyRows = grids.kitty; S.settingsRows = grids.settings;
       renderAll();
       return true;
@@ -199,16 +209,18 @@
   const CAT_HUE = { GROCERIES: 95, DINING: 22, SUBS: 268, SHOPPING: 330, TRANSPORT: 205, CAR: 222, UTILITIES: 46, TELCO: 188, HEALTH: 352, CHILDCARE: 160, "KIDS-ACT": 142, HOLIDAYS: 180, GIFTS: 318, PERSONAL: 296, MORTGAGE: 252, "RATES-HOME": 240, "HOME-INS": 232, "HOME-MAINT": 32, "RENT-INT": 36, "RENT-MGMT": 40, "RENT-RATES": 28, "RENT-STRATA": 44, "RENT-INS": 20, "RENT-REPAIR": 14, "WORK-EQUIP": 62, "WORK-OTHER": 70, DONATION: 120, FEES: 0, UNCAT: 0, SALARY: 160, INTEREST: 170, "RENT-INC": 150, TRANSFER: 260, "CC-PAY": 260 };
   const MUTED = new Set(["UNCAT", "FEES", "TRANSFER", "CC-PAY"]);
   const hashHue = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
-  const catHue = (c) => (CAT_HUE[c] != null ? CAT_HUE[c] : hashHue(c));
+  // a hex (categories.json) to a hue in degrees, for the jar and the swatches that tint with hsl()
+  const hexHue = (hex) => { const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim()); if (!m) { const h = /hsl\((\d+)/.exec(String(hex)); return h ? +h[1] : null; } const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return 260; let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = Math.round(h * 60); return h < 0 ? h + 360 : h; };
+  const catHue = (c) => { const h = hexHue(E.catHue(c, S.m)); return h != null ? h : CAT_HUE[c] != null ? CAT_HUE[c] : hashHue(c); };
   const catSwatch = (c) => `--h:${catHue(c)};--s:${MUTED.has(c) ? 18 : 70}%`;
   const GROUP_COLOR = { Housing: "var(--c-loan)", Essentials: "var(--c-in)", Lifestyle: "var(--accent)", Property: "var(--amber)", "Work and giving": "var(--c-kept)", Fees: "var(--c-dip)", Uncategorised: "var(--c-move)" };
   const initials = (s) => String(s || "?").replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
-  function avatar(t, size) { const cls = t.flow === "Income" ? "in" : t.flow === "Transfer" ? "mv" : ""; return `<span class="ava ${cls} ${size || ""}" style="${catSwatch(t.cat)}" aria-hidden="true">${t.flow === "Income" ? "↓" : t.flow === "Transfer" ? "⇄" : esc(initials(t.merchant))}</span>`; }
-  function amtHtml(t) { const v = t.amount; const cls = t.flow === "Transfer" ? "mv" : v > 0 ? "in" : ""; return `<span class="amt num ${cls}">${v > 0 ? "+" : ""}${fmt(Math.abs(v)).replace(/^/, v < 0 ? "−" : "")}</span>`; }
-  function txRow(t, o = {}) {
-    const acct = S.m.acctById[t.acct];
-    return `<button class="row" data-tx="${esc(t.id)}"><span class="ava-wrap">${avatar(t)}</span><span class="mid"><span class="t">${esc(t.merchant || t.desc)}</span><span class="s">${esc(t.catName)}${o.date ? ` · ${E.fmtDay(t.date)}` : ""}${t.person && t.person !== "Joint" ? ` · ${esc(t.person)}` : ""}${acct && o.acct !== false ? ` · ${esc(acct.name)}` : ""}</span></span>${amtHtml(t)}</button>`;
-  }
+  // every row on the page is the kit's EntryRow; a 1.1 transaction maps to its entry of the same id
+  const entryOf = (t) => (t && t.kind ? t : (S.m.entryById && S.m.entryById[t.id]) || t);
+  function avatar(t, size) { return Kit.monogram(entryOf(t), ctx(), size); }
+  function amtHtml(t) { return Kit.amount(entryOf(t)); }
+  function txRow(t, o = {}) { return Kit.EntryRow(entryOf(t), ctx(), Object.assign({ category: true }, o)); }
+  const catDisc = (cat, size) => `<span class="catdisc ${size || ""}" style="--ch:${esc(E.catHue(cat, S.m))}" aria-hidden="true">${ico("i-" + E.catIcon(cat, S.m))}</span>`;
 
   // ---------- charts (hand SVG; d3 only where it does real work) ----------
   const CW = (frac) => { const w = ($("main") && $("main").clientWidth) || 900; const card = phone() ? w - 32 : w * (frac || 1) - 40; return Math.round(Math.min(760, Math.max(280, card))); };
@@ -338,6 +350,7 @@
           <button class="fact" data-go="goals:save"><b class="num">${fmtS(sav ? sav.num : null)}</b><span class="k">a year the sheet found to save</span><span class="d">${m.savings.length} ideas</span></button>
         </div>
       </div>
+      ${review().items.length ? `<button class="card rtile" style="--i:0.5" data-go="review"><span class="ric">${ico("i-review")}</span><span class="mid"><span class="t">${review().items.length === 1 ? "One entry needs a look" : `${review().items.length} entries need a look`}</span><span class="s">${Object.entries(review().counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "uncategorised", unresolved: "no rule knows", duplicate: "doubled", unpaired: "unpaired transfer", first_big: "first big bill" }[k]}`).join(" · ")} · one or two taps each</span></span>${ico("i-chev", "chev")}</button>` : ""}
       <div class="card needs" style="--i:1">
         <div class="cardhead"><span class="q">What needs you</span>${nd.more ? `<button class="linkbtn" data-open="needs">All ${nd.all.length} →</button>` : ""}</div>
         ${nd.items.length ? `<div class="nlist">${nd.items.map(needHTML).join("")}</div>` : `<div class="okline">${ico("i-check")} Nothing needs you today.</div>`}
@@ -381,51 +394,229 @@
     return `<div class="idea${hidden ? " muted" : ""}" data-idea="${esc(s.title)}"><div class="mid"><div class="kind">${esc(s.type)} · ${esc(s.effort || "")} effort</div><h3>${esc(s.title)}</h3><p>${esc(s.shows)}</p><div class="acts"><button class="linkbtn" data-where="${esc(s.where)}">Where to look</button><span class="effort">about ${EFFORT[s.effort] || "some time"}</span>${S.mode !== "none" ? `<button class="linkbtn muted" data-hide="${esc(s.title)}">${hidden ? "Unhide" : "Hide on this device"}</button>` : ""}</div></div><div class="save num">${fmt0(s.amount)}<small>${s.type === "Recurring" ? "a year" : "once"}</small></div></div>`;
   }
 
-  // ----- Activity -----
+  // ----- Activity: the review queue, worth it?, then every entry on EntryRow, grouped by day -----
+  const feedPeriod = () => { const p = S.feed.period; return p.kind === "all" ? null : E.window(p.kind, p.anchor || S.m.asOf); };
+  function feedRows() {
+    const m = S.m, f = S.feed; const w = feedPeriod();
+    let rows = m.entries.slice().reverse();   // newest first
+    if (f.flow === "bal") rows = rows.filter((e) => e.kind !== "transaction"); else rows = rows.filter((e) => e.kind === "transaction");
+    if (w) rows = rows.filter((e) => E.inWin(e, w));
+    if (f.q) rows = E.match(m, f.q, rows);
+    if (f.person) rows = rows.filter((e) => (e.person || "Joint") === f.person);
+    if (f.flow === "out") rows = rows.filter((e) => e.flow === "Expense"); else if (f.flow === "in") rows = rows.filter((e) => e.flow === "Income"); else if (f.flow === "move") rows = rows.filter((e) => e.flow === "Transfer"); else if (f.flow !== "bal") rows = rows.filter((e) => e.flow !== "Transfer" || f.q);
+    return rows;
+  }
   function renderActivity() {
-    const m = S.m, v = $("#v-activity"); const f = S.feed;
-    let rows = f.q ? E.match(m, f.q) : m.tx;
-    if (f.person) rows = rows.filter((t) => t.person === f.person);
-    if (f.flow === "out") rows = rows.filter((t) => t.flow === "Expense"); else if (f.flow === "in") rows = rows.filter((t) => t.flow === "Income"); else if (f.flow === "move") rows = rows.filter((t) => t.flow === "Transfer"); else rows = rows.filter((t) => t.flow !== "Transfer" || f.q);
-    const shown = rows.slice(0, f.limit);
-    const sumOut = rows.filter((t) => t.flow === "Expense").reduce((a, t) => a - t.amount, 0), sumIn = rows.filter((t) => t.flow === "Income").reduce((a, t) => a + t.amount, 0);
-    const days = new Map(); for (const t of shown) { if (!days.has(t.date)) days.set(t.date, []); days.get(t.date).push(t); }
+    const t0 = performance.now();
+    const m = S.m, v = $("#v-activity"); const f = S.feed; const c = ctx(); const rv = review();
+    const rows = feedRows(); const shown = rows.slice(0, f.limit);
+    const sumOut = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Expense" ? a - e.amount : a), 0), sumIn = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Income" ? a + e.amount : a), 0);
     const everyday = (t) => t.group !== "Housing" && t.group !== "Property";
     const mo = E.spend(m.tx, E.window("month", m.asOf), everyday);
     const topMerchant = mo.byMerchant[0], biggest = m.tx.filter((t) => E.inWin(t, E.window("month", m.asOf)) && t.flow === "Expense" && everyday(t)).sort((a, b) => a.amount - b.amount)[0];
     const freq = new Map(); for (const t of m.tx) if (E.inWin(t, E.window("quarter", m.asOf)) && t.flow === "Expense" && everyday(t)) freq.set(t.merchant, (freq.get(t.merchant) || 0) + 1); const most = [...freq.entries()].sort((a, b) => b[1] - a[1])[0];
+    const w = feedPeriod(); const wc = E.worthCandidates(m); const canJudge = canWriteSheet() || S.mode !== "live";
+    const quiet = !f.q && !f.person && !f.flow && !w;
+    const pk = S.feed.period; const atEnd = (pk.anchor || m.asOf) >= m.asOf;
     v.innerHTML = `
-      <div class="card" style="--i:0">
-        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs" value="${esc(f.q)}" autocomplete="off" aria-label="Search transactions">${f.q ? `<button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button>` : ""}</div>
+      ${rv.items.length ? `<div class="card" id="reviewcard" style="--i:0">
+        <div class="cardhead"><span class="q">${ico("i-review")} Needs a look</span><span class="sub">${rv.items.length} ${rv.items.length === 1 ? "entry" : "entries"} · ${Object.entries(rv.counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "uncategorised", unresolved: "unknown", duplicate: "doubled", unpaired: "unpaired", first_big: "first big bill" }[k]}`).join(" · ")}</span></div>
+        <p class="sub" style="margin:-6px 0 10px">One or two taps each. ${canWriteSheet() ? "A category writes the Entries cell and a Decisions row; everything else writes a Decisions row. The sheet keeps the judgment, this page only reads it back." : S.mode === "live" ? "This sheet is read-only for you, so judgments stay on screen for this visit." : "In the demo a judgment stays on screen for this visit; the demo sheet is never written."}${phone() ? "" : " On a keyboard: 1 to 3 pick a suggestion, C categorise, Enter confirm, D merge, T match, S split, J and K move."}</p>
+        <div class="rcards" id="rcards">${rv.items.slice(0, 20).map((it) => Kit.ReviewCard(it, c)).join("")}</div>
+        ${rv.items.length > 20 ? `<p class="sub" style="margin-top:10px">${rv.items.length - 20} more after these.</p>` : ""}
+      </div>` : S.reviewCleared ? `<div class="card" id="reviewcard" style="--i:0"><div class="rdone">${ART.allReviewed || ""}<p><b>All reviewed.</b> Every judgment is a row on the Decisions tab${canWriteSheet() ? "" : S.mode === "live" ? " (yours stayed on screen; the sheet is read-only for you)" : " (in the demo, for this visit only)"}.</p></div></div>` : ""}
+      ${wc.items.length && canJudge ? `<div class="card" id="worthcard" style="--i:0.5">
+        <div class="cardhead"><span class="q">${ico("i-worth")} Worth it?</span><span class="sub">${wc.items.length} from the week to ${E.fmtDay(wc.to)} · over ${fmt0(wc.floor)}</span></div>
+        <div class="wrows" id="wrows">${wc.items.map((e) => Kit.WorthRow(e, c)).join("")}</div>
+        <p class="wnote">Not a budget, a memory check. The research on money and happiness (Dunn, Gilbert and Wilson, 2011) says experiences outlast things, many small pleasures beat a few large ones, and paying now to enjoy later feels better than the reverse. Five rows a week, one tap each, no score. Each answer is a Decisions row; once five are in, Goals shows the spend that earned a yes.</p>
+      </div>` : ""}
+      <div class="card" style="--i:1">
+        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries">${f.q ? `<button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button>` : ""}</div>
         <div class="chips scroll" style="margin-top:12px" role="group" aria-label="Filters">
           ${[["", "Everyone"]].concat(m.people.map((p) => [p, p])).concat([["Joint", "Joint"]]).map(([k, l]) => `<button class="chip" data-fp="${esc(k)}" aria-pressed="${f.person === k}">${esc(l)}</button>`).join("")}
           <span style="width:1px;background:var(--line);margin:4px 2px"></span>
-          ${[["", "Spending & income"], ["out", "Spending"], ["in", "Income"], ["move", "Transfers"]].map(([k, l]) => `<button class="chip" data-ff="${k}" aria-pressed="${f.flow === k}">${l}</button>`).join("")}
+          ${[["", "Spending & income"], ["out", "Spending"], ["in", "Income"], ["move", "Transfers"]].concat(m.sheetVersion >= 2 && m.entries.some((e) => e.kind !== "transaction") ? [["bal", "Balances & trades"]] : []).map(([k, l]) => `<button class="chip" data-ff="${k}" aria-pressed="${f.flow === k}">${l}</button>`).join("")}
         </div>
-        <div class="sumbar"><span><b class="num">${rows.length}</b> transactions${f.q ? ` for “${esc(f.q)}”` : !f.person && !f.flow && m.tx.length ? " since " + E.fmtMonth(m.tx[m.tx.length - 1].date, true) : ""}</span><span>out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
+        <div class="periodbar" id="feedperiod" style="margin-top:10px"><span class="seg mini" role="group" aria-label="Window">${[["all", "All time"], ["month", "Month"], ["quarter", "3 months"], ["year", "12 months"], ["fy", "This FY"]].map(([k, l]) => `<button data-fpk="${k}" aria-pressed="${pk.kind === k}">${l}</button>`).join("")}</span>${pk.kind !== "all" ? `<span class="nav"><button data-fpn="-1" aria-label="Earlier">${ico("i-back")}</button><button data-fpn="1" aria-label="Later" ${atEnd ? "disabled" : ""}>${ico("i-chev")}</button></span><span class="label" style="font-size:16px">${esc(w.label)}</span>` : ""}</div>
+        <div class="sumbar"><span><b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}</span><span>${f.flow !== "bal" ? `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
       </div>
-      ${!f.q && !f.person && !f.flow ? `<div class="grid" style="--i:1">
-        ${biggest ? `<button class="card span-4 row" data-tx="${esc(biggest.id)}" style="align-items:center">${avatar(biggest, "lg")}<span class="mid"><span class="s">Biggest everyday buy this month</span><span class="t">${esc(biggest.merchant)}</span><span class="s">${esc(biggest.catName)} · ${E.fmtDay(biggest.date)}</span></span><span class="amt num">${fmt0(-biggest.amount)}</span></button>` : ""}
-        ${topMerchant ? `<button class="card span-4 row" data-merchant="${esc(topMerchant[0])}" style="align-items:center"><span class="ava lg" style="${catSwatch(m.tx.find((t) => t.merchant === topMerchant[0]).cat)}">${esc(initials(topMerchant[0]))}</span><span class="mid"><span class="s">Most spent with, outside the home</span><span class="t">${esc(topMerchant[0])}</span><span class="s">${E.fmtMonth(m.asOf)}</span></span><span class="amt num">${fmt0(topMerchant[1])}</span></button>` : ""}
-        ${most ? `<button class="card span-4 row" data-merchant="${esc(most[0])}" style="align-items:center"><span class="ava lg" style="${catSwatch(m.tx.find((t) => t.merchant === most[0]).cat)}">${esc(initials(most[0]))}</span><span class="mid"><span class="s">Most often, last 3 months</span><span class="t">${esc(most[0])}</span><span class="s">${most[1]} visits</span></span></button>` : ""}
+      ${quiet ? `<div class="grid" style="--i:2">
+        ${biggest ? `<button class="card span-4 erow" data-entry="${esc(biggest.id)}" style="align-items:center">${avatar(biggest, "lg")}<span class="mid"><span class="s">Biggest everyday buy this month</span><span class="t">${esc(biggest.merchant)}</span><span class="s">${esc(biggest.catName)} · ${E.fmtDay(biggest.date)}</span></span><span class="amt num">${fmt0(-biggest.amount)}</span></button>` : ""}
+        ${topMerchant ? `<button class="card span-4 erow" data-merchant="${esc(topMerchant[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === topMerchant[0]), "lg")}<span class="mid"><span class="s">Most spent with, outside the home</span><span class="t">${esc(topMerchant[0])}</span><span class="s">${E.fmtMonth(m.asOf)}</span></span><span class="amt num">${fmt0(topMerchant[1])}</span></button>` : ""}
+        ${most ? `<button class="card span-4 erow" data-merchant="${esc(most[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === most[0]), "lg")}<span class="mid"><span class="s">Most often, last 3 months</span><span class="t">${esc(most[0])}</span><span class="s">${most[1]} visits</span></span></button>` : ""}
       </div>` : ""}
-      <div class="card" style="--i:2">
-        <div class="feed">${[...days.entries()].map(([d, ts]) => `<div><div class="day"><span>${esc(E.dayLabel(d, m.asOf))}</span><span class="tot num">${(() => { const o = ts.filter((t) => t.flow === "Expense").reduce((a, t) => a - t.amount, 0); return o ? "−" + fmt0(o) : ""; })()}</span></div>${ts.map((t) => txRow(t)).join("")}</div>`).join("") || `<div class="empty">Nothing matches. Try a merchant, a person, a month, or <code>cat:groceries</code>.</div>`}</div>
+      <div class="card" style="--i:3">
+        <div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
         ${rows.length > shown.length ? `<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="feedmore">Show ${Math.min(120, rows.length - shown.length)} more of ${rows.length - shown.length}</button></div>` : ""}
       </div>`;
     const q = $("#feedq"); let tm;
     q.addEventListener("input", () => { clearTimeout(tm); tm = setTimeout(() => { S.feed.q = q.value.trim(); S.feed.limit = 80; renderActivity(); const nq = $("#feedq"); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length); }, 220); });
     const fc = $("#feedclear"); if (fc) fc.addEventListener("click", () => { S.feed.q = ""; renderActivity(); });
     $$("[data-fp]", v).forEach((b) => b.addEventListener("click", () => { S.feed.person = b.dataset.fp; buzz(); renderActivity(); }));
-    $$("[data-ff]", v).forEach((b) => b.addEventListener("click", () => { S.feed.flow = b.dataset.ff; buzz(); renderActivity(); }));
-    const more = $("#feedmore"); if (more) more.addEventListener("click", () => { S.feed.limit += 120; renderActivity(); window.scrollTo({ top: more.getBoundingClientRect().top + window.scrollY - 400 }); });
+    $$("[data-ff]", v).forEach((b) => b.addEventListener("click", () => { S.feed.flow = b.dataset.ff; S.feed.limit = 80; buzz(); renderActivity(); }));
+    $$("[data-fpk]", v).forEach((b) => b.addEventListener("click", () => { S.feed.period = { kind: b.dataset.fpk, anchor: null }; S.feed.limit = 80; buzz(); renderActivity(); }));
+    $$("[data-fpn]", v).forEach((b) => b.addEventListener("click", () => { const step = { month: 1, quarter: 3, year: 12, fy: 12 }[S.feed.period.kind] || 1; const a = E.addMonths(E.monthStart(S.feed.period.anchor || m.asOf), +b.dataset.fpn * step); S.feed.period.anchor = a >= m.asOf.slice(0, 7) + "-01" ? m.asOf : E.monthEnd(a); renderActivity(); }));
+    const more = $("#feedmore"); if (more) { more.addEventListener("click", () => { S.feed.limit += 120; renderActivity(); window.scrollTo({ top: more.getBoundingClientRect().top + window.scrollY - 400 }); }); if ("IntersectionObserver" in window) { const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); more.click(); } }, { rootMargin: "600px" }); io.observe(more); } }
     const csv = $("#csvbtn"); if (csv) csv.addEventListener("click", () => exportCSV(rows));
-    bindCommon(v);
+    bindReview(v); bindWorth(v); bindCommon(v);
+    S.perf.activity = performance.now() - t0;
   }
   async function exportCSV(rows) {
     if (!S.downloads) return;
-    const text = E.csv(rows, [{ key: "id", label: "Txn ID" }, { key: "date", label: "Date" }, { key: "acct", label: "Account" }, { key: "desc", label: "Bank description" }, { key: "merchant", label: "Merchant" }, { key: "amount", label: "Amount" }, { key: "catName", label: "Category" }, { key: "person", label: "Person" }]);
-    try { const r = await S.downloads.save({ filename: `kitty-transactions-${today()}.csv`, data: new Blob([text], { type: "text/csv" }) }); if (r && r.status === "saved") toast("Saved the CSV"); } catch (e) { if (e && e.code !== "cancelled") toast("Couldn't save the file here"); }
+    const m = S.m;
+    const text = E.csv(rows, [{ key: "id", label: "Entry ID" }, { key: "kind", label: "Kind" }, { key: "date", label: "Date" }, { label: "Account", get: (e) => (m.acctById[e.acct] || {}).name || e.acct }, { key: "raw", label: "Raw text" }, { label: "Merchant", get: (e) => Kit.nameOf(e) }, { key: "amount", label: "Amount" }, { label: "Category", get: (e) => (m.catById[e.cat] || {}).name || e.cat || "" }, { key: "person", label: "Person" }, { key: "status", label: "Status" }, { key: "transferId", label: "Transfer ID" }]);
+    try { const r = await S.downloads.save({ filename: `kitty-entries-${today()}.csv`, data: new Blob([text], { type: "text/csv" }) }); if (r && r.status === "saved") toast("Saved the CSV"); } catch (e) { if (e && e.code !== "cancelled") toast("Couldn't save the file here"); }
+  }
+  // local measurement: ?perf runs Activity five times over the model and reports the median, for the PR's number
+  window.__kittyPerf = { activity: (n = 5) => { const was = { ...S.feed, period: { ...S.feed.period } }; S.feed = { person: "", flow: "", q: "", limit: 80, period: { kind: "all", anchor: null } }; const ts = []; for (let i = 0; i < n; i++) { renderActivity(); ts.push(S.perf.activity); } S.feed = was; renderActivity(); ts.sort((a, b) => a - b); return { median: ts[Math.floor(ts.length / 2)], runs: ts, entries: S.m.entries.length }; }, entries: () => S.m.entries.length };
+
+  // ----- the review queue's writes: a category is a cell plus a Decisions row; everything else is a Decisions row -----
+  const byName = () => (S.userName || pref("greeting", "") || "the page").slice(0, 60);
+  const nowDate = () => new Date().toISOString().slice(0, 10);
+  const nextId = (grid, prefix, width) => { let mx = 0; for (const r of grid || []) { const mm = /^([A-Z])(\d+)$/.exec(String(r && r[0] || "").trim()); if (mm && mm[1] === prefix) mx = Math.max(mx, +mm[2]); } return prefix + String(mx + 1).padStart(width, "0"); };
+  const lastRow = (grid) => { let n = 0; (grid || []).forEach((r, i) => { if (r && r[0] !== "" && r[0] != null) n = i + 1; }); return n; };
+  function entryRowNumber(id) { const g = S.grids && S.grids.entries; if (!g) return null; const i = g.findIndex((r) => r && String(r[0]).trim() === id); return i < 0 ? null : i + 1; }
+  // decision rows: [ref_kind, ref_id, decision, value, note]; writes Decisions!A{n}:H{m} by explicit range and mirrors the grid
+  async function writeDecisions(specs) {
+    if (!specs.length) return [];
+    const rows = []; let id = nextId(S.grids ? S.grids.decisions : (S.m.decisions.map((d) => [d.id])).concat(S.sessionDecisions.map((d) => [d.decision_id])), "D", 4);
+    for (const sp of specs) { rows.push([id, sp[0], sp[1], sp[2], sp[3] == null ? "" : String(sp[3]), byName(), nowDate(), sp[4] || ""]); id = "D" + String(+id.slice(1) + 1).padStart(4, "0"); }
+    if (canWriteSheet()) {
+      const g = S.grids.decisions; const n = lastRow(g) + 1;
+      await writeCells(`Decisions!A${n}:H${n + rows.length - 1}`, rows);
+      while (g.length < n - 1) g.push([]); for (const r of rows) g.push(r.slice());
+    } else {
+      for (const r of rows) S.sessionDecisions.push({ decision_id: r[0], ref_kind: r[1], ref_id: r[2], decision: r[3], value: r[4], by: r[5], at: r[6], note: r[7] });
+    }
+    return rows;
+  }
+  async function writeCategory(id, cat) {
+    if (canWriteSheet()) { const row = entryRowNumber(id); if (!row) throw { code: "tool_error", message: `${id} is not on the Entries tab` }; await writeCells(`Entries!H${row}`, [[cat]]); S.grids.entries[row - 1][7] = cat; }
+    else S.sessionCats[id] = cat;
+  }
+  function rebuild() { if (S.mode === "live" && S.grids) { const snap = E.fromConnector(S.grids); snap.fetchedAt = null; setModel(applyLocalGoals(E.model(snap))); } else setModel(demoModel()); }
+  const judgedWhere = () => (canWriteSheet() ? "written to the sheet" : S.mode === "live" ? "kept on screen (read-only sheet)" : "kept for this visit (demo)");
+  async function act(fn, okText) {
+    try { await fn(); rebuild(); if (!review().items.length) S.reviewCleared = true; renderAll(); if (okText) toast(`${okText} · ${judgedWhere()}`); return true; }
+    catch (e) { console.error(e); toast("Couldn't write: " + errText(e, "the sheet")); return false; }
+  }
+  const catName = (id) => (S.m.catById[id] || {}).name || id;
+  const categorise = (id, cat) => act(async () => { await writeCategory(id, cat); await writeDecisions([["entry", id, "categorise", cat, ""]]); }, `${id}: ${catName(cat)}`);
+  const confirmEntry = (id) => act(() => writeDecisions([["entry", id, "confirm", (S.m.entryById[id] || {}).cat || "", ""]]), `${id} confirmed`);
+  const mergeDup = (id, of) => act(() => writeDecisions([["entry", id, "merge_duplicate", of, "same merchant, amount, account and day"]]), `${id} merged into ${of}`);
+  const matchTransfer = (id, mate) => act(() => writeDecisions([["entry", id, "match_transfer", mate, ""]]), `${id} matched with ${mate}`);
+  const splitEntry = (id, parts) => act(() => writeDecisions([["entry", id, "split", E.formatSplit(parts), ""]]), `${id} split ${parts.length} ways`);
+  const worthIt = (id, v) => act(() => writeDecisions([["entry", id, "worth_it", v, ""]]), null);
+  // "Make it a rule": a Rules row by explicit range, then the category on this row and every unreviewed row the pattern matches
+  async function makeRule(id, proposal) {
+    const m = S.m, e = m.entryById[id]; if (!e) return;
+    const pattern = E.normalise(e.raw) || String(e.raw || "").toUpperCase(); const others = E.rowsForPattern(m, pattern, id);
+    const ok = await act(async () => {
+      const ruleRow = [nextId(S.grids ? S.grids.rules : m.rules.map((r) => [r.id]), "R", 4), pattern, "normalised", proposal.merchant, proposal.category_id, e.person || "", "", "", `cookie ${nowDate()}`, String(proposal.why || "").slice(0, 200)];
+      if (canWriteSheet()) { const g = S.grids.rules; const n = lastRow(g) + 1; await writeCells(`Rules!A${n}:J${n}`, [ruleRow]); g.push(ruleRow.slice()); }
+      else { S.sessionRules = (S.sessionRules || []).concat([ruleRow]); }
+      await writeCategory(id, proposal.category_id); for (const o of others) await writeCategory(o.id, proposal.category_id);
+      await writeDecisions([["entry", id, "categorise", proposal.category_id, `rule ${ruleRow[0]}`]].concat(others.map((o) => ["entry", o.id, "categorise", proposal.category_id, `rule ${ruleRow[0]}`])));
+    }, null);
+    if (ok) toast(`Rule saved: ${proposal.merchant} → ${catName(proposal.category_id)}. ${others.length ? `Applied to ${others.length} other row${others.length === 1 ? "" : "s"}.` : "No other unreviewed rows matched."} ${judgedWhere()}.`, 5000);
+  }
+  function bindReview(root) {
+    const box = $("#rcards", root); if (!box) return;
+    const cardOf = (el) => el.closest(".rcard"); const idOf = (el) => cardOf(el).dataset.rid;
+    const item = (id) => review().items.find((i) => i.id === id);
+    const run = (card, action, arg) => {
+      const id = card.dataset.rid, it = item(id); if (!it) return;
+      if (action === "pick") return categorise(id, arg);
+      if (action === "cat") return openCategoryPicker(id);
+      if (action === "confirm") return confirmEntry(id);
+      if (action === "merge") return it.dupOf ? mergeDup(id, it.dupOf) : openEntry(id);
+      if (action === "mate") return matchTransfer(id, arg);
+      if (action === "match") { const mates = E.transferMates(S.m, it.entry); return mates.length === 1 ? matchTransfer(id, mates[0].id) : openEntry(id); }
+      if (action === "split") return openSplitEditor(id);
+    };
+    $$("[data-ract]", box).forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); run(cardOf(b), b.dataset.ract, b.dataset.cat || b.dataset.mate); }));
+    $$("[data-cookie]", box).forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); crackCookie(cardOf(b), b); }));
+    box.addEventListener("keydown", (ev) => {
+      if (/input|textarea|select/i.test(document.activeElement.tagName)) return;
+      const card = cardOf(ev.target); if (!card) return; const k = ev.key.toLowerCase();
+      const cards = $$(".rcard", box); const i = cards.indexOf(card);
+      if (k === "j" || k === "arrowdown") { ev.preventDefault(); (cards[i + 1] || card).focus(); return; }
+      if (k === "k" || k === "arrowup") { ev.preventDefault(); (cards[i - 1] || card).focus(); return; }
+      if (/^[1-9]$/.test(k)) { const sug = $$(".rsugg .chip", card)[+k - 1]; if (sug) { ev.preventDefault(); sug.click(); } return; }
+      const map = { c: "cat", enter: "confirm", d: "merge", t: "match", s: "split" }; const action = map[k]; if (!action) return;
+      const btn = $(`[data-ract="${action}"]`, card); if (btn) { ev.preventDefault(); btn.click(); }
+    });
+    if (!phone() && S.focusReview) { S.focusReview = false; const first = $(".rcard", box); if (first) setTimeout(() => first.focus(), 80); }
+  }
+  function bindWorth(root) {
+    const box = $("#wrows", root); if (!box) return;
+    const answer = async (row, v) => { row.classList.add("answered"); $$("button", row).forEach((b) => (b.disabled = true)); await worthIt(row.dataset.wid, v); toast({ yes: "Noted: worth it.", meh: "Noted: meh.", no: "Noted: not worth it." }[v] + " " + judgedWhere()); };
+    $$("[data-worth]", box).forEach((b) => b.addEventListener("click", (ev) => { ev.stopPropagation(); answer(b.closest(".wrow"), b.dataset.worth); }));
+    box.addEventListener("keydown", (ev) => { const row = ev.target.closest(".wrow"); if (!row) return; const v = { y: "yes", m: "meh", n: "no" }[ev.key.toLowerCase()]; if (v) { ev.preventDefault(); answer(row, v); } });
+  }
+  // the fortune cookie: Ask proposes a merchant and a category from the raw descriptor; the person decides. One open at a time, never on load.
+  async function crackCookie(card, btn) {
+    if (!Motion) return;
+    if (!S.sample) { toast("Claude isn't available in this view, so the cookie stays closed. Open the page in Claude."); return; }
+    if (S.cookie && S.cookie !== btn) { S.cookie.classList.remove("open"); const sv = S.cookie.querySelector("svg"); if (sv) sv.classList.remove("open"); const old = S.cookie.closest(".rcard"); const os = old && $(".rslip", old); if (os) os.hidden = true; }
+    S.cookie = btn; const id = card.dataset.rid; const m = S.m, e = m.entryById[id]; if (!e) return;
+    const slip = $(".rslip", card); slip.hidden = false; slip.innerHTML = `<span class="sub">Asking the Kitty… the first time, claude.ai asks you to allow “Use Claude” for this page.</span>`;
+    const open = Motion.fortune(btn, "Thinking…", null); open(); btn.onclick = null;
+    const acct = m.acctById[e.acct]; const cands = E.candidates(e.raw, 5);
+    const prompt = `You name merchants on an Australian household's bank statement. Reply with only one JSON object: {"merchant": "the clean trading name in Title Case, no store numbers, cities or company suffixes", "category_id": "one id from the list below", "confidence": "high|medium|low", "why": "one short sentence"}.
+Bank descriptor: ${JSON.stringify(e.raw || e.desc)}
+Normalised: ${JSON.stringify(E.normalise(e.raw || e.desc))}
+Amount ${e.amount} on ${e.date}, account "${acct ? acct.name : e.acct}" (${acct ? acct.type : ""}), person ${e.person || "Joint"}.
+Nearest dictionary entries: ${cands.length ? cands.map((c) => `${c.name} (${c.category_id})`).join(", ") : "none"}.
+Categories: ${m.cats.filter((c) => c.id !== "UNCAT").map((c) => `${c.id} = ${c.name} (${c.group})`).join("; ")}.
+Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the shop: name the shop after the prefix. A descriptor that reads "TRANSFER FROM <a person>" is money from a person, not a shop; name the person and pick the category that fits an incoming payment. If several readings are plausible pick the most common for an Australian household and say so in why.`;
+    try {
+      const res = await S.sample.json(prompt, { modelTier: "quick" });
+      const merchant = String((res && res.merchant) || "").trim().slice(0, 60); const cat = String((res && res.category_id) || "").trim().toUpperCase();
+      if (!merchant || !m.catById[cat]) throw { code: "invalid_json", text: JSON.stringify(res) };
+      const prop = { merchant, category_id: cat, confidence: String((res && res.confidence) || "medium").toLowerCase(), why: String((res && res.why) || "").slice(0, 300) };
+      const sl = btn.querySelector(".k-slip"); if (sl) sl.textContent = prop.merchant; btn.setAttribute("aria-label", `The Kitty proposes ${prop.merchant}, ${catName(prop.category_id)}`);
+      slip.innerHTML = `<div class="prop">${catDisc(prop.category_id)}<span><b>${esc(prop.merchant)}</b> → ${esc(catName(prop.category_id))} <span class="tag ${prop.confidence === "high" ? "good" : prop.confidence === "low" ? "warn" : "amber"}">${esc(prop.confidence)}</span></span></div>${prop.why ? `<p class="why">${esc(prop.why)}</p>` : ""}<p class="why">Make it a rule: a Rules row <code>${esc(E.normalise(e.raw))}</code> → ${esc(prop.merchant)}, ${esc(catName(prop.category_id))}, then this row and every unreviewed row it matches get the category.</p><div class="acts"><button class="btn sm" data-rule="yes">${ico("i-rule")} Make it a rule</button><button class="btn sm ghost" data-rule="no">Not this</button></div>`;
+      $("[data-rule=yes]", slip).addEventListener("click", () => { $$("button", slip).forEach((b) => (b.disabled = true)); makeRule(id, prop); });
+      $("[data-rule=no]", slip).addEventListener("click", () => { slip.hidden = true; openCategoryPicker(id); });
+    } catch (err) {
+      const code = err && err.code;
+      slip.innerHTML = `<span class="sub">${code === "not_granted" ? "Claude was not allowed for this page, so the cookie stays quiet. Categorise by hand instead." : code === "rate_limited" ? "Claude is busy; try the cookie again in a minute." : code === "invalid_json" ? "The Kitty's answer wasn't a clear proposal. Try again, or categorise by hand." : `Couldn't ask${code ? ` (${esc(code)})` : ""}.`}</span>`;
+      if (code === "not_granted") { S.sample = null; renderHeader(); }
+    }
+  }
+  // the category picker: keyboard first (type to filter, Enter picks the first), one tap on a phone
+  function openCategoryPicker(id) {
+    const m = S.m, e = m.entryById[id]; if (!e) return;
+    const cats = m.cats.filter((c) => c.id !== "UNCAT" && c.flow !== "Transfer" || c.flow === "Transfer");
+    const list = (q) => { const qq = q.trim().toLowerCase(); return cats.filter((c) => !qq || c.name.toLowerCase().includes(qq) || c.id.toLowerCase().includes(qq) || c.group.toLowerCase().includes(qq)); };
+    const draw = (q) => `${list(q).map((c, i) => `<button class="cp${i === 0 && q ? " hot" : ""}" data-pickcat="${esc(c.id)}">${catDisc(c.id)}<span><b>${esc(c.name)}</b>${c.id === e.cat ? ` <span class="tag">current</span>` : ""}</span><span class="g">${esc(c.group)}</span></button>`).join("") || `<div class="empty">No category matches.</div>`}`;
+    openDrawer(`${h2(`Categorise ${Kit.nameOf(e)}`, `${esc(e.raw || "")} · ${E.fmtDay(e.date, { year: true })} · ${fmt(Math.abs(e.amount))}`)}
+      <div class="searchbox" style="margin-top:12px">${ico("i-search")}<input id="catq" type="search" placeholder="Type to filter, Enter picks the first" autocomplete="off" aria-label="Filter categories"></div>
+      <div class="catpick" id="catpick">${draw("")}</div>
+      <p class="sub" style="margin-top:10px">${canWriteSheet() ? "Writes the category to this row's cell on the Entries tab and a categorise row on Decisions." : "Kept on screen for this visit; the sheet is not written here."}</p>`);
+    const q = $("#catq"), box = $("#catpick"); const bind = () => $$("[data-pickcat]", box).forEach((b) => b.addEventListener("click", () => { closeDrawer(); categorise(id, b.dataset.pickcat); }));
+    bind(); q.addEventListener("input", () => { box.innerHTML = draw(q.value); bind(); });
+    q.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { const first = $("[data-pickcat]", box); if (first) first.click(); } });
+    if (!phone()) setTimeout(() => q.focus(), 80);
+  }
+  // split: two or more parts that add up to the row; the sheet keeps the parts as one Decisions row
+  function openSplitEditor(id) {
+    const m = S.m, e = m.entryById[id]; if (!e) return; const total = Math.abs(e.amount); const cats = m.cats.filter((c) => c.flow !== "Transfer" && c.id !== "UNCAT");
+    const opt = (sel) => cats.map((c) => `<option value="${esc(c.id)}" ${c.id === sel ? "selected" : ""}>${esc(c.name)}</option>`).join("");
+    let n = 2;
+    const rowHtml = (i, cat, amt) => `<div class="splitrow"><select data-sc="${i}" aria-label="Category ${i + 1}">${opt(cat)}</select><input data-sa="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${amt}" aria-label="Amount ${i + 1}"></div>`;
+    openDrawer(`${h2(`Split ${Kit.nameOf(e)}`, `${fmt(total)} on ${E.fmtDay(e.date, { year: true })} · the parts must add up to the row`)}
+      <div class="splitrows" id="splitrows">${rowHtml(0, e.cat && e.cat !== "UNCAT" ? e.cat : cats[0].id, (total / 2).toFixed(2))}${rowHtml(1, cats.find((c) => c.id !== e.cat).id, (total - +(total / 2).toFixed(2)).toFixed(2))}</div>
+      <div class="dacts"><button class="btn sm ghost" id="splitadd">${ico("i-plus")} Another part</button><span class="sub" id="splitleft" style="align-self:center"></span></div>
+      <div class="dacts"><button class="btn" id="splitsave">${canWriteSheet() ? "Write the split" : "Keep the split"}</button><button class="btn ghost" id="splitcancel">Cancel</button></div>
+      <p class="sub">One Decisions row, <code>split</code>, with the parts (${esc(E.formatSplit([{ cat: "GROCERIES", amount: 60 }, { cat: "DINING", amount: 24.2 }]))}). The sheet's totals stay the row's; the parts show on the row.</p>`);
+    const parts = () => $$("#splitrows .splitrow").map((r) => ({ cat: $("select", r).value, amount: +$("input", r).value || 0 }));
+    const left = () => { const sum = parts().reduce((a, p) => a + p.amount, 0); const d = Math.round((total - sum) * 100) / 100; $("#splitleft").textContent = d === 0 ? "Adds up." : d > 0 ? `${fmt(d)} still to place` : `${fmt(-d)} over`; return d; };
+    $("#splitrows").addEventListener("input", left); left();
+    $("#splitadd").addEventListener("click", () => { const d = Math.max(0, left()); $("#splitrows").insertAdjacentHTML("beforeend", rowHtml(n++, cats[Math.min(n, cats.length - 1)].id, d.toFixed(2))); left(); });
+    $("#splitcancel").addEventListener("click", closeDrawer);
+    $("#splitsave").addEventListener("click", () => { const ps = parts().filter((p) => p.amount > 0); if (ps.length < 2) { toast("Two parts at least"); return; } if (Math.abs(left()) > 0.005) { toast("The parts must add up to " + fmt(total)); return; } closeDrawer(); splitEntry(id, ps); });
   }
 
   // ----- Insights -----
@@ -449,7 +640,7 @@
       <div class="card" style="--i:1">
         <div class="cardhead"><span class="q">Where did the money go?</span><span class="cardtools"><span class="seg mini" role="group" aria-label="Scope"><button data-scope="all" aria-pressed="${scope === "all"}">Everything</button><button data-scope="everyday" aria-pressed="${scope === "everyday"}">Everyday</button></span><span class="seg mini" role="group" aria-label="Show as"><button data-mv="flow" aria-pressed="${view === "flow"}">Flow</button><button data-mv="jar" aria-pressed="${view === "jar"}">Jar</button></span></span></div>
         ${scope === "everyday" ? `<p class="sub" style="margin:-6px 0 10px">Everyday leaves out housing and the rental: ${fmt0(sp.out - spv.out)} of fixed costs this period.</p>` : ""}
-        <div class="moneyview ${view === "jar" ? "mv-jar" : ""}" id="moneyview">${view === "jar" ? `<div>${jarSVG(spv)}<p class="sub jarlegend">Bubble size is money spent. A dashed red ring means the category is over its budget this year. Tap a bubble.</p></div><div class="jarlist">${spv.byCat.slice(0, 10).map(([c, val]) => { const p0 = pmv.get(c) || 0; const d = p0 ? (val - p0) / p0 : null; return `<button class="jrow" data-cat="${esc(c)}" style="${catSwatch(c)}"><span class="sw"></span><span class="nm">${esc((m.catById[c] || {}).name || c)}</span><span class="pct num">${Math.round((val / (spv.out || 1)) * 100)}%</span><span class="amt num">${fmt0(val)}</span><span class="d ${d == null ? "" : d > 0.05 ? "more" : d < -0.05 ? "less" : ""}">${d == null ? "new this period" : `${d >= 0 ? "▲" : "▼"} ${Math.round(Math.abs(d) * 100)}% on the period before`}</span></button>`; }).join("")}</div>` : `<div id="flowhost">${flowSVG(spv, income) || barsHTML(spv.byGroup.map(([g, val]) => ({ k: g, v: val, color: GROUP_COLOR[g] })))}</div><p class="sub">Money in on the left, where it went on the right. Transfers between your own accounts are left out. Hover a band for the amount.</p>`}</div>
+        <div class="moneyview ${view === "jar" ? "mv-jar" : ""}" id="moneyview">${view === "jar" ? `<div>${jarSVG(spv)}<p class="sub jarlegend">Bubble size is money spent. A dashed red ring means the category is over its budget this year. Tap a bubble.</p></div><div class="jarlist">${spv.byCat.slice(0, 10).map(([c, val]) => { const p0 = pmv.get(c) || 0; const d = p0 ? (val - p0) / p0 : null; return `<button class="jrow" data-cat="${esc(c)}" style="${catSwatch(c)};--mh:${esc(E.catHue(c, m))}">${ico("i-" + E.catIcon(c, m), "ci")}<span class="nm">${esc((m.catById[c] || {}).name || c)}</span><span class="pct num">${Math.round((val / (spv.out || 1)) * 100)}%</span><span class="amt num">${fmt0(val)}</span><span class="d ${d == null ? "" : d > 0.05 ? "more" : d < -0.05 ? "less" : ""}">${d == null ? "new this period" : `${d >= 0 ? "▲" : "▼"} ${Math.round(Math.abs(d) * 100)}% on the period before`}</span></button>`; }).join("")}</div>` : `<div id="flowhost">${flowSVG(spv, income) || barsHTML(spv.byGroup.map(([g, val]) => ({ k: g, v: val, color: GROUP_COLOR[g] })))}</div><p class="sub">Money in on the left, where it went on the right. Transfers between your own accounts are left out. Hover a band for the amount.</p>`}</div>
       </div>
       <div class="grid" style="--i:2">
         <div class="card span-6">
@@ -527,6 +718,9 @@
         <div class="card span-5"><div class="cardhead"><span class="q">Safety net</span></div>
           <div class="goalrow">${ringSVG(sf.pct, "var(--c-in)", sf.months != null ? sf.months.toFixed(1) : "—", `of ${sf.target} months`)}<div class="txt"><p>${sf.months != null ? `Cash and offset would cover <b>${sf.months.toFixed(1)} months</b> of essential spending (about ${fmt0(sf.essentialPm)} a month).` : "The sheet has no safety-net figure yet."}</p><p class="sub" style="margin-top:6px">${sf.short ? `About ${fmtS(sf.short)} more would reach the ${sf.target}-month target you set. ` : ""}Essential means the categories marked Essential on the Categories tab.</p>${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" id="editsafety">Change the target</button>` : ""}</div></div>
         </div>
+        ${(() => { const ws = E.worthSummary(m); if (ws.count < 5) return ""; return `<div class="card span-12" id="yescard"><div class="cardhead"><span class="q">${ico("i-worth")} Spend that earned a yes</span><span class="sub"><b class="num">${fmt0(ws.yesTotal)}</b> of ${fmt0(ws.total)} you were asked about · ${ws.yes} yes, ${ws.meh} meh, ${ws.no} no</span></div>
+          <div class="yesblock"><div><h3 style="font-size:15px;margin-bottom:6px">By category</h3>${barsHTML(ws.byCat.slice(0, 6).map(([k, v]) => ({ k, v })))}</div><div><h3 style="font-size:15px;margin-bottom:6px">By merchant</h3>${barsHTML(ws.byMerchant.slice(0, 6).map(([k, v]) => ({ k, v, go: "merchant:" + k })))}</div></div>
+          <p class="sub" style="margin-top:10px">What you said was worth it, summed. ${ws.noByMerchant.length ? `The no's: ${ws.noByMerchant.slice(0, 3).map(([k, v]) => `${esc(k)} (${fmt0(v)})`).join(", ")}.` : ""} Experiences, small pleasures and things enjoyed with others tend to collect the yeses (Dunn, Gilbert and Wilson, 2011); the point is noticing, not scoring.</p></div>`; })()}
         <div class="card span-7" id="savecard"><div class="cardhead"><span class="q">Ways to get there faster</span><span class="sub"><b class="num">${fmt0(m.savings.filter((s) => s.type === "Recurring").reduce((a, s) => a + (s.amount || 0), 0))}</b> a year, the sheet's estimate</span></div>
           <div class="gtiles">${m.savings.filter((s) => !(S.prefs.hidden || []).includes(s.title)).map(ideaTile).join("")}</div>
           ${(S.prefs.hidden || []).length ? `<button class="linkbtn" id="unhideall">Show ${S.prefs.hidden.length} hidden on this device</button>` : ""}
@@ -659,8 +853,8 @@
     $$("[data-cc]", v).forEach((b) => b.addEventListener("click", () => { S.setupCountry = b.dataset.cc; renderSetup(); }));
     $$("[data-theme-pick]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ theme: b.dataset.themePick }); applyTheme(); renderSetup(); buzz(); }));
     $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
-    const go = $("#sheetgo"); if (go) go.addEventListener("click", async () => { const raw = $("#sheetinput").value.trim(); const mt = raw.match(/\/d\/([A-Za-z0-9_-]{20,})/); const id = mt ? mt[1] : raw; if (!id) { toast("Paste a sheet ID first"); return; } savePrefs({ sheet: id === DEMO_SHEET ? "" : id }); S.canWrite = S.isOwner || !!S.prefs.sheet; if (S.mcp) { const ok = await loadLive(true); toast(ok ? "Reading your sheet live" : "Couldn't read that sheet: " + errText(S.liveErr || {}, "it")); if (!ok && SNAP) { S.m = applyLocalGoals(E.model(SNAP)); S.mode = "demo"; } renderAll(); } else { toast("Saved. It will read live where connectors are available."); renderSetup(); } });
-    const sd = $("#sheetdemo"); if (sd) sd.addEventListener("click", () => { savePrefs({ sheet: "" }); S.canWrite = S.isOwner; if (SNAP) { S.m = applyLocalGoals(E.model(SNAP)); S.mode = "demo"; } renderAll(); toast("Back to the demo household"); });
+    const go = $("#sheetgo"); if (go) go.addEventListener("click", async () => { const raw = $("#sheetinput").value.trim(); const mt = raw.match(/\/d\/([A-Za-z0-9_-]{20,})/); const id = mt ? mt[1] : raw; if (!id) { toast("Paste a sheet ID first"); return; } savePrefs({ sheet: id === DEMO_SHEET ? "" : id }); S.canWrite = S.isOwner || !!S.prefs.sheet; if (S.mcp) { const ok = await loadLive(true); toast(ok ? "Reading your sheet live" : "Couldn't read that sheet: " + errText(S.liveErr || {}, "it")); if (!ok && SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); } else { toast("Saved. It will read live where connectors are available."); renderSetup(); } });
+    const sd = $("#sheetdemo"); if (sd) sd.addEventListener("click", () => { savePrefs({ sheet: "" }); S.canWrite = S.isOwner; if (SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); toast("Back to the demo household"); });
     const ro = $("#rerunonb"); if (ro) ro.addEventListener("click", () => startOnboarding(true));
     bindCommon(v);
   }
@@ -687,17 +881,26 @@
     if (was && lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) { /* gone */ } }
   }
   const h2 = (t, s) => `<h2>${esc(t)}</h2>${s ? `<p class="sub">${s}</p>` : ""}`;
-  function openTx(id) {
-    const m = S.m, t = m.tx.find((x) => x.id === id); if (!t) return;
-    const acct = m.acctById[t.acct], cat = m.catById[t.cat]; const series = E.merchantSeries(m, t.merchant, 12); const others = m.tx.filter((x) => x.merchant === t.merchant && x.id !== t.id).slice(0, 8);
-    const total12 = series.reduce((a, s) => a + s.v, 0);
-    openDrawer(`<div style="display:flex;gap:14px;align-items:center;margin-top:4px">${avatar(t, "lg")}<div style="min-width:0"><h2 style="margin:0">${esc(t.merchant)}</h2><p class="sub">${E.weekday(t.date)} ${E.fmtDay(t.date, { year: true })}</p></div></div>
-      <p style="font-family:var(--display);font-size:40px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px" class="num ${t.amount > 0 ? "amt in" : ""}">${t.amount > 0 ? "+" : "−"}${fmt(Math.abs(t.amount))}</p>
-      <div class="chips" style="margin:8px 0 4px"><span class="tag" style="${catSwatch(t.cat)};background:hsl(var(--h) var(--s) 90%);color:hsl(var(--h) 45% 28%)">${esc(t.catName)}</span><span class="tag">${esc(t.group)}</span>${t.person && t.person !== "Joint" ? `<span class="tag">${esc(t.person)}</span>` : ""}${t.receipt ? `<span class="tag ${t.receipt === "Y" ? "good" : "warn"}">receipt ${t.receipt === "Y" ? "held" : "missing"}</span>` : ""}${cat && cat.tax ? `<span class="tag amber">${esc(cat.tax)}</span>` : ""}</div>
-      <dl class="kv"><dt>Bank said</dt><dd><code style="font-size:12.5px">${esc(t.desc)}</code></dd><dt>Account</dt><dd>${acct ? `${esc(acct.name)} · ${esc(acct.bank)}` : esc(t.acct)}</dd><dt>Row</dt><dd>${esc(t.id)} on the Transactions tab</dd>${t.note ? `<dt>Note</dt><dd>${esc(t.note)}</dd>` : ""}${cat && cat.ato ? `<dt>Tax return</dt><dd>${esc(cat.ato)}</dd>` : ""}${cat && cat.budget ? `<dt>Budget</dt><dd>${fmt0(cat.budget)} a month for ${esc(cat.name)}</dd>` : ""}</dl>
-      ${total12 > 0 && t.flow === "Expense" ? `<h3>${esc(t.merchant)}, last 12 months</h3><div style="display:flex;gap:14px;align-items:center">${sparkSVG(series.map((s) => s.v), 160, 44, "var(--accent)")}<div><b class="num">${fmt0(total12)}</b> <span class="sub">in 12 months · ${fmt0(total12 / 12)} a month</span></div></div>` : ""}
+  function openTx(id) { openEntry(id); }
+  function openEntry(id) {
+    const m = S.m, e = m.entryById[id]; if (!e) return; const t = m.tx.find((x) => x.id === id);
+    const acct = m.acctById[e.acct], cat = m.catById[e.cat]; const name = Kit.nameOf(e); const c = ctx();
+    const series = t ? E.merchantSeries(m, t.merchant, 12) : []; const others = t ? m.tx.filter((x) => x.merchant === t.merchant && x.id !== t.id).slice(0, 8) : [];
+    const total12 = series.reduce((a, s) => a + s.v, 0); const canJudge = canWriteSheet() || S.mode !== "live"; const rv = review(); const item = rv.items.find((i) => i.id === id);
+    const mates = e.flow === "Transfer" && !e.transferId && !e.matchedWith ? E.transferMates(m, e).slice(0, 4) : [];
+    const decs = (e.decisions || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1));
+    openDrawer(`<div style="display:flex;gap:14px;align-items:center;margin-top:4px">${Kit.monogram(e, c, "lg")}<div style="min-width:0"><h2 style="margin:0">${e.kind === "trade" ? Kit.title(e, c) : esc(name)}</h2><p class="sub">${E.weekday(e.date)} ${E.fmtDay(e.date, { year: true })}${e.kind !== "transaction" ? ` · ${Kit.subtitle(e, c)}` : ""}</p></div></div>
+      <p style="font-family:var(--display);font-size:40px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px" class="num ${e.amount > 0 && e.kind !== "valuation" ? "amt in" : ""}">${e.kind === "valuation" ? fmt0(e.amount) : (e.amount > 0 ? "+" : "−") + fmt(Math.abs(e.amount))}</p>
+      <div class="chips" style="margin:8px 0 4px">${e.kind === "transaction" ? `<button class="tag" data-pickfor="${esc(e.id)}" style="--ch:${esc(E.catHue(e.cat, m))};background:color-mix(in srgb,var(--ch) 16%,var(--surface));color:color-mix(in oklab,var(--ch) 58%,var(--ink))" ${canJudge ? "" : "disabled"}>${ico("i-" + E.catIcon(e.cat, m))} ${esc(cat ? cat.name : "Uncategorised")}${canJudge ? " ✎" : ""}</button><span class="tag">${esc(cat ? cat.group : "")}</span>` : ""}${e.person && e.person !== "Joint" ? `<span class="tag">${esc(e.person)}</span>` : ""}${e.receipt ? `<span class="tag ${e.receipt === "Y" ? "good" : "warn"}">receipt ${e.receipt === "Y" ? "held" : "missing"}</span>` : ""}${cat && cat.tax ? `<span class="tag amber">${esc(cat.tax)}</span>` : ""}${e.status !== "settled" ? `<span class="tag">${esc(e.status)}</span>` : ""}${Kit.badges(e, c)}</div>
+      <dl class="kv">${e.raw ? `<dt>Bank said</dt><dd><code style="font-size:12.5px">${esc(e.raw)}</code>${e.mer ? ` <span class="sub">· ${e.mer.source === "rule" ? `rule ${esc(e.mer.rule.id)}` : e.mer.source === "dictionary" ? "merchant dictionary" : "no rule knows this descriptor"}</span>` : ""}</dd>` : ""}<dt>Account</dt><dd>${acct ? `${esc(acct.name)}${acct.bank ? ` · ${esc(acct.bank)}` : ""}` : esc(e.acct)}</dd>${e.transferAcct ? `<dt>Other side</dt><dd>${esc((m.acctById[e.transferAcct] || {}).name || e.transferAcct)}${e.transferId ? ` · ${esc(e.transferId)}` : ""}</dd>` : ""}<dt>Row</dt><dd>${esc(e.id)} on the ${m.sheetVersion >= 2 ? "Entries" : "Transactions"} tab${S.grids && entryRowNumber(e.id) ? `, row ${entryRowNumber(e.id)}` : ""}</dd>${e.note ? `<dt>Note</dt><dd>${esc(e.note)}</dd>` : ""}${e.source ? `<dt>Source</dt><dd>${esc(e.source)}</dd>` : ""}${e.units != null ? `<dt>Units</dt><dd>${esc(e.units)} at ${fmt(e.price)}</dd>` : ""}${cat && cat.ato ? `<dt>Tax return</dt><dd>${esc(cat.ato)}</dd>` : ""}${cat && cat.budget ? `<dt>Budget</dt><dd>${fmt0(cat.budget)} a month for ${esc(cat.name)}</dd>` : ""}${e.split && e.split.length ? `<dt>Split</dt><dd>${e.split.map((p) => `${esc(catName(p.cat))} ${fmt(p.amount)}`).join(" · ")}</dd>` : ""}${e.dupOf ? `<dt>Merged</dt><dd>into ${esc(e.dupOf)}</dd>` : ""}${e.matchedWith ? `<dt>Matched</dt><dd>with ${esc(e.matchedWith)}</dd>` : ""}</dl>
+      ${item ? `<div class="note accent" style="margin-bottom:8px">${ico("i-review")} ${esc(E.cap(item.why))}</div>` : ""}
+      ${e.kind === "transaction" && canJudge ? `<div class="dacts"><button class="btn sm ghost" data-act="cat">${ico("i-edit")} Categorise</button>${!e.reviewed ? `<button class="btn sm ghost" data-act="confirm">${ico("i-check")} Looks right</button>` : ""}<button class="btn sm ghost" data-act="split">${ico("i-split")} Split</button>${item && item.dupOf ? `<button class="btn sm ghost" data-act="merge">${ico("i-duplicate")} Merge into ${esc(item.dupOf)}</button>` : ""}${E.discretionary(e, m) && !e.worth ? `<span class="wbtns" style="margin-left:4px">${[["yes", "Worth it"], ["meh", "Meh"], ["no", "Not worth it"]].map(([v, l]) => `<button class="chip w-${v}" data-act="worth" data-v="${v}">${l}</button>`).join("")}</span>` : ""}</div>${mates.length ? `<h3>Could be the other side of</h3><div class="chips">${mates.map((x) => `<button class="chip" data-act="mate" data-mate="${esc(x.id)}">${ico("i-transfer")} ${esc((m.acctById[x.acct] || {}).name || x.acct)} · ${E.fmtDay(x.date)} · ${esc(x.id)}</button>`).join("")}</div>` : ""}` : ""}
+      ${decs.length ? `<h3>Decisions on this row</h3><div class="dlist">${decs.map((d) => `<div class="d"><b>${esc(d.decision.replace(/_/g, " "))}</b><span>${esc(d.value)}</span><span class="muted">· ${esc(d.by || "")} ${d.at ? E.fmtDay(d.at, { year: true }) : ""}${d.note ? ` · ${esc(d.note)}` : ""}</span></div>`).join("")}</div>` : ""}
+      ${total12 > 0 && e.flow === "Expense" ? `<h3>${esc(name)}, last 12 months</h3><div style="display:flex;gap:14px;align-items:center">${sparkSVG(series.map((s) => s.v), 160, 44, "var(--accent)")}<div><b class="num">${fmt0(total12)}</b> <span class="sub">in 12 months · ${fmt0(total12 / 12)} a month</span></div></div>` : ""}
       ${others.length ? `<h3>Other times</h3>${others.map((x) => txRow(x, { date: true, acct: false })).join("")}` : ""}
-      <div style="margin-top:14px"><button class="btn ghost sm" data-merchant="${esc(t.merchant)}">Everything from ${esc(t.merchant)}</button></div>`);
+      ${t ? `<div style="margin-top:14px"><button class="btn ghost sm" data-merchant="${esc(t.merchant)}">Everything from ${esc(t.merchant)}</button></div>` : ""}`);
+    $$("[data-pickfor]").forEach((b) => b.addEventListener("click", () => openCategoryPicker(b.dataset.pickfor)));
+    $$("#drawer [data-act]").forEach((b) => b.addEventListener("click", () => { const a = b.dataset.act; if (a === "cat") openCategoryPicker(id); else if (a === "split") openSplitEditor(id); else { closeDrawer(); if (a === "confirm") confirmEntry(id); else if (a === "merge") mergeDup(id, item.dupOf); else if (a === "mate") matchTransfer(id, b.dataset.mate); else if (a === "worth") worthIt(id, b.dataset.v).then(() => toast(`Noted. ${judgedWhere()}`)); } }));
   }
   function openMerchant(name) {
     const m = S.m; const rows = m.tx.filter((t) => t.merchant === name); const series = E.merchantSeries(m, name, 12);
@@ -709,7 +912,7 @@
     const rows = m.tx.filter((t) => t.cat === cat && E.inWin(t, w)); const sp = E.spend(m.tx, w, (t) => t.cat === cat);
     const series = E.monthly(m, 12).map((mo) => ({ month: mo.month, v: E.spend(m.tx, mo, (t) => t.cat === cat).out }));
     const b = m.budget.find((x) => x.name === c.name); const months = Math.max(1, E.monthsBetween(w.from, w.to) + 1);
-    openDrawer(`<div style="display:flex;gap:12px;align-items:center;margin-top:4px"><span class="ava lg" style="${catSwatch(cat)}">${esc(initials(c.name))}</span><div><h2 style="margin:0">${esc(c.name)}</h2><p class="sub">${esc(c.group)} · ${esc(w.label)}</p></div></div>
+    openDrawer(`<div style="display:flex;gap:12px;align-items:center;margin-top:4px">${catDisc(cat, "lg")}<div><h2 style="margin:0">${esc(c.name)}</h2><p class="sub">${esc(c.group)} · ${esc(w.label)}</p></div></div>
       <p style="font-family:var(--display);font-size:36px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px" class="num">${fmt0(sp.out)}<span class="sub" style="font-size:14px;font-family:var(--body);font-weight:600;letter-spacing:0"> · ${fmt0(sp.out / months)} a month</span></p>
       ${b ? `<div class="note" style="margin:8px 0">Budget <b>${fmt0(b.monthly)}</b> a month · this year <b>${ofText(b.ytd, b.toDate)}</b>, ${(b.left || 0) < 0 ? `${fmt0(-b.left)} over` : `${fmt0(b.left)} left`} <span class="tag ${/over/i.test(b.status) ? "warn" : /watch/i.test(b.status) ? "amber" : "good"}">${esc(b.status)}</span></div>` : ""}
       ${c.tax ? `<div class="note" style="margin:8px 0">Tax: ${esc(c.tax)}${c.ato ? ` · ${esc(c.ato)}` : ""}</div>` : ""}
@@ -777,10 +980,10 @@
       ${S.liveErr ? `<div class="secterr">${errText(S.liveErr)}</div>` : ""}
       <h3>Cash and offset, account by account</h3><div class="tablewrap"><table class="t"><thead><tr><th>Account</th><th>Bank</th><th class="n">Balance</th></tr></thead><tbody>${liquid.map((a) => `<tr><td>${esc(a.name)}</td><td class="muted">${esc(a.bank)}</td><td class="n">${fmt(a.balance)}</td></tr>`).join("")}<tr><td><b>Together</b></td><td></td><td class="n"><b>${fmt(liquid.reduce((s, a) => s + a.balance, 0))}</b></td></tr></tbody></table></div>
       <h3>Does the page agree with the sheet?</h3><p class="sub">${rec.filter((r) => r.account).length ? `${rec.filter((r) => r.account && r.ok).length} of ${rec.filter((r) => r.account).length} accounts reconcile to the sheet at ${E.fmtDay(m.asOf, { year: true })}${m.sheetVersion >= 2 ? "; the ledger's own invariants follow" : ""}.` : ""}</p>${rec.map((r) => `<div class="row" style="cursor:default"><span class="tick" style="${r.ok ? "" : "background:var(--warn)"}">${ico(r.ok ? "i-check" : "i-x")}</span><span class="mid"><span class="t" style="white-space:normal">${esc(r.what)}</span><span class="s">${r.count ? `${r.a} found` : `${fmt(r.a)} here · ${fmt(r.b)} in the sheet`}</span></span></div>`).join("")}
-      <h3>What was read</h3><div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th class="n">Rows</th><th>Feeds</th></tr></thead><tbody>${tabs.map(([k, name, n, err]) => `<tr><td>${esc(name)}</td><td class="n">${err ? (OPTIONAL.has(k) ? `<span class="tag">not in this sheet</span>` : `<span class="tag warn">error</span>`) : esc(String(n))}</td><td class="muted">${esc({ settings: "as-of date, targets", accounts: "every store of value", category_list: "names, groups, budgets", goals: "Goals, Home", subscriptions: "bills, leaks, upcoming", loans: "loan card, upcoming", assets: "the rental", metrics: "hero facts, tax", compliance: "what needs you", networth: "net worth chart", cashflow: "12-month bars, kept", budget: "budget pace", savings: "ways to save", mortgage: "rate scenarios", tax: "tax card", transactions: "activity, jar, flow, search", payslips: "pay day", kitty: "your settings", entries: "the ledger: balances, transfers", balances: "balance by month, the oracle", contracts: "subscriptions, leases, loan terms", decisions: "your judgments", rules: "descriptor to category", snapshot: "everything" }[k] || "")}</td></tr>`).join("")}</tbody></table></div>
+      <h3>What was read</h3><div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th class="n">Rows</th><th>Feeds</th></tr></thead><tbody>${tabs.map(([k, name, n, err]) => `<tr><td>${esc(name)}</td><td class="n">${err ? (OPTIONAL.has(k) ? `<span class="tag">not in this sheet</span>` : `<span class="tag warn">error</span>`) : esc(String(n))}</td><td class="muted">${esc({ settings: "as-of date, targets", accounts: "every store of value", category_list: "names, groups, budgets", goals: "Goals, Home", subscriptions: "bills, leaks, upcoming", loans: "loan card, upcoming", assets: "the rental", metrics: "hero facts, tax", compliance: "what needs you", networth: "net worth chart", cashflow: "12-month bars, kept", budget: "budget pace", savings: "ways to save", mortgage: "rate scenarios", tax: "tax card", transactions: "activity, jar, flow, search", payslips: "pay day", kitty: "your settings", entries: "the ledger: balances, transfers", balances: "balance by month, the oracle", contracts: "subscriptions, leases, loan terms", decisions: "your judgments: review, worth it", rules: "descriptor to merchant and category; the cookie adds rows here", snapshot: "everything" }[k] || "")}</td></tr>`).join("")}</tbody></table></div>
       <p class="sub" style="margin-top:12px">Nothing is cached in the sheet and nothing is stored by this page except your own preferences${S.dbDoc ? " (on this device and in your Claude account)" : " (on this device)"}.</p>`);
     const rb = $("#refreshbtn"); if (rb) rb.addEventListener("click", async () => { rb.disabled = true; const ok = await loadLive(true); toast(ok ? "Fresh read done" : "Couldn't read live: " + errText(S.liveErr || {})); if (ok) openTrust(); else rb.disabled = false; });
-    const db = $("#demobtn"); if (db) db.addEventListener("click", () => { S.m = applyLocalGoals(E.model(SNAP)); S.mode = "demo"; renderAll(); openTrust(); });
+    const db = $("#demobtn"); if (db) db.addEventListener("click", () => { setModel(demoModel()); S.mode = "demo"; renderAll(); openTrust(); });
   }
   // ----- editors: the three writes the page is allowed -----
   function localGoalRecalc(g, mm) { const m = mm || S.m; g.progress = g.target ? Math.min(1, (g.balance || 0) / g.target) : 0; g.monthsLeft = g.date && g.date > m.asOf ? E.monthsBetween(m.asOf, g.date) : 0; g.needPm = g.monthsLeft ? Math.max(0, g.target - (g.balance || 0)) / g.monthsLeft : Math.max(0, g.target - (g.balance || 0)); g.status = (g.balance || 0) >= g.target ? "Reached" : (g.savedPm || 0) >= g.needPm ? "On track" : "Behind"; }
@@ -838,10 +1041,11 @@
   };
   const SUGGEST = ["What did we spend on dining in October?", "Which subscriptions haven't we used?", "When will the Japan trip be funded?", "What are the three best ways to save this month?", "How much did Mia spend on shopping this year?"];
   // the pages an answer may point at; anything else the model invents is dropped before it reaches a button
-  const PAGE_GO = { dupes: "the doubled charges", checks: "the sheet's checks", subs: "all subscriptions and bills", upcoming: "the next bills and pay days", budget: "budget pace", networth: "net worth", goals: "goals", safety: "the safety net", insights: "insights", trust: "where the numbers come from", activity: "activity" };
+  const PAGE_GO = { review: "the review queue", dupes: "the doubled charges", checks: "the sheet's checks", subs: "all subscriptions and bills", upcoming: "the next bills and pay days", budget: "budget pace", networth: "net worth", goals: "goals", safety: "the safety net", insights: "insights", trust: "where the numbers come from", activity: "activity" };
   function validGo(go) {
     if (!go || typeof go !== "string") return null; const m = S.m; const i = go.indexOf(":"); const kind = i < 0 ? go : go.slice(0, i), key = i < 0 ? "" : go.slice(i + 1).trim();
     if (PAGE_GO[kind] && !key) return kind;
+    if (kind === "entry") return m.entryById && m.entryById[key] ? "entry:" + key : null;
     if (kind === "cat") { const c = m.cats.find((c) => c.id.toLowerCase() === key.toLowerCase() || c.name.toLowerCase() === key.toLowerCase()); return c ? "cat:" + c.id : null; }
     if (kind === "sub") { const x = m.subs.find((x) => x.service.toLowerCase() === key.toLowerCase()); return x ? "sub:" + x.service : null; }
     if (kind === "goal") { const g = m.goals.find((g) => g.name.toLowerCase() === key.toLowerCase()); return g ? "goal:" + g.name : null; }
@@ -992,6 +1196,8 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     switch (kind) {
       case "insights": case "goals": case "setup": case "home": case "activity": switchTab(kind); if (key === "save") setTimeout(() => { const el = $("#savecard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       case "cat": openCategory(key); break;
+      case "entry": openEntry(key); break;
+      case "review": S.focusReview = true; switchTab("activity"); setTimeout(() => { const el = $("#reviewcard"); if (el) el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); const first = $("#rcards .rcard"); if (first && !phone()) first.focus({ preventScroll: true }); }, 80); break;
       case "merchant": openMerchant(key); break;
       case "sub": openSub(key); break;
       case "goal": openGoal(key); break;
@@ -1011,6 +1217,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   }
   function bindCommon(root) {
     $$("[data-tx]", root).forEach((b) => b.addEventListener("click", () => openTx(b.dataset.tx)));
+    $$("[data-entry]", root).forEach((b) => { if (b.tagName === "BUTTON" && !b.closest(".wrow")) b.addEventListener("click", () => openEntry(b.dataset.entry)); });
     $$("[data-go]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
     $$("[data-open]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.open)));
     $$("[data-need]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.need)));
@@ -1035,9 +1242,11 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   function openSearch() { switchTab("activity"); const q = $("#feedq"); if (q) { q.focus(); q.select(); } }
   function gate(msg, sub) { $("#v-home").innerHTML = `<div class="card hero" style="margin-top:8px"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">${esc(msg)}</h1><p class="vs">${sub || ""}</p></div>`; }
 
+  // worth_it_min is a Kitty-tab key (default 40); written once if the sheet lacks it, so the threshold has a sheet owner
+  async function ensureWorthKey() { if (!canWriteSheet() || S.m.sheetVersion < 2 || S.m.kitty.worth_it_min != null && S.m.kitty.worth_it_min !== "" || S.wroteWorthKey) return; S.wroteWorthKey = true; try { await writeKitty("worth_it_min", 40); S.m.kitty.worth_it_min = "40"; } catch (e) { /* the default stands */ } }
   async function boot() {
     const saved = store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
-    if (SNAP) { S.m = applyLocalGoals(E.model(SNAP)); renderAll(); }
+    if (SNAP) { setModel(demoModel()); renderAll(); }
     if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);
     else gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
     $$("nav.tabs button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
@@ -1057,11 +1266,11 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     const use = (n) => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
     const [mcp, user, db, sample, downloads] = await Promise.all([use("mcp"), use("user"), use("db"), use("sample"), use("downloads")]);
     S.sample = sample; S.downloads = downloads; S.user = user;
-    if (user) { try { S.isOwner = await user.isOwner(); } catch (e) { S.isOwner = false; } }
+    if (user) { try { S.isOwner = await user.isOwner(); } catch (e) { S.isOwner = false; } try { const me = await user.me(); S.userName = (me && me.name) || ""; } catch (e) { S.userName = ""; } }
     if (db && user) { try { const id = await user.id(); if (id) { S.dbDoc = db.doc(`data/users/${id}/kitty`); const snap = await S.dbDoc.get(); if (snap.exists) { const d = snap.data() || {}; if ((d.savedAt || 0) > (store.get("prefsSavedAt", 0))) { Object.assign(S.prefs, d); store.set("prefs", S.prefs); } } } } catch (e) { S.dbDoc = null; } }
     S.canWrite = S.isOwner || !!S.prefs.sheet;
     if (S.m) renderAll();
-    if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); } else renderHeader(); }
+    if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); if (ok) ensureWorthKey(); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     if (S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);
     if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true);
