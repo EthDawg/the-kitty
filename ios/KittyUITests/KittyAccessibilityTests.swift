@@ -9,10 +9,10 @@ final class KittyAccessibilityTests: XCTestCase {
     app.launch()
     XCTAssertTrue(app.buttons["cashCard"].waitForExistence(timeout: 15))
     for name in ["Home", "Activity", "Insights", "Goals", "Ask"] {
-      app.tabBars.buttons[name].tap()
+      app.kittyTab(name).tap()
       try audit(app, screen: name)
     }
-    app.tabBars.buttons["Home"].tap()
+    app.kittyTab("Home").tap()
     app.buttons["importStatement"].tap()
     XCTAssertTrue(app.navigationBars["Import your records"].waitForExistence(timeout: 5))
     try audit(app, screen: "Import")

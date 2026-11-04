@@ -63,22 +63,19 @@ struct ActivityView: View {
       )
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            prepareExport()
+          Menu {
+            Button("Export filtered activity", systemImage: "square.and.arrow.up") {
+              prepareExport()
+            }
+            .disabled(transactions.isEmpty)
+            .accessibilityHint("Review and save the \(transactions.count) transactions currently shown as CSV.")
+            .accessibilityIdentifier("activityExportButton")
+            Button("Import statement", systemImage: "plus") {
+              store.showImport = true
+            }
           } label: {
-            Image(systemName: "square.and.arrow.up")
-          }
-          .disabled(transactions.isEmpty)
-          .accessibilityLabel("Export filtered activity")
-          .accessibilityHint("Review and save the \(transactions.count) transactions currently shown as CSV.")
-          .accessibilityIdentifier("activityExportButton")
-        }
-        ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            store.showImport = true
-          } label: {
-            Image(systemName: "plus")
-          }.accessibilityLabel("Import statement")
+            Label("Activity actions", systemImage: "ellipsis").labelStyle(.iconOnly)
+          }.accessibilityIdentifier("activityActions")
         }
       }
       .sheet(item: $exportReview) { review in

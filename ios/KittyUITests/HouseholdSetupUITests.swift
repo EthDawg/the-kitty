@@ -128,13 +128,15 @@ final class HouseholdSetupUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["QA fixture - Solo (fictional)"].exists)
     XCTAssertFalse(app.staticTexts["The Davies"].exists)
     let amount = app.staticTexts["$1,234.56"]
-    let contentBottom = app.tabBars.firstMatch.frame.minY - 12
+    let bottomTabs = app.tabBars.firstMatch
+    let contentBottom = bottomTabs.exists && bottomTabs.frame.minY > app.frame.midY
+      ? bottomTabs.frame.minY - 12 : app.frame.maxY - 24
     revealFully(amount, in: app, bottom: contentBottom); XCTAssertTrue(amount.isHittable)
     XCTAssertLessThan(amount.frame.maxY, contentBottom, "The opening amount must be above the floating tab bar.")
     capture(app, "33-opening-household-home")
-    app.tabBars.buttons["Activity"].tap()
+    app.kittyTab("Activity").tap()
     XCTAssertTrue(app.staticTexts["Nothing here just yet"].waitForExistence(timeout: 5))
-    XCTAssertFalse(app.buttons["activityExportButton"].isEnabled)
+    XCTAssertFalse(app.activityExportButton().isEnabled)
     capture(app, "34-opening-household-empty-activity")
   }
 }

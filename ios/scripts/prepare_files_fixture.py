@@ -13,7 +13,7 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('simulator', help='Available iPhone simulator UUID')
+    parser.add_argument('simulator', help='Available iPhone or iPad simulator UUID')
     arguments = parser.parse_args()
     identifier = str(uuid.UUID(arguments.simulator)).upper()
     subprocess.run(['xcrun', 'simctl', 'bootstatus', identifier, '-b'], check=True)
@@ -36,7 +36,7 @@ def main():
         raise SystemExit('A different fictional-bank.csv already exists; it was not overwritten.')
     if not fixture.exists():
         fixture.write_bytes(content)
-    print('Simulator Files fixture: On My iPhone / Kitty QA / fictional-bank.csv')
+    print('Simulator Files fixture: local device storage / Kitty QA / fictional-bank.csv')
     print('Original SHA-256: ' + hashlib.sha256(content).hexdigest())
 
 

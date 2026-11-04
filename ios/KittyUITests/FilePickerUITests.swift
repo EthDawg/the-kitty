@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 /// Requires prepare_files_fixture.py for the target simulator. This fixture lives
 /// outside the app sandbox; all selection and review uses the normal native UI.
@@ -14,7 +15,7 @@ final class FilePickerUITests: XCTestCase {
   }
 
   private func capture(_ name: String) {
-    let attachment = XCTAttachment(screenshot: app.screenshot())
+    let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
     attachment.name = name
     attachment.lifetime = .keepAlways
     add(attachment)
@@ -40,9 +41,12 @@ final class FilePickerUITests: XCTestCase {
     XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 8))
     let file = app.cells["fictional-bank, csv"]
     if !file.exists || !file.isHittable {
-      app.tabBars.buttons["Browse"].firstMatch.tap()
-      if app.staticTexts["On My iPhone"].waitForExistence(timeout: 3) {
-        app.staticTexts["On My iPhone"].tap()
+      let browse = app.buttons["Browse"].firstMatch
+      if browse.exists && browse.isHittable { browse.tap() }
+      let localStorage = app.staticTexts.matching(
+        NSPredicate(format: "label IN %@", ["On My iPhone", "On My iPad"])).firstMatch
+      if localStorage.waitForExistence(timeout: 3) {
+        localStorage.tap()
       }
       let folder = app.staticTexts["Kitty QA"]
       XCTAssertTrue(folder.waitForExistence(timeout: 5)); folder.tap()
@@ -54,8 +58,8 @@ final class FilePickerUITests: XCTestCase {
   }
 
   func testFilteredCSVSaveToNativeFiles() {
-    app.tabBars.buttons["Activity"].tap()
-    let search = app.searchFields.firstMatch
+    app.kittyTab("Activity").tap()
+    let search = app.activitySearch()
     XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Woolworths")
     if app.keyboards.buttons["Search"].exists { app.keyboards.buttons["Search"].tap() }
     let export = app.buttons["activityExportResults"]
@@ -81,6 +85,7 @@ final class FilePickerUITests: XCTestCase {
   }
 
   func testFictionalBankCSVFromNativeFilesPicker() {
+    defer { XCUIDevice.shared.orientation = .portrait }
     let importButton = app.buttons["importStatement"]
     reveal(importButton); importButton.tap()
     XCTAssertTrue(app.navigationBars["Import your records"].waitForExistence(timeout: 5))
@@ -116,6 +121,14 @@ final class FilePickerUITests: XCTestCase {
     let count = app.staticTexts["5 new transactions"]
     reveal(count, fully: true); XCTAssertTrue(count.exists)
     capture("45-native-file-import-review")
+
+    if UIDevice.current.userInterfaceIdiom == .pad {
+      XCTAssertTrue(app.rotate(to: .landscapeLeft))
+      reveal(original, downward: true); XCTAssertTrue(original.isHittable)
+      reveal(count, fully: true); XCTAssertTrue(count.isHittable)
+      capture("57-landscape-native-file-review")
+      XCTAssertTrue(app.rotate(to: .portrait))
+    }
 
     app.terminate(); app.launchArguments = ["--demo"]; app.launch()
     XCTAssertTrue(importButton.waitForExistence(timeout: 15)); reveal(importButton); importButton.tap()

@@ -33,5 +33,19 @@
   "limits": [
     "Fictional data on simulators only.",
     "No Google OAuth, hosted write, real bank file or physical-phone acceptance."
+  ],
+  "additionalExports": [
+    {
+      "verifiedAtUTC": "2026-11-04T19:28:38.405568+00:00",
+      "device": "iPad mini (A17 Pro), iOS 26.5 simulator",
+      "sourceResult": "ipad-toolbar-final.xcresult",
+      "rows": 38,
+      "columns": 14,
+      "bytes": 6086,
+      "sha256": "2b1e4633e4b3c78fd4cf6d71408260c45616af88c5fea154bcd909efa38cc841",
+      "identicalToRetainedFile": true,
+      "retainedFile": "native-files-woolworths.csv",
+      "savedInNativeFiles": true
+    }
   ]
 }

@@ -1,4 +1,43 @@
 import XCTest
+import UIKit
+
+extension XCUIApplication {
+  func kittyTab(_ name: String) -> XCUIElement {
+    let phoneTab = tabBars.buttons[name]
+    if phoneTab.exists { return phoneTab }
+    // iPadOS exposes the native top tab strip outside a TabBar container.
+    return buttons[name].firstMatch
+  }
+
+  func activitySearch() -> XCUIElement {
+    let field = searchFields.firstMatch
+    if !field.exists {
+      // The iPad toolbar initially presents Search as a button.
+      let searchButton = buttons["Search"].firstMatch
+      if searchButton.exists { searchButton.tap() }
+    }
+    return field
+  }
+
+  func activityExportButton() -> XCUIElement {
+    let export = buttons["activityExportButton"]
+    if !export.exists || !export.isHittable {
+      let actions = buttons["activityActions"].firstMatch
+      if actions.exists { actions.tap() }
+    }
+    return export.exists ? export : buttons["Export filtered activity"].firstMatch
+  }
+
+  func rotate(to orientation: UIDeviceOrientation) -> Bool {
+    XCUIDevice.shared.orientation = orientation
+    let geometry = NSPredicate { _, _ in
+      let bounds = self.frame
+      return orientation.isLandscape ? bounds.width > bounds.height : bounds.height > bounds.width
+    }
+    let expectation = XCTNSPredicateExpectation(predicate: geometry, object: nil)
+    return XCTWaiter.wait(for: [expectation], timeout: 8) == .completed
+  }
+}
 
 final class KittyUITests: XCTestCase {
   private var app: XCUIApplication!
@@ -14,7 +53,7 @@ final class KittyUITests: XCTestCase {
   }
 
   private func capture(_ name: String) {
-    let attachment = XCTAttachment(screenshot: app.screenshot())
+    let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
     attachment.name = name
     attachment.lifetime = .keepAlways
     add(attachment)
@@ -39,9 +78,71 @@ final class KittyUITests: XCTestCase {
   }
 
   private func openTab(_ name: String) {
-    let tab = app.tabBars.buttons[name]
+    let tab = app.kittyTab(name)
     XCTAssertTrue(tab.exists)
     tab.tap()
+  }
+
+  private func rotate(_ orientation: UIDeviceOrientation) {
+    XCTAssertTrue(app.rotate(to: orientation),
+      "The app must actually resize into the requested orientation.")
+  }
+
+  func testRotationPreservesFilteredActivityReviewAndOriginalRecord() {
+    rotate(.portrait)
+    defer { XCUIDevice.shared.orientation = .portrait }
+    openTab("Activity")
+    let search = app.activitySearch()
+    XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Woolworths")
+    if app.keyboards.buttons["Search"].exists { app.keyboards.buttons["Search"].tap() }
+    rotate(.landscapeLeft)
+    XCTAssertEqual(search.value as? String, "Woolworths")
+    let export = app.buttons["activityExportResults"]
+    revealPrecisely(export); XCTAssertTrue(export.isHittable); export.tap()
+    let count = app.staticTexts["activityExportCount"]
+    XCTAssertTrue(count.waitForExistence(timeout: 5)); XCTAssertEqual(count.label, "38 transactions")
+    capture("53-landscape-filtered-activity-review")
+    rotate(.portrait)
+    XCTAssertEqual(count.label, "38 transactions")
+    XCTAssertTrue(app.staticTexts["Woolworths"].exists)
+    app.buttons["activityExportDone"].tap()
+    XCTAssertEqual(search.value as? String, "Woolworths")
+    let row = app.descendants(matching: .any)["transactionRow.T0919"].firstMatch
+    XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+    rotate(.landscapeRight)
+    XCTAssertTrue(app.navigationBars["Transaction"].waitForExistence(timeout: 5))
+    let identifier = app.staticTexts["Transaction T0919"]
+    revealPrecisely(identifier); XCTAssertTrue(identifier.isHittable)
+    XCTAssertTrue(app.staticTexts["WOOLWORTHS 3021 BRUNSWICK"].exists)
+    capture("54-landscape-original-transaction")
+  }
+
+  func testRotationPreservesUnsubmittedGoalFields() {
+    rotate(.portrait)
+    defer { XCUIDevice.shared.orientation = .portrait }
+    openTab("Goals"); app.buttons["goals.add"].tap()
+    let name = app.textFields["goal.name"]
+    XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("A weekend away")
+    app.buttons["goal.keyboardDone"].tap()
+    let target = app.textFields["goal.target"]
+    revealPrecisely(target); target.tap(); target.typeText("1234.56")
+    app.buttons["goal.keyboardDone"].tap()
+    let account = app.buttons["goal.account"]
+    revealPrecisely(account); account.tap()
+    XCTAssertTrue(app.buttons["Everyday joint"].waitForExistence(timeout: 5))
+    app.buttons["Everyday joint"].tap()
+    rotate(.landscapeLeft)
+    XCTAssertEqual(name.value as? String, "A weekend away")
+    XCTAssertEqual(target.value as? String, "1234.56")
+    XCTAssertEqual(account.value as? String, "Everyday joint")
+    capture("55-landscape-goal-fields-retained")
+    rotate(.portrait)
+    XCTAssertEqual(name.value as? String, "A weekend away")
+    XCTAssertEqual(target.value as? String, "1234.56")
+    XCTAssertEqual(account.value as? String, "Everyday joint")
+    let review = app.buttons["goal.review"]
+    revealPrecisely(review); XCTAssertTrue(review.exists); XCTAssertFalse(review.isEnabled)
+    capture("56-portrait-goal-fields-after-rotation")
   }
 
   func testHomeCashExplainsItsBasis() {
@@ -60,12 +161,23 @@ final class KittyUITests: XCTestCase {
 
   func testHomeActivityShortcutsResetOnlyExplicitDestinations() {
     openTab("Activity")
-    let search = app.searchFields.firstMatch
+    let search = app.activitySearch()
     XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Woolworths")
     if app.keyboards.buttons["Search"].exists { app.keyboards.buttons["Search"].tap() }
-    openTab("Home"); openTab("Activity")
-    XCTAssertEqual(search.value as? String, "Woolworths", "Ordinary tab navigation preserves the current search.")
+    // iPad's expanded native search hides its top tab strip until a result opens.
+    let homeTab = app.kittyTab("Home")
+    if homeTab.exists && homeTab.isHittable {
+      openTab("Home"); openTab("Activity")
+      XCTAssertEqual(search.value as? String, "Woolworths", "Ordinary tab navigation preserves the current search.")
+    }
     let row = app.descendants(matching: .any)["transactionRow.T0919"].firstMatch
+    XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+    openTab("Home"); openTab("Activity")
+    XCTAssertTrue(app.navigationBars["Transaction"].waitForExistence(timeout: 5),
+      "Ordinary tab navigation also preserves the open record.")
+    app.navigationBars["Transaction"].buttons.firstMatch.tap()
+    XCTAssertEqual(app.activitySearch().value as? String, "Woolworths")
+    if app.keyboards.buttons["Search"].exists { app.keyboards.buttons["Search"].tap() }
     XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
     openTab("Home")
     let review = app.buttons["home.reviewCategories"]
@@ -75,12 +187,12 @@ final class KittyUITests: XCTestCase {
     let filter = app.buttons["activityFilter"]
     revealPrecisely(filter)
     XCTAssertTrue((filter.label + " " + (filter.value as? String ?? "")).contains("Needs a category"))
-    XCTAssertTrue(search.exists); XCTAssertNotEqual(search.value as? String, "Woolworths")
+    if search.exists { XCTAssertNotEqual(search.value as? String, "Woolworths") }
     let uncategorised = app.descendants(matching: .any)["transactionRow.T0761"].firstMatch
     revealPrecisely(uncategorised); XCTAssertTrue(uncategorised.exists)
     XCTAssertFalse(row.exists, "A previously searched categorised transaction is outside this review.")
     capture("50-home-opens-category-review")
-    app.buttons["activityExportButton"].tap()
+    app.activityExportButton().tap()
     let count = app.staticTexts["activityExportCount"]
     XCTAssertTrue(count.waitForExistence(timeout: 5)); XCTAssertEqual(count.label, "3 transactions")
     capture("51-home-review-has-three-records")
@@ -93,20 +205,23 @@ final class KittyUITests: XCTestCase {
     XCTAssertFalse(app.navigationBars["Transaction"].exists)
     revealPrecisely(filter)
     XCTAssertTrue((filter.label + " " + (filter.value as? String ?? "")).contains("All"))
-    XCTAssertTrue(search.exists); XCTAssertNotEqual(search.value as? String, "Woolworths")
-    app.buttons["activityExportButton"].tap()
+    if search.exists { XCTAssertNotEqual(search.value as? String, "Woolworths") }
+    app.activityExportButton().tap()
     XCTAssertTrue(count.waitForExistence(timeout: 5)); XCTAssertEqual(count.label, "925 transactions")
     capture("52-home-all-activity-includes-every-record")
   }
 
   func testActivitySearchReachesOriginalTransactionEvidence() {
     openTab("Activity")
-    let search = app.searchFields.firstMatch
-    if !search.isHittable { app.swipeDown() }
-    XCTAssertTrue(search.waitForExistence(timeout: 5))
     let title = app.navigationBars["Activity"].staticTexts["Activity"].firstMatch
     XCTAssertTrue(title.exists)
-    XCTAssertFalse(title.frame.intersects(search.frame), "The Activity title must not cover search at large text sizes.")
+    let initialSearch = app.searchFields.firstMatch
+    if initialSearch.exists {
+      XCTAssertFalse(title.frame.intersects(initialSearch.frame), "The Activity title must not cover search at large text sizes.")
+    }
+    let search = app.activitySearch()
+    if !search.isHittable { app.swipeDown() }
+    XCTAssertTrue(search.waitForExistence(timeout: 5))
     capture("26-activity-title-and-search")
     search.tap()
     search.typeText("Woolworths")
@@ -127,7 +242,7 @@ final class KittyUITests: XCTestCase {
 
   func testFilteredActivityExportKeepsItsReviewWhenFilesPickerIsCancelled() {
     openTab("Activity")
-    let search = app.searchFields.firstMatch
+    let search = app.activitySearch()
     if !search.isHittable { app.swipeDown() }
     XCTAssertTrue(search.waitForExistence(timeout: 5))
     search.tap(); search.typeText("Woolworths")
@@ -232,6 +347,11 @@ final class KittyUITests: XCTestCase {
     reveal(exact)
     XCTAssertTrue(exact.exists)
     exact.tap()
+    let latestMonth = app.staticTexts["1 Jan 2027"]
+    revealPrecisely(latestMonth)
+    XCTAssertTrue(latestMonth.waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["In $15,386.14 · Out $13,811.37"].exists)
+    XCTAssertTrue(app.staticTexts["Left over $1,574.77"].exists)
     capture("06-insights-exact-figures")
     let checks = app.buttons["Checks & evidence"]
     reveal(checks, limit: 12)
@@ -336,7 +456,12 @@ final class KittyUITests: XCTestCase {
   }
 
   func testImportAccountSelectionEnablesFileChoice() {
-    app.buttons["importStatement"].tap()
+    openTab("Activity")
+    app.buttons["activityActions"].tap()
+    let importAction = app.buttons["Import statement"]
+    XCTAssertTrue(importAction.waitForExistence(timeout: 5))
+    capture("58-activity-actions-menu")
+    importAction.tap()
     XCTAssertTrue(app.navigationBars["Import your records"].waitForExistence(timeout: 5))
     let account = app.buttons["importAccount"]
     revealPrecisely(account)

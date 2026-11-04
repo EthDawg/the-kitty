@@ -1,6 +1,6 @@
 # Native Files acceptance — 5 November 2026
 
-The bank original is selected through the normal iOS Files picker, outside Kitty's sandbox. The fixture helper puts the exact bundled fictional CSV in `On My iPhone / Kitty QA`; it does not inject an import draft. All data in this acceptance is fictional.
+The bank original is selected through the normal iOS Files picker, outside Kitty's sandbox. The fixture helper puts the exact bundled fictional CSV in `Kitty QA` under **On My iPhone** or **On My iPad**; it does not inject an import draft. All data in this acceptance is fictional.
 
 ## Import and repair
 
@@ -20,6 +20,14 @@ Independent readback of the saved small-screen draft confirms one source, the se
 
 The Activity journey searches **Woolworths**, reviews 38 transactions and saves through the native Files destination picker using a unique filename. The actual destination file is read independently with Python's CSV parser and compared with the bundled household projection: all 14 columns, every row in order, account names, original descriptions, categories, notes, currency and exact decimal amounts match. The total is −1,240,150 minor units; the 6,086-byte UTF-8 BOM/CRLF file has SHA-256 `2b1e4633e4b3c78fd4cf6d71408260c45616af88c5fea154bcd909efa38cc841`.
 
-The untouched [saved fictional CSV](native-files-woolworths.csv), [sanitized verification record](native-files-verification.json) and 12 full-resolution screenshots in [the inventory](screenshots/inventory.json) are retained. The refreshed local signed archive is recorded in [RELEASE.md](../RELEASE.md).
+The untouched [saved fictional CSV](native-files-woolworths.csv), [sanitized verification record](native-files-verification.json) and original screenshots in [the inventory](screenshots/inventory.json) are retained. The refreshed local signed archive is recorded in [RELEASE.md](../RELEASE.md).
+
+## iPad follow-up
+
+The import journey passes on iPad mini (A17 Pro), iOS 26.5, in `ipad-acceptance-final.xcresult` (73.045 seconds). It selects the original through the native Files sidebar, reviews mapping, rejects the repeated file, rotates the five-row review and retains its unresolved decisions after relaunch. This individual journey passes; that bundle's two separate toolbar failures are repaired and superseded by `ipad-toolbar-final.xcresult`.
+
+The final tablet export journey passes in 35.849 seconds. Independent readback of its actual Files destination matches the retained CSV byte-for-byte: 38 rows, 14 columns and the same 6,086-byte SHA-256 above. The verification record adds this result without replacing the earlier iPhone verification. The corresponding [destination picker](screenshots/ipad-47-native-csv-save-destination.png) shows the native tablet workflow; the CSV comparison establishes the saved contents.
+
+The current regular iPhone import regression also passes in `tablet-regression-iphone-final.xcresult` (90.068 seconds). These follow-ups change the Activity menu and UI harness, not financial parsing or service writes. Tablet import persistence is verified through the UI; the earlier independent draft-byte inspection belongs to the small-screen run.
 
 This is simulator acceptance for fictional file intake and local export. It does not establish real bank compatibility, Google OAuth, hosted writes, live receipt recovery, physical-phone saving or App Store approval. The shared import/service code did not change; broad Node and native unit suites were not repeated for this view-only repair.
