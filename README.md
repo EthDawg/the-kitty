@@ -21,6 +21,10 @@ Version 1.1, shipped. Verified live on 3 November 2026: live read and write thro
 connector, the onboarding's writes, Ask the Kitty, two month-end closes through the import pipeline, light and
 dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the end of this file.
 
+**2.0, phase B (the row and the review), 4 November 2026, on branch `v2-row`:** Activity on `EntryRow` with monograms and
+brand icons, the merchant dictionary, the Review queue with its sheet writes, the fortune cookie that proposes rules, and
+"Worth it?"; verified on a private staging artifact against the v2 sheet. See `CHANGELOG.md`.
+
 **2.0, phase A (the ledger), 4 November 2026, on branch `v2-ledger`:** the data model below now carries every store
 of value, on a copy of the demo sheet ("Digital Davies v2", `kitty.config.json`). The published 1.1 page keeps
 reading the original sheet until phase C cuts over. `python3 build.py --v2` builds a local page against the copy.
@@ -32,7 +36,9 @@ reading the original sheet until phase C cuts over. `python3 build.py --v2` buil
 |---|---|
 | `src/engine.js` | Every number: parsing of connector strings and snapshot values, the model, verdict, upcoming, goals, leaks, search. Pure functions; `node --test test.js` runs them with the sheet as oracle. |
 | `src/app.js` | The page: Home, Activity, Insights, Goals, Setup; onboarding; drawers; the three writes; Ask the Kitty. |
-| `src/style.css`, `src/shell.html` | Tokens (light and dark, four accents), components, the SVG icon sprite. |
+| `src/kit/entry-row.js` | The kit: `EntryRow` (monogram, brand category icon, clean name, signed amount, badges), `EntryList` grouped by day, `ReviewCard`, `WorthRow`. Pure functions from the model to HTML; the page binds the clicks. |
+| `merchants/` | The merchant dictionary (365 Australian merchants and generic descriptors with patterns, categories, hues, websites) and the category-to-icon map; `README.md` records the miss rate. |
+| `src/style.css`, `src/shell.html` | Tokens (light and dark, four accents), components; the brand sprite (`brand/icons/sprite.svg`) is inlined at build. |
 | `src/data-sources.json` | How a household gets bank data in, by country and institution, with the landing rules. Rendered on Setup. |
 | `data/snapshot.json` | The Davies household as JSON, pulled from the sheet's bound Apps Script. Fictional, so it is bundled. `data/snapshot-v2.json` is the same household from the v2 sheet, with the ledger tabs. |
 | `snapshot.py` | Refreshes `data/snapshot.json` from the Apps Script JSON feed (`apps-script/Code.js`, `?format=json`); `--v2` refreshes the v2 snapshot once the copy's script is deployed. Until then `tools/grid_to_snapshot.py` builds it from typed connector reads. |

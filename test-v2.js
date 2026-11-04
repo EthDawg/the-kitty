@@ -98,3 +98,112 @@ test("connector grids for the ledger tabs read back the same model as the snapsh
   assert.equal(E.transfers(m2).orphans.length, 0); assert.ok(E.invariants(m2).every((i) => i.ok), JSON.stringify(E.invariants(m2).filter((i) => !i.ok)));
   assert.equal(m2.decisions.find((d) => d.decision === "planned_refresh").value, "2028-02-01");
 });
+
+// ---------- phase B: the merchant dictionary, the row, the review queue, decisions ----------
+const Kit = require("./src/kit/entry-row.js");
+E.loadMerchants({ merchants: load("merchants/merchants.json"), categories: load("merchants/categories.json") });
+
+test("normalise: card suffixes, store numbers, dates, amounts, state and city tokens, PTY LTD and AU go; the words stay", () => {
+  const cases = {
+    "WOOLWORTHS 3021 BRUNSWICK": "WOOLWORTHS BRUNSWICK", "WOOLWORTHS 3021 BRUNSWICK Card xx4471 Value Date: 14/10/2025": "WOOLWORTHS BRUNSWICK", "COLES 0457 COBURG VIC AU": "COLES COBURG",
+    "UBER *EATS": "UBER EATS", "UBER* EATS MELBOURNE": "UBER EATS", "AMAZON MKTPLC AU SYDNEY SOUTH": "AMAZON MKTPLC", "MENULOG PTY LTD": "MENULOG", "APPLE.COM/BILL SYDNEY": "APPLE COM BILL",
+    "OPENAI *CHATGPT SUBSCR USD 20.00": "OPENAI CHATGPT SUBSCR", "SPOTIFY P2F4A": "SPOTIFY", "AIRBNB * HMJK2Q": "AIRBNB", "BELONG MOBILE x2": "BELONG MOBILE", "KATHMANDU 118 MELBOURNE": "KATHMANDU",
+    "JB HI-FI MELBOURNE CENTRAL": "JB HI FI", "BAYSIDE PROPERTY MGMT RENT JUL": "BAYSIDE PROPERTY MGMT RENT", "TRANSFER TO JAPAN 2027": "TRANSFER TO JAPAN", "7-ELEVEN 2231 COBURG": "SEVENELEVEN COBURG",
+    "SQ *MARKET LANE": "SQ MARKET LANE", "PAYPAL *DIGITALRIVER": "PAYPAL DIGITALRIVER", "INTEREST CREDIT": "INTEREST CREDIT", "PURCHASE INTEREST CHARGED": "PURCHASE INTEREST CHARGED", "": "",
+  };
+  for (const [raw, want] of Object.entries(cases)) assert.equal(E.normalise(raw), want, raw);
+});
+
+test("dictionary: at least 150 Australian merchants with unique ids, real categories, hex hues and known icons; the longest pattern wins", () => {
+  const D = E.dictionary(); const cats = new Set(live.category_list.map((c) => c.category_id)); const icons = new Set(Object.keys(load("brand/icons/icons.json").icons));
+  assert.ok(D.merchants.length >= 150, `${D.merchants.length} merchants`);
+  assert.equal(new Set(D.merchants.map((d) => d.id)).size, D.merchants.length, "ids unique");
+  for (const d of D.merchants) { assert.ok(cats.has(d.category_id), `${d.id}: ${d.category_id}`); assert.match(d.hue, /^#[0-9A-Fa-f]{6}$/, d.id); assert.ok(["merchant", "transfer", "fee", "income", "government"].includes(d.kind), d.id); if (d.icon) assert.ok(icons.has(d.icon), `${d.id}: icon ${d.icon}`); assert.ok(d.patterns.length, d.id); }
+  for (const c of live.category_list) assert.ok(icons.has(E.catIcon(c.category_id)), `${c.category_id} has a brand icon`);
+  const m0 = { rules: [], merMemo: new Map(), ruleIndex: null };
+  assert.equal(E.merchant("UBER *EATS", m0).name, "Uber Eats"); assert.equal(E.merchant("UBER TRIP HELP.UBER.COM", m0).name, "Uber");
+  assert.equal(E.merchant("AMAZON PRIME AU", m0).name, "Amazon Prime"); assert.equal(E.merchant("AMAZON MKTPLC AU", m0).name, "Amazon");
+  assert.equal(E.merchant("SHELL COLES EXPRESS 1234", m0).name, "Shell"); assert.equal(E.merchant("COLES 0457 COBURG", m0).name, "Coles");
+  const sq = E.merchant("SQ *GOLDEN FLEECE BAKEHOUSE", m0); assert.equal(sq.unresolved, true); assert.equal(sq.name, "Golden Fleece Bakehouse"); assert.equal(sq.source, "fallback");
+  assert.equal(E.merchant("GOOGLE*YOUTUBEPREMIUM", m0).name, "YouTube Premium"); assert.equal(E.merchant("WOOLWORTHS 3021 BRUNSWIC", m0).name, "Woolworths");
+  assert.deepEqual(E.candidates("SQ *MARKET LANE").map((c) => c.id), ["square"]);
+});
+
+test("every historical row resolves: the sheet's Rules first (name and category as the sheet says), the dictionary alone misses at most 3%", () => {
+  const m = E.model(live); const tx = m.entries.filter((e) => e.kind === "transaction");
+  assert.equal(tx.length, 925);
+  for (const e of tx) { assert.ok(e.mer && !e.mer.unresolved, `${e.id} ${e.raw}`); assert.equal(e.mer.source, "rule", e.raw); assert.equal(e.mer.name, e.desc, e.raw); }
+  assert.equal(tx.filter((e) => e.mer.cat === e.cat).length, 924, "the rules carry the sheet's category (one refund row differs by design)");
+  // a cut descriptor still finds its rule, a rule normalised the same way as the descriptor
+  assert.equal(E.merchant("WOOLWORTHS 3021 BRUNSWIC", m).rule.id, "R0008"); assert.equal(E.merchant("HARBOUR BANK HOME LOAN R", m).rule.id, "R0003"); assert.equal(E.merchant("AIRBNB NOOSA", m).rule.id, "R0059"); assert.equal(E.merchant("AIRBNB * XYZ12", m).rule.id, "R0082");
+  const d = E.model(Object.assign({}, live, { rules: [] })); const dt = d.entries.filter((e) => e.kind === "transaction");
+  const miss = dt.filter((e) => e.mer.unresolved).length; assert.ok(miss / dt.length <= 0.03, `dictionary-only miss rate ${(miss / dt.length * 100).toFixed(1)}%`);
+  assert.ok(dt.filter((e) => !e.mer.unresolved && e.mer.cat === e.cat).length >= 870, "the dictionary's category agrees with the sheet on most rows");
+});
+
+for (const [name, sn, expect] of [["fixture everyday-only", everyday, { uncategorised: 3, duplicate: 3 }], ["fixture everyday+property", property, { uncategorised: 3, duplicate: 3 }], ["live v2 snapshot", live, { uncategorised: 3, duplicate: 3 }]]) {
+  test(`${name}: the review queue holds the sheet's three uncategorised rows and three possible doubles, nothing unpaired, nothing unknown`, () => {
+    const m = E.model(sn); const rv = E.review(m);
+    assert.deepEqual(rv.counts, { uncategorised: expect.uncategorised, unresolved: 0, duplicate: expect.duplicate, unpaired: 0, first_big: 0 });
+    assert.deepEqual(rv.items.map((i) => i.id).sort(), ["T0413", "T0596", "T0687", "T0746", "T0761", "T0858"]);
+    assert.equal(rv.items.find((i) => i.id === "T0858").dupOf, "T0857");
+    const uncat = rv.items.find((i) => i.id === "T0761"); assert.deepEqual(uncat.reasons, ["uncategorised"]); assert.ok(/needs a category/.test(uncat.why));
+    const af = m.entries.filter((e) => e.desc === "Anytime Fitness"); assert.ok(m.firstSeen.has(af[0].id) && af.slice(1).every((e) => !m.firstSeen.has(e.id)), "the first visit to a merchant is marked once");
+  });
+}
+
+test("decisions overlay the model on read: a categorise moves the row, a merge or confirm clears it, a match pairs for review only; the transfer invariant is unchanged", () => {
+  const dec = (id, decision, value, ref = "T0761") => ({ decision_id: id, ref_kind: "entry", ref_id: ref, decision, value, by: "test", at: "2026-11-04", note: null });
+  const m = E.model(Object.assign({}, live, { decisions: live.decisions.concat([dec("D0101", "categorise", "DINING"), dec("D0102", "merge_duplicate", "T0857", "T0858"), dec("D0103", "confirm", "UNCAT", "T0746"), dec("D0104", "worth_it", "yes", "T0911"), dec("D0105", "split", "GROCERIES 60.00 | DINING 19.95", "T0687")]) }));
+  const e = m.entryById.T0761; assert.equal(e.cat, "DINING"); assert.equal(e.flow, "Expense"); assert.equal(e.reviewed, true);
+  assert.equal(m.tx.find((t) => t.id === "T0761").catName, "Dining and takeaway");
+  assert.equal(m.entryById.T0858.dupOf, "T0857"); assert.equal(m.entryById.T0911.worth, "yes"); assert.deepEqual(m.entryById.T0687.split, [{ cat: "GROCERIES", amount: 60 }, { cat: "DINING", amount: 19.95 }]);
+  const rv = E.review(m); assert.deepEqual(rv.items.map((i) => i.id).sort(), ["T0413", "T0596"]);
+  // the same transfers, the same pairs, before and after the overlay
+  const before = E.transfers(E.model(live)), after = E.transfers(m);
+  assert.equal(after.pairs.length, before.pairs.length); assert.equal(after.orphans.length, 0); assert.equal(after.bad.length, 0);
+  assert.ok(E.invariants(m).every((i) => i.ok));
+  // a match_transfer decision marks both rows for the queue without touching the sheet's pairing
+  const m2 = E.model(Object.assign({}, live, { decisions: live.decisions.concat([dec("D0106", "match_transfer", "T0747", "T0746")]) }));
+  assert.equal(m2.entryById.T0746.matchedWith, "T0747"); assert.equal(E.transfers(m2).pairs.length, before.pairs.length);
+  assert.ok(!E.review(m2).byId.has("T0746"));
+  // a 1.1 snapshot still builds and reviews
+  assert.ok(E.review(E.model(load("data/snapshot.json"))).items.length >= 0);
+});
+
+test("worth it: discretionary rows over the floor from the latest week that has any, at most five, answered rows drop out, the summary needs five answers", () => {
+  const m = E.model(live); const w = E.worthCandidates(m);
+  assert.ok(w.items.length >= 1 && w.items.length <= 5); assert.equal(w.floor, 40); assert.ok(w.from <= w.to && w.to <= m.asOf);
+  for (const e of w.items) { assert.ok(E.discretionary(e, m)); assert.ok(Math.abs(e.amount) >= 40); assert.ok(!m.catById[e.cat].essential); }
+  assert.ok(!w.items.some((e) => ["Housing", "Property", "Fees", "Transfers"].includes(m.catById[e.cat].group)));
+  const answered = E.model(Object.assign({}, live, { decisions: live.decisions.concat(w.items.map((e, i) => ({ decision_id: `D02${i}`, ref_kind: "entry", ref_id: e.id, decision: "worth_it", value: i % 2 ? "no" : "yes", by: "t", at: "2026-11-04" }))), kitty: live.kitty.concat([{ key: "worth_it_min", value: 90 }]) }));
+  assert.ok(!E.worthCandidates(answered).items.some((e) => w.items.some((x) => x.id === e.id)), "answered rows are not offered again");
+  assert.equal(E.worthCandidates(answered).floor, 90);
+  const ws = E.worthSummary(answered); assert.equal(ws.count, w.items.length); assert.equal(ws.yes + ws.no + ws.meh, w.items.length); assert.ok(ws.byCat.length >= 1);
+});
+
+test("EntryRow renders every kind: monogram letters in the brand hue, the category icon from the brand sprite, tabular amount with sign, badges that mean something, a trade and a valuation as rows", () => {
+  const m = E.model(live); const rv = E.review(m); const ctx = Kit.context(m, { reviewIds: rv.byId, cookie: "<svg></svg>", sampleOn: true });
+  const row = Kit.EntryRow(m.entryById.T0001, ctx, { date: true });
+  assert.match(row, /class="mono[^"]*" style="--mh:#6E2C91"/); assert.match(row, /<b>AF<\/b>/); assert.match(row, /#i-fitness/); assert.match(row, /class="amt num ">−\$64\.95/); assert.match(row, /bdg recurring/); assert.match(row, /first time here/);
+  const t5 = Kit.EntryRow(m.entryById.T0005, ctx); assert.match(t5, /bdg pair/); assert.match(t5, /Japan 2027 saver/); assert.match(t5, /amt num mv/);
+  const trade = Kit.EntryRow(m.entries.find((e) => e.kind === "trade"), ctx); assert.match(trade, /25 units at \$48\.20/); assert.match(trade, /#i-shares/); assert.match(trade, /\+\$1,205/);
+  const val = Kit.EntryRow(m.entryById.V0001, ctx); assert.match(val, /Family home, Brunswick/); assert.match(val, /value from an appraisal/); assert.match(val, /#i-property/); assert.match(val, /\$1,185,000/);
+  const dup = Kit.EntryRow(m.entryById.T0858, ctx); assert.match(dup, /possible double/); assert.match(dup, /needs review/);
+  assert.match(Kit.EntryRow(m.entryById.T0925, ctx), /#i-/);
+  const refund = m.entries.find((e) => /REFUND/.test(e.raw)); assert.match(Kit.EntryRow(refund, ctx), /bdg refund/);
+  const list = Kit.EntryList(m.entries.slice(-40).reverse(), ctx); assert.ok((list.match(/class="dayg"/g) || []).length >= 2); assert.match(list, /class="day"/);
+  const card = Kit.ReviewCard(rv.items.find((i) => i.id === "T0761"), ctx); assert.match(card, /data-ract="pick" data-cat="DINING"/); assert.match(card, /data-ract="cat"/); assert.match(card, /k-fortune/); assert.match(card, /SQ \*MARKET LANE/);
+  const dcard = Kit.ReviewCard(rv.items.find((i) => i.id === "T0858"), ctx); assert.match(dcard, /data-ract="merge"/); assert.ok(!/k-fortune/.test(dcard), "a double has a rule, so no cookie");
+  for (const e of m.entries.slice(0, 200)) assert.ok(!/undefined|NaN/.test(Kit.EntryRow(e, ctx)), e.id);
+});
+
+test("5,000 entries: the model builds and the list for the first screen renders fast in node (the browser number is in the PR)", () => {
+  const snap = JSON.parse(JSON.stringify(live)); const tx = snap.entries.filter((e) => e.kind === "transaction"); const more = []; let n = 0;
+  for (let k = 1; snap.entries.length + more.length < 5000; k++) for (const e of tx) { if (snap.entries.length + more.length >= 5000) break; n++; const c = { ...e, entry_id: `T${9000 + n}`, settled_at: E.addDays(e.settled_at, -7 * k), created_at: E.addDays(e.settled_at, -7 * k), transfer_id: e.transfer_id ? `${e.transfer_id}-${k}` : null }; more.push(c); }
+  snap.entries = snap.entries.concat(more); snap.transactions = [];
+  const t0 = Date.now(); const m = E.model(snap); const built = Date.now() - t0;
+  assert.ok(m.entries.length >= 5000);
+  const t1 = Date.now(); const rv = E.review(m); const ctx = Kit.context(m, { reviewIds: rv.byId }); const rows = m.entries.slice().reverse().filter((e) => e.kind === "transaction" && e.flow !== "Transfer").slice(0, 80); const html = Kit.EntryList(rows, ctx); const drew = Date.now() - t1;
+  assert.ok(html.length > 10000); assert.ok(drew < 200, `${drew} ms to derive and render the first screen over ${m.entries.length} entries (model ${built} ms)`);
+});
