@@ -9,6 +9,8 @@ for (const [size, viewport] of [["desktop", { width: 1280, height: 860 }], ["pho
     await page.setViewportSize(viewport); await page.emulateMedia({ reducedMotion: "reduce", colorScheme: theme });
     await page.goto(`${url}?noonb&noanim&theme=${theme}`); await page.waitForSelector("[data-kit=Tray]"); await page.evaluate(() => document.fonts.ready);
     for (const c of COMPONENTS) { const b = await page.locator(`[data-kit=${c}]`).boundingBox(); expect(b && b.height, c).toBeGreaterThan(50); const blank = await page.locator(`[data-kit=${c}]`).evaluate((e) => e.children.length < 2 || e.lastElementChild.getBoundingClientRect().height < 4); expect(blank, `${c} drew nothing`).toBe(false); }
+    for (const c of ["Ring", "Bar", "Sparkline", "Sankey", "Pack"]) { const h = await page.locator(`[data-kit=${c}] svg`).first().evaluate((e) => e.getBoundingClientRect().height); expect(h, `${c} is a real chart`).toBeGreaterThan(40); }
+    expect(await page.locator("[data-kit=Sankey] path").count(), "the Sankey has links").toBeGreaterThan(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "no sideways scroll").toBe(true);
     expect(errors).toEqual([]);
     const shot = path.join(__dirname, "..", "..", "docs", "screenshots", "kit", `${size}-${theme}.png`);

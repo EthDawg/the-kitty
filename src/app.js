@@ -334,15 +334,13 @@
     const m = S.m, v = $("#v-home"); const es = m.entries.filter((e) => e.kind === "transaction").slice(-6).reverse(); const sp = E.spend(m.tx, E.window("quarter", m.asOf));
     const months = m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending })); const item = review().items[0];
     const sect = (id, html, wide) => `<div class="card${wide ? " wide" : ""}" data-kit="${id}"><h3>${id}</h3>${html}</div>`;
-    let flow = ""; try { flow = flowSVG(sp, sp.in, CW(1)); } catch (e) { flow = Kit.EmptyState("d3 did not load"); }
-    let jar = ""; try { jar = jarSVG(sp, CW(1 / 2)); } catch (e) { jar = Kit.EmptyState("d3 did not load"); }
     v.innerHTML = `<div class="kitg">${[
       sect("Ring", ringSVG(0.92, "var(--accent)", "$11k", "of $12k")),
       sect("Bar", monthBarsSVG(months)),
       sect("StatTile", `<div class="statline">${Kit.StatTile("In", fmt0(months[11].in))}${Kit.StatTile("Out", fmt0(months[11].out), "last month")}</div>`),
       sect("Sparkline", sparkSVG(months.map((x) => x.out), 320, 60, "var(--accent)")),
-      sect("Sankey", flow, true),
-      sect("Pack", jar),
+      sect("Sankey", flowSVG(sp, [{ k: "Income", v: sp.in }], CW(1)), true),
+      sect("Pack", jarSVG(sp, CW(1 / 2))),
       sect("EntryRow", es.slice(0, 2).map((e) => Kit.EntryRow(e, ctx(), { category: true })).join("")),
       sect("EntryList", Kit.EntryList(es, ctx(), {}), true),
       sect("Table", `<div class="tablewrap"><table class="t"><thead><tr><th>Month</th><th>In</th><th>Out</th></tr></thead><tbody>${months.slice(-4).map((c) => `<tr><td>${esc(E.fmtMonth(c.month, true))}</td><td class="num">${fmt0(c.in)}</td><td class="num">${fmt0(c.out)}</td></tr>`).join("")}</tbody></table></div>`),
