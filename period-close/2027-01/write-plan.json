@@ -1,0 +1,44 @@
+{
+ "schema": "kitty-write-plan/1",
+ "generated_at": "2026-11-04T11:43:56Z",
+ "importer": "period-close/import_month.py",
+ "months": [
+  "2027-01"
+ ],
+ "status": "ready",
+ "sheet": {
+  "id": "16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA",
+  "version": 2,
+  "snapshot": "data/snapshot-v2.json",
+  "snapshot_fetched_at": "2026-11-04T10:45:41.460775Z"
+ },
+ "assumes": {
+  "entries_rows": 1082,
+  "last_entry_row": 1083,
+  "last_entry_id": "V0156",
+  "last_ids": {
+   "T": "T0925",
+   "V": "V0156",
+   "X": "X0076"
+  },
+  "payslips_rows": 83
+ },
+ "preconditions": [],
+ "writes": [],
+ "deferred": [],
+ "verify": "read every range under writes with get_values (and the preconditions before writing), save the responses as JSON, then: python3 period-close/verify.py write-plan.json reread.json",
+ "totals": {
+  "transactions": 0,
+  "already_in_sheet": 49,
+  "repeated_across_files": 0,
+  "valuations": 0,
+  "payslips": 0,
+  "loan_lines": 0,
+  "pair_updates": 0,
+  "contract_updates": 0,
+  "writes": 0,
+  "deferred": 0,
+  "rows_written": 0,
+  "seconds": 0.01
+ }
+}
