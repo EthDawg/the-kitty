@@ -37,7 +37,7 @@ reading the original sheet until phase C cuts over. `python3 build.py --v2` buil
 | `src/engine.js` | Every number: parsing of connector strings and snapshot values, the model, verdict, upcoming, goals, leaks, search. Pure functions; `node --test test.js` runs them with the sheet as oracle. |
 | `src/app.js` | The page: Home, Activity, Insights, Goals, Setup; onboarding; drawers; the three writes; Ask the Kitty. |
 | `src/kit/entry-row.js` | The kit: `EntryRow` (monogram, brand category icon, clean name, signed amount, badges), `EntryList` grouped by day, `ReviewCard`, `WorthRow`. Pure functions from the model to HTML; the page binds the clicks. |
-| `merchants/` | The merchant dictionary (365 Australian merchants and generic descriptors with patterns, categories, hues, websites) and the category-to-icon map; `README.md` records the miss rate. |
+| `merchants/` | The merchant dictionary (370 Australian merchants and generic descriptors with patterns, categories, hues, websites) and the category-to-icon map; `README.md` records the miss rate. |
 | `src/style.css`, `src/shell.html` | Tokens (light and dark, four accents), components; the brand sprite (`brand/icons/sprite.svg`) is inlined at build. |
 | `src/data-sources.json` | How a household gets bank data in, by country and institution, with the landing rules. Rendered on Setup. |
 | `data/snapshot.json` | The Davies household as JSON, pulled from the sheet's bound Apps Script. Fictional, so it is bundled. `data/snapshot-v2.json` is the same household from the v2 sheet, with the ledger tabs. |

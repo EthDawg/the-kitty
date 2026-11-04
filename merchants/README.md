@@ -59,11 +59,14 @@ rows a household rule or the cookie should settle. The 23 category disagreements
 general dictionary cannot carry: a Geelong rates bill and Barwon Water filed under the rental (`RENT-RATES`), a JB Hi-Fi
 and an Officeworks purchase under `WORK-EQUIP`, Myer and Big W under Gifts, plumbing and hot water under rental repairs.
 
-Against the parody portals' eight years of varied descriptors (`portals/data/months.json` on the phase E branch:
-`VIC AU` suffixes, 24-character cuts, `Card xx4471 Value Date:` tails, city and entity tokens, store numbers that
-alternate, trading names that change over the years), 1,176 rows: rules plus dictionary resolve 1,085 (7.7% miss),
-every miss a bare employer name on a salary credit (`Northwind Logistics`, `Bayview Health`) that the sheet's own
-`SALARY …` rules do not cover; one Rules row per employer closes them. The dictionary alone resolves 1,061 (9.8% miss).
+Against the parody portals' eight years of varied descriptors (the `transactions` array of `portals/data/months.json`
+on the phase E branch `v2-portals-history`: `VIC AU` suffixes, 24-character cuts, `Card xx4471 Value Date:` tails, city
+and entity tokens, store numbers that alternate, trading names that change over the years), 4,179 rows and 276 distinct
+descriptors: rules plus dictionary resolve all 4,179 (the first measurement missed six one-off rows around the Geelong
+purchase, a conveyancer, the settlement, a locksmith, an appliance repair, a car sold for cash, and one hotel, which
+the dictionary now covers with generic entries). The dictionary alone resolves 4,089 (2.2% miss), 87 of the 90 misses
+being `SOCIAL CLUB BRUNSWICK` in its three spellings. The earlier draft of this paragraph counted the file's payslip rows as
+descriptors and reported employer-name misses that do not exist; the phase E session caught it.
 
 `node --test test-v2.js` keeps these numbers honest: every historical row must resolve, the dictionary-only miss rate
 must stay at or under 3%, and the normaliser's cases above are pinned.
