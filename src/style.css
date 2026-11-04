@@ -336,6 +336,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 .drawer .searchbox{margin-right:44px}
 .toast{position:fixed;left:50%;bottom:calc(var(--tabbar) + 16px);transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;z-index:70;opacity:0;pointer-events:none;transition:opacity .25s,transform .35s var(--spring);box-shadow:var(--shadow-lg);max-width:min(92vw,520px);text-align:center}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.on button{pointer-events:auto}
 @media (min-width:820px){.toast{bottom:28px}}
 .skel{border-radius:12px;background:linear-gradient(90deg,var(--surface2),var(--line),var(--surface2));background-size:200% 100%;animation:sk 1.4s infinite}
 @keyframes sk{to{background-position:-200% 0}}
@@ -525,7 +526,7 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .wtotal{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
 .gtile,.gtile .gtop{min-width:0}.gtile .gtop{flex-wrap:wrap}
 .toast{width:max-content;border-radius:20px}
-.toast button{pointer-events:auto;margin-left:8px;color:inherit;font:inherit;text-decoration:underline;background:none}
+.toast button{margin-left:8px;color:inherit;font:inherit;text-decoration:underline;background:none}
 
 /* ---------- responsive ---------- */
 @media (max-width:819px){

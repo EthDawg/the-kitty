@@ -179,7 +179,7 @@
   const canWriteSheet = () => S.mode === "live" && S.canWrite;
 
   // ---------- small UI helpers ----------
-  function toast(msg, ms = 2600, action) { const t = $("#toast"); t.textContent = msg; if (action) { const b = document.createElement("button"); b.textContent = action.label; b.addEventListener("click", () => { t.classList.remove("on"); action.fn(); }); t.append(" ", b); } t.classList.add("on"); clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.remove("on"), ms); }
+  function toast(msg, ms = 2600, action) { const t = $("#toast"); t.textContent = msg; if (action) { const b = document.createElement("button"); b.textContent = action.label; b.addEventListener("click", () => { t.classList.remove("on"); action.fn(); }); t.append(" ", b); } t.classList.add("on"); clearTimeout(toast.tm); toast.tm = setTimeout(() => { t.classList.remove("on"); if (action) t.querySelector("button")?.remove(); }, ms); }
   function setPill(kind, text) { const p = $("#trustpill"); p.className = "pill " + kind + (kind === "live" ? " live" : ""); p.querySelector(".txt").textContent = text; }
   function ago(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; }
   function readAgeText() { if (S.mode !== "live") return ""; if (S.unknownReadAge || S.storedAt == null) return "Connector read age unavailable; Refresh asks for fresh data."; return `Oldest connector read ${ago(S.storedAt)}. That is the connector's cache, not the date of the money.`; }
@@ -360,14 +360,16 @@
   const fixedLayout = () => FLAGS.get("layout") === "default";   // ?layout=default for screenshots: no saved layout, nothing written
   const WID = (m) => Kit.eligible(m, E.signals(m));
   const savedLayout = () => (fixedLayout() ? null : S.prefs.layout || null);
-  const saveLayout = (items) => { if (fixedLayout()) return; const l = S.prefs.layout || {}; savePrefs({ layout: { items, hidden: l.hidden || [], seen: l.seen || [] } }); };
+  const writeLayout = ({ items, hidden, seen }) => savePrefs({ layout: { items: Kit.keepAbsent(items, (S.prefs.layout || {}).items, hidden), hidden, seen } });
+  const saveLayout = (items) => { if (fixedLayout()) return; const l = S.prefs.layout || {}; writeLayout({ items, hidden: l.hidden || [], seen: l.seen || [] }); };
   function homeLayout() {
     const lay = Kit.layout(WID(S.m), savedLayout());
-    if (lay.added.length && !fixedLayout()) {
+    // a demo viewer has no sheet to credit, and an owner's first render is the bundled demo before the live read: neither spends `seen`
+    if (lay.added.length && !fixedLayout() && (S.mode === "live" || S.mode === "local")) {
       const was = S.prefs.layout || {}; const hidden = was.hidden || [], seen = (was.seen || []).concat(lay.added), added = lay.added;
-      savePrefs({ layout: { items: lay.items, hidden, seen } });
+      writeLayout({ items: lay.items, hidden, seen });
       const names = added.map((id) => Kit.widget(id).title);
-      toast(`New on Home: ${names.join(", ")}, because your sheet has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; savePrefs({ layout: { items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen } }); renderHome(); mountCanvas(); } });
+      toast(`New on Home: ${names.join(", ")}, because your sheet has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
     }
     return lay;
   }
@@ -405,8 +407,8 @@
     $$("[data-arrange]", v).forEach((b) => b.addEventListener("click", () => { S.arrange = !S.arrange; renderHome(); }));
     $$("[data-wreset]", v).forEach((b) => b.addEventListener("click", () => { const ws = WID(S.m); savePrefs({ layout: { items: Kit.layout(ws, null).items, hidden: [], seen: ws.filter((w) => !w.core).map((w) => w.id) } }); renderHome(); toast("Back to the default page"); }));
     $$("[data-wmove]", v).forEach((b) => b.addEventListener("click", () => { const [id, d] = b.dataset.wmove.split(":"); applyOrder(Kit.reorder(currentItems(), id, +d)); const n = $(`[data-wmove="${id}:${d}"]`); if (n && !n.disabled) n.focus(); }));
-    $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; savePrefs({ layout: { items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] } }); renderHome(); }));
-    $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); savePrefs({ layout: { items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] } }); renderHome(); }));
+    $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; writeLayout({ items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] }); renderHome(); }));
+    $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); writeLayout({ items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] }); renderHome(); }));
     // the phone reorders by a handle: drag it past a neighbour and the cells swap, keeping the reading order as the only state
     const c = $("#canvas"); if (!c || !c.classList.contains("phone") || !S.arrange) return;
     $$(".whandle", c).forEach((h) => h.addEventListener("pointerdown", (ev) => {
