@@ -21,6 +21,11 @@ Version 1.1, shipped. Verified live on 3 November 2026: live read and write thro
 connector, the onboarding's writes, Ask the Kitty, two month-end closes through the import pipeline, light and
 dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the end of this file.
 
+The separate [native iOS app](ios/README.md) is in development. It adds native views, reviewed CSV imports
+and durable write recovery while keeping Google Sheets as the financial record. Its import and optional
+AI services have hosting requirements; the no-server description above applies to the existing artifact.
+See the [iOS release handoff](ios/RELEASE.md) for verified results and the remaining live integration work.
+
 
 ## What is in here
 

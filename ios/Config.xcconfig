@@ -1,0 +1,6 @@
+// Public client identifiers belong in Config.local.xcconfig; no service secrets in this app.
+GOOGLE_CLIENT_ID =
+GOOGLE_REVERSED_CLIENT_ID = com.ethdawg.kitty.oauth
+KITTY_SERVICE_URL =
+DEVELOPMENT_TEAM =
+#include? "Config.local.xcconfig"

@@ -1,0 +1,9 @@
+build/
+build-device/
+DerivedData/
+Config.local.xcconfig
+*.xcuserstate
+xcuserdata/
+*.xcresult/
+evidence/screenshots-*/
+.DS_Store
