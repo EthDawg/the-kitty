@@ -1,0 +1,21 @@
+{
+  "schema": "kitty-template-capture-check/1",
+  "capturedAt": "2026-11-04 15:16:08 UTC",
+  "source": {
+    "spreadsheetId": "1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM",
+    "url": "https://docs.google.com/spreadsheets/d/1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM/edit",
+    "description": "Public fictional Davies workbook; read-only source capture. This is not a blank household template."
+  },
+  "checks": {
+    "sheetCount": 21,
+    "formulas": 1981,
+    "validations": 5735,
+    "numberFormats": 8170,
+    "omittedRawValues": 8466,
+    "errors": []
+  },
+  "limits": [
+    "Compared the repository manifest with the fetched cells; did not recalculate formulas or create a Google workbook.",
+    "The reads spanned multiple requests. No claim of an atomic workbook snapshot or complete visual clone."
+  ]
+}
