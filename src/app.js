@@ -364,12 +364,12 @@
   const saveLayout = (items) => { if (fixedLayout()) return; const l = S.prefs.layout || {}; writeLayout({ items, hidden: l.hidden || [], seen: l.seen || [] }); };
   function homeLayout() {
     const lay = Kit.layout(WID(S.m), savedLayout());
-    // a demo viewer has no sheet to credit, and an owner's first render is the bundled demo before the live read: neither spends `seen`
-    if (lay.added.length && !fixedLayout() && (S.mode === "live" || S.mode === "local")) {
+    // an owner's first render is the bundled demo: wait for the live read, so `seen` records this household's own widgets
+    if (S.settled && lay.added.length && !fixedLayout()) {
       const was = S.prefs.layout || {}; const hidden = was.hidden || [], seen = (was.seen || []).concat(lay.added), added = lay.added;
       writeLayout({ items: lay.items, hidden, seen });
       const names = added.map((id) => Kit.widget(id).title);
-      toast(`New on Home: ${names.join(", ")}, because your sheet has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
+      toast(`New on Home: ${names.join(", ")}, because this household has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
     }
     return lay;
   }
@@ -1372,6 +1372,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     if (window.__KIT_GALLERY__ && S.m) { switchTab("home", true); return; }
     if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); if (ok) ensureWorthKey(); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
+    S.settled = true; if (S.m) renderHome();
     if (S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);
     if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true);
     if (FLAGS.has("onb")) startOnboarding(true);
