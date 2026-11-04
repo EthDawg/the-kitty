@@ -176,13 +176,16 @@ struct ImportView: View {
           )
           .font(.caption).foregroundStyle(KittyTheme.secondary)
           HStack {
-            Button("Check column mapping") { mappingSource = source }.font(.caption)
+            Button { mappingSource = source } label: {
+              Text("Check column mapping").font(.caption)
+                .fixedSize(horizontal: false, vertical: true).frame(minHeight: 44)
+            }.buttonStyle(.borderless)
             Spacer()
             Button(role: .destructive) {
               store.editImport { $0.sources.removeAll { $0.id == source.id } }
             } label: {
-              Image(systemName: "xmark.circle")
-            }.accessibilityLabel("Remove \(source.name)")
+              Image(systemName: "xmark.circle").frame(width: 44, height: 44)
+            }.buttonStyle(.borderless).accessibilityLabel("Remove \(source.name)")
           }
         }
       }

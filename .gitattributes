@@ -1,4 +1,6 @@
 # Preserve the sample bank export bytes for import evidence.
 ios/Kitty/Resources/sample-import.csv -text whitespace=cr-at-eol
+# Keep the independently verified native Files export unchanged on checkout.
+ios/evidence/native-files-woolworths.csv -text whitespace=cr-at-eol
 # PDF source evidence must retain its byte offsets and original bytes.
 ios/Kitty/Resources/*.pdf binary

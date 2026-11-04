@@ -1,0 +1,37 @@
+{
+  "verifiedAtUTC": "2026-11-04T18:24:39.782268+00:00",
+  "import": {
+    "fixture": "The Davies (fictional)",
+    "sourceCount": 1,
+    "name": "fictional-bank.csv",
+    "originalBytes": 460,
+    "originalSHA256": "b8ad615fa6c8d066adbece80e2cd0a01a306c001a072996aa137720d296b402e",
+    "account": "ACC-EVD",
+    "confirmedMappingRetained": true,
+    "boundSheet": "demo",
+    "remoteReceipt": null,
+    "sourceResult": "files-import-se-03.xcresult"
+  },
+  "export": {
+    "rows": 38,
+    "columns": 14,
+    "bytes": 6086,
+    "sha256": "2b1e4633e4b3c78fd4cf6d71408260c45616af88c5fea154bcd909efa38cc841",
+    "allFieldsMatch": true,
+    "orderMatches": true,
+    "totalMinor": "-1240150",
+    "utf8BOM": true,
+    "crlfRecords": true,
+    "fixture": "The Davies (fictional)",
+    "search": "Woolworths",
+    "filter": "All",
+    "currency": "AUD",
+    "sourceResult": "files-native-regular-final.xcresult",
+    "savedInNativeFiles": true,
+    "retainedFile": "native-files-woolworths.csv"
+  },
+  "limits": [
+    "Fictional data on simulators only.",
+    "No Google OAuth, hosted write, real bank file or physical-phone acceptance."
+  ]
+}

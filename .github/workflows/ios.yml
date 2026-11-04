@@ -31,6 +31,8 @@ jobs:
               output.write("id=" + identifier + "\n")
           print("Selected " + device["name"])
           PY
+      - name: Prepare the fictional native Files fixture
+        run: python3 ios/scripts/prepare_files_fixture.py '${{ steps.simulator.outputs.id }}'
       - name: Run native tests and fictional household journeys
         run: |
           xcodebuild -project ios/Kitty.xcodeproj -scheme Kitty -configuration Debug \

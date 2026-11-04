@@ -14,6 +14,14 @@ open ios/Kitty.xcodeproj
 
 Choose **Explore the Davies demo** on first launch. `--demo` opens fictional data directly; `--uitest-reset` resets only demo preferences and review state, never live Sheet records.
 
+The native Files UI tests select a fictional bank export from the simulator's normal document provider. Before running the full UI suite, prepare the selected simulator:
+
+```sh
+python3 ios/scripts/prepare_files_fixture.py '<SIMULATOR_UUID>'
+```
+
+This boots that simulator and adds only `On My iPhone / Kitty QA / fictional-bank.csv`, preserving the bundled original bytes. It refuses to replace a different existing file. The test then uses the regular account chooser, Files picker, column mapping and saved review. CI prepares the same fixture. For a focused run, select `KittyUITests/FilePickerUITests` in Xcode or with `xcodebuild -only-testing:KittyUITests/FilePickerUITests test` and the same simulator destination. Export tests use unique filenames so repeated runs do not replace an earlier export.
+
 Real Google access requires an iOS OAuth client for `com.ethdawg.kitty`, its reversed-client URL scheme and `drive.file` permission. Set public client identifiers and the HTTPS service URL in ignored `Config.local.xcconfig`; never bundle provider secrets. Currently that local file contains Apple signing configuration only: the native Google client ID and service URL remain blank. See [Google access notes](IntegrationNotes/GOOGLE-ACCESS.md).
 
 ## Architecture
