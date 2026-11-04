@@ -55,10 +55,22 @@ These additions retain 59 new originals, bringing the inventory at that stage to
 
 ## Native Files selection and verified export
 
-Twelve additional originals bring the inventory to 167, with every hash checked. Seven regular-size captures come from the two passing journeys in `files-native-regular-final.xcresult`; five small-screen originals come from `files-import-se-03.xcresult` at accessibility extra-large text in dark appearance.
+Twelve additional originals brought the inventory to 167, with every hash checked. Seven regular-size captures come from the two passing journeys in `files-native-regular-final.xcresult`; five small-screen originals come from `files-import-se-03.xcresult` at accessibility extra-large text in dark appearance.
 
 - [Fictional original in Files](screenshots/files-se-42-native-bank-csv-file-picker.png), [column mapping](screenshots/files-regular-43-native-csv-column-mapping.png) and [repeat-file detection](screenshots/files-se-44-native-csv-repeat-file-detected.png) exercise the normal document picker and source review.
 - [Five-row review](screenshots/files-se-45-native-file-import-review.png) and [Save held after relaunch](screenshots/files-se-46-native-file-review-after-relaunch.png) show the retained local review. The journey and independent draft readback verify the original and confirmed mapping; a screenshot alone does not.
 - [Native save destination](screenshots/files-regular-47-native-csv-save-destination.png) and [saved result](screenshots/files-regular-48-native-csv-saved-result.png) now have a matching [destination CSV and byte verification](NATIVE-FILES.md). The earlier cancellation captures remain valid evidence of that separate path.
 
 The small-screen mapping capture shows its introductory viewport; the journey scrolls through the remaining form before confirming. Every capture remains fictional simulator evidence, with no live Google write or physical-phone acceptance.
+
+## Home shortcut destinations
+
+Seven more untouched originals bring the current inventory to 174. The [historical defect capture](screenshots/navigation-before-49-home-review-opens-old-transaction.png) shows T0919 after Home's category-review prompt was tapped. It was captured directly from the simulator after the diagnostic logged `HOME_REVIEW_DESTINATION=Transaction`. That diagnostic then failed while inspecting a missing search field; it is not counted as passing acceptance.
+
+The final journey passes in `home-activity-route-regular-final.xcresult` and `home-activity-route-se-01.xcresult`. It first confirms that ordinary tab switching retains the Woolworths search, then checks both Home shortcuts after transaction drill-through.
+
+- [Requested category review](screenshots/navigation-regular-50-home-opens-category-review.png) shows the three uncategorised transactions with the old search cleared.
+- [Exact review count at large text](screenshots/navigation-se-51-home-review-has-three-records.png) confirms three records and the requested filter.
+- [View all activity](screenshots/navigation-se-52-home-all-activity-includes-every-record.png) restores all 925 fictional records after another detail view.
+
+The small-screen Activity capture preserves the selected filter and the beginning of its first record; its amount is below the floating tab bar and requires scrolling. The separate export-review capture shows the full count. These are navigation checks with fictional data, not categorisation writes or full accessibility acceptance.

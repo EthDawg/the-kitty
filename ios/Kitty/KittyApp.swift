@@ -16,9 +16,10 @@ struct RootView: View {
       } else {
         TabView(selection: $store.selectedTab) {
           NavigationStack { HomeView() }.tabItem { Label("Home", systemImage: "house") }.tag(0)
-          NavigationStack { ActivityView() }.tabItem {
-            Label("Activity", systemImage: "list.bullet.rectangle")
-          }.tag(1)
+          NavigationStack { ActivityView(scope: store.activityRoute.scope) }
+            .id(store.activityRoute.id).tabItem {
+              Label("Activity", systemImage: "list.bullet.rectangle")
+            }.tag(1)
           NavigationStack { InsightsView() }.tabItem {
             Label("Insights", systemImage: "chart.bar.xaxis")
           }.tag(2)

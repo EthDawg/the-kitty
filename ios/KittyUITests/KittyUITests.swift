@@ -58,6 +58,47 @@ final class KittyUITests: XCTestCase {
     capture("02-cash-account-evidence")
   }
 
+  func testHomeActivityShortcutsResetOnlyExplicitDestinations() {
+    openTab("Activity")
+    let search = app.searchFields.firstMatch
+    XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Woolworths")
+    if app.keyboards.buttons["Search"].exists { app.keyboards.buttons["Search"].tap() }
+    openTab("Home"); openTab("Activity")
+    XCTAssertEqual(search.value as? String, "Woolworths", "Ordinary tab navigation preserves the current search.")
+    let row = app.descendants(matching: .any)["transactionRow.T0919"].firstMatch
+    XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+    openTab("Home")
+    let review = app.buttons["home.reviewCategories"]
+    revealPrecisely(review); XCTAssertTrue(review.isHittable); review.tap()
+    XCTAssertTrue(app.navigationBars["Activity"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.navigationBars["Transaction"].exists, "The shortcut must leave the old transaction detail.")
+    let filter = app.buttons["activityFilter"]
+    revealPrecisely(filter)
+    XCTAssertTrue((filter.label + " " + (filter.value as? String ?? "")).contains("Needs a category"))
+    XCTAssertTrue(search.exists); XCTAssertNotEqual(search.value as? String, "Woolworths")
+    let uncategorised = app.descendants(matching: .any)["transactionRow.T0761"].firstMatch
+    revealPrecisely(uncategorised); XCTAssertTrue(uncategorised.exists)
+    XCTAssertFalse(row.exists, "A previously searched categorised transaction is outside this review.")
+    capture("50-home-opens-category-review")
+    app.buttons["activityExportButton"].tap()
+    let count = app.staticTexts["activityExportCount"]
+    XCTAssertTrue(count.waitForExistence(timeout: 5)); XCTAssertEqual(count.label, "3 transactions")
+    capture("51-home-review-has-three-records")
+    app.buttons["Done"].tap()
+    revealPrecisely(uncategorised); uncategorised.tap()
+    openTab("Home")
+    let all = app.buttons["home.allActivity"]
+    revealPrecisely(all); XCTAssertTrue(all.isHittable); all.tap()
+    XCTAssertTrue(app.navigationBars["Activity"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.navigationBars["Transaction"].exists)
+    revealPrecisely(filter)
+    XCTAssertTrue((filter.label + " " + (filter.value as? String ?? "")).contains("All"))
+    XCTAssertTrue(search.exists); XCTAssertNotEqual(search.value as? String, "Woolworths")
+    app.buttons["activityExportButton"].tap()
+    XCTAssertTrue(count.waitForExistence(timeout: 5)); XCTAssertEqual(count.label, "925 transactions")
+    capture("52-home-all-activity-includes-every-record")
+  }
+
   func testActivitySearchReachesOriginalTransactionEvidence() {
     openTab("Activity")
     let search = app.searchFields.firstMatch

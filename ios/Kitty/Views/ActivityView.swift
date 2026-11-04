@@ -8,6 +8,9 @@ struct ActivityView: View {
   @State private var filter = "All"
   @State private var exportReview: ActivityExportReview?
   @State private var exportError: String?
+  init(scope: ActivityRoute.Scope = .all) {
+    _filter = State(initialValue: scope == .uncategorised ? "Needs a category" : "All")
+  }
   var transactions: [KittyTransaction] {
     (store.household?.transactions ?? []).filter { tx in
       (filter == "All" || (filter == "Needs a category" ? tx.cat == "UNCAT" : tx.flow == filter))
@@ -25,7 +28,7 @@ struct ActivityView: View {
           Text("Spending").tag("Expense")
           Text("Income").tag("Income")
           Text("Needs a category").tag("Needs a category")
-        }.pickerStyle(.menu)
+        }.pickerStyle(.menu).accessibilityIdentifier("activityFilter")
         if !query.isEmpty {
           // Active native search hides trailing navigation items. Keep export
           // beside the filtered results so the current query remains intact.

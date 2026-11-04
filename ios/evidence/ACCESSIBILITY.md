@@ -37,3 +37,20 @@ Several contrast reports identify text beneath the floating tab bar or beyond th
 Inspected originals show the complete [large-text Ask heading](screenshots/accessibility-se-ask.png), [wrapped practice badge](screenshots/accessibility-se-import.png), and [selected account and CSV action](screenshots/accessibility-se-25-import-account-selected.png). The screenshots preserve the viewport; content below it requires scrolling. The [inventory](screenshots/inventory.json) includes their hashes, workflow, result and evidence limits.
 
 Before accessibility acceptance, check VoiceOver focus order and spoken financial values, chart navigation and exact figures, original-document review, all supported large text sizes, and live Sheet links on a physical phone. No result here establishes live Google access, hosted writes, AI-provider delivery or store approval.
+
+## Source-color triage and navigation follow-up
+
+The source palette was checked using the W3C [sRGB luminance and contrast formula](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html). These six configured text/background pairs all exceed 4.5:1 before opacity, antialiasing and native overlays:
+
+| Foreground / background | Light | Dark |
+|---|---:|---:|
+| ink / background | 13.29:1 | 15.59:1 |
+| secondary / background | 4.81:1 | 8.68:1 |
+| secondary / surface | 5.25:1 | 7.48:1 |
+| accent / soft | 7.53:1 | 6.51:1 |
+| warning / background | 5.97:1 | 11.34:1 |
+| positive / surface | 7.11:1 | 9.24:1 |
+
+This calculation is limited to [the declared theme values](../Kitty/Views/Theme.swift); it does not close rendered contrast findings, native-control or chart findings, or VoiceOver acceptance. It supports examining the specific viewport and overlays before changing these palette values.
+
+The same review found a concrete navigation defect: Home's category prompt could reopen an old transaction detail. The repair now reaches the requested filtered list and preserves search during ordinary tab switching. Its complete journey passes at both simulator sizes, with [retained before-and-after evidence](SCREENSHOTS.md#home-shortcut-destinations). The earlier platform audit counts above remain historical; they were not rerun or relabelled as passes for this navigation repair.

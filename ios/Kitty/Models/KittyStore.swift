@@ -1,6 +1,12 @@
 import CryptoKit
 import SwiftUI
 
+struct ActivityRoute {
+  enum Scope { case all, uncategorised }
+  let id = UUID()
+  let scope: Scope
+}
+
 @MainActor final class KittyStore: ObservableObject {
   enum Mode: String { case welcome, demo, connected }
   @Published var mode: Mode = .welcome
@@ -11,6 +17,7 @@ import SwiftUI
   @Published var notice: String?
   @Published var feedbackPresenters: [UUID] = []
   @Published var selectedTab = 0
+  @Published var activityRoute = ActivityRoute(scope: .all)
   @Published var askQuestion = ""
   @Published var askTransactionID: String?
   @Published var showSettings = false
@@ -70,6 +77,12 @@ import SwiftUI
   var googleEpoch = UUID()
   var currency: String { household?.currency ?? "AUD" }
   var isDemo: Bool { mode == .demo }
+  func openActivity(_ scope: ActivityRoute.Scope = .all) {
+    // An explicit Home shortcut starts its requested view. Ordinary tab changes
+    // keep the existing Activity navigation, filter and search untouched.
+    activityRoute = ActivityRoute(scope: scope)
+    selectedTab = 1
+  }
   var newSheetWritesNeedRecovery: Bool { !isDemo && (inputEditsBlockNewWrites || goalWritesBlocked) }
   var importPublicationNotice: String? {
     guard !isDemo, household?.publicFeedEnabled == true else { return nil }
@@ -159,6 +172,7 @@ import SwiftUI
       snapshotData = data
       mode = .demo
       selectedSheetID = ""
+      activityRoute = ActivityRoute(scope: .all)
       sheetCanEdit = false
       selectedSheetName = "The Davies"
       lastSynced = nil
@@ -269,6 +283,7 @@ import SwiftUI
       }
     }
     selectedSheetID = ""
+    activityRoute = ActivityRoute(scope: .all)
     sheetCanEdit = false
     selectedSheetName = ""
     household = nil
@@ -317,6 +332,7 @@ import SwiftUI
       let destination = storage.appendingPathComponent("sheet-\(file.id).json")
       try persist(data, at: destination)
       selectedSheetID = file.id
+      activityRoute = ActivityRoute(scope: .all)
       selectedSheetName = file.name
       sheetCanEdit = canEdit
       snapshotData = data

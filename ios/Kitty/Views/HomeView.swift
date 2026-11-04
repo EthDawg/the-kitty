@@ -93,7 +93,7 @@ struct HomeView: View {
             let count = h.transactions.filter { $0.cat == "UNCAT" }.count
             if count > 0 {
               Button {
-                store.selectedTab = 1
+                store.openActivity(.uncategorised)
               } label: {
                 HStack {
                   Image(systemName: "tag").font(.title3)
@@ -105,7 +105,7 @@ struct HomeView: View {
                   Spacer()
                   Image(systemName: "chevron.right").font(.caption)
                 }
-              }
+              }.accessibilityIdentifier("home.reviewCategories")
             } else {
               Text("No uncategorised transactions in this view.").foregroundStyle(
                 KittyTheme.secondary)
@@ -132,8 +132,9 @@ struct HomeView: View {
                 if tx.id != h.transactions.prefix(4).last?.id { Divider() }
               }
               if !h.transactions.isEmpty {
-                Button("View all activity") { store.selectedTab = 1 }.font(.subheadline.bold()).frame(
+                Button("View all activity") { store.openActivity() }.font(.subheadline.bold()).frame(
                   minHeight: 44)
+                  .accessibilityIdentifier("home.allActivity")
               }
             }
           }
