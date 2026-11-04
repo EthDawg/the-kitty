@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0, phase A: the ledger — 4 November 2026 (unreleased, branch `v2-ledger`)
+- A copy of the demo sheet, "Digital Davies v2" (`kitty.config.json`, `v2_sheet`), migrated to the ledger model. The published 1.1 page and the sheet it reads are untouched; the artifact was not republished.
+- New tabs: Accounts extended to every store of value (the six cash accounts, the home, the Geelong townhouse, both loans, two supers, the ETFs, the car) with class, valuation method, currency, status, purpose and linked account; Entries (925 transactions with Up's vocabulary, 152 valuations from appraisals and statements, one trade); Balances (every account at every month end, by formula: anchor plus entries, or the last valuation carried forward); Contracts (17 subscriptions and policies, the two loan terms, the lease); Decisions (keep or cancel per contract, a planned refresh); Rules (85 descriptor patterns from history).
+- Transactions, Valuations, Assets and Subscriptions became formula views over the ledger, so every 1.1 formula and the 1.1 page shape keep working. Net Worth derives from Balances and reproduces the 1.1 figures to the dollar. Every existing ID is stable; no row was lost.
+- All 152 transfer rows paired by `transfer_id` (76 same-day pairs, no orphans). Two new Compliance Checks: "Transfers without a mate" and "Balance change explained (latest month)", both OK on the Davies data.
+- Beta fixtures, marked beta and off on the page: a crypto wallet, an SMSF, a laptop with a planned refresh date, an RSU vest (a trade plus a market valuation).
+- Engine: the model builds accounts, entries, balances, contracts, decisions and rules from a v2 snapshot or a connector read, and a 1.1 snapshot still builds; `balanceAt`, `signals`, `transfers`, `invariants`; the trust drawer reconciles every account against the Balances tab and reports each, then the ledger's invariants.
+- Tests: `test-v2.js` (14 tests) over the live v2 snapshot and the fixtures `everyday-only` and `everyday+property`; the 13 existing tests still pass; the importer appends nothing on a repeated month against either snapshot. `build.py --v2`, `snapshot.py --v2`, the Apps Script serves the new tabs, `tools/grid_to_snapshot.py` builds the v2 snapshot from connector reads.
+- Not done, by design or by limit: the copy's Apps Script feed is not deployed (one click in the sheet, see `snapshot.py`); the loans are statement-valued rather than ledger-built, because the home-loan repayment stays an expense in Cash Flow and splitting principal from interest would change the spend figures the oracle pins; Google Sheets does not broadcast array criteria through SUMIFS, COUNTIFS or MAXIFS, so Balances, the Subscriptions view and the Contracts next date use MAP and LAMBDA.
+
 ## 1.1 — 3 November 2026
 - Theme switch (match device, light, dark) in Setup and in the tour; remembered with the other preferences.
 - Large sheets: Transactions is read in chunks of 2,500 rows past the first 2,500, three at a time.

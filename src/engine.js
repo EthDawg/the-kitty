@@ -88,7 +88,8 @@
 
   // ---------- connector grids → the snapshot shape ----------
   // Each tab's table starts at the first row whose first cell is the known header word.
-  const HEAD = { metrics: "Metric ID", compliance: "Check", networth: "Month end", savings: "Opportunity", budget: "Category", settings: "Setting", kitty: "Key", accounts: "Account ID", category_list: "Category ID", goals: "Goal", subscriptions: "Service", loans: "Loan ID", assets: "Item ID", transactions: "Txn ID", payslips: "Pay date" };
+  const HEAD = { metrics: "Metric ID", compliance: "Check", networth: "Month end", savings: "Opportunity", budget: "Category", settings: "Setting", kitty: "Key", accounts: "Account ID", category_list: "Category ID", goals: "Goal", subscriptions: "Service", loans: "Loan ID", assets: "Item ID", transactions: "Txn ID", payslips: "Pay date",
+    entries: "Entry ID", balances: "Month end", contracts: "Contract ID", decisions: "Decision ID", rules: "Rule ID" };
   const blank = (r) => !r || r.every((v) => v == null || v === "");
   function gridTable(grid, head, opts = {}) {
     if (!Array.isArray(grid)) return [];
@@ -145,12 +146,34 @@
     E.currency = kitty.currency || "AUD"; E.locale = { AU: "en-AU", NZ: "en-NZ", GB: "en-GB", US: "en-US", CA: "en-CA", SG: "en-SG", IE: "en-IE", EU: "de-DE" }[kitty.country] || "en-AU";
     const cats = (snap.category_list || []).map((c) => ({ id: c.category_id, name: c.category, group: c.group, flow: c.flow || "Expense", budget: E.num(c.monthly_budget), essential: c.essential === "Yes", tax: c.tax_treatment || "", ato: c.ato_label || "" }));
     const catById = Object.fromEntries(cats.map((c) => [c.id, c]));
-    const accounts = (snap.accounts || []).map((a) => ({ id: a.account_id, name: a.account, bank: a.institution, type: a.type, owner: a.owner, opening: E.num(a.opening_balance), balance: E.num(a.balance_at_as_of_date), liquid: a.liquid === "Yes" }));
+    // Accounts: every store of value. 1.1 sheets carry A–I (cash accounts only); sheet_version 2 adds class, valuation method,
+    // currency, status (active | beta | closed), purpose and a linked account, and lists property, loans, super, shares and things too.
+    const accounts = (snap.accounts || []).map((a) => ({ id: a.account_id, name: a.account, bank: a.institution || "", type: a.type, owner: a.owner, opening: E.num(a.opening_balance), openingDate: E.date(a.opening_date), balance: E.num(a.balance_at_as_of_date), liquid: a.liquid === "Yes",
+      cls: a.class || "Cash", method: String(a.valuation_method || "ledger").toLowerCase(), currency: a.currency || kitty.currency || "AUD", status: String(a.status || "active").toLowerCase(), purpose: a.purpose || "", linked: a.linked_account || "", note: a.note || "", entries: [] })).filter((a) => a.id);
     const acctById = Object.fromEntries(accounts.map((a) => [a.id, a]));
-    const tx = (snap.transactions || []).map((t) => {
+    const txRows = (snap.transactions && snap.transactions.length) ? snap.transactions
+      : (snap.entries || []).filter((e) => String(e.kind || "transaction").toLowerCase() === "transaction").map((e) => ({ txn_id: e.entry_id, date: e.settled_at || e.date, account_id: e.account_id, bank_description: e.raw_text, merchant: e.description, amount: e.amount, category_id: e.category_id, person: e.person, receipt_held: e.receipt_held, note: e.note }));
+    const tx = txRows.map((t) => {
       const c = catById[t.category_id] || { name: "Uncategorised", group: "Uncategorised", flow: "Expense" };
-      return { id: t.txn_id, date: E.date(t.date), acct: t.account_id, desc: t.bank_description || "", merchant: t.merchant || t.bank_description || "", amount: E.num(t.amount) || 0, cat: t.category_id || "UNCAT", catName: c.name, group: c.group, flow: c.flow, person: t.person || "Joint", receipt: t.receipt_held || "", note: t.note || "" };
+      return { id: t.txn_id, date: E.date(t.date), acct: t.account_id, desc: t.bank_description || "", merchant: t.merchant || t.bank_description || "", amount: E.num(t.amount) || 0, cat: t.category_id || "UNCAT", catName: c.name, group: c.group, flow: c.flow, person: t.person || "Joint", receipt: t.receipt_held || "", note: t.note || "", transferId: "" };
     }).filter((t) => t.date).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.id < b.id ? 1 : -1));
+    const txById = Object.fromEntries(tx.map((t) => [t.id, t]));
+    // Entries: the ledger. A transaction (money moved), a trade (units at a price) or a valuation (a value observed on a date).
+    // Up's vocabulary where it fits: raw_text, description, status, created_at, settled_at, transfer_account, foreign_amount.
+    // A 1.1 sheet has no Entries tab, so its transactions stand in as entries of kind transaction.
+    const entries = (snap.entries && snap.entries.length ? snap.entries.map((e) => ({ id: e.entry_id, kind: String(e.kind || "transaction").toLowerCase(), date: E.date(e.settled_at || e.date), acct: e.account_id, raw: e.raw_text || "", desc: e.description || e.raw_text || "", amount: E.num(e.amount) || 0, cat: e.category_id || "", person: e.person || "", receipt: e.receipt_held || "", note: e.note || "", status: String(e.status || "settled").toLowerCase(), created: E.date(e.created_at) || E.date(e.settled_at || e.date), transferId: e.transfer_id || "", transferAcct: e.transfer_account || "", foreign: E.num(e.foreign_amount), foreignCcy: e.foreign_currency || "", units: E.num(e.units), price: E.num(e.unit_price), source: e.source || "" }))
+      : tx.map((t) => ({ id: t.id, kind: "transaction", date: t.date, acct: t.acct, raw: t.desc, desc: t.merchant, amount: t.amount, cat: t.cat, person: t.person, receipt: t.receipt, note: t.note, status: "settled", created: t.date, transferId: "", transferAcct: "", foreign: null, foreignCcy: "", units: null, price: null, source: "" })))
+      .filter((e) => e.id && e.date).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1));
+    for (const e of entries) {
+      e.flow = e.kind === "transaction" ? ((catById[e.cat] || {}).flow || "Expense") : e.kind;
+      if (acctById[e.acct]) acctById[e.acct].entries.push(e);
+      if (e.transferId && txById[e.id]) txById[e.id].transferId = e.transferId;
+    }
+    const balances = (snap.balances || []).map((b) => ({ month: E.date(b.month_end), acct: b.account_id, balance: E.num(b.balance), cls: b.class || "", method: String(b.method || "").toLowerCase(), status: String(b.status || "active").toLowerCase() })).filter((b) => b.month && b.acct);
+    const contracts = (snap.contracts || []).map((c) => ({ id: c.contract_id, kind: String(c.kind || "").toLowerCase(), name: c.name, provider: c.provider || "", owner: c.owner || "", acct: c.account_id || "", cat: c.category_id || "", cadence: c.cadence || "Monthly", amount: E.num(c.amount), rate: E.pct(c.rate), start: E.date(c.start_date), end: E.date(c.end_date), next: E.date(c.next_date), lastUsed: E.date(c.last_used), lastUsedRaw: c.last_used, cover: c.cover || "", status: String(c.status || "active").toLowerCase(), note: c.note || "" })).filter((c) => c.id);
+    const decisions = (snap.decisions || []).map((d) => ({ id: d.decision_id, refKind: d.ref_kind || "", ref: d.ref_id || "", decision: d.decision || "", value: /refresh|date|until|by/.test(String(d.decision)) && E.date(d.value) ? E.date(d.value) : d.value == null ? "" : String(d.value), by: d.by || "", at: E.date(d.at), note: d.note || "" })).filter((d) => d.id);
+    const rules = (snap.rules || []).map((r) => ({ id: r.rule_id, pattern: r.pattern || "", match: r.match || "normalised", merchant: r.merchant || "", cat: r.category_id || "", person: r.person || "", tax: r.tax_label || "", property: r.property || "", source: r.source || "", note: r.note || "" })).filter((r) => r.id && r.pattern);
+    const sheetVersion = E.num(kitty.sheet_version) || 1;
     const asOf = E.date(settings["As-of date"]) || (tx[0] && tx[0].date) || iso(new Date());
     const goals = (snap.goals || []).map((g, i) => ({ row: i + 2, name: g.goal, target: E.num(g.target_amount), date: E.date(g.target_date), acct: g.linked_account, balance: E.num(g.balance_now), progress: E.pct(g.progress), monthsLeft: E.num(g.months_left), needPm: E.num(g.needed_per_month), savedPm: E.num(g.saved_per_month_last_3_months), status: g.status || "" })).filter((g) => g.name);
     const subs = (snap.subscriptions || []).map((s) => ({ service: s.service, merchant: s.merchant, owner: s.owner, cadence: s.cadence || "Monthly", cat: s.category_id, lastUsed: E.date(s.last_used), lastUsedRaw: s.last_used, decision: s.decision || "", lastCharged: E.date(s.last_charged), latest: E.num(s.latest_charge), lowest: E.num(s.lowest_charge_in_look_back), perYear: E.num(s.charges_per_year), annual: E.num(s.annual_cost), riseEach: E.num(s.price_rise_per_charge), riseYear: E.num(s.annual_cost_of_price_rise), daysSince: E.num(s.days_since_used), flag: s.usage_flag || "" })).filter((s) => s.service);
@@ -174,7 +197,7 @@
     const people = (kitty.people || "").split(",").map((s) => s.trim()).filter(Boolean);
     if (!people.length) for (const p of payslips) if (!people.includes(p.person)) people.push(p.person);
     const householdName = kitty.household_name || (settings.Household ? String(settings.Household).replace(/\s*\(.*\)\s*$/, "") : "This household");
-    return { asOf, settings, kitty, householdName, people, cats, catById, accounts, acctById, tx, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, fetchedAt: snap.fetchedAt || null };
+    return { asOf, settings, kitty, sheetVersion, householdName, people, cats, catById, accounts, acctById, tx, entries, balances, contracts, decisions, rules, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, fetchedAt: snap.fetchedAt || null };
   };
 
   // ---------- windows and spending ----------
@@ -365,6 +388,66 @@
   };
   E.csv = (rows, cols) => { const q = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }; return [cols.map((c) => q(c.label || c.key)).join(",")].concat(rows.map((r) => cols.map((c) => q(typeof c.get === "function" ? c.get(r) : r[c.key])).join(","))).join("\n"); };
 
+  // ---------- the ledger: balance at a date, signals, the transfer invariant ----------
+  // Balance of an account on a date: the opening anchor plus every transaction up to the date for a ledger account;
+  // the last valuation on or before the date, carried forward, for everything else (statement, appraisal, market, estimate).
+  // Before the opening date the account did not exist; before its first valuation it is worth its anchor.
+  E.balanceAt = (a, date) => {
+    if (!a) return null; const d = E.date(date); if (!d) return null;
+    if (a.openingDate && d < a.openingDate) return 0;
+    const es = a.entries || [];
+    if (a.method === "ledger") { let s = a.opening || 0; for (const e of es) if (e.kind === "transaction" && e.date <= d) s += e.amount; return s; }
+    let last = null; for (const e of es) if (e.kind === "valuation" && e.date <= d && (!last || e.date >= last.date)) last = e;
+    return last ? last.amount : a.opening != null ? a.opening : null;
+  };
+  // Signals derive from the model and nothing else; beta rows do not turn them on. A widget appears only when its signal is true.
+  E.signals = (m) => {
+    const act = m.accounts.filter((a) => a.status === "active"); const t = (a) => String(a.type || "").toLowerCase(); const has = (f) => act.some(f);
+    return {
+      has_property: has((a) => t(a) === "property"),
+      has_investment_property: has((a) => t(a) === "property" && /invest|rental/i.test(a.purpose)),
+      has_shares: has((a) => t(a) === "shares"),
+      has_crypto: has((a) => t(a) === "crypto"),
+      has_super: has((a) => t(a) === "super" || t(a) === "smsf"),
+      has_smsf: has((a) => t(a) === "smsf"),
+      has_contracts: m.contracts.some((c) => c.status === "active"),
+      has_things: has((a) => t(a) === "vehicle" || t(a) === "device"),
+    };
+  };
+  // A transfer is one event on two accounts, paired by transfer_id: a mate of the opposite amount, on another account, within four days.
+  E.transfers = (m) => {
+    const xs = m.entries.filter((e) => e.kind === "transaction" && (e.flow === "Transfer" || e.transferId));
+    const groups = new Map(); for (const e of xs) if (e.transferId) { if (!groups.has(e.transferId)) groups.set(e.transferId, []); groups.get(e.transferId).push(e); }
+    const orphans = xs.filter((e) => !e.transferId), pairs = [], bad = [];
+    for (const [id, g] of groups) { const ok = g.length === 2 && Math.abs(g[0].amount + g[1].amount) < 0.005 && g[0].acct !== g[1].acct && Math.abs(E.daysBetween(g[0].date, g[1].date)) <= 4; (ok ? pairs : bad).push({ id, entries: g }); }
+    return { count: xs.length, pairs, orphans, bad };
+  };
+  // Month ends covered by the ledger: the opening month through the as-of month.
+  E.monthEnds = (m) => { const first = m.accounts.map((a) => a.openingDate).filter(Boolean).sort()[0] || (m.entries[0] && m.entries[0].date) || m.asOf; const out = []; let d = E.monthEnd(first); while (d <= E.monthEnd(m.asOf)) { out.push(d); d = E.monthEnd(E.addMonths(d, 1)); } return out; };
+  // The invariants a ledger must keep. Each is also a Compliance Check row in the sheet, so a break shows in two places.
+  E.invariants = (m) => {
+    const out = []; const tr = E.transfers(m);
+    out.push({ what: "Every transfer has a mate of the opposite amount, on another account, within four days", a: tr.orphans.length + tr.bad.length, b: 0, ok: tr.orphans.length + tr.bad.length === 0, count: true, detail: tr.orphans.slice(0, 5).map((e) => e.id).concat(tr.bad.slice(0, 5).map((p) => p.id)) });
+    const leaked = tr.pairs.reduce((n, p) => n + p.entries.filter((e) => e.flow !== "Transfer").length, 0);
+    out.push({ what: "Paired transfers are left out of spending", a: leaked, b: 0, ok: leaked === 0, count: true });
+    // each month: the change across every active balance equals income less spending plus valuation changes
+    const act = m.accounts.filter((a) => a.status === "active"); const ends = E.monthEnds(m); let worst = 0, worstMonth = null;
+    for (let i = 1; i < ends.length; i++) {
+      const p = ends[i - 1], d = ends[i]; const w = E.window("month", d);
+      let dAll = 0, dVal = 0; for (const a of act) { const x = (E.balanceAt(a, d) || 0) - (E.balanceAt(a, p) || 0); dAll += x; if (a.method !== "ledger") dVal += x; }
+      const s = E.spend(m.tx, w); const res = dAll - (s.in - s.out) - dVal;
+      if (Math.abs(res) > Math.abs(worst)) { worst = res; worstMonth = d; }
+    }
+    out.push({ what: `Each month's change in total balances equals income less spending plus valuation changes${worstMonth ? ` (largest gap ${E.fmtMonth(worstMonth, true)})` : ""}`, a: worst, b: 0, ok: Math.abs(worst) < 0.05 });
+    // the Net Worth tab is derived from Balances: its class columns must equal the active balances by class
+    if (m.balances.length && m.networth.length) {
+      let gap = 0; const cols = { cash: "Cash", property: "Property", super: "Super", shares: "Shares", vehicle: "Vehicle", loans: "Loans" };
+      for (const n of m.networth) for (const [k, cls] of Object.entries(cols)) { const s = m.balances.filter((b) => b.month === n.month && b.status === "active" && b.cls === cls).reduce((t, b) => t + (b.balance || 0), 0); gap = Math.max(gap, Math.abs(s - (n[k] || 0))); }
+      out.push({ what: "Net worth by class equals the Balances tab", a: gap, b: 0, ok: gap < 1 });
+    }
+    return out;
+  };
+
   // ---------- consistency checks the page shows in its trust drawer ----------
   E.reconcile = (m) => {
     const out = [];
@@ -374,6 +457,13 @@
     if (last) { const s = E.spend(m.tx, E.window("month", last.month)); out.push({ what: `Transactions add up to the Cash Flow tab for ${E.fmtMonth(last.month)}`, a: s.out, b: last.spending, ok: Math.abs(s.out - last.spending) < 1 }); }
     const ids = new Set(); let dupIds = 0; for (const t of m.tx) { if (ids.has(t.id)) dupIds++; ids.add(t.id); } out.push({ what: "Every transaction ID is used once", a: dupIds, b: 0, ok: dupIds === 0, count: true });
     const unknown = m.tx.filter((t) => !m.catById[t.cat]).length; out.push({ what: "Every category ID exists on the Categories tab", a: unknown, b: 0, ok: unknown === 0, count: true });
+    // every account: the balance derived here against the sheet's own (the Balances tab at the as-of month end, else the Accounts tab)
+    const eom = E.monthEnd(m.asOf);
+    for (const a of m.accounts) {
+      const mine = E.balanceAt(a, m.asOf); const row = m.balances.find((b) => b.acct === a.id && b.month === eom); const sheet = row ? row.balance : a.balance;
+      out.push({ what: `${a.name}${a.status !== "active" ? ` (${a.status})` : ""}: ${a.method === "ledger" ? "opening balance plus every entry" : `last ${a.method} valuation`} agrees with the ${row ? "Balances" : "Accounts"} tab`, a: mine, b: sheet, ok: mine != null && sheet != null && Math.abs(mine - sheet) < 0.01, account: a.id });
+    }
+    if (m.sheetVersion >= 2) for (const inv of E.invariants(m)) out.push(inv);
     return out;
   };
 

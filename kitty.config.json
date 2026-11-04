@@ -1,0 +1,9 @@
+{
+  "demo_sheet": "1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM",
+  "demo_feed_url": "https://script.google.com/macros/s/AKfycbxxNxJcjdBFLZIKoqrfn3DTpzX5mVdWtQclJ2Wzsp9xsRTrOFWhEHQBExHoRU2XxTN7Sw/exec?format=json",
+  "page_url": "https://claude.ai/artifact/QH2gsDP8sHZmgMVKBtkwxn",
+  "v2_sheet": "16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA",
+  "v2_sheet_name": "Digital Davies v2",
+  "v2_feed_url": null,
+  "notes": "demo_sheet is what the published 1.1 page reads; it is never migrated in place. v2_sheet is the copy phase A migrated to the ledger model (Accounts, Entries, Balances, Contracts, Decisions, Rules); the page cuts over to it in phase C. v2_feed_url stays null until the copy's bound Apps Script is deployed as a web app (Extensions > Apps Script > Deploy); until then data/snapshot-v2.json is refreshed from connector reads with tools/grid_to_snapshot.py."
+}

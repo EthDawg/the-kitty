@@ -6,7 +6,7 @@
   "use strict";
   const E = window.Engine, SOURCES = window.KITTY_SOURCES || { countries: [] }, SNAP = window.KITTY_SNAPSHOT || null;
   const GS = "Google Sheets";
-  const DEMO_SHEET = "1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM";
+  const DEMO_SHEET = window.KITTY_SHEET || "1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM";   // the sheet the bundled snapshot came from; `build.py --v2` points it at the v2 sheet
   const PAGE_URL = window.KITTY_PAGE_URL || "";
   const VERSION = "1.1"; const REPO = "https://github.com/EthDawg/the-kitty";
   const $ = (s, r = document) => r.querySelector(s);
@@ -35,6 +35,7 @@
   const FLAGS = new URLSearchParams((location.search || "") + "&" + (location.hash || "").replace(/^#/, ""));
   if (FLAGS.has("noanim")) document.documentElement.setAttribute("data-noanim", "");
   if (FLAGS.get("theme")) S.prefs.theme = FLAGS.get("theme");   // local checks only: ?theme=dark
+  const LOCAL_HOST = location.protocol === "file:" || location.hostname === "127.0.0.1" || location.hostname === "localhost";   // ?open=trust opens the trust drawer on load, for screenshots of a local build
   // entrance animations only while the page is visible: a hidden tab pauses CSS animations at their first frame
   const setAnim = () => document.documentElement.classList.toggle("anim", document.visibilityState === "visible" && !FLAGS.has("noanim") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   setAnim(); document.addEventListener("visibilitychange", setAnim);
@@ -112,17 +113,19 @@
     settings: "Settings!A1:C", accounts: "Accounts!A1:I", category_list: "Categories!A1:H", goals: "Goals!A1:J", subscriptions: "Subscriptions!A1:Q", loans: "Loans!A1:K", assets: "Assets!A1:D",
     metrics: "Metrics!A1:H", compliance: "'Compliance Checks'!A1:G", networth: "'Net Worth'!A1:I", cashflow: "'Cash Flow'!A1:T", budget: "Budget!A1:I", savings: "'Savings Finder'!A1:G",
     mortgage: "'Mortgage Scenarios'!A1:H", tax: "'Tax Forecast'!A1:F", transactions: "Transactions!A1:J", payslips: "Payslips!A1:G", kitty: "Kitty!A1:C",
+    // sheet_version 2: the ledger tabs. A 1.1 sheet has none of them and the page carries on without.
+    entries: "Entries!A1:U", balances: "Balances!A1:F", contracts: "Contracts!A1:Q", decisions: "Decisions!A1:H", rules: "Rules!A1:J",
   };
-  const OPTIONAL = new Set(["kitty", "payslips", "tax", "mortgage", "savings", "budget", "assets", "loans"]);
+  const OPTIONAL = new Set(["kitty", "payslips", "tax", "mortgage", "savings", "budget", "assets", "loans", "entries", "balances", "contracts", "decisions", "rules"]);
   const CHUNK = 2500;
-  async function loadTransactions(refresh) {
-    // one read for a household-sized sheet; chunks of 2,500 rows past that, three at a time, so a 20,000-row sheet still opens
+  async function loadBig(tab, lastCol, refresh) {
+    // one read for a household-sized tab; chunks of 2,500 rows past that, three at a time, so a 20,000-row Transactions or Entries tab still opens
     const meta = await call("get_spreadsheet", { spreadsheetId: sheetId(), fields: ["sheets.properties.title", "sheets.properties.gridProperties.rowCount"] }, refresh);
-    const sh = ((meta && meta.sheets) || []).find((x) => x.properties && x.properties.title === "Transactions");
+    const sh = ((meta && meta.sheets) || []).find((x) => x.properties && x.properties.title === tab);
     const rows = sh && sh.properties.gridProperties ? sh.properties.gridProperties.rowCount : 0;
-    if (!rows || rows <= CHUNK) return values("Transactions!A1:J", refresh);
-    const header = await values("Transactions!A1:J1", refresh);
-    const tasks = []; for (let a = 2; a <= rows; a += CHUNK) { const b = Math.min(rows, a + CHUNK - 1); tasks.push(() => values(`Transactions!A${a}:J${b}`, refresh)); }
+    if (!rows || rows <= CHUNK) return values(`${tab}!A1:${lastCol}`, refresh);
+    const header = await values(`${tab}!A1:${lastCol}1`, refresh);
+    const tasks = []; for (let a = 2; a <= rows; a += CHUNK) { const b = Math.min(rows, a + CHUNK - 1); tasks.push(() => values(`${tab}!A${a}:${lastCol}${b}`, refresh)); }
     const parts = []; let i = 0; const worker = async () => { while (i < tasks.length) { const k = i++; parts[k] = await tasks[k](); } };
     await Promise.all([worker(), worker(), worker()]);
     const out = header.concat(...parts); while (out.length > 1 && !(out[out.length - 1] || [])[0]) out.pop(); return out;
@@ -132,7 +135,7 @@
     S.loading = true; S.storedAt = null; S.unknownReadAge = false; S.err = {};
     setPill("warn", refresh ? "Refreshing…" : "Reading your sheet…");
     const grids = {};
-    await Promise.all(Object.entries(RANGES).map(([k, r]) => (k === "transactions" ? loadTransactions(refresh) : values(r, refresh)).then((v) => (grids[k] = v)).catch((e) => { grids[k] = []; S.err[k] = e; })));
+    await Promise.all(Object.entries(RANGES).map(([k, r]) => (k === "transactions" || k === "entries" ? loadBig(r.split("!")[0], r.split(":")[1], refresh) : values(r, refresh)).then((v) => (grids[k] = v)).catch((e) => { grids[k] = []; S.err[k] = e; })));
     S.loading = false;
     const fatal = Object.entries(S.err).filter(([k]) => !OPTIONAL.has(k));
     if (fatal.length) { S.liveErr = fatal[0][1]; setPill(S.mode === "live" ? "bad" : "demo", S.mode === "live" ? "Sheet unavailable" : "Demo data"); return false; }
@@ -773,8 +776,8 @@
       <div class="chips" style="margin:10px 0">${S.mcp ? `<button class="btn sm" id="refreshbtn">${ico("i-refresh")} ${S.mode === "live" ? "Refresh" : "Read the sheet live"}</button>` : ""}${S.mode === "live" && SNAP ? `<button class="btn sm ghost" id="demobtn">Show the bundled snapshot instead</button>` : ""}</div>
       ${S.liveErr ? `<div class="secterr">${errText(S.liveErr)}</div>` : ""}
       <h3>Cash and offset, account by account</h3><div class="tablewrap"><table class="t"><thead><tr><th>Account</th><th>Bank</th><th class="n">Balance</th></tr></thead><tbody>${liquid.map((a) => `<tr><td>${esc(a.name)}</td><td class="muted">${esc(a.bank)}</td><td class="n">${fmt(a.balance)}</td></tr>`).join("")}<tr><td><b>Together</b></td><td></td><td class="n"><b>${fmt(liquid.reduce((s, a) => s + a.balance, 0))}</b></td></tr></tbody></table></div>
-      <h3>Does the page agree with the sheet?</h3>${rec.map((r) => `<div class="row" style="cursor:default"><span class="tick" style="${r.ok ? "" : "background:var(--warn)"}">${ico(r.ok ? "i-check" : "i-x")}</span><span class="mid"><span class="t" style="white-space:normal">${esc(r.what)}</span><span class="s">${r.count ? `${r.a} found` : `${fmt(r.a)} here · ${fmt(r.b)} in the sheet`}</span></span></div>`).join("")}
-      <h3>What was read</h3><div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th class="n">Rows</th><th>Feeds</th></tr></thead><tbody>${tabs.map(([k, name, n, err]) => `<tr><td>${esc(name)}</td><td class="n">${err ? `<span class="tag warn">error</span>` : esc(String(n))}</td><td class="muted">${esc({ settings: "as-of date, targets", accounts: "cash, safety net", category_list: "names, groups, budgets", goals: "Goals, Home", subscriptions: "bills, leaks, upcoming", loans: "loan card, upcoming", assets: "the rental", metrics: "hero facts, tax", compliance: "what needs you", networth: "net worth chart", cashflow: "12-month bars, kept", budget: "budget pace", savings: "ways to save", mortgage: "rate scenarios", tax: "tax card", transactions: "activity, jar, flow, search", payslips: "pay day", kitty: "your settings", snapshot: "everything" }[k] || "")}</td></tr>`).join("")}</tbody></table></div>
+      <h3>Does the page agree with the sheet?</h3><p class="sub">${rec.filter((r) => r.account).length ? `${rec.filter((r) => r.account && r.ok).length} of ${rec.filter((r) => r.account).length} accounts reconcile to the sheet at ${E.fmtDay(m.asOf, { year: true })}${m.sheetVersion >= 2 ? "; the ledger's own invariants follow" : ""}.` : ""}</p>${rec.map((r) => `<div class="row" style="cursor:default"><span class="tick" style="${r.ok ? "" : "background:var(--warn)"}">${ico(r.ok ? "i-check" : "i-x")}</span><span class="mid"><span class="t" style="white-space:normal">${esc(r.what)}</span><span class="s">${r.count ? `${r.a} found` : `${fmt(r.a)} here · ${fmt(r.b)} in the sheet`}</span></span></div>`).join("")}
+      <h3>What was read</h3><div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th class="n">Rows</th><th>Feeds</th></tr></thead><tbody>${tabs.map(([k, name, n, err]) => `<tr><td>${esc(name)}</td><td class="n">${err ? (OPTIONAL.has(k) ? `<span class="tag">not in this sheet</span>` : `<span class="tag warn">error</span>`) : esc(String(n))}</td><td class="muted">${esc({ settings: "as-of date, targets", accounts: "every store of value", category_list: "names, groups, budgets", goals: "Goals, Home", subscriptions: "bills, leaks, upcoming", loans: "loan card, upcoming", assets: "the rental", metrics: "hero facts, tax", compliance: "what needs you", networth: "net worth chart", cashflow: "12-month bars, kept", budget: "budget pace", savings: "ways to save", mortgage: "rate scenarios", tax: "tax card", transactions: "activity, jar, flow, search", payslips: "pay day", kitty: "your settings", entries: "the ledger: balances, transfers", balances: "balance by month, the oracle", contracts: "subscriptions, leases, loan terms", decisions: "your judgments", rules: "descriptor to category", snapshot: "everything" }[k] || "")}</td></tr>`).join("")}</tbody></table></div>
       <p class="sub" style="margin-top:12px">Nothing is cached in the sheet and nothing is stored by this page except your own preferences${S.dbDoc ? " (on this device and in your Claude account)" : " (on this device)"}.</p>`);
     const rb = $("#refreshbtn"); if (rb) rb.addEventListener("click", async () => { rb.disabled = true; const ok = await loadLive(true); toast(ok ? "Fresh read done" : "Couldn't read live: " + errText(S.liveErr || {})); if (ok) openTrust(); else rb.disabled = false; });
     const db = $("#demobtn"); if (db) db.addEventListener("click", () => { S.m = applyLocalGoals(E.model(SNAP)); S.mode = "demo"; renderAll(); openTrust(); });
@@ -1035,6 +1038,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   async function boot() {
     const saved = store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
     if (SNAP) { S.m = applyLocalGoals(E.model(SNAP)); renderAll(); }
+    if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);
     else gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
     $$("nav.tabs button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
     $("#brandbtn").addEventListener("click", () => switchTab("home"));
