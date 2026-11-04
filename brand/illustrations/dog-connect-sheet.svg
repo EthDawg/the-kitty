@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Connect a sheet and the page comes alive."><g transform="translate(20 20) scale(1)">
+<style>
+.k-body{fill:var(--mascot-body,#F1E6D2)}.k-head{fill:var(--mascot-head,#FBF4E6)}.k-ink{fill:var(--mascot-ink,#17122B)}
+.k-s{fill:none;stroke:var(--mascot-ink,#17122B);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.k-patch{fill:var(--mascot-patch,#F0533D)}.k-blush{fill:var(--mascot-blush,#FF9E8C);opacity:.5}
+.k-collar{fill:none;stroke:var(--mascot-collar,#5B3DF5);stroke-width:8;stroke-linecap:round}
+.k-gold{fill:var(--mascot-gold,#F2B134)}.k-gold2{fill:var(--mascot-gold2,#C98A14)}
+.k-paw{transform-origin:46px 104px}.k-tail{transform-origin:114px 128px}
+.k-tan{fill:var(--mascot-tan,#E8B877)}.k-tan2{fill:var(--mascot-tan2,#D9A25C)}
+</style>
+<defs><clipPath id="dog20-head"><circle cx="80" cy="62" r="40"/></clipPath><clipPath id="dog20-body"><path d="M48 150C40 112 54 90 80 90s40 22 32 60Z"/></clipPath></defs>
+<g class="k-tail"><path style="fill:none;stroke:var(--mascot-tan,#E8B877);stroke-width:12;stroke-linecap:round" d="M114 128c16 0 22-14 12-24"/><path style="fill:none;stroke:var(--mascot-head,#FBF4E6);stroke-width:5;stroke-linecap:round" d="M121 124c8-2 11-8 8-14"/></g>
+<path class="k-tan" d="M48 150C40 112 54 90 80 90s40 22 32 60Z"/>
+<g clip-path="url(#dog20-body)"><path class="k-head" d="M62 96c10-4 26-4 36 0 2 14 0 28-6 40-8 2-16 2-24 0-6-12-8-26-6-40z"/></g>
+<ellipse class="k-gold2" cx="100" cy="141" rx="20" ry="12"/><ellipse class="k-gold" cx="100" cy="138" rx="20" ry="12"/><rect class="k-gold2" x="95.5" y="133.5" width="9" height="9" rx="1.5"/>
+<rect class="k-head" x="58" y="128" width="24" height="15" rx="7.5"/><path class="k-s" style="stroke-width:2" d="M66 130v4M74 130v4"/>
+<rect class="k-head" x="84" y="128" width="24" height="15" rx="7.5"/><path class="k-s" style="stroke-width:2" d="M92 130v4M100 130v4"/>
+<path class="k-tan" d="M46 50L42 14q0-4 4-2l26 24z"/><path class="k-blush" style="opacity:.8" d="M50 44l-2-20 16 16z"/>
+<path class="k-tan" d="M114 50l4-36q0-4-4-2L88 36z"/><path class="k-blush" style="opacity:.8" d="M110 44l2-20-16 16z"/>
+<circle class="k-tan" cx="80" cy="62" r="40"/>
+<g clip-path="url(#dog20-head)"><path class="k-head" d="M48 70c0-14 64-14 64 0 0 20-12 34-32 34S48 90 48 70z"/></g>
+<circle class="k-head" cx="62" cy="50" r="4"/><circle class="k-head" cx="98" cy="50" r="4"/>
+<path class="k-s" style="stroke-width:3.5" d="M58 60q7-8 14 0M88 60q7-8 14 0"/>
+<path class="k-ink" d="M72 72q8-4 16 0 2 1 0 3l-6 6q-2 2-4 0l-6-6q-2-2 0-3z"/><path class="k-s" style="stroke-width:2.5" d="M72 84q4 5 8 0q4 5 8 0"/>
+<circle class="k-blush" cx="56" cy="76" r="6"/><circle class="k-blush" cx="104" cy="76" r="6"/>
+<path class="k-collar" d="M54 96q26 12 52 0"/><circle class="k-gold" cx="80" cy="106" r="7"/><circle class="k-gold2" cx="80" cy="106" r="2.5"/>
+</g><g transform="translate(196 50)"><rect width="100" height="96" rx="12" fill="var(--surface,#fff)" stroke="var(--line,#E5DFD4)" stroke-width="2"/><g stroke="var(--line,#E5DFD4)" stroke-width="2"><path d="M0 32h100M0 64h100M34 0v96M67 0v96"/></g><rect x="4" y="4" width="92" height="22" rx="6" fill="var(--good-soft,#DFF5E9)"/></g><path d="M150 112c20-10 30-10 46-4" fill="none" stroke="var(--accent,#5B3DF5)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/></svg>
