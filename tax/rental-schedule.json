@@ -1,0 +1,32 @@
+{
+  "_about": "The ATO rental property schedule lines, as the 2025 'Rental properties' guide lists them, mapped to the Davies sheet's category IDs where one exists. Phase D renders one schedule per investment property from Entries tagged with that property, and the accountant pack exports these lines per owner share. Capital works (Division 43) and capital allowances (Division 40) are not transactions: they come from the property's depreciation schedule as yearly figures the household enters once. Documented 2026-11-04 from ato.gov.au/forms-and-instructions/rental-properties-2025/rental-expenses.",
+  "income": [
+    {"line": "Gross rent", "category_id": "RENT-INC"},
+    {"line": "Other rental related income", "category_id": null, "note": "bond money retained, insurance payouts for lost rent, reimbursements"}
+  ],
+  "expenses_immediate": [
+    {"line": "Advertising for tenants", "category_id": null},
+    {"line": "Body corporate fees and charges", "category_id": "RENT-STRATA", "note": "special levies for capital improvements are not deductible here; they may be capital works"},
+    {"line": "Borrowing expenses", "category_id": null, "note": "over five years or the loan term if shorter; immediate if $100 or less"},
+    {"line": "Cleaning", "category_id": null},
+    {"line": "Council rates", "category_id": null},
+    {"line": "Gardening and lawn mowing", "category_id": null},
+    {"line": "Insurance", "category_id": "RENT-INS", "note": "building, contents, public liability, loss of rent"},
+    {"line": "Interest on loans", "category_id": "RENT-INT", "note": "the investment loan only; redraws for private purposes are not deductible"},
+    {"line": "Land tax", "category_id": null},
+    {"line": "Legal expenses", "category_id": null, "note": "evicting a tenant or recovering rent; not purchase or sale costs, which go to the cost base"},
+    {"line": "Pest control", "category_id": null},
+    {"line": "Property agent fees and commission", "category_id": "RENT-MGMT"},
+    {"line": "Repairs and maintenance", "category_id": "RENT-REPAIR", "note": "restoring to former condition; replacing an entirety or improving is capital works"},
+    {"line": "Stationery, telephone and postage", "category_id": null},
+    {"line": "Travel expenses", "category_id": null, "note": "generally not deductible for residential rental property since 1 July 2017"},
+    {"line": "Water charges", "category_id": null},
+    {"line": "Sundry rental expenses", "category_id": null}
+  ],
+  "expenses_over_years": [
+    {"line": "Capital works deductions (Division 43)", "source": "depreciation schedule", "rate_residential": 0.025, "note": "construction commenced after 15 September 1987"},
+    {"line": "Capital allowances, decline in value (Division 40)", "source": "depreciation schedule", "note": "second-hand assets in a residential property bought after 9 May 2017 are generally excluded"}
+  ],
+  "ownership": "each owner reports their share of income and expenses; the Davies sheet's Settings tab holds the ownership shares",
+  "negative_gearing": "when total deductions exceed rental income, the net rental loss reduces the owner's other taxable income in that year; the page states the tax effect as 'about', at the owner's marginal rate from tax-tables.json, never as a refund amount"
+}
