@@ -25,6 +25,7 @@ The separate [native iOS app](ios/README.md) is in development. It adds native v
 and durable write recovery while keeping Google Sheets as the financial record. Its import and optional
 AI services have hosting requirements; the no-server description above applies to the existing artifact.
 See the [iOS release handoff](ios/RELEASE.md) for verified results and the remaining live integration work.
+The native branch is at a review checkpoint; [start the Claude alignment review here](ios/CLAUDE-REVIEW.md).
 
 
 ## What is in here

@@ -4,6 +4,8 @@ A native SwiftUI household finance app with reviewed CSV and document intake, bu
 
 The current build includes on-device PDF text/OCR, known payslip/valuation CSVs, source-bound field review, explicit transfer/salary matching, controlled month close, saved clean-household setup, household preferences, recoverable goal creation and filtered Activity CSV export. These paths have local and simulator evidence; the app is not yet a verified live replacement for the artifact. The existing public artifact has been rebuilt and tested intact. See [RELEASE.md](RELEASE.md) for current evidence, configuration and release work; [ACCEPTANCE.md](ACCEPTANCE.md) records the broader acceptance scope.
 
+Work is paused at the requested review checkpoint. [The Claude alignment guide](CLAUDE-REVIEW.md) maps this implementation to the artifact and identifies the most useful review questions.
+
 ## Run
 
 ```sh

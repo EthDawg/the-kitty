@@ -608,6 +608,668 @@
       ],
       "findingCount": 13,
       "controlFailureCount": 0
+    },
+    {
+      "resultBundle": "accessibility-current-regular-01.xcresult",
+      "device": "iPhone 17 Pro · light mode · default text",
+      "kind": "pre-label-change diagnostic",
+      "screens": [
+        {
+          "screen": "import",
+          "findings": [
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: Button, <address>, {{317.7, 82.0}, {64.3, 36.0}}, label: 'Done'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{16.0, 347.0}, {370.0, 38.0}}, label: '1 · Choose your statement'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{16.0, 624.3}, {370.0, 38.0}}, label: 'Documents and balances'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{34.0, 557.7}, {216.0, 24.7}}, label: 'Try a sample statement'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{33.7, 765.3}, {247.7, 21.0}}, label: 'Choose a source document'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{32.0, 401.7}, {46.7, 14.3}}, label: 'Account'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{32.0, 422.0}, {147.0, 20.3}}, label: 'Choose an account'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{16.0, 271.0}, {370.0, 58.3}}, label: 'Practice with fictional data'",
+              "summary": "Text clipped",
+              "type": 131072
+            },
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{34.0, 557.7}, {216.0, 24.7}}, label: 'Try a sample statement'",
+              "summary": "Text clipped",
+              "type": 131072
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{16.0, 271.0}, {370.0, 58.3}}, label: 'Practice with fictional data'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "ask",
+          "findings": [
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{20.0, 188.0}, {286.0, 67.7}}, label: 'A clearer picture,",
+              "summary": "Text clipped",
+              "type": 131072
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{20.0, 868.6}, {341.7, 46.3}}, label: 'Use your own Claude or ChatGPT conversation. Review the summary, then copy and paste it into your chosen app. Your Google access stays here.'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{132.3, 806.3}, {139.5, 20.3}}, label: 'Review & ask', Disabled",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "goals",
+          "findings": []
+        },
+        {
+          "screen": "insights",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 755.0}, {77.3, 14.3}}, label: 'January 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 790.3}, {158.0, 18.0}}, label: 'Home loan repayments'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{309.0, 790.3}, {53.0, 18.0}}, label: '$3,815'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 828.3}, {131.0, 14.3}}, label: '$3,815 monthly budget'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 868.7}, {164.3, 18.0}}, label: 'Investment loan interest'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{309.0, 868.7}, {53.0, 18.0}}, label: '$2,617'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            }
+          ]
+        },
+        {
+          "screen": "activity",
+          "findings": [
+            {
+              "detail": "Contrast is not high enough for UISearchBarTextField unless font size is larger.",
+              "element": "Attributes: SearchField, <address>, {{16.0, 169.0}, {370.0, 44.0}}, label: 'Search activity', placeholderValue: 'Search activity'",
+              "summary": "Contrast nearly passed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 441.3}, {72.0, 18.0}}, label: 'Wattle CU'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 523.3}, {72.0, 18.0}}, label: 'Wattle CU'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 719.3}, {148.3, 30.3}}, label: 'Credit card payments · 31 Jan 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 789.7}, {98.7, 18.0}}, label: 'Harbour Bank'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 812.7}, {146.3, 30.3}}, label: 'Investment loan interest · 28 Jan 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{264.3, 807.3}, {83.7, 18.0}}, label: '-$2,617.00'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            }
+          ]
+        },
+        {
+          "screen": "home",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 785.3}, {89.3, 26.3}}, label: '$12,090'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{137.3, 792.0}, {73.7, 18.0}}, label: 'of $12,000'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{41.0, 828.1}, {108.7, 14.3}}, label: 'Target reached'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resultBundle": "accessibility-max-se-01.xcresult",
+      "device": "iPhone SE · dark mode · maximum accessibility text",
+      "kind": "pre-label-change diagnostic",
+      "screens": [
+        {
+          "screen": "import",
+          "findings": [
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: Button, <address>, {{282.0, 50.0}, {73.0, 36.0}}, label: 'Done'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            }
+          ]
+        },
+        {
+          "screen": "ask",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{76.5, 646.9}, {278.5, 153.5}}, identifier: 'dataStatus', label: 'Fictional demo · January 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{20.0, 166.9}, {335.0, 273.5}}, label: 'A clearer picture,",
+              "summary": "Text clipped",
+              "type": 131072
+            }
+          ]
+        },
+        {
+          "screen": "goals",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 511.5}, {157.0, 187.5}}, label: 'Emergency fund'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "insights",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 584.5}, {272.5, 131.0}}, label: 'In, out, and what’s left'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "activity",
+          "findings": [
+            {
+              "detail": "Text of this UISearchBarTextField may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: SearchField, <address>, {{16.0, 75.0}, {343.0, 124.0}}, label: 'Search activity', placeholderValue: 'Search activity'",
+              "summary": "Text clipped",
+              "type": 131072
+            }
+          ]
+        },
+        {
+          "screen": "home",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{76.5, 442.0}, {278.5, 153.5}}, identifier: 'dataStatus', label: 'Fictional demo · January 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{44.0, 643.5}, {198.5, 232.5}}, label: 'Cash across your accounts'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resultBundle": "accessibility-money-regular-final.xcresult",
+      "device": "iPhone 17 Pro · light mode · default text",
+      "kind": "review checkpoint",
+      "screens": [
+        {
+          "screen": "import",
+          "findings": [
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{16.0, 624.3}, {370.0, 38.0}}, label: 'Documents and balances'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{34.0, 557.7}, {216.0, 24.7}}, label: 'Try a sample statement'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{16.0, 347.0}, {370.0, 38.0}}, label: '1 · Choose your statement'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{33.7, 765.3}, {247.7, 21.0}}, label: 'Choose a source document'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: Button, <address>, {{317.7, 82.0}, {64.3, 36.0}}, label: 'Done'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{32.0, 401.7}, {46.7, 14.3}}, label: 'Account'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{32.0, 422.0}, {147.0, 20.3}}, label: 'Choose an account'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            },
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{16.0, 271.0}, {370.0, 58.3}}, label: 'Practice with fictional data'",
+              "summary": "Text clipped",
+              "type": 131072
+            },
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{34.0, 557.7}, {216.0, 24.7}}, label: 'Try a sample statement'",
+              "summary": "Text clipped",
+              "type": 131072
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{16.0, 271.0}, {370.0, 58.3}}, label: 'Practice with fictional data'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "ask",
+          "findings": [
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{20.0, 188.0}, {286.0, 67.7}}, label: 'A clearer picture,",
+              "summary": "Text clipped",
+              "type": 131072
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{20.0, 868.6}, {341.7, 46.3}}, label: 'Use your own Claude or ChatGPT conversation. Review the summary, then copy and paste it into your chosen app. Your Google access stays here.'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{132.3, 806.3}, {139.5, 20.3}}, label: 'Review & ask', Disabled",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "goals",
+          "findings": []
+        },
+        {
+          "screen": "insights",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 755.0}, {77.3, 14.3}}, label: 'January 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 790.3}, {158.0, 18.0}}, label: 'Home loan repayments'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{309.0, 790.3}, {53.0, 18.0}}, label: 'Spent $3,814.75'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 828.3}, {131.0, 14.3}}, label: '$3,815.00 monthly budget'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 868.7}, {164.3, 18.0}}, label: 'Investment loan interest'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{309.0, 868.7}, {53.0, 18.0}}, label: 'Spent $2,617.00'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            }
+          ]
+        },
+        {
+          "screen": "activity",
+          "findings": [
+            {
+              "detail": "Contrast is not high enough for UISearchBarTextField unless font size is larger.",
+              "element": "Attributes: SearchField, <address>, {{16.0, 169.0}, {370.0, 44.0}}, label: 'Search activity', placeholderValue: 'Search activity'",
+              "summary": "Contrast nearly passed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 441.3}, {72.0, 18.0}}, label: 'Wattle CU'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 523.3}, {72.0, 18.0}}, label: 'Wattle CU'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 719.3}, {148.3, 30.3}}, label: 'Credit card payments · 31 Jan 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 789.7}, {98.7, 18.0}}, label: 'Harbour Bank'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{86.0, 812.7}, {146.3, 30.3}}, label: 'Investment loan interest · 28 Jan 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{264.3, 807.3}, {83.7, 18.0}}, label: '-$2,617.00'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "This element appears to display text that should be represented using the accessibility API.",
+              "element": "No element supplied",
+              "summary": "Potentially inaccessible text",
+              "type": 2
+            }
+          ]
+        },
+        {
+          "screen": "home",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 785.3}, {89.3, 26.3}}, label: '$12,090'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{137.3, 792.0}, {73.7, 18.0}}, label: 'of $12,000'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{41.0, 828.1}, {108.7, 14.3}}, label: 'Target reached'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resultBundle": "accessibility-money-max-se-final.xcresult",
+      "device": "iPhone SE · dark mode · maximum accessibility text",
+      "kind": "review checkpoint",
+      "screens": [
+        {
+          "screen": "import",
+          "findings": [
+            {
+              "detail": "User will not be able to change the font size of this SwiftUI.AccessibilityNode",
+              "element": "Attributes: Button, <address>, {{282.0, 50.0}, {73.0, 36.0}}, label: 'Done'",
+              "summary": "Dynamic Type font sizes are partially unsupported",
+              "type": 65536
+            }
+          ]
+        },
+        {
+          "screen": "ask",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{76.5, 646.9}, {278.5, 153.5}}, identifier: 'dataStatus', label: 'Fictional demo · January 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Text of this SwiftUI.AccessibilityNode may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: StaticText, <address>, {{20.0, 166.9}, {335.0, 273.5}}, label: 'A clearer picture,",
+              "summary": "Text clipped",
+              "type": 131072
+            }
+          ]
+        },
+        {
+          "screen": "goals",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 511.5}, {157.0, 187.5}}, label: 'Emergency fund'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "insights",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{40.0, 584.5}, {272.5, 131.0}}, label: 'In, out, and what’s left'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        },
+        {
+          "screen": "activity",
+          "findings": [
+            {
+              "detail": "Text of this UISearchBarTextField may be clipped at larger Dynamic Type sizes.",
+              "element": "Attributes: SearchField, <address>, {{16.0, 75.0}, {343.0, 124.0}}, label: 'Search activity', placeholderValue: 'Search activity'",
+              "summary": "Text clipped",
+              "type": 131072
+            }
+          ]
+        },
+        {
+          "screen": "home",
+          "findings": [
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{76.5, 442.0}, {278.5, 153.5}}, identifier: 'dataStatus', label: 'Fictional demo · January 2027'",
+              "summary": "Contrast failed",
+              "type": 1
+            },
+            {
+              "detail": "Contrast failed for SwiftUI.AccessibilityNode",
+              "element": "Attributes: StaticText, <address>, {{44.0, 643.5}, {198.5, 232.5}}, label: 'Cash across your accounts'",
+              "summary": "Contrast failed",
+              "type": 1
+            }
+          ]
+        }
+      ]
     }
   ]
 }

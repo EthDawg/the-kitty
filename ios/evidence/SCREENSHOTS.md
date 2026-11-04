@@ -106,3 +106,14 @@ The fixture hook is Debug-only, contains fictional data and supplies no Sheet ID
 The repair passes in `household-navigation-regular-01.xcresult` alongside 21 native identity, disconnect, write-lock and AI-context tests, plus all four focused UI journeys (104.292 seconds of UI execution). `household-navigation-se-01.xcresult` passes household switching and the ordinary/Home shortcut journey at accessibility extra-large text in 107.942 seconds. `household-navigation-ipad-01.xcresult` passes the household switch in 21.208 seconds. The regular run also retains the entered goal fields through rotation.
 
 The [large-text result](screenshots/household-switch-se-60-goals-after-household-switch.png) shows the Goals heading and first card's upper viewport; further details require scrolling. The [iPad result](screenshots/household-switch-ipad-60-goals-after-household-switch.png) shows the complete three-goal list. These five additional originals bring the inventory to 209, with all file hashes verified.
+
+## Exact financial labels at the review checkpoint
+
+Four additional untouched originals bring the inventory to **213**, with every SHA-256 rechecked. They come from the final exact-values journey on regular iPhone and maximum-text iPhone SE. The journey verifies exact accessible Home totals, January values, budget spending/targets and above-plan status, then opens the recorded checks.
+
+- [Regular budget capture](screenshots/money-regular-61-accessible-budget-values.png) shows the complete January figures and first three budget rows. Visible budget amounts remain compact; the accessible labels preserve cents, as recorded in [the label evidence](accessibility-money-values.json).
+- [Regular monthly disclosure](screenshots/money-regular-06-insights-exact-figures.png) shows August–December values and the January heading. January values continue below the tab bar and are visible in the budget capture above.
+- [Maximum-text monthly disclosure](screenshots/money-max-se-06-insights-exact-figures.png) shows December and the January heading. January values require further scrolling; the test verifies their exact accessibility text.
+- [Maximum-text budget viewport](screenshots/money-max-se-61-accessible-budget-values.png) shows investment interest and the start of travel. The entire travel row does not fit in that viewport; its full accessible label, including exact budget and Above plan, is asserted by the test.
+
+These are fictional simulator captures. They do not establish actual VoiceOver speech, a complete visual accessibility pass or live financial writes. The [accessibility review](ACCESSIBILITY.md#review-checkpoint-exact-financial-labels) retains the unresolved findings and exact test scope.

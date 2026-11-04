@@ -54,3 +54,24 @@ The source palette was checked using the W3C [sRGB luminance and contrast formul
 This calculation is limited to [the declared theme values](../Kitty/Views/Theme.swift); it does not close rendered contrast findings, native-control or chart findings, or VoiceOver acceptance. It supports examining the specific viewport and overlays before changing these palette values.
 
 The same review found a concrete navigation defect: Home's category prompt could reopen an old transaction detail. The repair now reaches the requested filtered list and preserves search during ordinary tab switching. Its complete journey passes at both simulator sizes, with [retained before-and-after evidence](SCREENSHOTS.md#home-shortcut-destinations). The earlier platform audit counts above remain historical; they were not rerun or relabelled as passes for this navigation repair.
+
+## Review checkpoint: exact financial labels
+
+The final accessibility-tree inspection found rounded monthly Home totals and anonymous percentage indicators in budget rows. Home now exposes the exact income, spending and net amounts. Each budget category combines its name, exact spending, exact budget and above-plan status into one accessible label; the visual progress gauge is excluded from the accessibility tree because it repeats that information and clamps at 100%. Goal cards already expose exact saved and target amounts, so they were left unchanged. [Observed label values](accessibility-money-values.json) retain the actual regular-size accessibility-tree output.
+
+Each chart mark now specifies its month/year, income or spending, currency and exact value using the [Swift Charts accessibility modifiers described by Apple](https://developer.apple.com/videos/play/wwdc2022/10137/). The native chart remains intact. XCTest's month-group summary does not establish how VoiceOver drills into those marks; actual chart navigation and audio graphs still need physical-device acceptance.
+
+`accessibility-money-regular-final.xcresult` passes the six-screen bounded control audit and the exact-values-to-recorded-checks journey in 59.503 seconds. `accessibility-money-max-se-final.xcresult` passes the same two checks on iPhone SE in dark appearance at **maximum** Dynamic Type (`accessibility-extra-extra-extra-large`) in 94.913 seconds. The journey verifies exact Home totals, January figures and the exact loan/travel budget labels, including Above plan. The simulator's previous accessibility extra-large setting was restored afterwards.
+
+| Screen state | Regular final | Maximum-text SE final |
+|---|---:|---:|
+| Home | 3 | 2 |
+| Activity | 8 | 1 |
+| Insights | 11 | 1 |
+| Goals | 0 | 1 |
+| Ask | 3 | 2 |
+| Import | 10 | 1 |
+
+All 35 and 8 visual findings remain diagnostics. These totals match this pass's before-change runs; the differing viewports make them unsuitable as an improvement score. Four additional audit records are retained alongside the three historical runs in [the diagnostic JSON](accessibility-audit.json). Full accessibility trees and screenshots remain in the local result bundles; the repository retains selected original captures and sanitised findings. The broad unit/UI suites were not rerun for these view-label changes.
+
+The maximum-text screenshots show a partial scroll viewport, not a whole financial section at once. The checked labels contain full values; screenshots do not prove spoken output, focus order, or complete visual accessibility. Remaining contrast, clipping, Dynamic Type and chart findings are still open at this review checkpoint.

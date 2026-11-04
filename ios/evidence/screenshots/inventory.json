@@ -2916,5 +2916,61 @@
     "caption": "Household switch returns to the new goal list",
     "observedResult": "The repaired journey reaches the Goals root after switching from the fictional cached household to the Davies demo.",
     "evidenceLimit": "Fictional simulator navigation only. The Debug-only cached household has no Sheet ID or Google identity. No provider read, write, authorization, second-account acceptance or complete accessibility audit is established."
+  },
+  {
+    "file": "money-regular-61-accessible-budget-values.png",
+    "sha256": "3dd0d8ef7d9a76b21584e722c162332efdfff55b650dc94e084e498fcc2ae282",
+    "workflow": "Exact Home accessibility labels → Insights figures → precise budget labels → recorded checks",
+    "capturedAtUnix": 1793822303.657,
+    "device": "iPhone 17 Pro · light mode · default text",
+    "sourceResult": "accessibility-money-regular-final.xcresult",
+    "fullResolution": true,
+    "width": 1206,
+    "height": 2622,
+    "caption": "Budget values and exact January figures",
+    "observedResult": "The UI journey verifies the combined category label with exact spending, exact budget and Above plan where applicable.",
+    "evidenceLimit": "Fictional simulator only; no actual VoiceOver or live provider acceptance. This capture shows complete January values and the first three budget rows; lower rows continue under the tab bar."
+  },
+  {
+    "file": "money-regular-06-insights-exact-figures.png",
+    "sha256": "ee3a281e0e6fc7dca492caaeed5deb96b3fb41aa42c026f4e9a1e6d253177f91",
+    "workflow": "Exact Home accessibility labels → Insights figures → precise budget labels → recorded checks",
+    "capturedAtUnix": 1793822299.415,
+    "device": "iPhone 17 Pro · light mode · default text",
+    "sourceResult": "accessibility-money-regular-final.xcresult",
+    "fullResolution": true,
+    "width": 1206,
+    "height": 2622,
+    "caption": "Expanded exact monthly figures",
+    "observedResult": "The UI journey verifies January income $15,386.14, spending $13,811.37 and net $1,574.77 in the accessibility tree after opening the disclosure.",
+    "evidenceLimit": "Fictional simulator only; no actual VoiceOver or live provider acceptance. The capture shows August–December values and the January heading; January values require further scrolling and are visible in the separate budget capture."
+  },
+  {
+    "file": "money-max-se-61-accessible-budget-values.png",
+    "sha256": "6483f5665db205f3ada50d2def3f8cccf9bc7dd4ce63e68442f7d0b475734b75",
+    "workflow": "Exact Home accessibility labels → Insights figures → precise budget labels → recorded checks",
+    "capturedAtUnix": 1793822451.586,
+    "device": "iPhone SE · dark mode · maximum accessibility text",
+    "sourceResult": "accessibility-money-max-se-final.xcresult",
+    "fullResolution": true,
+    "width": 750,
+    "height": 1334,
+    "caption": "Budget values at maximum text size",
+    "observedResult": "The UI journey verifies the combined category label with exact spending, exact budget and Above plan where applicable.",
+    "evidenceLimit": "Fictional simulator only; no actual VoiceOver or live provider acceptance. The viewport contains part of the selected section; January figures or the complete travel budget require further scrolling. This capture does not show the entire label at once."
+  },
+  {
+    "file": "money-max-se-06-insights-exact-figures.png",
+    "sha256": "a9b4b89e9b81937abb57bed43a1cd9cf777624d0bd328e18887d6400a861ed37",
+    "workflow": "Exact Home accessibility labels → Insights figures → precise budget labels → recorded checks",
+    "capturedAtUnix": 1793822433.622,
+    "device": "iPhone SE · dark mode · maximum accessibility text",
+    "sourceResult": "accessibility-money-max-se-final.xcresult",
+    "fullResolution": true,
+    "width": 750,
+    "height": 1334,
+    "caption": "Exact monthly figures at maximum text size",
+    "observedResult": "The UI journey verifies January income $15,386.14, spending $13,811.37 and net $1,574.77 in the accessibility tree after opening the disclosure.",
+    "evidenceLimit": "Fictional simulator only; no actual VoiceOver or live provider acceptance. The viewport contains part of the selected section; January figures or the complete travel budget require further scrolling. This capture does not show the entire label at once."
   }
 ]

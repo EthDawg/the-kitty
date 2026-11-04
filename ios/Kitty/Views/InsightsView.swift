@@ -18,10 +18,14 @@ struct InsightsView: View {
                 if let income = m.income {
                   BarMark(x: .value("Month", monthName(m.month)), y: .value("Amount", income))
                     .foregroundStyle(KittyTheme.accent).position(by: .value("Flow", "Income"))
+                    .accessibilityLabel("\(monthYear(m.month)), income")
+                    .accessibilityValue("\(h.currency) \(money(income, currency: h.currency))")
                 }
                 if let spending = m.spending {
                   BarMark(x: .value("Month", monthName(m.month)), y: .value("Amount", spending))
                     .foregroundStyle(KittyTheme.peach).position(by: .value("Flow", "Spending"))
+                    .accessibilityLabel("\(monthYear(m.month)), spending")
+                    .accessibilityValue("\(h.currency) \(money(spending, currency: h.currency))")
                 }
               }
             }.frame(height: 180).chartLegend(.hidden).accessibilityLabel(
@@ -63,15 +67,21 @@ struct InsightsView: View {
                   Text(money(b.latest, currency: h.currency, compact: true)).font(
                     .subheadline.bold()
                   ).monospacedDigit()
+                    .accessibilityLabel("Spent \(money(b.latest, currency: h.currency))")
                 }
                 if let latest = b.latest, let budget = b.monthly, budget > 0 {
                   ProgressView(value: min(max(latest / budget, 0), 1)).tint(
                     latest > budget ? KittyTheme.warning : KittyTheme.accent)
+                    .accessibilityHidden(true)
                   Text(
                     "\(money(budget,currency:h.currency,compact:true)) monthly budget\(latest>budget ? " · Above plan":"")"
                   ).font(.caption).foregroundStyle(KittyTheme.secondary)
+                    .accessibilityLabel(
+                      "\(money(budget, currency: h.currency)) monthly budget\(latest > budget ? ", Above plan" : "")")
                 }
               }.padding(.vertical, 5)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("budget.\(b.name)")
             }
             SourceLink(label: "Budget tab", range: "Budget!A:I")
           }

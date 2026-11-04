@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-05",
+  "sourceResult": "accessibility-money-regular-final.xcresult",
+  "labels": [
+    {
+      "identifier": "cashCard",
+      "label": "Cash across your accounts, $99,388.43, As of 31 Jan 2027 · Includes your offset, Income, $15,386.14, Spending, $13,811.37, Left over, $1,574.77, January 2027"
+    },
+    {
+      "identifier": "budget.Home loan repayments",
+      "label": "Home loan repayments, Spent $3,814.75, $3,815.00 monthly budget"
+    },
+    {
+      "identifier": "budget.Investment loan interest",
+      "label": "Investment loan interest, Spent $2,617.00, $2,620.00 monthly budget"
+    },
+    {
+      "identifier": "budget.Holidays and travel",
+      "label": "Holidays and travel, Spent $2,172.00, $300.00 monthly budget, Above plan"
+    },
+    {
+      "identifier": "budget.Groceries",
+      "label": "Groceries, Spent $1,242.69, $1,300.00 monthly budget"
+    },
+    {
+      "identifier": "budget.Childcare",
+      "label": "Childcare, Spent $880.85, $900.00 monthly budget"
+    },
+    {
+      "identifier": "budget.Energy and water",
+      "label": "Energy and water, Spent $663.51, $300.00 monthly budget, Above plan"
+    }
+  ],
+  "verifiedJourneys": [
+    "accessibility-money-regular-final.xcresult: exact financial labels and recorded checks pass",
+    "accessibility-money-max-se-final.xcresult: same journey passes at maximum Dynamic Type"
+  ],
+  "limit": "XCTest accessibility labels, not actual VoiceOver speech. Per-mark chart labels are configured but VoiceOver drill-in and audio graph behavior remain unverified."
+}

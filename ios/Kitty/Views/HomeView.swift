@@ -164,6 +164,7 @@ struct HomeView: View {
       Text(title).font(.caption).foregroundStyle(.white.opacity(0.8))
       Text(money(amount, currency: store.currency, compact: true)).font(.subheadline.bold())
         .monospacedDigit().minimumScaleFactor(0.7).lineLimit(1)
+        .accessibilityLabel(money(amount, currency: store.currency))
     }
   }
 }

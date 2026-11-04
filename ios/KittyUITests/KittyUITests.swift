@@ -342,6 +342,10 @@ final class KittyUITests: XCTestCase {
   }
 
   func testInsightsHasExactFiguresAndRecordedChecks() {
+    let cash = app.buttons["cashCard"].label
+    for value in ["$99,388.43", "$15,386.14", "$13,811.37", "$1,574.77"] {
+      XCTAssertTrue(cash.contains(value), "Home must expose exact financial values: \(value)")
+    }
     openTab("Insights")
     let exact = app.buttons["Exact monthly figures"]
     reveal(exact)
@@ -353,6 +357,17 @@ final class KittyUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["In $15,386.14 · Out $13,811.37"].exists)
     XCTAssertTrue(app.staticTexts["Left over $1,574.77"].exists)
     capture("06-insights-exact-figures")
+    let loan = app.descendants(matching: .any)["budget.Home loan repayments"].firstMatch
+    revealPrecisely(loan)
+    XCTAssertTrue(loan.isHittable)
+    XCTAssertTrue(loan.label.contains("Spent $3,814.75"))
+    XCTAssertTrue(loan.label.contains("$3,815.00 monthly budget"))
+    let travel = app.descendants(matching: .any)["budget.Holidays and travel"].firstMatch
+    revealPrecisely(travel)
+    XCTAssertTrue(travel.isHittable)
+    XCTAssertTrue(travel.label.contains("Spent $2,172.00"))
+    XCTAssertTrue(travel.label.contains("$300.00 monthly budget, Above plan"))
+    capture("61-accessible-budget-values")
     let checks = app.buttons["Checks & evidence"]
     reveal(checks, limit: 12)
     XCTAssertTrue(checks.isHittable)

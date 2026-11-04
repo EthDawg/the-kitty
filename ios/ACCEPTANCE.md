@@ -1,4 +1,4 @@
-# iOS acceptance — active
+# iOS acceptance — review checkpoint
 
 Objective: a seamless native iOS replacement for The Kitty, with user-owned Google Sheets, reliable imports and Claude/ChatGPT access. The handover distinguishes the fictional public app from agent-operated real household work. This implementation and its retained screenshots use fictional data only.
 
@@ -57,4 +57,6 @@ Objective: a seamless native iOS replacement for The Kitty, with user-owned Goog
 
 ## Completion rule
 
-This audit is not provider evidence. The goal remains active while required outcomes are missing. A passing build, local tests or a screenshot do not establish live import acceptance, complete artifact parity, a flawless app or App Store approval. See RELEASE.md for the current test artifacts and concrete next integration steps.
+The final review-checkpoint pass adds exact accessible Home/budget amounts and explicit chart mark labels. Two focused checks pass at regular size and at maximum Dynamic Type on iPhone SE; the [accessibility record](evidence/ACCESSIBILITY.md#review-checkpoint-exact-financial-labels) separates those results from the unresolved visual findings and physical VoiceOver work. The broad baseline was not repeated for this view-only change.
+
+This audit is not provider evidence. Work is paused at the user's requested review checkpoint while the remaining outcomes above are incomplete. A passing build, local tests or a screenshot do not establish live import acceptance, complete artifact parity, a flawless app or App Store approval. See RELEASE.md for the current test artifacts and concrete next integration steps, and [the Claude alignment guide](CLAUDE-REVIEW.md) for the review scope.

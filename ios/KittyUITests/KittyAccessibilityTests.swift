@@ -38,6 +38,10 @@ final class KittyAccessibilityTests: XCTestCase {
     attachment.name = "accessibility-\(screen.lowercased())"
     attachment.lifetime = .keepAlways
     add(attachment)
+    let tree = XCTAttachment(string: app.debugDescription)
+    tree.name = "accessibility-tree-\(screen.lowercased())"
+    tree.lifetime = .keepAlways
+    add(tree)
     let screenshot = XCTAttachment(screenshot: app.screenshot())
     screenshot.name = "accessibility-\(screen.lowercased())"
     screenshot.lifetime = .keepAlways
