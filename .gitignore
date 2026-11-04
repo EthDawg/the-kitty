@@ -1,5 +1,7 @@
 dist/
 __pycache__/
 .DS_Store
+.vercel
+.env*
 logos/
 period-close/**/runs/

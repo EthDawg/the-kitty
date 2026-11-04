@@ -2,7 +2,7 @@
 "use strict";
 const S = require("./shapes");
 const P = require("./pdf");
-const { D, brandById, accountById, accountsFor, presets, txRows, balanceBefore, validDate, today, monthEnd } = require("./data");
+const { D, brandById, accountById, accountsFor, presets, txRows, balanceBefore, validDate, today, monthEnd, fyOf, fyLabel, round2 } = require("./data");
 
 class ExportError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const CSV = "text/csv; charset=utf-8", PDF = "application/pdf";
@@ -50,40 +50,61 @@ async function buildExport({ brand: brandId, account: accountId, from, to, forma
     const [person, employer] = accountId.split("@");
     const rows = D.payslips.filter((p) => p[1] === person && p[2] === employer && p[0] >= from && p[0] <= to);
     if (format === "csv") return { filename: "payslips.csv", type: CSV, body: S.payslipsCsv(rows) };
-    return { filename: `${brand.name}-Payslips-${person}-${ymd(from)}-${ymd(to)}.pdf`, type: PDF, body: await P.payslips({ brand, person, employer, rows, from, to }) };
+    if (format === "income") {
+      const fy = fyOf(to);
+      const year = D.payslips.filter((p) => p[1] === person && p[2] === employer && fyOf(p[0]) === fy && p[0] <= to);
+      return { filename: `${brand.name}-IncomeStatement-${person}-${fyLabel(fy)}.pdf`, type: PDF, body: await P.incomeStatement({ brand, person, employer, rows: year, fy, to }) };
+    }
+    return { filename: rows.length === 1 ? `${brand.name}-Payslip-${person}-${ymd(rows[0][0])}.pdf` : `${brand.name}-Payslips-${person}-${ymd(from)}-${ymd(to)}.pdf`, type: PDF, body: await P.payslips({ brand, person, employer, rows, from, to }) };
   }
   throw new ExportError(400, "Nothing to export.");
 }
 
-// A preview of the same rows for the page, so what you see is what the file holds.
-function preview({ brand: brandId, account: accountId, from, to }) {
+// The page's view of the same rows the file holds: newest first, searchable, a page at a time.
+function preview({ brand: brandId, account: accountId, from, to, q, page, size }) {
   const brand = brandById[brandId];
   const account = accountsFor(brandId).find((a) => a.id === accountId);
   if (!brand || !account) throw new ExportError(404, "No such account on this portal.");
+  const paginate = (res) => {
+    const needle = String(q || "").trim().toLowerCase();
+    let rows = needle ? res.rows.filter((r) => r.some((c) => String(c).toLowerCase().includes(needle))) : res.rows;
+    const total = rows.length, sz = Math.min(Math.max(Number(size) || 50, 10), 500), pg = Math.max(Number(page) || 1, 1);
+    rows = rows.slice((pg - 1) * sz, pg * sz);
+    return { ...res, rows, total, page: pg, size: sz };
+  };
   if (account.kind === "policy") {
     const policy = D.policies.find((p) => p.id === accountId);
-    return { columns: ["Policy period", "Premium", "Paid on"], rows: policy.periods.map((p) => [`${p.from} to ${p.to}`, P.money(p.premium), p.paid_on]), summary: Object.entries(policy.cover).map(([k, v]) => [k, typeof v === "number" ? P.money(v) : String(v)]) };
+    return paginate({ columns: ["Policy period", "Premium", "Paid on", "Paid from"], rows: [...policy.periods].reverse().map((p) => [`${p.from} to ${p.to}`, P.money(p.premium), p.paid_on, accountById[p.paid_from] ? accountById[p.paid_from].name : p.paid_from]), summary: Object.entries(policy.cover).map(([k, v]) => [k, typeof v === "number" ? P.money(v) : String(v)]) });
   }
   if (!validDate(from) || !validDate(to) || from > to) throw new ExportError(400, "Pick a date range.");
   if (account.kind === "bank") {
     const rows = txRows(accountId, from, to); let bal = balanceBefore(accountId, from); const opening = bal;
-    const out = rows.map((t) => { bal = Math.round((bal + t[3]) * 100) / 100; return [t[0], t[2], P.money(t[3]), P.money(bal)]; });
-    return { columns: ["Date", "Description", "Amount", "Balance"], rows: out, summary: [["Opening balance", P.money(opening)], ["Rows", String(rows.length)], ["Closing balance", P.money(bal)]] };
+    const isCard = brand.kind === "card";
+    const out = rows.map((t) => { bal = round2(bal + t[3]); return isCard ? [t[0], t[2], t[3] < 0 ? P.money(-t[3]) : "", t[3] > 0 ? P.money(t[3]) : "", P.money(-bal)] : [t[0], t[2], t[3] < 0 ? P.money(-t[3]) : "", t[3] > 0 ? P.money(t[3]) : "", P.money(bal)]; }).reverse();
+    const moneyIn = round2(rows.filter((t) => t[3] > 0).reduce((s, t) => s + t[3], 0)), moneyOut = round2(rows.filter((t) => t[3] < 0).reduce((s, t) => s - t[3], 0));
+    return paginate({ columns: isCard ? ["Date", "Description", "Charges", "Payments and credits", "Balance owing"] : ["Date", "Description", "Debit", "Credit", "Balance"], rows: out,
+      summary: isCard ? [["Previous balance", P.money(-opening)], ["New charges", P.money(moneyOut)], ["Payments and credits", P.money(moneyIn)], ["New balance", P.money(-bal)]] : [["Opening balance", P.money(opening)], ["Money in", P.money(moneyIn)], ["Money out", P.money(moneyOut)], ["Closing balance", P.money(bal)]] });
   }
   if (account.kind === "loan") {
-    const months = monthsBetween(from, to).map((m) => [m, D.loans[accountId].months[m]]);
-    return { columns: ["Month", "Opening", "Interest charged", "Repayments", "Closing"], rows: months.map(([m, x]) => [m, P.money(x.opening), P.money(x.interest), P.money(x.repayments), P.money(x.closing)]), summary: [["Months", String(months.length)]] };
+    const months = monthsBetween(from, to).map((m) => [m, D.loans[accountId].months[m]]).filter(([, x]) => x);
+    const interest = round2(months.reduce((s, [, x]) => s + x.interest, 0)), repaid = round2(months.reduce((s, [, x]) => s + x.repayments, 0));
+    return paginate({ columns: ["Month", "Rate", "Opening balance", "Interest charged", "Repayments", "Closing balance"], rows: months.map(([m, x]) => [m, `${x.rate.toFixed(2)}%`, P.money(x.opening), P.money(x.interest), P.money(x.repayments), P.money(x.closing)]).reverse(),
+      summary: [["Interest charged", P.money(interest)], ["Repayments", P.money(repaid)], ["Balance at end", months.length ? P.money(months[months.length - 1][1].closing) : ""]] });
   }
   if (account.kind === "property") {
-    const lines = monthsBetween(from, to).flatMap((m) => D.properties[accountId].months[m].lines).filter((l) => l[0] >= from && l[0] <= to);
-    return { columns: ["Date", "Description", "Schedule line", "Amount", "By"], rows: lines.map((l) => [l[0], l[1], l[4], P.money(l[2]), l[5] ? brand.name : "Owner"]), summary: [["Lines", String(lines.length)]] };
+    const lines = monthsBetween(from, to).flatMap((m) => (D.properties[accountId].months[m] || { lines: [] }).lines).filter((l) => l[0] >= from && l[0] <= to);
+    const rent = round2(lines.filter((l) => l[3] === "RENT-INC").reduce((s, l) => s + l[2], 0)), fees = round2(-lines.filter((l) => l[3] === "RENT-MGMT").reduce((s, l) => s + l[2], 0)), owner = round2(-lines.filter((l) => !l[5] && l[2] < 0).reduce((s, l) => s + l[2], 0));
+    return paginate({ columns: ["Date", "Description", "Rental schedule line", "Money in", "Money out", "Handled by"], rows: lines.map((l) => [l[0], l[1], l[4], l[2] > 0 ? P.money(l[2]) : "", l[2] < 0 ? P.money(-l[2]) : "", l[5] ? brand.name : "Owner"]).reverse(),
+      summary: [["Rent collected", P.money(rent)], ["Management fees", P.money(fees)], ["Owner-paid expenses", P.money(owner)], ["Net position", P.money(rent - fees - owner)]] });
   }
   if (account.kind === "payroll") {
     const [person, employer] = accountId.split("@");
     const rows = D.payslips.filter((p) => p[1] === person && p[2] === employer && p[0] >= from && p[0] <= to);
-    return { columns: ["Pay date", "Gross", "Tax", "Super", "Net"], rows: rows.map((p) => [p[0], P.money(p[3]), P.money(p[4]), P.money(p[5]), P.money(p[6])]), summary: [["Payslips", String(rows.length)]] };
+    const sum = (i) => round2(rows.reduce((s, p) => s + p[i], 0));
+    return paginate({ columns: ["Pay date", "Gross pay", "Tax withheld", "Super", "Net pay", "Payslip"], rows: [...rows].reverse().map((p) => [p[0], P.money(p[3]), P.money(p[4]), P.money(p[5]), P.money(p[6]), `pdf:${p[0]}`]),
+      summary: [["Pays", String(rows.length)], ["Gross", P.money(sum(3))], ["Tax withheld", P.money(sum(4))], ["Super", P.money(sum(5))], ["Net", P.money(sum(6))]] });
   }
-  return { columns: [], rows: [], summary: [] };
+  return { columns: [], rows: [], summary: [], total: 0, page: 1, size: 50 };
 }
 
 module.exports = { buildExport, preview, ExportError };
