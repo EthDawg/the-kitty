@@ -77,6 +77,8 @@ class Import(unittest.TestCase):
         self.assertEqual(run.returncode, 2)
         self.assertEqual(rows, [])
         self.assertEqual(len(json.loads((out / 'rows.held.json').read_text())), 1)
+        self.assertEqual(json.loads((out / 'entries.json').read_text()), [])
+        self.assertEqual(len(json.loads((out / 'entries.held.json').read_text())), 1)
         self.assertIn('HOLD', run.stdout)
         self.assertIn('MISMATCH of -100.00', run.stdout)
 

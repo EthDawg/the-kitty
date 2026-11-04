@@ -12,14 +12,18 @@ the generator's history. The next Txn ID follows the last one in the sheet.
 Overlapping files are safe in one run: the Nth copy of a row counts once however many files carry it, so the most
 copies in any one file is how many are real. Where a file prints a running balance, its last balance in the month
 must equal the sheet's opening balance plus every row to that date, the new rows included. If any file disagrees the
-run holds: rows.json is empty, the rows wait in rows.held.json, and the exit code is 2.
+run holds: rows.json and entries.json are empty, the rows wait in rows.held.json and entries.held.json, and the exit
+code is 2.
 
 Each description is matched against history: exact first, then with month names, card numbers
 and the word REFUND removed. A description seen with more than one category takes the most
 common and says so. Anything never seen before is Uncategorised and listed for review.
 overrides.csv in the month folder records the review decisions and wins over the history match.
 
-Writes rows.json (Transactions columns A to J, ready to append) and review.md.
+Writes rows.json (Transactions columns A to J, ready to append), entries.json (the same rows in the
+Entries tab's columns A to T for a sheet_version 2 sheet: kind transaction, status settled, created at the
+settled date, transfer ids left for the review to pair) and review.md. Rows land in the sheet by an explicit
+range write starting at the first empty row (T0001 is row 2), never by appending to a tab with helper columns.
 --sources and --out point the run at another sources/ folder and another output folder (the portals'
 end-to-end test runs against a scratch copy); the account-to-institution map comes from the sheet's
 Accounts tab when the snapshot carries one, so the sheet owns which shape each account is read in.
@@ -44,11 +48,11 @@ def normalise(desc):
     return re.sub(r'\s+', ' ', d).strip()
 
 
-def closing_checks(doc, rows, files):
+def closing_checks(doc, sheet, rows, files):
     """Each file's last balance in the month against the sheet's opening balance plus every row to that date, the
     rows about to be appended included. Returns the review lines and whether any file disagrees."""
     opening = {a['account_id']: float(a['opening_balance'] or 0) for a in doc.get('accounts', []) if a.get('account_id')}
-    book = [(t['date'], t['account_id'], float(t['amount'])) for t in doc['transactions']] + [(r[1], r[2], r[5]) for r in rows]
+    book = [(t['date'], t['account_id'], float(t['amount'])) for t in sheet] + [(r[1], r[2], r[5]) for r in rows]
     lines, held = [], False
     for path, frows, closing in files:
         acct = path.split('/')[0]
@@ -79,7 +83,11 @@ def main():
     folder.mkdir(parents=True, exist_ok=True)
 
     doc = json.loads(Path(args.sheet).read_text())
-    sheet = doc['transactions']
+    # a 1.1 snapshot carries Transactions; a sheet_version 2 one carries the same rows as Entries of kind transaction
+    sheet = doc.get('transactions') or [
+        {'txn_id': e['entry_id'], 'date': e['settled_at'], 'account_id': e['account_id'], 'bank_description': e['raw_text'], 'merchant': e['description'],
+         'amount': e['amount'], 'category_id': e['category_id'], 'person': e['person'], 'receipt_held': e.get('receipt_held'), 'note': e.get('note')}
+        for e in doc.get('entries', []) if (e.get('kind') or 'transaction') == 'transaction']
     institutions = dict(A.INSTITUTION)
     institutions.update({a['account_id']: a['institution'] for a in doc.get('accounts', []) if a.get('account_id') and a.get('institution') in A.FORMATS})
     existing = Counter((t['date'], t['account_id'], (t['bank_description'] or '').strip(), round(float(t['amount']), 2)) for t in sheet)
@@ -136,14 +144,16 @@ def main():
     for i, r in enumerate(rows):
         r[0] = f'T{last_id + 1 + i:04d}'
 
-    balance, held = closing_checks(doc, rows, files)
-    (folder / 'rows.json').write_text(json.dumps([] if held else rows, indent=1))
-    (folder / 'rows.held.json').unlink(missing_ok=True)
-    if held:
-        (folder / 'rows.held.json').write_text(json.dumps(rows, indent=1))
+    balance, held = closing_checks(doc, sheet, rows, files)
+    entries = [[r[0], 'transaction', r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], 'settled', r[1], '', '', '', '', '', '', 'bank export'] for r in rows]
+    for name, payload in (('rows', rows), ('entries', entries)):
+        (folder / f'{name}.json').write_text(json.dumps([] if held else payload, indent=1))
+        (folder / f'{name}.held.json').unlink(missing_ok=True)
+        if held:
+            (folder / f'{name}.held.json').write_text(json.dumps(payload, indent=1))
     body = [f'# {args.month} import review', '']
     if held:
-        body += ['**HOLD: do not append.** A closing balance disagrees, so these rows are in rows.held.json and rows.json is empty.', '']
+        body += ['**HOLD: do not append.** A closing balance disagrees, so the rows wait in rows.held.json and entries.held.json, and rows.json and entries.json are empty.', '']
     body += [f'{len(rows)} rows to append' + (f', T{last_id + 1:04d} to T{last_id + len(rows):04d}' if rows else '') + f'; {len(skipped)} already in the sheet' + (f'; {len(repeated)} repeated across overlapping files' if repeated else '') + '.', '']
     body += ['## Closing balances'] + (balance or ['- No file printed a balance for this month.']) + ['']
     body += review or ['Nothing to review.']
