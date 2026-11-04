@@ -7,11 +7,17 @@ The six checked screen states pass the platform audit for control hit regions, d
 - The Ask heading can grow vertically, and its decorative cat yields its space at accessibility text sizes.
 - Import account selection has its own full-width control with a persistent label and accessible selected value. A UI journey verifies that CSV choice stays disabled until an account is selected. It does not prove a real file's account binding.
 - Import actions and source links have a 44-point minimum label height; import labels and the practice badge can wrap. Import section headings have explicit scalable text and foreground colors.
-- Activity uses a shorter search prompt. Searching still reaches the original transaction evidence.
+- Activity uses a shorter search prompt and an inline navigation title at accessibility sizes. Transaction detail labels and values stack at those sizes. Searching still reaches the original transaction evidence.
 
 `accessibility-repair-02.xcresult` passes the six-screen control audit and account-selection journey on iPhone 17 Pro with default text and light appearance. `accessibility-se-03.xcresult` passes the audit and five affected journeys on iPhone SE with accessibility extra-large text and dark appearance: activity search, AI consent preview, document confirmation/relaunch, account selection, and unresolved-import save blocking. The latter six tests completed with zero failures in 169 seconds. They supplement the earlier full 90-unit/12-journey run; the entire suite was not repeated for these view changes.
 
 The [test](../KittyUITests/KittyAccessibilityTests.swift) collects all platform findings, retains JSON and screenshots, and asserts that control findings are absent. Contrast, text clipping, Dynamic Type and text-detection findings are diagnostics requiring review. They are not silently counted as passed checks.
+
+## Activity visual repair
+
+Independent inspection of [the earlier small-screen Activity capture](screenshots/accessibility-se-activity.png) found a real overlap between the large navigation title and search field. The title now uses the inline native layout at accessibility text sizes. The affected search-to-original-record journey passes at regular size in `activity-layout-regular-01.xcresult` and at large text in `activity-layout-se-02.xcresult`; it checks that the title and search frames do not intersect, then scrolls to the original transaction identifier. The final small-screen run took 19.750 seconds with zero failures. The intervening `activity-layout-se-01.xcresult` also passes and is retained.
+
+The same review found transaction values cramped beside long field labels at large text size. These fields now stack. Inspected originals show [separate title and search](screenshots/activity-final-se-26-activity-title-and-search.png), [stacked Movement/Expense and complete original evidence](screenshots/activity-final-se-03-transaction-original-evidence.png), and [the regular layout](screenshots/activity-regular-26-activity-title-and-search.png). The broad platform audit was not repeated for this targeted change; the earlier diagnostic counts below remain historical open findings.
 
 ## Remaining visual findings
 

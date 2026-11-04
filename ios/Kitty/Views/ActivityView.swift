@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ActivityView: View {
   @EnvironmentObject var store: KittyStore
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @State private var query = ""
   @State private var filter = "All"
   var transactions: [KittyTransaction] {
@@ -42,6 +43,7 @@ struct ActivityView: View {
           .font(.caption).foregroundStyle(KittyTheme.secondary)
       }
     }.scrollContentBackground(.hidden).kittyBackground().navigationTitle("Activity")
+      .navigationBarTitleDisplayMode(dynamicTypeSize.isAccessibilitySize ? .inline : .large)
       .searchable(text: $query, prompt: "Search activity").accessibilityIdentifier(
         "activityList"
       )
@@ -89,6 +91,7 @@ struct TransactionRow: View {
 }
 struct TransactionDetailView: View {
   @EnvironmentObject var store: KittyStore
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   let transaction: KittyTransaction
   var body: some View {
     ScrollView {
@@ -103,16 +106,16 @@ struct TransactionDetailView: View {
           Text(niceDate(transaction.date)).foregroundStyle(KittyTheme.secondary)
         }.frame(maxWidth: .infinity).padding(.vertical, 16)
         KittyCard {
-          LabeledContent("Category", value: transaction.catName)
+          detail("Category", value: transaction.catName)
           Divider()
-          LabeledContent(
+          detail(
             "Account",
             value: store.household?.accounts.first { $0.id == transaction.acct }?.name
               ?? transaction.acct)
           Divider()
-          LabeledContent("Person", value: transaction.person)
+          detail("Person", value: transaction.person)
           Divider()
-          LabeledContent("Movement", value: transaction.flow)
+          detail("Movement", value: transaction.flow)
         }
         KittyCard {
           SectionTitle(title: "From the original record")
@@ -136,5 +139,17 @@ struct TransactionDetailView: View {
       }.padding(20).frame(maxWidth: 650)
     }.frame(maxWidth: .infinity).kittyBackground().navigationTitle("Transaction")
       .navigationBarTitleDisplayMode(.inline)
+  }
+
+  @ViewBuilder private func detail(_ label: String, value: String) -> some View {
+    if dynamicTypeSize.isAccessibilitySize {
+      VStack(alignment: .leading, spacing: 6) {
+        Text(label).font(.subheadline).foregroundStyle(KittyTheme.secondary)
+        Text(value).fixedSize(horizontal: false, vertical: true)
+      }.frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    } else {
+      LabeledContent(label, value: value)
+    }
   }
 }

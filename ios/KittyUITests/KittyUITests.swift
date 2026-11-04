@@ -63,6 +63,10 @@ final class KittyUITests: XCTestCase {
     let search = app.searchFields.firstMatch
     if !search.isHittable { app.swipeDown() }
     XCTAssertTrue(search.waitForExistence(timeout: 5))
+    let title = app.navigationBars["Activity"].staticTexts["Activity"].firstMatch
+    XCTAssertTrue(title.exists)
+    XCTAssertFalse(title.frame.intersects(search.frame), "The Activity title must not cover search at large text sizes.")
+    capture("26-activity-title-and-search")
     search.tap()
     search.typeText("Woolworths")
     let row = app.descendants(matching: .any)["transactionRow.T0919"].firstMatch
@@ -74,7 +78,9 @@ final class KittyUITests: XCTestCase {
     reveal(evidence)
     XCTAssertTrue(evidence.exists)
     XCTAssertTrue(app.staticTexts["WOOLWORTHS 3021 BRUNSWICK"].exists)
-    XCTAssertTrue(app.staticTexts["Transaction T0919"].exists)
+    let identifier = app.staticTexts["Transaction T0919"]
+    revealPrecisely(identifier)
+    XCTAssertTrue(identifier.isHittable)
     capture("03-transaction-original-evidence")
   }
 
