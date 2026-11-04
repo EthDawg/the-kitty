@@ -1,19 +1,39 @@
 # 2027-01 import review
 
-0 rows to append; 49 already in the sheet.
+0 rows to append; 49 already in the sheet. 0.01 s.
 
-- ACC-SAV/2027-02-02/Transactions-2027-01.csv: 2 rows in 2027-01, 0 new
-- ACC-SAV/2027-01-02/Transactions-2026-12.csv: 0 rows in 2027-01, 0 new
-- ACC-RNT/2027-02-02/Harbour-Transactions-ACC-RNT-2027-01.csv: 3 rows in 2027-01, 0 new
-- ACC-RNT/2027-01-02/Harbour-Transactions-ACC-RNT-2026-12.csv: 0 rows in 2027-01, 0 new
-- ACC-OFF/2027-02-02/Harbour-Transactions-ACC-OFF-2027-01.csv: 0 rows in 2027-01, 0 new
-- ACC-OFF/2027-01-02/Harbour-Transactions-ACC-OFF-2026-12.csv: 0 rows in 2027-01, 0 new
-- ACC-HOL/2027-02-02/Transactions-2027-01.csv: 2 rows in 2027-01, 0 new
-- ACC-HOL/2027-01-02/Transactions-2026-12.csv: 0 rows in 2027-01, 0 new
-- ACC-EVD/2027-02-02/Harbour-Transactions-ACC-EVD-2027-01.csv: 12 rows in 2027-01, 0 new
-- ACC-EVD/2027-01-02/Harbour-Transactions-ACC-EVD-2026-12.csv: 0 rows in 2027-01, 0 new
+## Files
 - ACC-CC/2027-02-02/activity-2027-01.csv: 30 rows in 2027-01, 0 new
-- ACC-CC/2027-01-02/activity-2026-12.csv: 0 rows in 2027-01, 0 new
+- ACC-EVD/2027-02-02/Harbour-Transactions-ACC-EVD-2027-01.csv: 12 rows in 2027-01, 0 new
+- ACC-HOL/2027-02-02/Transactions-2027-01.csv: 2 rows in 2027-01, 0 new
+- ACC-OFF/2027-01-02/Harbour-Transactions-ACC-OFF-2026-12.csv: 0 rows in 2027-01, 0 new; header only, no rows (fine for a dormant account; check if you expected movement)
+- ACC-OFF/2027-02-02/Harbour-Transactions-ACC-OFF-2027-01.csv: 0 rows in 2027-01, 0 new; header only, no rows (fine for a dormant account; check if you expected movement)
+- ACC-RNT/2027-02-02/Harbour-Transactions-ACC-RNT-2027-01.csv: 3 rows in 2027-01, 0 new
+- ACC-SAV/2027-02-02/Transactions-2027-01.csv: 2 rows in 2027-01, 0 new
+- 5 other files hold no rows in 2027-01; every row in them is earlier and in the sheet
+
+## Closing balances
+- ACC-CC/2027-02-02/activity-2027-01.csv: not checked, this format prints no balance
+- ACC-EVD/2027-02-02/Harbour-Transactions-ACC-EVD-2027-01.csv: 2027-01-31 file 5,971.06, ledger 5,971.06, OK
+- ACC-HOL/2027-02-02/Transactions-2027-01.csv: 2027-01-31 file 12,090.25, ledger 12,090.25, OK
+- ACC-RNT/2027-02-02/Harbour-Transactions-ACC-RNT-2027-01.csv: 2027-01-28 file 2,424.28, ledger 2,424.28, OK
+- ACC-SAV/2027-02-02/Transactions-2027-01.csv: 2027-01-31 file 26,902.84, ledger 26,902.84, OK
+
+## Valuations
+- HOME 2027-01-31 1,266,000.00: already in the sheet (period-close/2027-01/valuations.csv)
+- RENTAL 2027-01-31 771,000.00: already in the sheet (period-close/2027-01/valuations.csv)
+- SUPER-J 2027-01-31 224,489.24: already in the sheet (period-close/2027-01/valuations.csv)
+- SUPER-M 2027-01-31 129,944.58: already in the sheet (period-close/2027-01/valuations.csv)
+- ETF 2027-01-31 52,774.80: already in the sheet (period-close/2027-01/valuations.csv)
+- CAR 2027-01-31 22,600.00: already in the sheet (period-close/2027-01/valuations.csv)
+- LN-HOME 2027-01-31 -591,715.18: already in the sheet (period-close/2027-01/valuations.csv)
+- LN-INV 2027-01-31 -520,000.00: already in the sheet (period-close/2027-01/valuations.csv)
+
+## Payslips
+- period-close/2027-01/payslips.csv: 4 payslips in 2027-01, 0 new
+
+## Review
+Nothing to review.
 
 ## Already in the sheet (not appended)
 - ACC-CC/2027-02-02/activity-2027-01.csv: 2027-01-01 ANYTIME FITNESS COBURG -64.95
@@ -57,3 +77,8 @@
 - ACC-EVD/2027-02-02/Harbour-Transactions-ACC-EVD-2027-01.csv: 2027-01-19 GREATER WESTERN WATER -266.26
 - ACC-EVD/2027-02-02/Harbour-Transactions-ACC-EVD-2027-01.csv: 2027-01-21 SALARY BAYVIEW HEALTH +2458.00
 - … and 9 more
+
+## Write plan
+- nothing to write
+
+Three steps, never a fourth: (1) this plan; (2) the agent reads each precondition range, then writes each range under `writes` with the Sheets connector `update_values`, in order, by explicit range, never `append_values`; (3) the agent re-reads every range it wrote, saves the responses, and runs `python3 period-close/verify.py write-plan.json reread.json`. Then the snapshot is refreshed and this month is closed.
