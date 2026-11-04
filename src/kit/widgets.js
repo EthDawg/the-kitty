@@ -78,7 +78,7 @@
   K.Chip = (label, on) => `<button class="chip${on ? " on" : ""}">${esc(label)}</button>`;
   K.StatTile = (k, v, d) => `<div class="stat"><div class="k">${esc(k)}</div><div class="v num">${esc(v)}</div>${d ? `<div class="sub">${esc(d)}</div>` : ""}</div>`;
   K.EmptyState = (text) => `<div class="empty">${esc(text)}</div>`;
-  K.Skeleton = (lines) => `<div class="skel" aria-hidden="true">${Array.from({ length: lines || 3 }, (_, i) => `<span style="width:${92 - i * 14}%"></span>`).join("")}</div>`;
+  K.Skeleton = (lines) => `<div class="kskel" aria-hidden="true">${Array.from({ length: lines || 3 }, (_, i) => `<span style="width:${92 - i * 14}%"></span>`).join("")}</div>`;
   K.Tray = (items) => `<div class="tray" role="group" aria-label="Hidden widgets">${items.map((i) => `<button class="chip" data-wshow="${esc(i.id)}">+ ${esc(i.title)}</button>`).join("")}</div>`;
   return K;
 });

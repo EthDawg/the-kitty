@@ -515,7 +515,7 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .whrow{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
 .whrow .mid{display:flex;flex-direction:column;min-width:0}.whrow .t{font-weight:600}.whrow .s{font-size:12.5px;color:var(--muted)}
 .tray{display:flex;flex-wrap:wrap;gap:8px}
-.skel{display:flex;flex-direction:column;gap:10px}.skel span{height:12px;border-radius:6px;background:var(--surface2)}
+.kskel{display:flex;flex-direction:column;gap:10px}.kskel span{height:12px;border-radius:6px;background:var(--surface2)}
 .kitg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .kitg .card h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
 .kitg .wide{grid-column:span 2}
