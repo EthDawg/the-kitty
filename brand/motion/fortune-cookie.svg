@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 110" width="160" height="110" aria-hidden="true">
+<style>.c{fill:var(--cookie,#E9B96E)}.c2{fill:var(--cookie2,#C98A3E)}.half{transition:transform .7s cubic-bezier(.2,.8,.2,1)}.hl{transform-origin:40px 70px}.hr{transform-origin:120px 70px}
+.open .hl{transform:translate(-26px,6px) rotate(-16deg)}.open .hr{transform:translate(26px,6px) rotate(16deg)}
+.slip{fill:#fff;stroke:#D9D2C4;stroke-width:1.5;transform:scaleX(0);transform-origin:80px 66px;transition:transform .5s .35s cubic-bezier(.2,.8,.2,1)}.open .slip{transform:scaleX(1)}
+@media (prefers-reduced-motion:reduce){.half,.slip{transition:none}}</style>
+<rect class="slip" x="30" y="56" width="100" height="22" rx="4"/>
+<g class="half hl"><path class="c" d="M80 30C56 30 34 44 24 66c-4 8 0 14 8 14h48c-6-16-6-34 0-50z"/><path class="c2" d="M48 48c-6 6-10 14-12 22h8c2-8 6-14 10-20z"/></g>
+<g class="half hr"><path class="c" d="M80 30c24 0 46 14 56 36 4 8 0 14-8 14H80c6-16 6-34 0-50z"/><path class="c2" d="M112 48c6 6 10 14 12 22h-8c-2-8-6-14-10-20z"/></g>
+</svg>
