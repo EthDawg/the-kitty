@@ -9,10 +9,15 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: node --test test.js
-      - run: python3 -m py_compile build.py snapshot.py period-close/adapters.py period-close/simulate.py period-close/import_month.py
+      - run: node --test test.js test-v2.js
+      - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py
       - run: python3 build.py && test -s dist/kitty.html
-      - name: every inline script parses
-        run: node -e "const h=require('fs').readFileSync('dist/kitty.html','utf8');for(const m of h.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);console.log('ok')"
-      - name: a repeated month appends nothing
+      - run: python3 build.py --v2 && test -s dist/kitty-v2.html
+      - name: every inline script parses, in both builds
+        run: for f in dist/kitty.html dist/kitty-v2.html; do node -e "const h=require('fs').readFileSync('$f','utf8');for(const m of h.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);console.log('$f ok')"; done
+      - name: a repeated month appends nothing (1.1 sheet)
         run: python3 period-close/import_month.py 2027-01 | grep -q "0 rows to append"
+      - name: a repeated month appends nothing (the ledger)
+        run: python3 period-close/import_month.py 2027-01 --sheet data/snapshot-v2.json | grep -q "0 rows to append"
+      - name: the fixtures are exactly what the snapshot cuts
+        run: python3 fixtures/make-v2-fixtures.py && git diff --exit-code --stat fixtures/

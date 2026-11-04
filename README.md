@@ -21,6 +21,10 @@ Version 1.1, shipped. Verified live on 3 November 2026: live read and write thro
 connector, the onboarding's writes, Ask the Kitty, two month-end closes through the import pipeline, light and
 dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the end of this file.
 
+**2.0, phase A (the ledger), 4 November 2026, on branch `v2-ledger`:** the data model below now carries every store
+of value, on a copy of the demo sheet ("Digital Davies v2", `kitty.config.json`). The published 1.1 page keeps
+reading the original sheet until phase C cuts over. `python3 build.py --v2` builds a local page against the copy.
+
 
 ## What is in here
 
@@ -30,10 +34,12 @@ dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the e
 | `src/app.js` | The page: Home, Activity, Insights, Goals, Setup; onboarding; drawers; the three writes; Ask the Kitty. |
 | `src/style.css`, `src/shell.html` | Tokens (light and dark, four accents), components, the SVG icon sprite. |
 | `src/data-sources.json` | How a household gets bank data in, by country and institution, with the landing rules. Rendered on Setup. |
-| `data/snapshot.json` | The Davies household as JSON, pulled from the sheet's bound Apps Script. Fictional, so it is bundled. |
-| `snapshot.py` | Refreshes `data/snapshot.json` from the Apps Script JSON feed (`apps-script/Code.js`, `?format=json`). |
-| `build.py` | Bundles `dist/kitty.html` (publish this) and `dist/local.html` (open locally). `--no-snapshot` for a page with no data in it. |
+| `data/snapshot.json` | The Davies household as JSON, pulled from the sheet's bound Apps Script. Fictional, so it is bundled. `data/snapshot-v2.json` is the same household from the v2 sheet, with the ledger tabs. |
+| `snapshot.py` | Refreshes `data/snapshot.json` from the Apps Script JSON feed (`apps-script/Code.js`, `?format=json`); `--v2` refreshes the v2 snapshot once the copy's script is deployed. Until then `tools/grid_to_snapshot.py` builds it from typed connector reads. |
+| `kitty.config.json` | Sheet IDs, feed URLs and the page URL: the 1.1 demo sheet the public page reads, and the v2 sheet phase A migrated. |
+| `build.py` | Bundles `dist/kitty.html` (publish this) and `dist/local.html` (open locally). `--no-snapshot` for a page with no data in it; `--v2` for `dist/kitty-v2.html` against the v2 sheet. |
 | `test.js` | Pinned tests on a frozen month (`fixtures/snapshot-2026-11.json`) plus invariants that also run on the live snapshot: transactions add up to the Cash Flow tab every month, accounts to the Cash metric, IDs unique. |
+| `test-v2.js` | The ledger's tests: the sheet's Balances tab is the oracle for every account at every month end; the transfer invariant; signals; on the live v2 snapshot and the fixtures `everyday-only` and `everyday+property` (cut by `fixtures/make-v2-fixtures.py`). |
 | `skills/bank-export/SKILL.md` | The agent skill for the monthly export, country-aware, credential-free. |
 
 ## Build, test, publish
@@ -61,6 +67,24 @@ Checks, Net Worth). Metrics names each headline figure once. The page draws from
 derives only what a search or a window needs, and checks its derivations against the sheet in the trust
 drawer. It writes three things, each to the owning tab: Kitty settings, a goal's target or date, the
 safety-net target.
+
+**The ledger (sheet_version 2).** Every store of value is a row on Accounts with a type (transaction, savings,
+offset, credit card, loan, property, vehicle, device, shares, crypto, super, smsf), an owner, an opening anchor and
+date, a class, a valuation method (ledger, statement, appraisal, market, estimate) and a status (active, beta,
+closed). Everything that happens is a row on Entries of one of three kinds: a transaction (money moved, with Up's
+vocabulary: raw text, description, status, created at, settled at, transfer id and account, foreign amount), a
+trade (units at a price) or a valuation (a value observed on a date, from a statement or an appraisal). Balances
+holds the balance of every account at every month end: the anchor plus entries for a ledger account, the last
+valuation carried forward for the rest; Net Worth is derived from it. Contracts holds recurring obligations
+(subscriptions, insurance, the lease, loan terms) with provider, cadence, next date and cover; Decisions holds
+human judgments keyed to an entry, contract or account; Rules maps descriptors to merchant, category, tax label
+and property. Transactions, Valuations, Assets and Subscriptions are formula views over these, so every 1.1
+formula keeps working and every existing ID is stable. A transfer is one event on two accounts paired by
+`transfer_id`, and the sheet checks the invariant (a mate of the opposite amount within four days; pairs never
+count as spending; each month's change in total balances equals income less spending plus valuation changes)
+alongside the engine. Loan terms stay on the Loans tab (Mortgage Scenarios reads it); Contracts mirrors them by
+formula. On a v2 sheet the month-end rows land on Entries (columns A to T, `entries.json` from the importer), by
+explicit range at the first empty row, never by appending to a tab with helper columns.
 
 ## The month-end close, as the banks deliver it
 

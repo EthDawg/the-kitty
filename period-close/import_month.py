@@ -14,7 +14,10 @@ and the word REFUND removed. A description seen with more than one category take
 common and says so. Anything never seen before is Uncategorised and listed for review.
 overrides.csv in the month folder records the review decisions and wins over the history match.
 
-Writes rows.json (Transactions columns A to J, ready to append) and review.md.
+Writes rows.json (Transactions columns A to J, ready to append), entries.json (the same rows in the
+Entries tab's columns A to T for a sheet_version 2 sheet: kind transaction, status settled, created at the
+settled date, transfer ids left for the review to pair) and review.md. Rows land in the sheet by an explicit
+range write starting at the first empty row (T0001 is row 2), never by appending to a tab with helper columns.
 """
 import argparse
 import csv
@@ -44,7 +47,12 @@ def main():
     folder = Path(__file__).parent / args.month
     folder.mkdir(exist_ok=True)
 
-    sheet = json.loads(Path(args.sheet).read_text())['transactions']
+    snap = json.loads(Path(args.sheet).read_text())
+    # a 1.1 snapshot carries Transactions; a sheet_version 2 one carries the same rows as Entries of kind transaction
+    sheet = snap.get('transactions') or [
+        {'txn_id': e['entry_id'], 'date': e['settled_at'], 'account_id': e['account_id'], 'bank_description': e['raw_text'], 'merchant': e['description'],
+         'amount': e['amount'], 'category_id': e['category_id'], 'person': e['person'], 'receipt_held': e.get('receipt_held'), 'note': e.get('note')}
+        for e in snap.get('entries', []) if (e.get('kind') or 'transaction') == 'transaction']
     existing = Counter((t['date'], t['account_id'], (t['bank_description'] or '').strip(), round(float(t['amount']), 2)) for t in sheet)
     last_id = max(int(t['txn_id'][1:]) for t in sheet)
     exact, loose = defaultdict(Counter), defaultdict(Counter)
@@ -95,6 +103,8 @@ def main():
         r[0] = f'T{last_id + 1 + i:04d}'
 
     (folder / 'rows.json').write_text(json.dumps(rows, indent=1))
+    entries = [[r[0], 'transaction', r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], 'settled', r[1], '', '', '', '', '', '', 'bank export'] for r in rows]
+    (folder / 'entries.json').write_text(json.dumps(entries, indent=1))
     body = [f'# {args.month} import review', '', f'{len(rows)} rows to append' + (f', T{last_id + 1:04d} to T{last_id + len(rows):04d}' if rows else '') + f'; {len(skipped)} already in the sheet.', '']
     body += review or ['Nothing to review.']
     if skipped:

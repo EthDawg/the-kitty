@@ -113,7 +113,7 @@ function getData() {
     goals: table('Goals', 1, 10),
     // Added for The Kitty (kitty/): the input tabs and the raw rows, so one JSON holds the whole household.
     settings: table('Settings', 4, 3),
-    accounts: table('Accounts', 1, 9),
+    accounts: table('Accounts', 1, 16),
     category_list: table('Categories', 1, 8),
     loans: table('Loans', 1, 11),
     assets: table('Assets', 1, 4),
@@ -123,5 +123,13 @@ function getData() {
     transactions: table('Transactions', 1, 10),
     payslips: table('Payslips', 1, 7),
     kitty: table('Kitty', 4, 3),
+    // sheet_version 2 (The Kitty 2.0, the ledger): Accounts grows to 16 columns and these tabs appear. On a 1.1 sheet
+    // they do not exist and come back as empty lists, so the same feed serves both shapes.
+    entries: table('Entries', 1, 21),
+    balances: table('Balances', 1, 6),
+    contracts: table('Contracts', 1, 17),
+    decisions: table('Decisions', 1, 8),
+    rules: table('Rules', 1, 10),
+    valuations: table('Valuations', 1, 5),
   };
 }
