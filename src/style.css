@@ -523,6 +523,8 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .kitg .static-drawer{position:static;box-shadow:var(--shadow);border-radius:var(--r);background:var(--surface);padding:16px;width:auto;transform:none}
 .kitg .static-toast{position:static;display:inline-block;transform:none;opacity:1}
 .wtotal{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.gtile,.gtile .gtop{min-width:0}.gtile .gtop{flex-wrap:wrap}
+.toast{width:max-content;border-radius:20px}
 .toast button{pointer-events:auto;margin-left:8px;color:inherit;font:inherit;text-decoration:underline;background:none}
 
 /* ---------- responsive ---------- */

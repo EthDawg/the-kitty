@@ -76,6 +76,10 @@ test.describe("phone", () => {
     await open(page);
     await expect(page.locator("#canvas")).toHaveClass(/phone/); await expect(page.locator("#canvas.grid-stack")).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const toast = await page.locator("#toast").boundingBox(); expect(toast.width).toBeGreaterThan(280);
+    // a wider font must not push anything sideways: the goal tiles once did on Linux
+    await page.addStyleTag({ content: "*{font-family:Verdana,'DejaVu Sans',sans-serif !important}" });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const lefts = await page.locator(".wcell").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().left))); expect(new Set(lefts).size).toBe(1);
     await page.getByRole("button", { name: "Arrange this page" }).click();
     await page.getByRole("button", { name: "Move What needs you up" }).click();
