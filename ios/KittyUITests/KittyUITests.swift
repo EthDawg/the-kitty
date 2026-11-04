@@ -84,6 +84,79 @@ final class KittyUITests: XCTestCase {
     capture("03-transaction-original-evidence")
   }
 
+  func testFilteredActivityExportKeepsItsReviewWhenFilesPickerIsCancelled() {
+    openTab("Activity")
+    let search = app.searchFields.firstMatch
+    if !search.isHittable { app.swipeDown() }
+    XCTAssertTrue(search.waitForExistence(timeout: 5))
+    search.tap(); search.typeText("Woolworths")
+    if app.keyboards.buttons["Search"].exists { app.keyboards.buttons["Search"].tap() }
+    let export = app.buttons["activityExportResults"]
+    revealPrecisely(export); XCTAssertTrue(export.isHittable)
+    XCTAssertTrue(export.isEnabled); export.tap()
+    let count = app.staticTexts["activityExportCount"]
+    XCTAssertTrue(count.waitForExistence(timeout: 5))
+    XCTAssertEqual(count.label, "38 transactions")
+    XCTAssertTrue(app.staticTexts["Woolworths"].exists)
+    capture("35-filtered-activity-export-review")
+    let save = app.buttons["activityExportSave"]
+    revealPrecisely(save); XCTAssertTrue(save.isHittable); save.tap()
+    XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 8))
+    capture("36-native-csv-destination-picker")
+    // The iOS 26 destination picker has a Back button inside a folder, not
+    // Cancel. Dismiss its sheet using the normal interactive gesture.
+    let pickerTop = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.09))
+    let pickerBottom = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+    pickerTop.press(forDuration: 0.1, thenDragTo: pickerBottom)
+    XCTAssertTrue(app.navigationBars["Export activity"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.staticTexts["activityExportResult"].exists)
+    app.buttons["activityExportDone"].tap()
+    XCTAssertTrue(search.waitForExistence(timeout: 5))
+    XCTAssertEqual(search.value as? String, "Woolworths")
+  }
+
+  func testHouseholdPreferencesExposeReadOnlyDemoInputs() {
+    app.buttons["Settings"].tap()
+    XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+    let preferences = app.buttons["settings.preferences"]
+    revealPrecisely(preferences); XCTAssertTrue(preferences.isHittable); preferences.tap()
+    XCTAssertTrue(app.navigationBars["Household preferences"].waitForExistence(timeout: 5))
+    let greeting = app.buttons["preferences.greeting"]
+    revealPrecisely(greeting); XCTAssertTrue(greeting.isHittable)
+    capture("37-household-preferences")
+    greeting.tap()
+    XCTAssertTrue(app.navigationBars["Greeting"].waitForExistence(timeout: 5))
+    XCTAssertFalse(app.textFields["inputEdit.greeting"].isEnabled)
+    let review = app.buttons["inputEdit.prepare"]
+    revealPrecisely(review)
+    XCTAssertTrue(review.exists); XCTAssertFalse(review.isEnabled)
+    capture("38-demo-preference-edit-boundary")
+  }
+
+  func testNewGoalFormSupportsAmountEntryWithoutPretendingToSaveDemoData() {
+    openTab("Goals")
+    app.buttons["goals.add"].tap()
+    let name = app.textFields["goal.name"]
+    XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("A weekend away")
+    app.buttons["goal.keyboardDone"].tap()
+    let target = app.textFields["goal.target"]
+    revealPrecisely(target); target.tap(); target.typeText("1234.56")
+    app.buttons["goal.keyboardDone"].tap()
+    XCTAssertEqual(target.value as? String, "1234.56")
+    capture("39-new-goal-form")
+    let account = app.buttons["goal.account"]
+    revealPrecisely(account); XCTAssertTrue(account.isHittable); account.tap()
+    XCTAssertTrue(app.buttons["Everyday joint"].waitForExistence(timeout: 5))
+    app.buttons["Everyday joint"].tap()
+    XCTAssertEqual(account.value as? String, "Everyday joint")
+    capture("41-new-goal-account-selected")
+    let review = app.buttons["goal.review"]
+    revealPrecisely(review)
+    XCTAssertTrue(review.exists); XCTAssertFalse(review.isEnabled)
+    XCTAssertTrue(app.staticTexts["Demo goals are fictional and read-only. Connect your Sheet to save your own goals."].exists)
+    capture("40-demo-goal-creation-boundary")
+  }
+
   func testGoalDetailPreservesOverTargetAmountAndDemoEditBoundary() {
     openTab("Goals")
     let goal = app.descendants(matching: .any)["goalCard.3"].firstMatch

@@ -1,6 +1,6 @@
 # Native workflow evidence
 
-Full-resolution originals, captions, workflows, results and hashes are retained in [the inventory](screenshots/inventory.json). All captures contain the fictional Davies household only. They do not establish live Google access, provider AI, physical-device acceptance or store approval.
+Full-resolution originals, captions, workflows, results and hashes are retained in [the inventory](screenshots/inventory.json). All captures contain fictional households only. They do not establish live Google access, provider AI, physical-device acceptance or store approval.
 
 The expanded run, `typed-acceptance-final.xcresult`, passes 90 native tests and all 12 UI journeys on iPhone SE in dark mode with accessibility extra-large text. Its 24 untouched 750×1334 captures have a `typed-se-` prefix. The accessibility follow-up adds 21 originals with an `accessibility-regular-` or `accessibility-se-` prefix. Three later `feed-se-` captures from `public-feed-ui-01.xcresult` brought the inventory to 84; practice import/replay and month-end preview pass again after the publication guard. These captures do not exercise the connected-state warning. Six subsequent Activity captures bring the inventory to 90; the final large-text journey verifies separate title/search geometry and reaches the original transaction identifier. Large-text captures preserve the visible viewport of a scrollable section; the complete assertions and interactions remain in the result bundle.
 
@@ -39,3 +39,16 @@ The inventory also retains the earlier regular-size captures 13–18 from the pa
 ## Clean household setup
 
 Six `setup-regular-` / `setup-se-` originals bring the inventory to 96. The fictional account editor, exact opening-balance review and saved draft after relaunch pass on iPhone 17 Pro and iPhone SE with accessibility extra-large text. The final small-screen capture uses `household-ui-se-04.xcresult` and asserts that the review row is fully in the viewport; the earlier passing run asserted reachability but its screenshot did not show the amount. The UI journey stops at local review and performs no Google authorization or workbook creation.
+
+## Household controls, recovery and export
+
+The current regular-size regression passes 165 native unit tests and all 20 UI journeys in `parity-regular-final.xcresult`. Six small-screen setup, recovery, transaction and export journeys pass in `parity-se-recovery-export-03.xcresult`; preference and goal-entry journeys pass in `parity-se-preferences-goals-02.xcresult`. An earlier interrupted small-screen run failed its off-screen Settings assertion and has no completed readable bundle. It is superseded by these passing runs.
+
+Screenshot inspection exposed a truncated account picker in the new-goal form. The final wrapping menu and actual selection pass at regular size in `parity-goal-account-regular-04.xcresult` and at large text size in `parity-goal-account-se-04.xcresult`. The selected current originals use the final targeted captures for these changed views; the earlier originals remain in their local result bundles.
+
+- [Opening household](screenshots/parity-regular-33-opening-household-home.png) and [empty Activity](screenshots/parity-se-34-opening-household-empty-activity.png) load actual sanitized Google readback through Debug-only fixtures. They do not exercise native OAuth.
+- [Completed-setup continuation](screenshots/parity-regular-30-completed-setup-next-household.png) and [preserved recovery](screenshots/parity-se-32-preserved-setup-recovery.png) use synthetic local records. Neither is a live service receipt.
+- [Filtered export review](screenshots/parity-regular-35-filtered-activity-export-review.png) and [native Files picker](screenshots/parity-se-36-native-csv-destination-picker.png) retain the exact search after cancellation. The picker is cancelled; no destination save is claimed.
+- [Preferences](screenshots/parity-se-37-household-preferences.png) and [selected goal account](screenshots/parity-se-41-new-goal-account-selected.png) show the large-text viewport. The fictional demo remains read-only.
+
+These additions retain 59 new originals, bringing the verified inventory to 155: 41 current regular-size captures, 17 small-screen captures and one final opening-balance capture. The [final small-screen balance](screenshots/parity-final-se-33-opening-household-home.png) comes from the passing `parity-home-visible-se-05.xcresult`, which asserts the entire amount sits above the floating tab bar. Its earlier scroll position is retained as historical evidence and labelled as partly obscured. No screenshots were cropped, resized or otherwise edited for the inventory.

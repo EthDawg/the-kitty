@@ -114,7 +114,7 @@ struct AskView: View {
       .onChange(of: store.selectedSheetID) { _, _ in review = nil; message = nil }
       .sheet(item: $review) { item in
         AskReviewView(review: item, onRefresh: { review = nil; Task { await prepareReview() } })
-          .environmentObject(store)
+          .kittyFeedback().environmentObject(store)
       }
   }
   private func loadProviders() async {
@@ -244,7 +244,7 @@ private struct AskReviewView: View {
               }
             }.navigationTitle("Report a concern").navigationBarTitleDisplayMode(.inline)
               .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showReport = false } } }
-          }
+          }.kittyFeedback()
         }
     }
   }

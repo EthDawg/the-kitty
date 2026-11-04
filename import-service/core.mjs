@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import {prepareTyped,lifecycleTyped,provenanceTyped} from './typed.mjs';
+import {prepareGoal,lifecycleGoal,validateGoalManifest} from './goals.mjs';
 
 export class ImportError extends Error {
   constructor(code, message, status = 400, recovery) { super(message); this.code = code; this.status = status; if(recovery)this.recovery=recovery; }
@@ -160,6 +161,7 @@ export class SerialQueue {
 export class ImportService {
   constructor({driver,queue = new SerialQueue(),auditSources,now = ()=>new Date().toISOString()}) { this.driver=driver;this.queue=queue;this.auditSources=auditSources;this.now=now; }
   async prepare(token,request) {
+    if(request.protocolVersion===3)return prepareGoal(this,token,request);
     assert(request.protocolVersion===undefined || [1,2].includes(request.protocolVersion),'unsupported_protocol','This import protocol is not supported.');
     if(request.protocolVersion===2)return prepareTyped(this,token,request);
     sheetID(request.sheetId);
@@ -191,6 +193,7 @@ export class ImportService {
     return this.queue.run(request.sheetId,async()=> {
       await this.driver.authorize(token,request.sheetId);
       const manifest=await this.driver.loadManifest(token,importId,request.sheetId);
+      if(manifest.contract===3)return lifecycleGoal(this,token,manifest,importId,request,'commit');
       if(manifest.contract===2)return lifecycleTyped(this,token,manifest,importId,request,'commit');
       const state=await this.driver.readState(token,request.sheetId);
       validateState(state,manifest.schemaVersion);
@@ -243,6 +246,7 @@ export class ImportService {
     return this.queue.run(request.sheetId,async()=>{
     await this.driver.authorize(token,request.sheetId);
     const manifest=await this.driver.loadManifest(token,importId,request.sheetId);
+    if(manifest.contract===3)return lifecycleGoal(this,token,manifest,importId,request,'status');
     if(manifest.contract===2)return lifecycleTyped(this,token,manifest,importId,request,'status');
     const state=await this.driver.readState(token,request.sheetId);
     const receipt=state.receipts.find(r=>r.importId===importId);
@@ -258,6 +262,7 @@ export class ImportService {
     return this.queue.run(request.sheetId,async()=>{
       await this.driver.authorize(token,request.sheetId);
       const manifest=await this.driver.loadManifest(token,importId,request.sheetId);
+      if(manifest.contract===3)return lifecycleGoal(this,token,manifest,importId,request,'cancel');
       if(manifest.contract===2)return lifecycleTyped(this,token,manifest,importId,request,'cancel');
       const state=await this.driver.readState(token,request.sheetId);
       const receipt=state.receipts.find(r=>r.importId===importId);
@@ -300,7 +305,16 @@ export class ImportService {
       return null;
     }
     if(gate.importId===allowedImportId)return gate;
-    throw new ImportError('sheet_import_pending','Another import for this Sheet is still awaiting verification. Check that import before importing again. Its original Google account may be needed to access the evidence.',409,{sheetId,importId:gate.importId,proposalDigest:gate.proposalDigest});
+    throw new ImportError('sheet_import_pending','Another operation for this Sheet is still awaiting verification. Check its saved receipt before continuing. Its original Google account may be needed to access the evidence.',409,await this.recoveryDescriptor(token,sheetId,gate));
+  }
+  async recoveryDescriptor(token,sheetId,gate) {
+    const recovery={sheetId,importId:gate.importId,proposalDigest:gate.proposalDigest};
+    let manifest;try{manifest=await this.driver.loadManifest(token,gate.importId,sheetId);}catch{return recovery;}
+    if(manifest.contract===3){
+      validateGoalManifest(manifest);assert(manifest.proposalDigest===gate.proposalDigest&&gate.rowsHash===digest(manifest.recordRefs)&&gate.stateHash===manifest.baseline,'sheet_import_gate_invalid','The goal hold no longer matches its reviewed manifest.',409);
+      Object.assign(recovery,{protocolVersion:3,operation:'goal-create',schemaVersion:manifest.schemaVersion,goal:manifest.goal});
+    }
+    return recovery;
   }
   async finish(token,manifest,state,importId,receipt) {
     if(!receipt)return this.reconcile(manifest,state,importId);
@@ -338,6 +352,7 @@ export class ImportService {
       try {
         if(manifests[receiptIndex].error)throw manifests[receiptIndex].error;
         const manifest=manifests[receiptIndex].value;
+        if(manifest.contract===3){validateGoalManifest(manifest,receipt,state.version);continue;} // A validated goal receipt has no transaction provenance.
         assert(manifest.schemaVersion===state.version && manifest.proposalDigest===receipt.digest,'provenance_receipt_mismatch','The evidence receipt does not match this import.',409);
         const expectedIds=manifest.targetRows.map(r=>r[0]);
         assert(receipt.manifestFile===receipt.importId && JSON.stringify(JSON.parse(receipt.ids))===JSON.stringify(manifest.contract===2?manifest.recordRefs:expectedIds),'provenance_receipt_mismatch','The evidence receipt refers to different records.',409);

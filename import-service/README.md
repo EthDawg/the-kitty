@@ -183,4 +183,10 @@ Provider contract references:
 - [Drive custom properties and size limits](https://developers.google.com/workspace/drive/api/guides/properties)
 - [Drive files.update metadata API](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/update)
 
+## Native goal creation
+
+[Contract 3](GOALS.md) adds a goal through this same queue, shared Sheet hold, reserved write intent and receipt lifecycle. It validates the complete Goals table and appends one typed A:J row with formulas derived from the pinned template. It never writes a guessed row or replaces an existing goal/formula. A missing first goal in a clean setup is supported; custom formulas, sparse tables, duplicated names, stray trailing data/notes and unavailable balances require correction in the Sheet. Status and cancellation remain available after a publishing change. New writes require the known `public_feed` setting to be off.
+
+The local goal suite covers v1/v2, blank setup, exact cents/date/account validation, formula preservation, unknown outcomes, cancellation, cross-protocol holds, current versus historical receipts and malformed provenance. [The fictional Google append observation](evidence/GOAL-GOOGLE-ACCEPTANCE.md) is a provider primitive, not hosted service or native OAuth acceptance. The same single-process and external-editor limits above apply; a shared hold is not Google cell compare-and-swap.
+
 The first provider primitive run used a new private copy, retained before/after formulas and raw rows, and tested populated append, an isolated empty input tab with actual template helpers, and a stale offset with a separately placed external row. The next acceptance run must exercise the deployed service and app OAuth, including response loss, duplicate import, a second identity and an external cell edit. Passing the local suite or primitive test does not replace those checks.

@@ -31,33 +31,18 @@ struct RootView: View {
     }
     .foregroundStyle(KittyTheme.ink)
     .sheet(isPresented: $store.showSettings) {
-      NavigationStack { SettingsView(google: store.google) }.environmentObject(store)
+      NavigationStack { SettingsView(google: store.google) }.kittyFeedback().environmentObject(store)
     }
     .sheet(isPresented: $store.showImport) {
-      NavigationStack { ImportView() }.environmentObject(store)
+      NavigationStack { ImportView() }.kittyFeedback().environmentObject(store)
     }
     .sheet(isPresented: $store.showAccounts) {
-      NavigationStack { AccountsView() }.environmentObject(store)
+      NavigationStack { AccountsView() }.kittyFeedback().environmentObject(store)
     }
     .sheet(isPresented: $store.showHouseholdSetup) {
-      NavigationStack { HouseholdSetupView() }.environmentObject(store)
+      NavigationStack { HouseholdSetupView() }.kittyFeedback().environmentObject(store)
     }
-    .alert(
-      "Let's sort that out",
-      isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })
-    ) {
-      Button("OK", role: .cancel) { store.error = nil }
-    } message: {
-      Text(store.error ?? "")
-    }
-    .alert(
-      "The Kitty",
-      isPresented: Binding(get: { store.notice != nil }, set: { if !$0 { store.notice = nil } })
-    ) {
-      Button("OK", role: .cancel) { store.notice = nil }
-    } message: {
-      Text(store.notice ?? "")
-    }
+    .kittyFeedback(isModal: false)
     .onChange(of: scenePhase) { _, phase in
       if phase == .active && store.mode == .connected && !store.busy {
         Task { await store.refresh() }

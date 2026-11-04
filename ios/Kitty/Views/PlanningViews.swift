@@ -310,6 +310,10 @@ struct SafetyPlanningView: View {
           .accessibilityIdentifier("safety.target")
         Text("Coverage comes from Metrics. The target comes from Settings or the target comparison recorded in Metrics.")
           .font(.caption).foregroundStyle(KittyTheme.secondary)
+        NavigationLink("Change the target") {
+          SheetInputEditor(kind: .safetyMonths,
+            initialText: store.household?.planning?.safety.target.map { GoogleCell.number($0).displayString } ?? "")
+        }.accessibilityIdentifier("safety.editTarget")
       }
       Section("Sheet sources") {
         SourceLink(label: "Metrics tab", range: "Metrics!A:H")

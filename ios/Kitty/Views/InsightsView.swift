@@ -153,6 +153,11 @@ struct SubscriptionsView: View {
         Text(
           "Your Sheet’s recurring costs. Estimates depend on the recorded cadence; cancellation is never automatic."
         ).font(.subheadline)
+        if store.household?.sheetVersion == 2 {
+          Text("This Sheet derives subscriptions from its v2 ledger. Record decisions in the Sheet’s Decisions tab; this calculated view stays read-only.")
+            .font(.caption).foregroundStyle(KittyTheme.secondary)
+          SourceLink(label: "Decisions tab", range: "Decisions!A:H")
+        }
       }
       ForEach(store.household?.subscriptions ?? []) { s in
         VStack(alignment: .leading, spacing: 8) {
@@ -167,6 +172,11 @@ struct SubscriptionsView: View {
           Text("Recorded decision: \(s.decision.isEmpty ? "None yet":s.decision)").font(.caption)
           if let charged = s.lastCharged {
             Text("Last charged \(niceDate(charged))").font(.caption)
+          }
+          if store.household?.sheetVersion == 1 {
+            NavigationLink("Record a decision") {
+              SheetInputEditor(kind: .subscriptionDecision, recordKey: s.service, initialText: s.decision)
+            }.accessibilityIdentifier("subscription.decision.\(s.service)")
           }
         }
       }

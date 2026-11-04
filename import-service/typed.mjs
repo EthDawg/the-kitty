@@ -3,6 +3,7 @@ import {ImportError,digest,sheetID,validateGate,gateVerified,validDate,dateSeria
 import {typedDigest,RECORD_HEADER} from './typed-google.mjs';
 import {auditSources} from './source-audit.mjs';
 import {verifyBasicCloseChecks} from './basic-close.mjs';
+import {validateGoalManifest} from './goals.mjs';
 const require=createRequire(import.meta.url);
 const cores=()=>({Records:require('../native-core/records.js'),Close:require('../native-core/close.js')});
 const clone=x=>structuredClone(x);
@@ -91,6 +92,7 @@ async function evidence(service,token,sheetId,state,ids){
   for(const id of [...new Set(wanted)]){
     try{
       const manifest=await service.driver.loadManifest(token,id,sheetId);
+      if(manifest.contract===3){validateGoalManifest(manifest,state.receipts.find(r=>r.importId===id),state.version);if(ids)throw new Error('not typed intake');continue;}
       if(manifest.contract!==2||manifest.operation!=='ingest'){if(ids)throw new Error('not typed intake');continue;}
       must(verifyTyped(manifest,state,id,{historical:true}).status==='verified','evidence_changed','An evidence receipt or accepted record changed.');
       await service.driver.verifySources(token,manifest);
@@ -108,7 +110,7 @@ async function checkGate(service,token,sheetId,state,allowed){
   if(state.legacy&&gateVerified(gate,state.legacy)){must(await service.driver.clearSheetGate(token,sheetId,gate),'sheet_import_gate_unconfirmed','The completed hold could not be cleared.',503);return null;}
   if(gate.importId===allowed)return gate;
   try{const m=await service.driver.loadManifest(token,gate.importId,sheetId);if(m.contract===2){const answer=await finishTyped(service,token,m,state,gate.importId);if(answer.status==='verified')return null;}}catch{}
-  throw new ImportError('sheet_import_pending','Another operation for this Sheet needs verification before continuing.',409,{sheetId,importId:gate.importId,proposalDigest:gate.proposalDigest});
+  throw new ImportError('sheet_import_pending','Another operation for this Sheet needs verification before continuing.',409,await service.recoveryDescriptor(token,sheetId,gate));
 }
 export async function prepareTyped(service,token,request){
   sheetID(request.sheetId);must(['ingest','close'].includes(request.operation),'operation_invalid','Choose intake or close.',400);

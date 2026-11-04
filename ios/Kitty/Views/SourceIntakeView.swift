@@ -125,7 +125,8 @@ struct SourceSaveSection: View {
         Button { confirm = true } label: {
           if store.importBusy { ProgressView("Checking the reviewed records…") }
           else { Label(store.isDemo ? "Complete document practice" : "Save reviewed records", systemImage: "checkmark.shield") }
-        }.disabled(store.importLocked || !store.sourceImportCanCommit || (!store.isDemo && !store.sheetCanEdit))
+        }.disabled(store.importLocked || !store.sourceImportCanCommit || store.newSheetWritesNeedRecovery
+          || (!store.isDemo && !store.sheetCanEdit))
           .accessibilityIdentifier("saveSourceImport")
       }
     }.confirmationDialog(store.isDemo ? "Complete this document practice?" : "Save these reviewed records?",

@@ -1,0 +1,47 @@
+{
+  "householdName": "The Fixture",
+  "firstPerson": "Jamie",
+  "secondPerson": "",
+  "includesSecondPerson": false,
+  "openingDate": 0,
+  "accounts": [
+    {
+      "id": "CASH",
+      "name": "Everyday",
+      "institution": "Fictional Bank",
+      "type": "Transaction",
+      "owner": "Jamie",
+      "openingAmount": "123.45",
+      "isOwed": false
+    }
+  ],
+  "emergencyAccountId": "",
+  "includesGoal": false,
+  "goalName": "",
+  "goalAmount": "",
+  "goalDate": 0,
+  "goalAccountId": "",
+  "reservation": {
+    "setupId": "synthetic_setup_123456",
+    "createIntentId": "synthetic_create_intent_123456",
+    "initializeIntentId": "synthetic_initialize_intent_123456",
+    "proposalDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ownerPermissionId": "synthetic_owner_123456",
+    "sourceSha256": "41743ff2a6bcbc21fc112656a4a3af71d9d2d233aa23657e801b3112ad4268ab",
+    "inputSha256": "37ac7504b4d1dab0e97b3d9b520de7d86dd3c44f3419a6a52ed56de05cbf437b",
+    "normalizedInputData": "eyJhY2NvdW50cyI6W3siaWQiOiJDQVNIIiwiaW5zdGl0dXRpb24iOiJGaWN0aW9uYWwgQmFuayIsIm5hbWUiOiJFdmVyeWRheSIsIm9wZW5pbmdNaW5vciI6IjEyMzQ1Iiwib3duZXIiOiJKYW1pZSIsInR5cGUiOiJUcmFuc2FjdGlvbiJ9XSwiYnVkZ2V0cyI6W10sImNhcGFjaXR5Ijp7InBheXNsaXBzIjo1MDAsInRyYW5zYWN0aW9ucyI6MjAwMCwidmFsdWF0aW9ucyI6NTAwfSwiY291bnRyeSI6IkFVIiwiY3VycmVuY3kiOiJBVUQiLCJlbWVyZ2VuY3lBY2NvdW50SWQiOm51bGwsImdvYWwiOm51bGwsImhvdXNlaG9sZE5hbWUiOiJUaGUgRml4dHVyZSIsIm9wZW5pbmdEYXRlIjoiMjAyNy0wMS0zMSIsInBlb3BsZSI6WyJKYW1pZSJdLCJwcm9maWxlIjoiYXUtYXVkLWJhc2ljIiwic2hlZXRWZXJzaW9uIjoxfQ==",
+    "reviewSummaryData": "eyJjdXJyZW5jeSI6IkFVRCIsImhvdXNlaG9sZE5hbWUiOiJUaGUgRml4dHVyZSIsInBlb3BsZSI6WyJKYW1pZSJdLCJvcGVuaW5nRGF0ZSI6IjIwMjctMDEtMzEiLCJhY2NvdW50cyI6W3siaWQiOiJDQVNIIiwibmFtZSI6IkV2ZXJ5ZGF5IiwiaW5zdGl0dXRpb24iOiJGaWN0aW9uYWwgQmFuayIsInR5cGUiOiJUcmFuc2FjdGlvbiIsIm93bmVyIjoiSmFtaWUiLCJvcGVuaW5nTWlub3IiOiIxMjM0NSJ9XSwiYnVkZ2V0cyI6W10sImVtZXJnZW5jeUFjY291bnRJZCI6bnVsbCwiZ29hbCI6bnVsbCwiY2FwYWNpdHkiOnsidHJhbnNhY3Rpb25zIjoyMDAwLCJwYXlzbGlwcyI6NTAwLCJ2YWx1YXRpb25zIjo1MDB9LCJmaXJzdEltcG9ydERhdGUiOiIyMDI3LTAyLTAxIiwib3BlbmluZ0Nhc2hNaW5vciI6IjEyMzQ1IiwidW5hdmFpbGFibGVNb2R1bGVzIjpbInRheCIsIm1vcnRnYWdlIiwid2hvbGUtaG91c2Vob2xkIG5ldCB3b3J0aCIsImFzc2V0cyIsInN1YnNjcmlwdGlvbnMiLCJzYXZpbmdzIG9wcG9ydHVuaXRpZXMiXSwiaW5pdGlhbFN0YXRlIjoiT3BlbmluZyBiYWxhbmNlcyBvbmx5OyBubyBpbXBvcnRlZCBvciBjbG9zZWQgcGVyaW9kcy4ifQ=="
+  },
+  "approvedInput": "eyJhY2NvdW50cyI6W3siaWQiOiJDQVNIIiwiaW5zdGl0dXRpb24iOiJGaWN0aW9uYWwgQmFuayIsIm5hbWUiOiJFdmVyeWRheSIsIm9wZW5pbmdNaW5vciI6IjEyMzQ1Iiwib3duZXIiOiJKYW1pZSIsInR5cGUiOiJUcmFuc2FjdGlvbiJ9XSwiYnVkZ2V0cyI6W10sImNhcGFjaXR5Ijp7InBheXNsaXBzIjo1MDAsInRyYW5zYWN0aW9ucyI6MjAwMCwidmFsdWF0aW9ucyI6NTAwfSwiY291bnRyeSI6IkFVIiwiY3VycmVuY3kiOiJBVUQiLCJlbWVyZ2VuY3lBY2NvdW50SWQiOm51bGwsImdvYWwiOm51bGwsImhvdXNlaG9sZE5hbWUiOiJUaGUgRml4dHVyZSIsIm9wZW5pbmdEYXRlIjoiMjAyNy0wMS0zMSIsInBlb3BsZSI6WyJKYW1pZSJdLCJwcm9maWxlIjoiYXUtYXVkLWJhc2ljIiwic2hlZXRWZXJzaW9uIjoxfQ==",
+  "lastResult": {
+    "setupId": "synthetic_setup_123456",
+    "proposalDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ownerPermissionId": "synthetic_owner_123456",
+    "status": "verified",
+    "phase": "complete",
+    "canContinue": false,
+    "canCancel": false,
+    "sheetId": "synthetic_sheet_123456",
+    "issues": []
+  }
+}

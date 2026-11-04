@@ -11,8 +11,14 @@ struct HouseholdSetupView: View {
   var body: some View {
     Group {
       if store.setupLoadBlocked {
-        ContentUnavailableView("Setup needs checking", systemImage: "exclamationmark.shield",
-          description: Text("The saved recovery record could not be read. It has been preserved so another Sheet is not created by mistake."))
+        ContentUnavailableView {
+          Label("Setup needs checking", systemImage: "exclamationmark.shield")
+        } description: {
+          Text("The saved recovery record could not be read or cleared. It has been preserved so another Sheet is not created by mistake.")
+        } actions: {
+          Button("Retry local recovery") { store.loadHouseholdSetup() }
+            .accessibilityIdentifier("setup.retryRecovery")
+        }
       } else if store.setupDraft.isLocked {
         recovery
       } else {
@@ -31,7 +37,7 @@ struct HouseholdSetupView: View {
       }
     }
     .sheet(isPresented: $showReview) {
-      NavigationStack { HouseholdSetupReviewView().environmentObject(store) }
+      NavigationStack { HouseholdSetupReviewView().environmentObject(store) }.kittyFeedback()
         .interactiveDismissDisabled(store.setupBusy)
     }
     .onChange(of: store.setupDraft) { _, _ in
@@ -149,6 +155,10 @@ struct HouseholdSetupView: View {
         if store.setupDraft.lastResult?.status == .verified {
           Button("Open my household") { Task { await store.openCreatedHousehold() } }
             .accessibilityIdentifier("setup.openCreated")
+          Button("Start another household") { store.discardHouseholdSetup() }
+            .accessibilityIdentifier("setup.startAnother")
+          Text("Your completed Sheet stays in Google Drive. This starts a new, empty setup on this device.")
+            .font(.caption).foregroundStyle(KittyTheme.secondary)
         } else if store.setupDraft.lastResult?.status == .cancelled {
           Button("Start a fresh setup") { store.discardHouseholdSetup() }
         } else {

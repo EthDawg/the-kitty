@@ -21,10 +21,11 @@ for name,folder,producttype,ext in [('Kitty','Kitty','application','app'),('Kitt
  sources=[];resources=[];refs=[]
  paths=list((ROOT/folder).rglob('*.swift'))
  if name=='Kitty': paths += list((ROOT/folder/'Resources').glob('*'))+[ROOT/folder/'Assets.xcassets',ROOT/folder/'PrivacyInfo.xcprivacy']
+ if name in ['KittyTests','KittyUITests']: paths += list((ROOT/'TestFixtures').glob('*'))
  for p in sorted(paths):
   rel=p.relative_to(ROOT).as_posix();typ={'.swift':'sourcecode.swift','.js':'sourcecode.javascript','.json':'text.json','.csv':'text','.xcprivacy':'text.xml','.xcassets':'folder.assetcatalog'}.get(p.suffix,'text')
-  ref=obj(rel,'PBXFileReference',lastKnownFileType=q(typ),path=q(rel),sourceTree=q('SOURCE_ROOT'));refs.append(ref)
-  build=obj(rel+'build','PBXBuildFile',fileRef=ref)
+  ref=obj(name+rel,'PBXFileReference',lastKnownFileType=q(typ),path=q(rel),sourceTree=q('SOURCE_ROOT'));refs.append(ref)
+  build=obj(name+rel+'build','PBXBuildFile',fileRef=ref)
   (sources if p.suffix=='.swift' else resources).append(build)
  group=obj(name+'group','PBXGroup',children=arr(refs),name=q(name),sourceTree=q('<group>'));groups.append(group)
  phases=[obj(name+'sources','PBXSourcesBuildPhase',buildActionMask='2147483647',files=arr(sources),runOnlyForDeploymentPostprocessing='0'),obj(name+'resources','PBXResourcesBuildPhase',buildActionMask='2147483647',files=arr(resources),runOnlyForDeploymentPostprocessing='0'),obj(name+'frameworks','PBXFrameworksBuildPhase',buildActionMask='2147483647',files='()',runOnlyForDeploymentPostprocessing='0')]

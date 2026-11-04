@@ -20,8 +20,18 @@ struct Household: Decodable {
   let reconciliation: [ReconciliationCheck]
   let people: [String]
   var planning: KittyPlanning? = nil
+  var preferences: KittyPreferences? = nil
   var publicFeedEnabled: Bool = false
   func value(_ id: String) -> Double? { metrics[id]?.num }
+  var featuredGoal: KittyGoal? {
+    if let name = preferences?.leadGoal, let goal = goals.first(where: { $0.name == name }) { return goal }
+    return goals.first { $0.status != "Reached" } ?? goals.first
+  }
+}
+struct KittyPreferences: Decodable, Equatable {
+  let greeting: String?
+  let leadGoal: String?
+  let lookAheadDays: Int?
 }
 struct KittyAccount: Decodable, Identifiable {
   let id, name, bank, type, owner: String
@@ -50,7 +60,8 @@ struct KittyGoal: Decodable, Identifiable {
   var id: Int { row }
 }
 struct KittyMetric: Decodable {
-  let id, label, unit, period: String
+  let id, label, unit: String
+  let period: String?
   let num, comp: Double?
   let text: String?
   let comparedWith: String?
@@ -127,5 +138,16 @@ func monthName(_ value: String) -> String {
   f.dateFormat = "yyyy-MM-dd"
   guard let date = f.date(from: value) else { return value }
   f.dateFormat = "MMM"
+  return f.string(from: date)
+}
+func monthYear(_ value: String) -> String {
+  let f = DateFormatter()
+  f.calendar = Calendar(identifier: .gregorian)
+  f.locale = Locale(identifier: "en_AU")
+  f.timeZone = TimeZone(secondsFromGMT: 0)
+  f.dateFormat = "yyyy-MM-dd"
+  f.isLenient = false
+  guard let date = f.date(from: value), f.string(from: date) == value else { return "Date not available" }
+  f.dateFormat = "MMMM yyyy"
   return f.string(from: date)
 }

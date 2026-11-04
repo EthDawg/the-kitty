@@ -156,4 +156,30 @@ import XCTest
     XCTAssertFalse(FileManager.default.fileExists(atPath: store.householdSetupURL.path))
     XCTAssertFalse(UserDefaults.standard.bool(forKey: KittyStore.setupCleanupKey))
   }
+
+  func testStartingAnotherHouseholdClearsOnlyConfirmedTerminalSetup() throws {
+    let (store, cleanup) = try isolatedStore(); defer { cleanup() }
+    for status in [HouseholdSetupStatus.verified, .cancelled] {
+      store.setupDraft = try pending()
+      store.setupDraft.lastResult = result(status)
+      try store.saveHouseholdSetup()
+      store.discardHouseholdSetup()
+      XCTAssertFalse(store.setupDraft.isLocked)
+      XCTAssertTrue(store.setupDraft.householdName.isEmpty)
+      XCTAssertFalse(FileManager.default.fileExists(atPath: store.householdSetupURL.path))
+    }
+  }
+
+  func testUnknownOrConflictingSetupCannotBeClearedForAnotherHousehold() throws {
+    let (store, cleanup) = try isolatedStore(); defer { cleanup() }
+    for status in [HouseholdSetupStatus.unknown, .conflict, .prepared, .created] {
+      store.setupDraft = try pending()
+      store.setupDraft.lastResult = result(status)
+      try store.saveHouseholdSetup()
+      let original = try Data(contentsOf: store.householdSetupURL)
+      store.discardHouseholdSetup()
+      XCTAssertTrue(store.setupDraft.isUnresolved)
+      XCTAssertEqual(try Data(contentsOf: store.householdSetupURL), original)
+    }
+  }
 }

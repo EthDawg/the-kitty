@@ -8,6 +8,17 @@
     return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
   };
   const number = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
+  const preferenceKeys = ['greeting_name', 'lead_goal', 'look_ahead_days'];
+  const preferences = rows => {
+    const value = key => {
+      const matches = (rows || []).filter(row => String(row.key == null ? '' : row.key).trim() === key);
+      return matches.length === 1 ? matches[0].value : null;
+    };
+    const text = key => typeof value(key) === 'string' && value(key).trim() ? value(key).trim() : null;
+    const days = value('look_ahead_days');
+    return {greeting:text('greeting_name'), leadGoal:text('lead_goal'),
+      lookAheadDays:typeof days === 'number' && Number.isInteger(days) && days >= 1 && days <= 365 ? days : null};
+  };
   const planning = (snapshot, m) => {
     const inputs = snapshot.mortgage_inputs || {};
     const rates = (snapshot.mortgage || []).map((row, index) => ({id: 'rate-' + index,
@@ -104,7 +115,8 @@
       month.total = Engine.num(raw && raw.net_worth);
     }
     const details = planning(snapshot, m);
-    const horizon = Math.min(365, Math.max(1, Number(m.kitty.look_ahead_days) || 35));
+    const prefs = preferences(snapshot.kittyPreferenceRows || snapshot.kitty || []);
+    const horizon = prefs.lookAheadDays || 35;
     const upcoming = Engine.upcoming({...m,payslips:[]}, horizon).map(row => {
       if (row.kind === 'bill') {
         const source = m.subs.find(item => item.service === row.ref.key);
@@ -123,7 +135,7 @@
       ? snapshot.publicFeedEnabled
       : String(publicFeed && publicFeed.value != null ? publicFeed.value : '').trim().toLowerCase() === 'yes';
     return {household:m.householdName, asOf:m.asOf, currency:m.kitty.currency || 'AUD', sheetVersion:Number(versions[0].value),
-      publicFeedEnabled,
+      publicFeedEnabled, preferences:prefs,
       accounts:m.accounts, transactions:m.tx, categories:m.cats, goals:m.goals, metrics:m.metrics,
       cashflow:m.cashflow, budget:m.budget, subscriptions:m.subs, checks:m.checks,
       savings:m.savings, networth:m.networth, upcoming, planning:details,
@@ -154,6 +166,10 @@
     // header and after blank rows. Its gate must not use a truncated table.
     const publicFeed = (grids.kitty || []).find(row => row && String(row[0]).trim() === 'public_feed');
     snapshot.publicFeedEnabled = !!publicFeed && String(publicFeed[1]).trim().toLowerCase() === 'yes';
+    // Keep exact configuration records outside Engine's table truncation. A
+    // duplicate key is ambiguous, so it cannot silently select another value.
+    snapshot.kittyPreferenceRows = (grids.kitty || []).filter(row => row && preferenceKeys.includes(String(row[0]).trim()))
+      .map(row => ({key:row[0],value:row[1] == null ? null : row[1]}));
     const grid = grids.cashflow || [];
     const index = grid.findIndex(row => row && row[0] === 'Month');
     if (index >= 0) {

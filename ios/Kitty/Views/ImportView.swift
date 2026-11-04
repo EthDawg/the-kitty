@@ -16,6 +16,7 @@ struct ImportView: View {
     List {
       introduction
       ImportPublicationSection()
+      SheetWriteRecoverySection()
       if store.draft.remote != nil { recovery }
       sources.disabled(store.importLocked)
       SourceIntakeSection()
@@ -60,7 +61,7 @@ struct ImportView: View {
       case .failure(let error): store.error = error.localizedDescription
       }
     }
-    .sheet(item: $mappingSource) { source in NavigationStack { MappingView(source: source) } }
+    .sheet(item: $mappingSource) { source in NavigationStack { MappingView(source: source) }.kittyFeedback() }
     .confirmationDialog(
       store.isDemo ? "Complete this practice import?" : "Save these reviewed rows?",
       isPresented: $confirmSave, titleVisibility: .visible
@@ -327,7 +328,8 @@ struct ImportView: View {
             systemImage: "checkmark.shield")
         }
       }.disabled(!proposal.canCommit || store.importBusy || store.importEvidenceLoading
-        || store.importPublicationNotice != nil || (!store.isDemo && !store.sheetCanEdit))
+        || store.importPublicationNotice != nil || store.newSheetWritesNeedRecovery
+        || (!store.isDemo && !store.sheetCanEdit))
         .opacity(proposal.canCommit ? 1 : 0.5)
         .accessibilityIdentifier("saveImport")
       if !store.isDemo && !store.sheetCanEdit {

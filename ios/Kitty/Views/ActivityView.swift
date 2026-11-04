@@ -1,10 +1,13 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ActivityView: View {
   @EnvironmentObject var store: KittyStore
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @State private var query = ""
   @State private var filter = "All"
+  @State private var exportReview: ActivityExportReview?
+  @State private var exportError: String?
   var transactions: [KittyTransaction] {
     (store.household?.transactions ?? []).filter { tx in
       (filter == "All" || (filter == "Needs a category" ? tx.cat == "UNCAT" : tx.flow == filter))
@@ -23,6 +26,14 @@ struct ActivityView: View {
           Text("Income").tag("Income")
           Text("Needs a category").tag("Needs a category")
         }.pickerStyle(.menu)
+        if !query.isEmpty {
+          // Active native search hides trailing navigation items. Keep export
+          // beside the filtered results so the current query remains intact.
+          Button { prepareExport() } label: {
+            Label("Export these results", systemImage: "square.and.arrow.up")
+              .fixedSize(horizontal: false, vertical: true)
+          }.disabled(transactions.isEmpty).accessibilityIdentifier("activityExportResults")
+        }
       }
       if transactions.isEmpty {
         EmptyState(
@@ -50,14 +61,165 @@ struct ActivityView: View {
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Button {
+            prepareExport()
+          } label: {
+            Image(systemName: "square.and.arrow.up")
+          }
+          .disabled(transactions.isEmpty)
+          .accessibilityLabel("Export filtered activity")
+          .accessibilityHint("Review and save the \(transactions.count) transactions currently shown as CSV.")
+          .accessibilityIdentifier("activityExportButton")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+          Button {
             store.showImport = true
           } label: {
             Image(systemName: "plus")
           }.accessibilityLabel("Import statement")
         }
       }
+      .sheet(item: $exportReview) { review in
+        ActivityExportView(review: review).kittyFeedback()
+      }
+      .alert("Export unavailable", isPresented: Binding(
+        get: { exportError != nil }, set: { if !$0 { exportError = nil } }
+      )) {
+        Button("OK", role: .cancel) { exportError = nil }
+      } message: {
+        Text(exportError ?? "The activity could not be exported.")
+      }
+  }
+
+  private func prepareExport() {
+    // Capture the displayed filter result once. Export review cannot silently switch rows
+    // while a search changes or the household refreshes in the background.
+    let selected = transactions
+    do {
+      let accounts = store.household?.accounts ?? []
+      let rows = selected.map { tx in
+        ActivityCSVExport.Row(
+          id: tx.id, date: tx.date, accountID: tx.acct, bankDescription: tx.desc,
+          merchant: tx.merchant, amount: tx.amount, categoryName: tx.catName, person: tx.person,
+          accountName: accounts.first(where: { $0.id == tx.acct })?.name ?? tx.acct,
+          categoryID: tx.cat, flow: tx.flow, note: tx.note, receipt: tx.receipt,
+          currency: store.currency)
+      }
+      exportReview = ActivityExportReview(
+        export: try ActivityCSVExport.make(rows: rows), filter: filter, query: query,
+        household: store.household?.household ?? "The Kitty", isDemo: store.isDemo)
+    } catch {
+      exportError = error.localizedDescription
+    }
   }
 }
+
+private struct ActivityExportReview: Identifiable {
+  let id = UUID()
+  let export: ActivityCSVExport.Export
+  let filter, query, household: String
+  let isDemo: Bool
+}
+
+private struct ActivityExportView: View {
+  @Environment(\.dismiss) private var dismiss
+  let review: ActivityExportReview
+  @State private var showFileExporter = false
+  @State private var notice: String?
+  @State private var error: String?
+
+  var body: some View {
+    NavigationStack {
+      Form {
+        Section("This Activity view") {
+          Text("\(review.export.rowCount) transactions").font(.headline)
+            .accessibilityIdentifier("activityExportCount")
+          Text(review.isDemo ? "Fictional practice data · \(review.household)" : review.household)
+          LabeledContent("Filter", value: review.filter)
+          if !review.query.isEmpty { LabeledContent("Search", value: review.query) }
+          Text("The CSV contains exactly these rows in their displayed order, including original descriptions, account and category IDs, people, amounts, flow and notes.")
+            .font(.subheadline).foregroundStyle(KittyTheme.secondary)
+        }
+        Section("Spreadsheet-safe text") {
+          Text("Text that could be treated as a spreadsheet formula is protected with a leading apostrophe. Amounts stay numeric.")
+            .font(.subheadline)
+            .accessibilityIdentifier("activityExportProtectionNotice")
+          Text("\(review.export.protectedCellCount) text cells need this protection.")
+            .font(.caption).foregroundStyle(KittyTheme.secondary)
+          DisclosureGroup("Export format details") {
+            Text("Formula-like text, leading control characters and existing leading apostrophes get one added apostrophe ('). The remaining text is unchanged. For raw CSV processing, remove the first apostrophe from exported text cells that begin with it to recover the original value. The CSV uses UTF-8, ISO dates and exact two-decimal amounts; your Sheet is unchanged.")
+              .font(.subheadline).foregroundStyle(KittyTheme.secondary)
+              .padding(.vertical, 4)
+          }.accessibilityIdentifier("activityExportFormatDetails")
+        }
+        Section {
+          Button {
+            notice = nil
+            error = nil
+            showFileExporter = true
+          } label: {
+            Label("Save CSV", systemImage: "square.and.arrow.down")
+              .frame(maxWidth: .infinity, minHeight: 44)
+          }
+          .buttonStyle(.borderless)
+          .accessibilityIdentifier("activityExportSave")
+          if let notice {
+            Text(notice).foregroundStyle(KittyTheme.positive)
+              .accessibilityIdentifier("activityExportResult")
+          }
+          if let error { Text(error).foregroundStyle(KittyTheme.warning) }
+        }
+      }
+      .scrollContentBackground(.hidden).kittyBackground()
+      .navigationTitle("Export activity").navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .confirmationAction) {
+          Button("Done") { dismiss() }.accessibilityIdentifier("activityExportDone")
+        }
+      }
+      .fileExporter(
+        isPresented: $showFileExporter,
+        document: ActivityCSVDocument(data: review.export.data),
+        contentType: .commaSeparatedText, defaultFilename: review.export.filename
+      ) { result in
+        switch result {
+        case .success:
+          notice = "CSV saved."
+          error = nil
+        case .failure(let failure):
+          let cocoa = failure as NSError
+          if cocoa.domain != NSCocoaErrorDomain || cocoa.code != NSUserCancelledError {
+            error = "The CSV could not be saved. \(failure.localizedDescription)"
+          }
+        }
+      }
+    }
+  }
+}
+
+/// FileDocument keeps bytes in memory until the user chooses a destination. The system owns
+/// export staging/cleanup; this view creates no persistent cache or app-owned temporary file.
+private struct ActivityCSVDocument: FileDocument {
+  static var readableContentTypes: [UTType] { [.commaSeparatedText] }
+  let data: Data
+
+  init(data: Data) { self.data = data }
+
+  init(configuration: ReadConfiguration) throws {
+    guard let data = configuration.file.regularFileContents else {
+      throw CocoaError(.fileReadCorruptFile)
+    }
+    self.data = data
+  }
+
+  func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+    let wrapper = FileWrapper(regularFileWithContents: data)
+    #if os(iOS)
+      wrapper.fileAttributes[FileAttributeKey.protectionKey.rawValue] = FileProtectionType.complete.rawValue
+    #endif
+    return wrapper
+  }
+}
+
 struct TransactionRow: View {
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   let transaction: KittyTransaction

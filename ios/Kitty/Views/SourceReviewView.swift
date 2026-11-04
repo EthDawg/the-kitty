@@ -50,10 +50,10 @@ struct SourceReviewView: View {
     .navigationTitle("Review \(draft.kind.title.lowercased())")
     .navigationBarTitleDisplayMode(.inline)
     .sheet(isPresented: $preview) {
-      SourceOriginalView(document: document, page: $currentPage, evidence: focusedEvidence)
+      SourceOriginalView(document: document, page: $currentPage, evidence: focusedEvidence).kittyFeedback()
     }
     .sheet(item: evidenceBinding) { item in
-      evidencePicker(item.field)
+      evidencePicker(item.field).kittyFeedback()
     }
   }
 

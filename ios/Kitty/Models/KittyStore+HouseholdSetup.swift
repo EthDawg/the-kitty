@@ -59,6 +59,7 @@ import Foundation
         try FileManager.default.removeItem(at: householdSetupURL)
       }
       setupDraft = HouseholdSetupDraft()
+      error = nil
     } catch { self.error = "The saved setup could not be removed. It has been preserved." }
   }
 
@@ -85,7 +86,15 @@ import Foundation
   }
 
   func createHousehold() async {
-    guard !busy, !setupBusy, !importBusy, !disconnecting, !setupLoadBlocked else { return }
+    guard !busy, !setupBusy, !importBusy, !inputEditBusy, !goalBusy, !disconnecting, !setupLoadBlocked else { return }
+    guard !inputEditsBlockNewWrites else {
+      error = "Check the saved Sheet edit in Settings before creating another household."
+      return
+    }
+    guard !goalWritesBlocked else {
+      error = "Check the saved goal in Goals before creating another household."
+      return
+    }
     guard draft.remote == nil else { error = "Resolve the pending import before creating another household."; return }
     if setupDraft.reservation != nil { await resumeHouseholdSetup(); return }
     guard serviceURL != nil else {
@@ -128,7 +137,7 @@ import Foundation
   }
 
   private func performHouseholdSetupAction(_ action: String) async {
-    guard !busy, !setupBusy, !importBusy, !disconnecting, !setupLoadBlocked,
+    guard !busy, !setupBusy, !importBusy, !inputEditBusy, !goalBusy, !disconnecting, !setupLoadBlocked,
       let reservation = setupDraft.reservation, let approved = setupDraft.approvedInput else { return }
     guard serviceURL != nil else { error = "Reconnect to the configured Kitty service to check this setup. Its recovery record is preserved."; return }
     setupBusy = true; busy = true; error = nil
@@ -173,12 +182,29 @@ import Foundation
   }
 
   func openCreatedHousehold() async {
-    guard !busy, !setupBusy, !importBusy, !disconnecting,
+    guard !busy, !setupBusy, !importBusy, !inputEditBusy, !goalBusy, !disconnecting,
       setupDraft.lastResult?.status.rawValue == "verified",
       let id = setupDraft.lastResult?.sheetId else { return }
-    setupBusy = true; busy = true
+    setupBusy = true; busy = true; error = nil
     let epoch = googleEpoch
     do {
+      if !google.isConnected {
+        guard let reservation = setupDraft.reservation, serviceURL != nil else {
+          throw KittyError.message("Reconnect Google through the configured Kitty service to open this saved household. Its setup record is preserved.")
+        }
+        try await google.authorize(selectSheet: false)
+        guard googleEpoch == epoch else { setupBusy = false; busy = false; return }
+        _ = clearGoogleData(removeLocalFiles: false)
+        // A new grant may belong to a different Google account. The saved
+        // reservation must still be owned by this identity before it is opened.
+        let result = try await HouseholdSetupClient(google: google, baseURL: serviceURL)
+          .status(reservation: reservation)
+        guard googleEpoch == epoch else { setupBusy = false; busy = false; return }
+        try recordHouseholdSetupResult(result)
+        guard result.status == .verified, result.sheetId == id else {
+          throw KittyError.message("Check this saved setup's current result before opening it. No new Sheet has been requested.")
+        }
+      }
       let metadata = try await sheets.metadata(spreadsheetID: id)
       guard googleEpoch == epoch else { setupBusy = false; busy = false; return }
       setupBusy = false; busy = false

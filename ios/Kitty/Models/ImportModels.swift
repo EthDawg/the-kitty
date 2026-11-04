@@ -230,6 +230,8 @@ struct ImportServiceResult: Codable {
   let verificationScope: String?
   var protocolVersion: Int? = nil
   var operation: String? = nil
+  var sheetId: String? = nil
+  var goal: GoalInput? = nil
 }
 struct ImportServiceFailure: LocalizedError {
   let code: String
@@ -242,6 +244,10 @@ struct ImportRecoveryDescriptor: Codable {
   let sheetId: String
   let importId: String
   let proposalDigest: String
+  var protocolVersion: Int? = nil
+  var operation: String? = nil
+  var schemaVersion: Int? = nil
+  var goal: GoalInput? = nil
 
   func isValid(for sheetID: String) -> Bool {
     sheetId == sheetID

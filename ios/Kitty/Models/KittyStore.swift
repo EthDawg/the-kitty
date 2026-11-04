@@ -9,6 +9,7 @@ import SwiftUI
   @Published private(set) var disconnecting = false
   @Published var error: String?
   @Published var notice: String?
+  @Published var feedbackPresenters: [UUID] = []
   @Published var selectedTab = 0
   @Published var askQuestion = ""
   @Published var askTransactionID: String?
@@ -19,6 +20,18 @@ import SwiftUI
   @Published var setupDraft = HouseholdSetupDraft()
   @Published var setupBusy = false
   @Published var setupLoadBlocked = false
+  @Published var pendingInputEdit: SheetInputEdit?
+  @Published var inputEditLoadBlocked = false
+  @Published var inputEditBusy = false
+  var inputEditStorageOverride: URL?
+  var inputEditPersistence: ((Data, URL) throws -> Void)?
+  var inputEditRemoval: ((URL) throws -> Void)?
+  @Published var goalDraft = GoalDraft()
+  @Published var goalBusy = false
+  @Published var goalLoadBlocked = false
+  var goalStorageOverride: URL?
+  var goalPersistence: ((Data, URL) throws -> Void)?
+  var goalRemoval: ((URL) throws -> Void)?
   var setupStorageOverride: URL?
   var setupPersistence: ((Data, URL) throws -> Void)?
   var setupRemoval: ((URL) throws -> Void)?
@@ -57,6 +70,7 @@ import SwiftUI
   var googleEpoch = UUID()
   var currency: String { household?.currency ?? "AUD" }
   var isDemo: Bool { mode == .demo }
+  var newSheetWritesNeedRecovery: Bool { !isDemo && (inputEditsBlockNewWrites || goalWritesBlocked) }
   var importPublicationNotice: String? {
     guard !isDemo, household?.publicFeedEnabled == true else { return nil }
     return "Your Sheet is configured to allow its public data feed. Turn public_feed off on the Kitty tab, then refresh before saving records. Saved receipts can still be checked."
@@ -75,9 +89,11 @@ import SwiftUI
       attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication])
     return base
   }
-  init(google: GoogleConnection? = nil, setupStorage: URL? = nil) {
+  init(google: GoogleConnection? = nil, setupStorage: URL? = nil, inputEditStorage: URL? = nil, goalStorage: URL? = nil) {
     self.google = google ?? GoogleConnection()
     self.setupStorageOverride = setupStorage
+    self.inputEditStorageOverride = inputEditStorage
+    self.goalStorageOverride = goalStorage
     do { engine = try EngineBridge() } catch { self.error = error.localizedDescription }
     let args = ProcessInfo.processInfo.arguments
     if args.contains("--uitest-reset") {
@@ -112,7 +128,12 @@ import SwiftUI
       }
     }
     loadDraft()
+#if DEBUG
+    installUITestFixtures()
+#endif
     loadHouseholdSetup()
+    loadPendingInputEdit()
+    loadGoalDraft()
   }
   var cacheURL: URL { storage.appendingPathComponent("sheet-\(selectedSheetID).json") }
   func persist(_ data: Data, at url: URL) throws {
@@ -124,8 +145,8 @@ import SwiftUI
     try url.setResourceValues(values)
   }
   func openDemo() {
-    guard !importBusy, !setupBusy else {
-      error = "Wait for the current import check before switching households."
+    guard !importBusy, !setupBusy, !inputEditBusy, !goalBusy else {
+      error = "Wait for the current Sheet check before switching households."
       return
     }
     googleEpoch = UUID()
@@ -155,14 +176,14 @@ import SwiftUI
     } catch { self.error = error.localizedDescription }
   }
   func showWelcome() {
-    guard !setupBusy else { return }
+    guard !setupBusy, !inputEditBusy, !goalBusy else { return }
     googleEpoch = UUID()
     mode = .welcome
     household = nil
     UserDefaults.standard.removeObject(forKey: "kitty.mode")
   }
   func connect(createDemo: Bool = false) async {
-    guard !busy, !importBusy, !setupBusy, !disconnecting else { return }
+    guard !busy, !importBusy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting else { return }
     busy = true
     error = nil
     defer { busy = false }
@@ -198,8 +219,8 @@ import SwiftUI
   }
   func disconnect() async {
     guard !disconnecting else { return }
-    guard !importBusy, !setupBusy else {
-      error = "Wait for the current import check before disconnecting Google."
+    guard !importBusy, !setupBusy, !inputEditBusy, !goalBusy else {
+      error = "Wait for the current Sheet check before disconnecting Google."
       return
     }
     if draft.remote != nil {
@@ -225,6 +246,7 @@ import SwiftUI
   func clearGoogleData(removeLocalFiles: Bool = true) -> String? {
     var failed = false
     if removeLocalFiles, !clearHouseholdSetupForDisconnect() { failed = true }
+    if removeLocalFiles, !clearGoalForDisconnect() { failed = true }
     if removeLocalFiles,
       let contents = try? FileManager.default.contentsOfDirectory(
         at: storage, includingPropertiesForKeys: nil)
@@ -279,7 +301,7 @@ import SwiftUI
     })
   }
   func select(_ file: GoogleSheetFile) async {
-    guard !busy, !importBusy, !setupBusy, !disconnecting else { return }
+    guard !busy, !importBusy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting else { return }
     busy = true
     error = nil
     defer { busy = false }
@@ -320,14 +342,14 @@ import SwiftUI
     }
   }
   func refresh() async {
-    guard !busy, !disconnecting else { return }
+    guard !busy, !importBusy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting else { return }
     busy = true
     defer { busy = false }
     await refreshSnapshot()
   }
   // The public entry point owns the operation gate. A verified write already owns
   // that gate and refreshes here before releasing it.
-  private func refreshSnapshot() async {
+  func refreshSnapshot() async {
     guard !selectedSheetID.isEmpty else {
       if isDemo {
         notice = "You’re exploring a fictional household. No bank or Google data is connected."
@@ -475,8 +497,17 @@ import SwiftUI
         "This Google account can view the Sheet but cannot edit it. Ask the owner for edit access before saving a goal."
       )
     }
-    guard !busy, !importBusy else {
+    guard !busy, !importBusy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting else {
       throw KittyError.message("Wait for the current Sheet update, then save your goal.")
+    }
+    guard !inputEditsBlockNewWrites else {
+      throw KittyError.message("Check the saved Sheet edit in Settings before saving another change.")
+    }
+    guard !goalWritesBlocked else {
+      throw KittyError.message("Check the saved goal in Goals before saving another change.")
+    }
+    guard draft.remote == nil, !setupDraft.isUnresolved, !setupLoadBlocked else {
+      throw KittyError.message("Check the saved import or household setup before saving another change.")
     }
     guard target.isFinite, target > 0, target < 9_007_199_254_740_992 else {
       throw KittyError.message("Enter a valid goal amount greater than zero.")
@@ -516,7 +547,7 @@ import SwiftUI
   var importSheetKey: String { selectedSheetID.isEmpty ? "demo" : selectedSheetID }
   var importStorage: URL { importStorageOverride ?? storage }
   var draftURL: URL { importStorage.appendingPathComponent("import-\(importSheetKey).json") }
-  var importLocked: Bool { importBusy || importEvidenceLoading || draft.remote != nil }
+  var importLocked: Bool { importBusy || setupBusy || inputEditBusy || goalBusy || importEvidenceLoading || draft.remote != nil }
   var importCanDiscard: Bool { !importLocked }
   func persistImport(_ data: Data, at url: URL) throws {
     if let importPersistence {
@@ -741,6 +772,7 @@ import SwiftUI
       recovery.isValid(for: sheetID), selectedSheetID == sheetID, mode == .connected,
       draft.remote == nil, draft.boundSheetID == nil || draft.boundSheetID == sheetID
     else { return false }
+    if recovery.protocolVersion == 3 { return try adoptGoalHold(recovery) }
     draft.remote = ImportRemoteBinding(
       id: recovery.importId, sheetID: sheetID, proposalDigest: recovery.proposalDigest,
       localDraftDigest: "", proposal: Data(), attempted: true, status: "unknown")
@@ -827,7 +859,7 @@ import SwiftUI
     }
   }
   func checkImportStatus() async {
-    guard !importBusy, let binding = draft.remote else { return }
+    guard !busy, !importBusy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting, let binding = draft.remote else { return }
     guard let endpoint = serviceURL else {
       error = "Secure import saving isn't connected in this build. Your saved receipt is preserved."
       return
@@ -846,7 +878,7 @@ import SwiftUI
     }
   }
   func cancelPreparedImport() async {
-    guard !importBusy, let binding = draft.remote else { return }
+    guard !busy, !importBusy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting, let binding = draft.remote else { return }
     guard let endpoint = serviceURL else {
       error = "Secure import saving isn't connected in this build. Your saved receipt is preserved."
       return
@@ -881,6 +913,10 @@ import SwiftUI
         protocolVersion: result.protocolVersion, operation: result.operation)
     } else if binding.proposalDigest != resultDigest {
       throw KittyError.message("The receipt digest changed. The original review stays protected.")
+    }
+    if result.protocolVersion == 3 {
+      try await moveGoalReceiptFromImport(result, binding: binding)
+      return
     }
     if binding.recoveryOnly && result.protocolVersion == 2 {
       binding.protocolVersion = 2
@@ -967,6 +1003,15 @@ import SwiftUI
     }
   }
   func commitImport() async {
+    guard !busy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting else { return }
+    if draft.remote == nil, inputEditsBlockNewWrites, !isDemo {
+      error = "Check the saved Sheet edit in Settings before saving a new import."
+      return
+    }
+    if draft.remote == nil, goalWritesBlocked, !isDemo {
+      error = "Check the saved goal in Goals before saving a new import."
+      return
+    }
     if draft.remote?.protocolVersion == 2 || (!draft.documents.isEmpty && draft.remote == nil) {
       await commitSourceImport(operation: draft.remote?.operation ?? "ingest")
       return
@@ -1100,7 +1145,8 @@ import SwiftUI
         "networth.cash", "cashflow.income.month", "cashflow.spending.month", "cashflow.net.month",
       ]
       facts += metrics.compactMap { h.metrics[$0] }.map { metric in
-        "\(metric.label): \(money(metric.num, currency: h.currency)) (\(metric.period))"
+        "\(metric.label): \(money(metric.num, currency: h.currency))"
+          + (metric.period.flatMap { $0.isEmpty ? nil : " (\($0))" } ?? "")
           + (metric.comp.map {
             " · \(metric.comparedWith ?? "comparison recorded in Sheet"): \(money($0, currency: h.currency))"
           }

@@ -1,0 +1,2434 @@
+{
+  "kind": "fictional-google-goal-append-fixture",
+  "capturedAt": "2026-11-04 17:12:37 UTC",
+  "sourceSha256": "41743ff2a6bcbc21fc112656a4a3af71d9d2d233aa23657e801b3112ad4268ab",
+  "inputGoals": [
+    {
+      "name": "QA Weekend away (fictional)",
+      "targetMinor": "350000",
+      "targetDate": "2027-06-30",
+      "accountId": "ACC-SOLO",
+      "currency": "AUD"
+    },
+    {
+      "name": "QA Repairs fund (fictional)",
+      "targetMinor": "500000",
+      "targetDate": "2027-06-30",
+      "accountId": "ACC-SOLO",
+      "currency": "AUD"
+    }
+  ],
+  "verification": {
+    "newRows": [
+      2,
+      3
+    ],
+    "preservedEnteredCells": 2061,
+    "preservedFormulas": 1288,
+    "newFormulas": 12,
+    "formulaErrors": [],
+    "firstGoalUnchangedAfterSecondAppend": true
+  },
+  "limits": "Two typed appendCells requests generated from production goal formulas were applied through connected Google Sheets tools to the existing private fictional Solo QA workbook. This proves actual append placement, formula recalculation and prior-cell preservation. It does not exercise app OAuth, the hosted writer, Drive intents or a service receipt. No false service receipt was inserted.",
+  "goalEnteredRows": [
+    [
+      {
+        "stringValue": "Goal"
+      },
+      {
+        "stringValue": "Target amount ($)"
+      },
+      {
+        "stringValue": "Target date"
+      },
+      {
+        "stringValue": "Linked account"
+      },
+      {
+        "stringValue": "Balance now ($)"
+      },
+      {
+        "stringValue": "Progress"
+      },
+      {
+        "stringValue": "Months left"
+      },
+      {
+        "stringValue": "Needed per month ($)"
+      },
+      {
+        "stringValue": "Saved per month, last 3 months ($)"
+      },
+      {
+        "stringValue": "Status"
+      }
+    ],
+    [
+      {
+        "stringValue": "QA Weekend away (fictional)"
+      },
+      {
+        "numberValue": 3500
+      },
+      {
+        "numberValue": 46568
+      },
+      {
+        "stringValue": "ACC-SOLO"
+      },
+      {
+        "formulaValue": "=IFERROR(VLOOKUP(INDEX($D:$D,ROW()),Accounts!$A:$H,8,FALSE),\"\")"
+      },
+      {
+        "formulaValue": "=IF(ISNUMBER(INDEX($E:$E,ROW())),MIN(1,MAX(0,INDEX($E:$E,ROW()))/INDEX($B:$B,ROW())),\"\")"
+      },
+      {
+        "formulaValue": "=IF(INDEX($C:$C,ROW())<=Settings!$B$6,0,DATEDIF(Settings!$B$6,INDEX($C:$C,ROW()),\"M\"))"
+      },
+      {
+        "formulaValue": "=IF(ISNUMBER(INDEX($E:$E,ROW())),IF(INDEX($G:$G,ROW())=0,MAX(0,INDEX($B:$B,ROW())-INDEX($E:$E,ROW())),MAX(0,INDEX($B:$B,ROW())-INDEX($E:$E,ROW()))/INDEX($G:$G,ROW())),\"\")"
+      },
+      {
+        "formulaValue": "=IF(EDATE(Settings!$B$7,-2)>=Settings!$B$36,SUMIFS(Transactions!$F:$F,Transactions!$C:$C,INDEX($D:$D,ROW()),Transactions!$B:$B,\">\"&EDATE(Settings!$B$6,-3),Transactions!$B:$B,\"<=\"&Settings!$B$6)/3,\"\")"
+      },
+      {
+        "formulaValue": "=IF(NOT(ISNUMBER(INDEX($E:$E,ROW()))),\"Awaiting balance\",IF(INDEX($E:$E,ROW())>=INDEX($B:$B,ROW()),\"Reached\",IF(NOT(ISNUMBER(INDEX($I:$I,ROW()))),\"Awaiting three months of history\",IF(INDEX($I:$I,ROW())>=INDEX($H:$H,ROW()),\"On track\",\"Behind\"))))"
+      }
+    ],
+    [
+      {
+        "stringValue": "QA Repairs fund (fictional)"
+      },
+      {
+        "numberValue": 5000
+      },
+      {
+        "numberValue": 46568
+      },
+      {
+        "stringValue": "ACC-SOLO"
+      },
+      {
+        "formulaValue": "=IFERROR(VLOOKUP(INDEX($D:$D,ROW()),Accounts!$A:$H,8,FALSE),\"\")"
+      },
+      {
+        "formulaValue": "=IF(ISNUMBER(INDEX($E:$E,ROW())),MIN(1,MAX(0,INDEX($E:$E,ROW()))/INDEX($B:$B,ROW())),\"\")"
+      },
+      {
+        "formulaValue": "=IF(INDEX($C:$C,ROW())<=Settings!$B$6,0,DATEDIF(Settings!$B$6,INDEX($C:$C,ROW()),\"M\"))"
+      },
+      {
+        "formulaValue": "=IF(ISNUMBER(INDEX($E:$E,ROW())),IF(INDEX($G:$G,ROW())=0,MAX(0,INDEX($B:$B,ROW())-INDEX($E:$E,ROW())),MAX(0,INDEX($B:$B,ROW())-INDEX($E:$E,ROW()))/INDEX($G:$G,ROW())),\"\")"
+      },
+      {
+        "formulaValue": "=IF(EDATE(Settings!$B$7,-2)>=Settings!$B$36,SUMIFS(Transactions!$F:$F,Transactions!$C:$C,INDEX($D:$D,ROW()),Transactions!$B:$B,\">\"&EDATE(Settings!$B$6,-3),Transactions!$B:$B,\"<=\"&Settings!$B$6)/3,\"\")"
+      },
+      {
+        "formulaValue": "=IF(NOT(ISNUMBER(INDEX($E:$E,ROW()))),\"Awaiting balance\",IF(INDEX($E:$E,ROW())>=INDEX($B:$B,ROW()),\"Reached\",IF(NOT(ISNUMBER(INDEX($I:$I,ROW()))),\"Awaiting three months of history\",IF(INDEX($I:$I,ROW())>=INDEX($H:$H,ROW()),\"On track\",\"Behind\"))))"
+      }
+    ]
+  ],
+  "grids": {
+    "kitty": [
+      [
+        "Kitty settings"
+      ],
+      [
+        "Household metadata. The Google Sheet owns accepted records and calculations."
+      ],
+      [],
+      [
+        "Key",
+        "Value",
+        "Note"
+      ],
+      [
+        "household_name",
+        "QA fixture - Solo (fictional)",
+        "The household on this Sheet."
+      ],
+      [
+        "people",
+        "Taylor",
+        "Exact person names. Joint is an account or transaction owner, not an ownership share."
+      ],
+      [
+        "country",
+        "AU",
+        "This template profile supports Australia."
+      ],
+      [
+        "currency",
+        "AUD",
+        "All supported records use AUD; no conversion."
+      ],
+      [
+        "lead_goal",
+        "",
+        "Optional configured goal."
+      ],
+      [
+        "greeting_name",
+        "Taylor",
+        "Display greeting."
+      ],
+      [
+        "pay_cycle",
+        "",
+        "Not configured. No pay cycle is inferred."
+      ],
+      [
+        "onboarded_at",
+        "",
+        "Bootstrap may record this after provider readback."
+      ],
+      [
+        "accent",
+        "teal",
+        "Template presentation default."
+      ],
+      [
+        "sheet_version",
+        1,
+        "Existing raw-table contract."
+      ],
+      [
+        "big_bill_amount",
+        "",
+        "Not configured."
+      ],
+      [
+        "look_ahead_days",
+        35,
+        "Presentation horizon; does not create expected payments."
+      ],
+      [
+        "public_feed",
+        "no",
+        "The known public JSON feed is off. This is separate from Drive sharing."
+      ],
+      [
+        "template_profile",
+        "au-aud-basic",
+        "Basic accounts, cash flow, explicit budgets and an optional goal."
+      ],
+      [
+        "template_version",
+        "1.0.0",
+        "Generator profile version."
+      ],
+      [
+        "template_source_sha256",
+        "41743ff2a6bcbc21fc112656a4a3af71d9d2d233aa23657e801b3112ad4268ab",
+        "Pinned public source capture."
+      ],
+      [
+        "setup_input_sha256",
+        "30340ef99d8c392f4e8d6502c4732a047fa114abc399d7718198ef6bfce7282a",
+        "Digest of the original reviewed setup, not proof of later configuration."
+      ],
+      [
+        "optional_modules",
+        "unavailable",
+        "Tax, mortgage, assets and subscriptions need a separately supported configuration."
+      ]
+    ],
+    "metrics": [
+      [
+        "Headline metrics"
+      ],
+      [
+        "One row per metric. Charts, emails and dashboards read this tab by Metric ID, so the IDs never change."
+      ],
+      [],
+      [
+        "Metric ID",
+        "Metric",
+        "Value",
+        "Unit",
+        "Period",
+        "Comparison value",
+        "Compared with",
+        "Better when"
+      ],
+      [
+        "cashflow.income.month",
+        "Income, latest month",
+        0,
+        "AUD",
+        "July 2026",
+        "",
+        "Average of last 3 months",
+        "Higher"
+      ],
+      [
+        "cashflow.spending.month",
+        "Spending, latest month",
+        0,
+        "AUD",
+        "July 2026",
+        "",
+        "Average of last 3 months",
+        "Lower"
+      ],
+      [
+        "cashflow.net.month",
+        "Net cash flow, latest month",
+        0,
+        "AUD",
+        "July 2026",
+        "",
+        "Average of last 3 months",
+        "Higher"
+      ],
+      [
+        "cashflow.savings_rate.3m",
+        "Savings rate, last 3 months",
+        "",
+        "Percent",
+        "3 months to 31 Jul 2026",
+        "",
+        "Same 3 months last year",
+        "Higher"
+      ],
+      [
+        "cashflow.spending.3m_avg",
+        "Average monthly spending, last 3 months",
+        "",
+        "AUD per month",
+        "3 months to 31 Jul 2026",
+        "",
+        "Same 3 months last year",
+        "Lower"
+      ],
+      [
+        "budget.categories_over",
+        "Categories over budget this year",
+        "",
+        "Count",
+        "FY27 to date",
+        0,
+        "Categories with a budget",
+        "Lower"
+      ],
+      [
+        "budget.ytd_left",
+        "Budget left, year to date (lumpy bills against their full-year budget)",
+        "",
+        "AUD",
+        "FY27 to date",
+        "",
+        "Year-to-date budget",
+        "Higher"
+      ],
+      [
+        "networth.total",
+        "Net worth",
+        "",
+        "AUD",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Higher"
+      ],
+      [
+        "networth.cash",
+        "Cash and offset",
+        1234.56,
+        "AUD",
+        "31 Jul 2026",
+        "",
+        "12 months earlier",
+        "Higher"
+      ],
+      [
+        "emergency.months_covered",
+        "Emergency cover, months of essential spending",
+        "",
+        "Months",
+        "31 Jul 2026",
+        "",
+        "No coverage target has been configured",
+        "Higher"
+      ],
+      [
+        "savings.recurring_per_year",
+        "Savings found, per year",
+        "",
+        "AUD per year",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Higher"
+      ],
+      [
+        "savings.one_off",
+        "One-off money to recover",
+        "",
+        "AUD",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Higher"
+      ],
+      [
+        "subscriptions.unused",
+        "Subscriptions worth cancelling (unused, or still charging after a cancel)",
+        "",
+        "Count",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Lower"
+      ],
+      [
+        "tax.refund.prior_year",
+        "Estimated tax refund, prior year, household",
+        "",
+        "AUD",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Higher"
+      ],
+      [
+        "tax.refund.current_year",
+        "Projected tax refund, current year, household",
+        "",
+        "AUD",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Higher"
+      ],
+      [
+        "compliance.reviews",
+        "Compliance checks needing review",
+        1,
+        "Count",
+        "31 Jul 2026",
+        21,
+        "Checks run",
+        "Lower"
+      ],
+      [
+        "mortgage.stress.monthly",
+        "Extra home loan repayment if rates rise",
+        "",
+        "AUD per month",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Lower"
+      ],
+      [
+        "mortgage.payoff_years",
+        "Years to repay home loan, with offset",
+        "",
+        "Years",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Lower"
+      ],
+      [
+        "goals.behind",
+        "Goals behind schedule",
+        "",
+        "Count",
+        "31 Jul 2026",
+        2,
+        "Goals",
+        "Lower"
+      ],
+      [
+        "spending.fastest_growing.3m",
+        "Fastest-growing spending category, last 3 months",
+        "",
+        "Text",
+        "3 months to 31 Jul 2026",
+        "",
+        "Change against the same 3 months last year",
+        "Lower"
+      ],
+      [
+        "tax.refund.corrected.prior_year",
+        "Estimated tax refund if flagged claims are corrected, prior year, household",
+        "",
+        "AUD",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Higher"
+      ],
+      [
+        "tax.refund_at_risk.prior_year",
+        "Tax refund resting on flagged claims, prior year, household",
+        "",
+        "AUD",
+        "Unavailable in this profile",
+        "",
+        "",
+        "Lower"
+      ],
+      [
+        "spending.largest_expense",
+        "Largest single expense",
+        "",
+        "Text",
+        "",
+        "",
+        "",
+        "Lower"
+      ],
+      [
+        "close.items_missing",
+        "Month-end close items still missing (valuations, payslips, bank imports)",
+        0,
+        "Count",
+        "31 Jul 2026",
+        6,
+        "Close checks run",
+        "Lower"
+      ]
+    ],
+    "cashflow": [
+      [
+        "Monthly cash flow"
+      ],
+      [
+        "Money in and out by month, in dollars. Transfers between the household's own accounts are excluded. Spending shows as positive numbers."
+      ],
+      [],
+      [
+        "Month",
+        45748,
+        45778,
+        45809,
+        45839,
+        45870,
+        45901,
+        45931,
+        45962,
+        45992,
+        46023,
+        46054,
+        46082,
+        46113,
+        46143,
+        46174,
+        46204,
+        "Average, last 3 months",
+        "Same 3 months last year",
+        "Change"
+      ],
+      [
+        "Salary and interest",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Rent received",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Total income",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [],
+      [
+        "Spending by group"
+      ],
+      [
+        "Housing",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Essentials",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Lifestyle",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Property",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Work and giving",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Fees",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Uncategorised",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Total spending",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Net cash flow",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Savings rate",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [],
+      [
+        "Spending by category"
+      ],
+      [
+        "Home loan repayments",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Council rates (home)",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Home and contents insurance",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Home maintenance",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Groceries",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Energy and water",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Internet and mobile",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Fuel and transport",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Car costs",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Health",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Childcare",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Dining and takeaway",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Subscriptions",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Shopping",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Kids activities",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Holidays and travel",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Gifts",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Personal care",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Investment loan interest",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Property management fees",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Rental rates and water",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Strata levies",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Landlord insurance",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Rental repairs",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Work equipment",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Work registrations and courses",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Donations",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Bank fees and card interest",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ],
+      [
+        "Uncategorised",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        0
+      ]
+    ],
+    "budget": [
+      [
+        "Budget versus actual"
+      ],
+      [
+        "Only explicitly configured budgets are shown. Monthly actuals need a closed period; year-to-date comparisons need history from 1 July. A zero budget is an explicit zero limit."
+      ],
+      [],
+      [
+        "Category",
+        "Monthly budget",
+        "Latest month",
+        "Average, last 3 months",
+        "Year to date",
+        "Budget to date",
+        "Left in budget",
+        "Budget used",
+        "Status"
+      ],
+      [
+        "Total"
+      ]
+    ],
+    "savings": [
+      [
+        "Savings Finder"
+      ],
+      [
+        "Unavailable in the basic household profile. No figures have been inferred; this domain needs a separately reviewed configuration."
+      ],
+      [],
+      [
+        "Opportunity",
+        "What the data shows",
+        "Estimated saving ($)",
+        "Type",
+        "Effort",
+        "Where to look",
+        "Rank"
+      ]
+    ],
+    "mortgage": [
+      [
+        "Mortgage Scenarios"
+      ],
+      [
+        "Unavailable in the basic household profile. No figures have been inferred; this domain needs a separately reviewed configuration."
+      ]
+    ],
+    "tax": [
+      [
+        "Tax Forecast"
+      ],
+      [
+        "Unavailable in the basic household profile. No figures have been inferred; this domain needs a separately reviewed configuration."
+      ],
+      [],
+      [
+        "Person",
+        "Taylor",
+        "",
+        "Taylor"
+      ]
+    ],
+    "compliance": [
+      [
+        "Compliance checks"
+      ],
+      [
+        "Tax and data-quality checks over the raw data. Review means look at the rows before relying on the tax forecast."
+      ],
+      [],
+      [
+        "Check",
+        "Type",
+        "Items",
+        "Amount ($)",
+        "Status",
+        "Why it matters",
+        "Where to look"
+      ],
+      [
+        "Work expenses without a receipt",
+        "Tax",
+        "",
+        "",
+        "Unavailable",
+        "Tax setup and evidence are not configured in this profile.",
+        "Transactions, Receipt held"
+      ],
+      [
+        "Work equipment over the immediate-deduction limit",
+        "Tax",
+        "",
+        "",
+        "Unavailable",
+        "Tax setup and evidence are not configured in this profile.",
+        "Transactions, category WORK-EQUIP"
+      ],
+      [
+        "Large rental repairs",
+        "Tax",
+        "",
+        "",
+        "Unavailable",
+        "Tax setup and evidence are not configured in this profile.",
+        "Transactions, category RENT-REPAIR"
+      ],
+      [
+        "Donations without a receipt",
+        "Tax",
+        "",
+        "",
+        "Unavailable",
+        "Tax setup and evidence are not configured in this profile.",
+        "Transactions, category DONATION"
+      ],
+      [
+        "Rental property ran at a loss (prior year)",
+        "Tax",
+        "",
+        "",
+        "Unavailable",
+        "Tax setup and evidence are not configured in this profile.",
+        "Tax Forecast, net rental"
+      ],
+      [
+        "Salary deposits match payslips (prior year)",
+        "Data",
+        "",
+        "",
+        "Unavailable",
+        "A gap means a missing pay or a deposit in the wrong category.",
+        "Payslips, Transactions"
+      ],
+      [
+        "Uncategorised transactions",
+        "Data",
+        0,
+        0,
+        "OK",
+        "They are left out of budgets and tax totals until categorised.",
+        "Transactions, category UNCAT"
+      ],
+      [
+        "Unknown category IDs",
+        "Data",
+        0,
+        0,
+        "OK",
+        "A typo in a category ID drops the row from every view.",
+        "Transactions, Category"
+      ],
+      [
+        "Possible duplicate charges",
+        "Data",
+        0,
+        "",
+        "OK",
+        "Identical date, account, merchant and amount need review. Repeated real charges are possible; this is not proof of money to recover.",
+        "Transactions, Same-day matches"
+      ],
+      [
+        "Transfers that do not net to zero",
+        "Data",
+        0,
+        0,
+        "OK",
+        "A nonzero total needs review. A zero total alone does not prove matching transfer pairs; the close checks original evidence.",
+        "Transactions, Flow = Transfer"
+      ],
+      [
+        "Card interest charged (last 12 months)",
+        "Cash",
+        0,
+        0,
+        "OK",
+        "Interest means the card was not paid in full that month.",
+        "Transactions, category FEES"
+      ],
+      [
+        "Transactions after the as-of date",
+        "Data",
+        0,
+        0,
+        "OK",
+        "Rows dated after the as-of date are left out of every view.",
+        "Settings, As-of date"
+      ],
+      [
+        "Valuations missing for the as-of date",
+        "Close",
+        0,
+        "",
+        "OK",
+        "Every configured valuation item needs month-end evidence. No asset items are configured in the basic profile.",
+        "Valuations, one row per item in Assets"
+      ],
+      [
+        "Salary deposits without a payslip (current year)",
+        "Close",
+        0,
+        0,
+        "OK",
+        "Only actual salary deposits and payslips require matching evidence. A household without income does not need a fictional payslip.",
+        "Payslips, Transactions"
+      ],
+      [
+        "Accounts with no activity in the latest month",
+        "Data",
+        1,
+        "",
+        "Review",
+        "No activity can be legitimate. The authoritative close requires a reviewed statement for every account, including inactive months.",
+        "Accounts, Transactions"
+      ],
+      [
+        "Subscriptions charged but not on the list",
+        "Data",
+        0,
+        "",
+        "OK",
+        "A new subscription, often a free trial that rolled into a paid plan, is invisible to the usage and price checks until it is on the list.",
+        "Transactions, category SUBS, against Subscriptions"
+      ],
+      [
+        "Repeated transaction IDs",
+        "Data",
+        0,
+        "",
+        "OK",
+        "Usually the same statement imported twice. Views look rows up by ID, so every ID must be used once.",
+        "Transactions, Txn ID"
+      ],
+      [],
+      [
+        "Checks needing review",
+        "",
+        1
+      ],
+      [],
+      [
+        "Transactions overlap the opening anchor",
+        "Close",
+        0,
+        "",
+        "OK",
+        "Opening balances already include earlier movements. Remove or correct overlapping source records before close.",
+        "Accounts, Transactions"
+      ],
+      [
+        "Unknown account IDs",
+        "Close",
+        0,
+        "",
+        "OK",
+        "Every transaction must identify a configured account.",
+        "Accounts, Transactions"
+      ],
+      [
+        "Unknown transaction people",
+        "Close",
+        0,
+        "",
+        "OK",
+        "Every transaction person must be a configured person or Joint.",
+        "Kitty, Transactions"
+      ],
+      [
+        "As-of date precedes the opening anchor",
+        "Close",
+        0,
+        "",
+        "OK",
+        "The opening anchor is immutable. Close advances As-of one month at a time.",
+        "Settings"
+      ]
+    ],
+    "networth": [
+      [
+        "Net worth by month"
+      ],
+      [
+        "Cash begins at the opening anchor. Whole-household net worth and asset classes are unavailable until their domains are configured."
+      ],
+      [],
+      [
+        "Month end",
+        "Cash",
+        "Property",
+        "Super",
+        "Shares",
+        "Vehicle",
+        "Loans",
+        "Net worth",
+        "Change in month"
+      ],
+      [
+        45777
+      ],
+      [
+        45808
+      ],
+      [
+        45838
+      ],
+      [
+        45869
+      ],
+      [
+        45900
+      ],
+      [
+        45930
+      ],
+      [
+        45961
+      ],
+      [
+        45991
+      ],
+      [
+        46022
+      ],
+      [
+        46053
+      ],
+      [
+        46081
+      ],
+      [
+        46112
+      ],
+      [
+        46142
+      ],
+      [
+        46173
+      ],
+      [
+        46203,
+        1234.56
+      ],
+      [
+        46234,
+        1234.56
+      ]
+    ],
+    "transactions": [
+      [
+        "Txn ID",
+        "Date",
+        "Account ID",
+        "Bank description",
+        "Merchant",
+        "Amount",
+        "Category ID",
+        "Person",
+        "Receipt held",
+        "Note",
+        "Month",
+        "Financial year",
+        "Category",
+        "Group",
+        "Flow",
+        "Tax treatment",
+        "Same-day matches"
+      ]
+    ],
+    "payslips": [
+      [
+        "Pay date",
+        "Person",
+        "Employer",
+        "Gross pay",
+        "Tax withheld",
+        "Super (employer)",
+        "Net pay",
+        "Financial year",
+        "Kitty record ID"
+      ]
+    ],
+    "subscriptions": [
+      [
+        "Service",
+        "Merchant",
+        "Owner",
+        "Cadence",
+        "Category ID",
+        "Last used",
+        "Decision",
+        "Last charged",
+        "Latest charge ($)",
+        "Lowest charge in look-back ($)",
+        "Charges per year",
+        "Annual cost ($)",
+        "Price rise per charge ($)",
+        "Annual cost of price rise ($)",
+        "Days since used",
+        "Usage flag",
+        "Saving if cancelled ($ per year)"
+      ]
+    ],
+    "goals": [
+      [
+        "Goal",
+        "Target amount ($)",
+        "Target date",
+        "Linked account",
+        "Balance now ($)",
+        "Progress",
+        "Months left",
+        "Needed per month ($)",
+        "Saved per month, last 3 months ($)",
+        "Status"
+      ],
+      [
+        "QA Weekend away (fictional)",
+        3500,
+        46568,
+        "ACC-SOLO",
+        1234.56,
+        0.35273142857142853,
+        10,
+        226.544,
+        "",
+        "Awaiting three months of history"
+      ],
+      [
+        "QA Repairs fund (fictional)",
+        5000,
+        46568,
+        "ACC-SOLO",
+        1234.56,
+        0.246912,
+        10,
+        376.544,
+        "",
+        "Awaiting three months of history"
+      ]
+    ],
+    "accounts": [
+      [
+        "Account ID",
+        "Account",
+        "Institution",
+        "Type",
+        "Owner",
+        "Opening balance ($)",
+        "Opening date",
+        "Balance at as-of date ($)",
+        "Liquid"
+      ],
+      [
+        "ACC-SOLO",
+        "Everyday",
+        "Example institution",
+        "Transaction",
+        "Taylor",
+        1234.56,
+        46203,
+        1234.56,
+        "Yes"
+      ]
+    ],
+    "category_list": [
+      [
+        "Category ID",
+        "Category",
+        "Group",
+        "Flow",
+        "Monthly budget ($)",
+        "Essential",
+        "Tax treatment",
+        "ATO label",
+        "Billing pattern"
+      ],
+      [
+        "SALARY",
+        "Salary and wages",
+        "Income",
+        "Income",
+        "",
+        "",
+        "Salary",
+        "Item 1",
+        "Monthly"
+      ],
+      [
+        "INTEREST",
+        "Interest earned",
+        "Income",
+        "Income",
+        "",
+        "",
+        "Interest",
+        "Item 10",
+        "Monthly"
+      ],
+      [
+        "RENT-INC",
+        "Rent received",
+        "Property",
+        "Income",
+        "",
+        "",
+        "Rental income",
+        "Item 21 gross rent",
+        "Monthly"
+      ],
+      [
+        "MORTGAGE",
+        "Home loan repayments",
+        "Housing",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "RATES-HOME",
+        "Council rates (home)",
+        "Housing",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Lumpy"
+      ],
+      [
+        "HOME-INS",
+        "Home and contents insurance",
+        "Housing",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Lumpy"
+      ],
+      [
+        "HOME-MAINT",
+        "Home maintenance",
+        "Housing",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Lumpy"
+      ],
+      [
+        "GROCERIES",
+        "Groceries",
+        "Essentials",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "UTILITIES",
+        "Energy and water",
+        "Essentials",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Lumpy"
+      ],
+      [
+        "TELCO",
+        "Internet and mobile",
+        "Essentials",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "TRANSPORT",
+        "Fuel and transport",
+        "Essentials",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "CAR",
+        "Car costs",
+        "Essentials",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Lumpy"
+      ],
+      [
+        "HEALTH",
+        "Health",
+        "Essentials",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "CHILDCARE",
+        "Childcare",
+        "Essentials",
+        "Expense",
+        "",
+        "Yes",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "DINING",
+        "Dining and takeaway",
+        "Lifestyle",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "SUBS",
+        "Subscriptions",
+        "Lifestyle",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "SHOPPING",
+        "Shopping",
+        "Lifestyle",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "KIDS-ACT",
+        "Kids activities",
+        "Lifestyle",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "HOLIDAYS",
+        "Holidays and travel",
+        "Lifestyle",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Lumpy"
+      ],
+      [
+        "GIFTS",
+        "Gifts",
+        "Lifestyle",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Lumpy"
+      ],
+      [
+        "PERSONAL",
+        "Personal care",
+        "Lifestyle",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "RENT-INT",
+        "Investment loan interest",
+        "Property",
+        "Expense",
+        "",
+        "",
+        "Rental deduction",
+        "Item 21 interest on loans",
+        "Monthly"
+      ],
+      [
+        "RENT-MGMT",
+        "Property management fees",
+        "Property",
+        "Expense",
+        "",
+        "",
+        "Rental deduction",
+        "Item 21 property agent fees",
+        "Monthly"
+      ],
+      [
+        "RENT-RATES",
+        "Rental rates and water",
+        "Property",
+        "Expense",
+        "",
+        "",
+        "Rental deduction",
+        "Item 21 council rates and water",
+        "Lumpy"
+      ],
+      [
+        "RENT-STRATA",
+        "Strata levies",
+        "Property",
+        "Expense",
+        "",
+        "",
+        "Rental deduction",
+        "Item 21 body corporate fees",
+        "Lumpy"
+      ],
+      [
+        "RENT-INS",
+        "Landlord insurance",
+        "Property",
+        "Expense",
+        "",
+        "",
+        "Rental deduction",
+        "Item 21 insurance",
+        "Lumpy"
+      ],
+      [
+        "RENT-REPAIR",
+        "Rental repairs",
+        "Property",
+        "Expense",
+        "",
+        "",
+        "Rental deduction",
+        "Item 21 repairs and maintenance",
+        "Lumpy"
+      ],
+      [
+        "WORK-EQUIP",
+        "Work equipment",
+        "Work and giving",
+        "Expense",
+        "",
+        "",
+        "Work deduction",
+        "D5 other work-related expenses",
+        "Lumpy"
+      ],
+      [
+        "WORK-OTHER",
+        "Work registrations and courses",
+        "Work and giving",
+        "Expense",
+        "",
+        "",
+        "Work deduction",
+        "D5 other work-related expenses",
+        "Lumpy"
+      ],
+      [
+        "DONATION",
+        "Donations",
+        "Work and giving",
+        "Expense",
+        "",
+        "",
+        "Gift deduction",
+        "D9 gifts or donations",
+        "Lumpy"
+      ],
+      [
+        "FEES",
+        "Bank fees and card interest",
+        "Fees",
+        "Expense",
+        "",
+        "No",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "TRANSFER",
+        "Transfers between own accounts",
+        "Transfers",
+        "Transfer",
+        "",
+        "",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "CC-PAY",
+        "Credit card payments",
+        "Transfers",
+        "Transfer",
+        "",
+        "",
+        "",
+        "",
+        "Monthly"
+      ],
+      [
+        "UNCAT",
+        "Uncategorised",
+        "Uncategorised",
+        "Expense",
+        "",
+        "",
+        "",
+        "",
+        "Monthly"
+      ]
+    ],
+    "loans": [
+      [
+        "Loan ID",
+        "Loan",
+        "Lender",
+        "Purpose",
+        "Repayment type",
+        "Interest rate",
+        "Loan end date",
+        "Offset account",
+        "Balance at as-of date ($)",
+        "Months remaining",
+        "Monthly repayment, calculated ($)"
+      ]
+    ],
+    "assets": [
+      [
+        "Item ID",
+        "Item",
+        "Class",
+        "Owner"
+      ]
+    ],
+    "settings": [
+      [
+        "Settings and assumptions"
+      ],
+      [
+        "Only explicit setup values are populated. Optional financial assumptions remain unavailable."
+      ],
+      [],
+      [
+        "Setting",
+        "Value",
+        "Note",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Cadence",
+        "Charges per year"
+      ],
+      [
+        "Household",
+        "QA fixture - Solo (fictional)",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Weekly",
+        52
+      ],
+      [
+        "As-of date",
+        46234,
+        "Opening anchor until the first evidence-backed close. Advance only through the close workflow.",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Fortnightly",
+        26
+      ],
+      [
+        "Latest month (first day)",
+        46204,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Monthly",
+        12
+      ],
+      [
+        "Current financial year",
+        "FY27",
+        "Australian financial year, July to June",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Quarterly",
+        4
+      ],
+      [
+        "Prior financial year",
+        "FY26",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Annual",
+        1
+      ],
+      [
+        "Months elapsed in current financial year",
+        1
+      ],
+      [
+        "Person 1 share of joint items",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Person 2 share of joint items",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Work-from-home rate per hour ($)",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Work-from-home hours, person 1, prior year",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Work-from-home hours, person 2, prior year",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Work-from-home hours, person 1, current year to date",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Work-from-home hours, person 2, current year to date",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Capital works deduction per year, Div 43 ($)",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Plant and equipment depreciation per year, Div 40 ($)",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Medicare levy rate",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Savings account interest rate",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Comparison home loan rate for refinancing",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Days without use before a subscription is flagged",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Work items above this amount are depreciated, not claimed outright ($)",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Rental repair amount that triggers a repair-or-improvement review ($)",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Emergency fund target (months of essential spending)",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Rate rise used for the stress test",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Look-back for subscription price rises (months)",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Interest rate step in the mortgage table",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Smallest price change counted as a rise",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Budget tolerance before a category is marked Over",
+        0,
+        "Basic-profile policy: spending above an explicit budget is Over. No inherited tolerance."
+      ],
+      [
+        "Smallest monthly spend for the growth ranking ($)",
+        0,
+        "A growth comparison needs positive prior spending and complete comparison windows."
+      ],
+      [
+        "Capital works deduction rate for improvements",
+        "",
+        "Unavailable until this optional setting is explicitly configured."
+      ],
+      [
+        "Prior financial year starts",
+        45839,
+        "Tax checks look at the prior and current financial years only, so lodged years drop off"
+      ],
+      [
+        "Opening anchor date",
+        46203,
+        "Common statement-close opening date for configured accounts."
+      ],
+      [
+        "History starts",
+        46204,
+        "Earlier periods are unknown, not zero."
+      ],
+      [
+        "Emergency fund account ID",
+        "",
+        "Optional explicit account role; never inferred from its name or row."
+      ]
+    ]
+  }
+}

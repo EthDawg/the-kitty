@@ -9,6 +9,10 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 24) {
           HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 5) {
+              if let greeting = h.preferences?.greeting {
+                Text("Hello, \(greeting).").font(.subheadline).foregroundStyle(KittyTheme.secondary)
+                  .accessibilityIdentifier("home.greeting")
+              }
               Text(h.household).font(.largeTitle.weight(.bold))
               Text("A little clarity for your day.").foregroundStyle(KittyTheme.secondary)
             }
@@ -45,6 +49,10 @@ struct HomeView: View {
               }
               Text(h.metrics["cashflow.net.month"]?.period ?? "Latest month").font(.caption)
                 .foregroundStyle(.white.opacity(0.75))
+              if ["cashflow.income.month", "cashflow.spending.month", "cashflow.net.month"].allSatisfy({ h.value($0) == nil }) {
+                Text("Monthly totals appear after importing and reconciling a period.").font(.caption)
+                  .foregroundStyle(.white.opacity(0.85)).accessibilityIdentifier("home.monthlyUnavailable")
+              }
             }.padding(24).foregroundStyle(.white).background(
               KittyTheme.hero, in: RoundedRectangle(cornerRadius: 27))
           }.buttonStyle(.plain).accessibilityIdentifier("cashCard")
@@ -63,7 +71,7 @@ struct HomeView: View {
                 .background(KittyTheme.surface, in: RoundedRectangle(cornerRadius: 15))
             }.accessibilityLabel("Ask about your money")
           }
-          if let goal = h.goals.first(where: { $0.name.contains("Japan") }) ?? h.goals.first {
+          if let goal = h.featuredGoal {
             VStack(alignment: .leading, spacing: 14) {
               HStack {
                 SectionTitle(title: "Something to look forward to")
@@ -111,6 +119,10 @@ struct HomeView: View {
           VStack(alignment: .leading, spacing: 14) {
             SectionTitle(title: "Recent activity")
             KittyCard {
+              if h.transactions.isEmpty {
+                Text("No activity has been imported yet.").foregroundStyle(KittyTheme.secondary)
+                  .accessibilityIdentifier("home.emptyActivity")
+              }
               ForEach(h.transactions.prefix(4)) { tx in
                 NavigationLink {
                   TransactionDetailView(transaction: tx)
@@ -119,8 +131,10 @@ struct HomeView: View {
                 }.buttonStyle(.plain)
                 if tx.id != h.transactions.prefix(4).last?.id { Divider() }
               }
-              Button("View all activity") { store.selectedTab = 1 }.font(.subheadline.bold()).frame(
-                minHeight: 44)
+              if !h.transactions.isEmpty {
+                Button("View all activity") { store.selectedTab = 1 }.font(.subheadline.bold()).frame(
+                  minHeight: 44)
+              }
             }
           }
           Text("Your Sheet owns the numbers. The Kitty helps you see them.").font(.caption)
@@ -160,7 +174,7 @@ struct DataStatusView: View {
         systemName: store.isDemo ? "sparkles" : store.isOffline ? "wifi.slash" : "checkmark.icloud")
       Text(
         store.isDemo
-          ? "Fictional demo · January 2027"
+          ? "Fictional demo · \(store.household.map { monthYear($0.asOf) } ?? "Date not available")"
           : store.isOffline
             ? "Offline · showing your last saved Sheet" : "Connected to your Google Sheet")
       if store.busy { ProgressView().controlSize(.small) }

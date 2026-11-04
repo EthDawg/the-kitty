@@ -214,7 +214,7 @@ test('HTTP protocol2 preserves verification scope, target-date provenance and st
     const saved=await(await post(`/v1/imports/${p.importId}/commit`,{sheetId:SHEET,approval:true})).json();assert.equal(saved.verificationScope,'verified_intake');assert.equal(saved.proposalDigest,p.proposalDigest);
     const provenance=await(await fetch(`${url}/v1/imports/provenance?sheetId=${SHEET}&protocolVersion=2&periodEnd=2027-02-28`,{headers})).json();assert.equal(provenance.evidenceImportIds[0],p.importId);assert.equal(provenance.baseline.projectedBalances[0].date,'2027-02-28');
     const bad=pay();bad.fields.netMinor='1';const failed=await post('/v1/imports/prepare',request([bad]));assert.equal(failed.status,409);const error=await failed.json();assert.ok(error.error.issues.length);assert.equal(error.error.code,'source_review_required');
-    const unsupported=await post('/v1/imports/prepare',{...request([pay()]),protocolVersion:3});assert.equal(unsupported.status,400);assert.equal((await unsupported.json()).error.code,'unsupported_protocol');
+    const unsupported=await post('/v1/imports/prepare',{...request([pay()]),protocolVersion:4});assert.equal(unsupported.status,400);assert.equal((await unsupported.json()).error.code,'unsupported_protocol');
   }finally{await new Promise(resolve=>server.close(resolve));}
 });
 test('known public feed blocks typed prepare and fresh commit on both schemas without storing new evidence',async()=>{

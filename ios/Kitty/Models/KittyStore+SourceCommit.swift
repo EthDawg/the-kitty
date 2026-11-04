@@ -2,7 +2,15 @@ import Foundation
 
 extension KittyStore {
   func commitSourceImport(operation: String) async {
-    guard !importBusy else { return }
+    guard !busy, !importBusy, !setupBusy, !inputEditBusy, !goalBusy, !disconnecting else { return }
+    if draft.remote == nil, inputEditsBlockNewWrites, !isDemo {
+      error = "Check the saved Sheet edit in Settings before saving another change."
+      return
+    }
+    if draft.remote == nil, goalWritesBlocked, !isDemo {
+      error = "Check the saved goal in Goals before saving another change."
+      return
+    }
     guard ["ingest", "close"].contains(operation) else { error = "This saved review has an unsupported operation."; return }
     if draft.remote == nil, let message = importPublicationNotice {
       error = message

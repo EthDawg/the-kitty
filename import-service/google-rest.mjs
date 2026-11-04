@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { ImportError, HEADERS, RECEIPT_TAB, RECEIPT_HEADERS, GATE_PROPERTIES, digest, pad, validateGate, validDate, isoDate, dateSerial } from './core.mjs';
 import {readTypedState,typedRequests} from './typed-google.mjs';
+import {readGoalState,goalRequests} from './goals-google.mjs';
 const DRIVE='https://www.googleapis.com/drive/v3';
 const SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const quote = value => `'${String(value).replace(/'/g,"''")}'`;
@@ -149,7 +150,7 @@ export class GoogleDriver {
       ...(openingContract?{openingContract,openingCheckInputs}:{}),
       accounts:accounts.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??''),owner:String(r[4]??''),...(accountCurrencyColumn>=0?{currency:String(r[accountCurrencyColumn]??'')}:{}) ,...(openingContract?{openingDate:openingDate(r[6])}:{})})),
       categories:categories.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??'')})),
-      formulaFingerprint,receiptValid,receiptTabId:tabs[RECEIPT_TAB]?.sheetId,receiptNextRow:receiptTable.length,allTabIds:Object.values(tabs).map(x=>x.sheetId),
+      formulaFingerprint,formulaCells:formulas.filter(row=>row[0]!=='Settings').sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))),receiptValid,receiptTabId:tabs[RECEIPT_TAB]?.sheetId,receiptNextRow:receiptTable.length,allTabIds:Object.values(tabs).map(x=>x.sheetId),
       receipts:receiptTable.slice(1).filter(r=>r[0]).map(r=>({importId:r[0],digest:r[1],writtenAt:r[2],ids:r[3],manifestFile:r[4]}))};
   }
   async findFiles(token,props) {
@@ -189,7 +190,7 @@ export class GoogleDriver {
     if(meta.trashed || meta.appProperties?.kittyKind!=='manifest' || meta.appProperties.kittySheet!==sheetId)throw new ImportError('import_permission','This import does not belong to the selected Sheet.',403);
     const manifest=await this.request(token,`${DRIVE}/files/${encodeURIComponent(importId)}?alt=media`);
     const {proposalDigest,...original}=manifest;
-    if(manifest.sheetId!==sheetId || ![1,2].includes(manifest.contract) || digest(original)!==proposalDigest || proposalDigest!==meta.appProperties.kittyDigest)throw new ImportError('manifest_changed','The prepared import changed. Prepare a new import.',409);
+    if(manifest.sheetId!==sheetId || ![1,2,3].includes(manifest.contract) || digest(original)!==proposalDigest || proposalDigest!==meta.appProperties.kittyDigest)throw new ImportError('manifest_changed','The prepared import changed. Prepare a new import.',409);
     return manifest;
   }
   async verifySources(token,manifest) {
@@ -209,6 +210,8 @@ export class GoogleDriver {
     return this.upload(token,{id:intentFileId,parents:[await this.folder(token,sheetId)],name:`Kitty import ${importId} write intent.json`,mimeType:'application/json',appProperties:{kittyKind:'intent',kittySheet:sheetId,kittyImport:importId,kittyIntent:intent.status??'writing'}},JSON.stringify(intent),'application/json');
   }
   async readTypedState(token,sheetId,periodEnd){return readTypedState(this,token,sheetId,periodEnd);}
+  async readGoalState(token,sheetId){return readGoalState(this,token,sheetId);}
+  async atomicGoalInsert(token,sheetId,state,manifest,importId,writtenAt){return this.request(token,`${SHEETS}/${encodeURIComponent(sheetId)}:batchUpdate`,{method:'POST',body:{requests:goalRequests(state,manifest,importId,writtenAt)}});}
   async atomicTypedInsert(token,sheetId,state,manifest,importId,writtenAt){return this.request(token,`${SHEETS}/${encodeURIComponent(sheetId)}:batchUpdate`,{method:'POST',body:{requests:typedRequests(state,manifest,importId,writtenAt)}});}
   async atomicInsert(token,sheetId,state,manifest,importId,writtenAt) {
     const width=HEADERS[state.version].length;

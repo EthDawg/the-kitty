@@ -71,6 +71,18 @@ struct SettingsView: View {
         else if loading || store.busy { ProgressView("Connecting…") }
         if let message { Text(message).font(.subheadline).foregroundStyle(KittyTheme.warning) }
       }
+      if store.household != nil {
+        Section("Your choices") {
+          NavigationLink("Household preferences") { KittyPreferencesView() }
+            .accessibilityIdentifier("settings.preferences")
+        }
+      }
+      if store.inputEditsBlockNewWrites {
+        Section {
+          NavigationLink("Check saved input change") { InputEditRecoveryView() }
+            .accessibilityIdentifier("settings.inputRecovery")
+        }
+      }
       Section("Privacy & control") {
         NavigationLink("Privacy policy & your data") { PrivacyView() }
         Link("Help & support", destination: URL(string: "https://github.com/EthDawg/the-kitty/issues")!)

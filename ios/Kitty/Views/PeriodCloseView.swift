@@ -29,6 +29,7 @@ struct PeriodCloseView: View {
         if store.isDemo { Pill(title: "Practice checks · fictional data", symbol: "sparkles") }
       }
       ImportPublicationSection()
+      SheetWriteRecoverySection()
       if store.draft.remote != nil {
         Section("Protected receipt") {
           Text("A save is awaiting verification. Resolve its receipt before beginning another review.")
@@ -88,7 +89,7 @@ struct PeriodCloseView: View {
             Button { confirmClose = true } label: {
               Label("Close through \(niceDate(review.periodEnd))", systemImage: "checkmark.shield")
             }.disabled(!review.canClose || !store.sheetCanEdit || store.importLocked
-              || store.importPublicationNotice != nil)
+              || store.importPublicationNotice != nil || store.newSheetWritesNeedRecovery)
               .accessibilityIdentifier("closeMonth")
             Text("The Sheet's as-of date changes only after these checks pass. The app then reads the Sheet again to verify the completed close.")
               .font(.caption).foregroundStyle(KittyTheme.secondary)

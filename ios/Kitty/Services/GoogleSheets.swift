@@ -257,13 +257,13 @@ final class GoogleSheets {
   }
 
   /// Unformatted values preserve numeric/date serials and avoid locale-dependent parsing.
-  func batchGet(spreadsheetID: String, ranges: [String]) async throws -> [GoogleValueRange] {
+  func batchGet(spreadsheetID: String, ranges: [String], renderFormulas: Bool = false) async throws -> [GoogleValueRange] {
     try validateID(spreadsheetID)
     guard !ranges.isEmpty, ranges.count <= 100, ranges.allSatisfy({ !$0.isEmpty && $0.count < 300 })
     else { throw ServiceError.invalidResponse }
     var query = ranges.map { URLQueryItem(name: "ranges", value: $0) }
     query += [
-      URLQueryItem(name: "valueRenderOption", value: "UNFORMATTED_VALUE"),
+      URLQueryItem(name: "valueRenderOption", value: renderFormulas ? "FORMULA" : "UNFORMATTED_VALUE"),
       URLQueryItem(name: "dateTimeRenderOption", value: "SERIAL_NUMBER"),
       URLQueryItem(name: "majorDimension", value: "ROWS"),
     ]
@@ -281,7 +281,8 @@ final class GoogleSheets {
   /// Sheet date serials (GoogleSheets.dateSerial) to preserve formula arithmetic and formatting.
   func writeAndVerify(
     spreadsheetID: String, range: String, recordKey: String,
-    expected: [[GoogleCell]], replacement: [[GoogleCell]]
+    expected: [[GoogleCell]], replacement: [[GoogleCell]], expectedVersion: Int? = nil,
+    willWrite: (() throws -> Void)? = nil
   ) async throws -> GoogleWriteReceipt {
     try validateID(spreadsheetID)
     let target = try allowedTarget(range: range, key: recordKey, replacement: replacement)
@@ -290,23 +291,23 @@ final class GoogleSheets {
     pendingRows.insert(rowKey)
     defer { pendingRows.remove(rowKey) }
     let keyRange = "'\(target.sheet)'!A\(target.row)"
-    let before = try await batchGet(
-      spreadsheetID: spreadsheetID, ranges: [range, keyRange, "Kitty!A1:B"])
-    let versions = before[2].rows.filter { $0.first?.displayString == "sheet_version" }
-    guard versions.count == 1, let version = versions[0].dropFirst().first?.displayString,
-      version == "1" || version == "1.1" || version == "2"
-    else { throw ServiceError.unsupportedVersion }
-    if version == "2" && target.sheet == "Subscriptions" { throw ServiceError.invalidWrite }
-    guard before[1].rows.first?.first?.displayString == recordKey,
-      Self.equalCells(before[0].rows, expected)
-    else { throw ServiceError.conflict }
+    let ranges = [range, keyRange, "Kitty!A1:B", "'\(target.sheet)'!A1:G"]
+    let before = try await batchGet(spreadsheetID: spreadsheetID, ranges: ranges, renderFormulas: true)
+    let version = try validateInputSnapshot(before, target: target, recordKey: recordKey,
+      expected: expected, expectedVersion: expectedVersion.map(String.init))
 
     let body = try JSONEncoder().encode(GoogleValueRange(range: range, values: replacement))
+    // Obtain credentials before recording an intent. A refresh failure cannot have dispatched a PUT.
+    let write = try await makeRequest(
+      host: "sheets.googleapis.com", path: "/v4/spreadsheets/\(spreadsheetID)/values/\(range)",
+      method: "PUT", query: [URLQueryItem(name: "valueInputOption", value: "RAW")], body: body)
+    try Task.checkCancellation()
+    // No suspension occurs between the durable handoff and URLSession dispatch.
+    // Throwing here guarantees that this method has not sent a write request.
+    try willWrite?()
     var responseWasLost = false
     do {
-      _ = try await request(
-        host: "sheets.googleapis.com", path: "/v4/spreadsheets/\(spreadsheetID)/values/\(range)",
-        method: "PUT", query: [URLQueryItem(name: "valueInputOption", value: "RAW")], body: body)
+      _ = try await performRequest(write)
     } catch ServiceError.writePermissionDenied { throw ServiceError.writePermissionDenied }
       catch ServiceError.permissionDenied { throw ServiceError.permissionDenied } catch ServiceError
       .reconnect
@@ -314,17 +315,48 @@ final class GoogleSheets {
 
     let after: [GoogleValueRange]
     do {
-      after = try await batchGet(spreadsheetID: spreadsheetID, ranges: [range, keyRange])
+      after = try await batchGet(spreadsheetID: spreadsheetID, ranges: ranges, renderFormulas: true)
+      _ = try validateInputSnapshot(after, target: target, recordKey: recordKey,
+        expected: replacement, expectedVersion: version)
     } catch { throw ServiceError.writeUncertain }
-    guard after[1].rows.first?.first?.displayString == recordKey,
-      Self.equalCells(after[0].rows, replacement)
-    else {
-      if responseWasLost { throw ServiceError.writeUncertain }
-      throw ServiceError.conflict
-    }
     return GoogleWriteReceipt(
       spreadsheetID: spreadsheetID, range: range, verifiedAt: Date(), values: after[0].rows,
       responseWasLost: responseWasLost)
+  }
+
+  /// Repeated for preflight and readback: a matching scalar is insufficient if its schema or identity changed.
+  private func validateInputSnapshot(_ snapshot: [GoogleValueRange], target: Target,
+    recordKey: String, expected: [[GoogleCell]], expectedVersion: String?) throws -> String {
+    guard snapshot.count == 4 else { throw ServiceError.invalidResponse }
+    let versions = snapshot[2].rows.filter {
+      $0.first?.displayString.trimmingCharacters(in: .whitespacesAndNewlines) == "sheet_version"
+    }
+    guard versions.count == 1, let version = versions[0].dropFirst().first?.displayString,
+      versions[0].first?.displayString == "sheet_version",
+      version == "1" || version == "1.1" || version == "2"
+    else { throw ServiceError.unsupportedVersion }
+    if let expectedVersion, expectedVersion != version { throw ServiceError.unsupportedVersion }
+    if version == "2" && target.sheet == "Subscriptions" { throw ServiceError.invalidWrite }
+    let expectedHeaders: [String]
+    switch target.sheet {
+    case "Kitty": expectedHeaders = ["Key", "Value"]
+    case "Settings": expectedHeaders = ["Setting", "Value"]
+    case "Subscriptions": expectedHeaders = ["Service", "Merchant", "Owner", "Cadence", "Category ID", "Last used", "Decision"]
+    default: expectedHeaders = ["Goal", "Target amount ($)", "Target date"]
+    }
+    let headers = snapshot[3].rows.enumerated().filter { $0.element.first?.displayString == expectedHeaders[0] }
+    let identities = snapshot[3].rows.enumerated().filter {
+      $0.element.first?.displayString.trimmingCharacters(in: .whitespacesAndNewlines) == recordKey
+    }
+    guard headers.count == 1,
+      expectedHeaders.enumerated().allSatisfy({ $0.offset < headers[0].element.count
+        && headers[0].element[$0.offset].displayString == $0.element }),
+      identities.count == 1, identities[0].offset + 1 == target.row,
+      identities[0].offset > headers[0].offset else { throw ServiceError.conflict }
+    guard snapshot[1].rows.first?.first?.displayString == recordKey,
+      Self.equalCells(snapshot[0].rows, expected)
+    else { throw ServiceError.conflict }
+    return version
   }
 
   static func dateSerial(_ date: Date) -> Double {
@@ -426,6 +458,12 @@ final class GoogleSheets {
     host: String, path: String, method: String = "GET", query: [URLQueryItem] = [],
     body: Data? = nil
   ) async throws -> Data {
+    let request = try await makeRequest(host: host, path: path, method: method, query: query, body: body)
+    return try await performRequest(request)
+  }
+
+  private func makeRequest(host: String, path: String, method: String,
+    query: [URLQueryItem], body: Data?) async throws -> URLRequest {
     var components = URLComponents()
     components.scheme = "https"
     components.host = host
@@ -439,12 +477,16 @@ final class GoogleSheets {
     request.setValue("application/json", forHTTPHeaderField: "Accept")
     request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
     if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
+    return request
+  }
+
+  private func performRequest(_ request: URLRequest) async throws -> Data {
     let (data, response) = try await session.data(for: request)
     guard let http = response as? HTTPURLResponse else { throw ServiceError.invalidResponse }
     switch http.statusCode {
     case 200..<300: return data
     case 401: throw ServiceError.reconnect
-    case 403 where method == "PUT": throw ServiceError.writePermissionDenied
+    case 403 where request.httpMethod == "PUT": throw ServiceError.writePermissionDenied
     case 403, 404: throw ServiceError.permissionDenied
     case 429: throw ServiceError.rateLimited
     default: throw ServiceError.unavailable
