@@ -79,6 +79,7 @@ python3 period-close/import_month.py 2027-02  # reads sources/, refuses rows alr
   (`period-close/adapters.py`: Harbour Bank writes like Westpac with debit and credit columns and a running
   balance; Southern Card like American Express with charges positive; Wattle Credit Union like ING). The
   adapter folds each into one signed amount; the file is never edited.
+- Overlapping exports are safe in one run: each row is taken once, and a genuine double charge survives because the most copies in any one file is how many are real. Where a file prints a running balance, its last balance in the month must equal the sheet's opening balance plus every row to that date; if not, the run exits 2, `rows.json` is empty and the rows wait in `rows.held.json`. Card files print no balance, so they carry no such check.
 - `import_month.py` refuses any row the sheet already holds (same date, account, description and amount,
   counted), so a file imported twice appends nothing while a genuine same-day double charge survives for the
   sheet's duplicate check to flag. December re-imported after it was appended: 51 rows, 0 to append.

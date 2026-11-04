@@ -111,7 +111,7 @@ def simulate_ahead(months):
         for m in months:
             subprocess.run([sys.executable, str(scratch / 'period-close' / 'simulate.py'), m], check=True, capture_output=True, text=True)
             shutil.copy(scratch / 'period-close' / f'state.{m}.json', scratch / 'period-close' / 'state.json')
-            for _, frows in A.read_sources(scratch / 'sources', m):
+            for _, frows, _ in A.read_sources(scratch / 'sources', m):
                 rows += frows
             with open(scratch / 'period-close' / m / 'payslips.csv', newline='') as f:
                 payslips += [[r['Pay date'], r['Person'], r['Employer'], float(r['Gross pay']), float(r['Tax withheld']), float(r['Super (employer)']), float(r['Net pay'])] for r in csv.DictReader(f)]

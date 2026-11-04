@@ -36,10 +36,11 @@ const py = (args, cwd = ROOT) => execFileSync("python3", args, { cwd, encoding: 
 let scratch;
 test.beforeAll(() => {
   scratch = fs.mkdtempSync(path.join(os.tmpdir(), "kitty-portals-"));
-  // the sheet as it stands, plus the one account the portals hold that the sheet does not, so the importer knows its shape
+  // the sheet as it stands, plus the one account the portals hold that the sheet does not, so the importer knows its
+  // shape; none of its history is in the sheet, so it joins with its balance at the start of the month
   const snap = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "snapshot.json"), "utf8"));
   const old = MONTHS.accounts.find((a) => a.id === "ACC-OLD");
-  snap.accounts.push({ account_id: old.id, account: old.name, institution: old.institution, type: old.type, owner: old.owner, opening_balance: old.opening_balance, opening_date: old.opening_date, balance_at_as_of_date: null, liquid: "Yes" });
+  snap.accounts.push({ account_id: old.id, account: old.name, institution: old.institution, type: old.type, owner: old.owner, opening_balance: round2(old.opening_balance + MONTHS.transactions.filter((t) => t[1] === old.id && t[0] < `${MONTH}-01`).reduce((n, t) => n + t[3], 0)), opening_date: old.opening_date, balance_at_as_of_date: null, liquid: "Yes" });
   fs.writeFileSync(path.join(scratch, "snapshot.json"), JSON.stringify(snap));
 });
 
@@ -166,6 +167,16 @@ test(`each bank shape downloads for ${MONTH}, imports, reconciles to the simulat
   await stmt.saveAs(stmtFile);
   const dates = fs.readFileSync(stmtFile, "utf8").split("\r\n").slice(1).filter(Boolean).map((l) => csvCells(l)[0].slice(3, 5));
   expect(new Set(dates)).toEqual(new Set(["02", "03"]));
+  // the card's calendar month and that statement in one run: each row once, the overlap named
+  fs.mkdirSync(path.join(scratch, "sources-both", "ACC-CC", "2027-03-01"), { recursive: true });
+  fs.mkdirSync(path.join(scratch, "sources-both", "ACC-CC", "2027-03-16"), { recursive: true });
+  fs.copyFileSync(path.join(scratch, "sources", "ACC-CC", DOWNLOAD_DAY, "activity.csv"), path.join(scratch, "sources-both", "ACC-CC", "2027-03-01", "activity.csv"));
+  fs.copyFileSync(stmtFile, path.join(scratch, "sources-both", "ACC-CC", "2027-03-16", "activity.csv"));
+  const both = py([path.join(ROOT, "period-close", "import_month.py"), MONTH, "--sheet", path.join(scratch, "snapshot.json"), "--sources", path.join(scratch, "sources-both"), "--out", path.join(scratch, "close-both")]);
+  expect(both).toContain("repeated across overlapping files");
+  const bothRows = JSON.parse(fs.readFileSync(path.join(scratch, "close-both", "rows.json"), "utf8"));
+  expect(bothRows.length).toBe(rowsIn("ACC-CC", MONTH).length);
+  expect(round2(bothRows.reduce((s, r) => s + r[5], 0))).toBeCloseTo(round2(rowsIn("ACC-CC", MONTH).reduce((s, t) => s + t[3], 0)), 2);
   const febAgain = py([path.join(ROOT, "period-close", "import_month.py"), MONTH, "--sheet", path.join(scratch, "snapshot-after.json"), "--sources", path.join(scratch, "sources-stmt"), "--out", path.join(scratch, "close-stmt-feb")]);
   expect(febAgain).toContain("0 rows to append");
   const mar = py([path.join(ROOT, "period-close", "import_month.py"), "2027-03", "--sheet", path.join(scratch, "snapshot-after.json"), "--sources", path.join(scratch, "sources-stmt"), "--out", path.join(scratch, "close-stmt-mar")]);

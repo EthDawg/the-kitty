@@ -2,6 +2,7 @@
 
 ## 2.0, in progress
 
+- Importer: overlapping exports in one run take each row once (a card calendar export plus a statement export gave 38 rows for 25), and a closing balance that disagrees with the ledger holds the run. Tests in `period-close/test_import_month.py`.
 - Portals on Vercel (phase E): https://the-kitty-portals.vercel.app. Seven parody portals with original wordmarks and a DEMO banner (Westpaw, CommBark, Amewx, PING, PropertyMeow, Pawroll, Purrsure) sign in with any name and the password `demo` and return server-generated downloads in the real institutions' column shapes, PDFs through pdf-lib. `portals/build-data.py` builds the data from the sheet's snapshot and the simulator, so a closed month downloaded there is byte-identical to the file under `sources/`. The CommBank headerless shape joins `period-close/adapters.py`; `import_month.py` takes `--sources` and `--out` and reads each account's institution from the sheet's Accounts tab. A Playwright job in CI downloads every shape, imports, reconciles, and shows a repeated month appends nothing. Jordan's old everyday at CommBark exists only in the portals, labelled.
 
 ## 1.1 — 3 November 2026

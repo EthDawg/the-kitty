@@ -159,8 +159,19 @@ def sniff(path):
     raise SystemExit(f'{path}: unknown format, header {head}')
 
 
+def balances(path, name):
+    """(date, running balance) for each row, oldest first. Empty for a format that prints no balance."""
+    if name == 'Southern Card':
+        return []
+    with open(path, newline='') as f:
+        if name == 'Bark Bank':
+            return [(ymd(r[0]), money(r[3])) for r in reversed([r for r in csv.reader(f) if r])]
+        return [(ymd(r['Date']), money(r['Balance'])) for r in csv.DictReader(f)]
+
+
 def read_sources(root, month, institutions=None):
-    """Every file under sources/<account>/<download date>/ whose rows fall in the month. Account from the folder.
+    """Every file under sources/<account>/<download date>/ whose rows fall in the month, as (path, rows, closing).
+    Account from the folder. closing is the file's last (date, balance) in the month, or None when it has none.
     institutions: account id -> institution name; the sheet's Accounts tab when the caller has it, else INSTITUTION."""
     institutions = institutions or INSTITUTION
     out = []
@@ -173,5 +184,6 @@ def read_sources(root, month, institutions=None):
                 expected = institutions[acct_dir.name]
                 assert name == expected, f'{f}: a {name} file in the {acct_dir.name} folder ({expected})'
                 rows = [r for r in read(f, acct_dir.name) if r[0][:7] == month]
-                out.append((f.relative_to(root).as_posix(), rows))
+                closing = [b for b in balances(f, name) if b[0][:7] == month]
+                out.append((f.relative_to(root).as_posix(), rows, closing[-1] if closing else None))
     return out
