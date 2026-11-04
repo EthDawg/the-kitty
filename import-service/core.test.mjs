@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {ImportService,ImportError,HEADERS,digest,dateSerial,SerialQueue,importBaseline,gateFor,validateGate,GATE_PROPERTIES} from './core.mjs';
+import {ImportService,ImportError,HEADERS,digest,dateSerial,SerialQueue,importBaseline,gateFor,validateGate,GATE_PROPERTIES,stateDigest} from './core.mjs';
 import {GoogleDriver,knownPublicFeedEnabled} from './google-rest.mjs';
 import {auditSources} from './source-audit.mjs';
 import {createServer} from './server.mjs';
@@ -463,4 +463,48 @@ test('feed publishing never hides legacy hold recovery, cancellation or verifica
   const cancelled=await prepared();cancelled.driver.state.publicFeedEnabled=true;assert.equal((await cancelled.service.cancel('allowed',cancelled.result.importId,{sheetId:SHEET})).status,'cancelled');assert.equal((await cancelled.service.commit('allowed',cancelled.result.importId,{sheetId:SHEET,approval:true})).status,'cancelled');assert.equal(cancelled.driver.writes,0);
   const done=await prepared(),clear=done.driver.clearSheetGate.bind(done.driver);done.driver.clearSheetGate=async()=>false;assert.equal((await done.service.commit('allowed',done.result.importId,{sheetId:SHEET,approval:true})).status,'unknown');done.driver.clearSheetGate=clear;done.driver.state.publicFeedEnabled=true;
   for(const action of ['status','cancel','commit'])assert.equal((await done.service[action]('allowed',done.result.importId,{sheetId:SHEET,approval:true})).status,'verified');assert.equal(done.driver.gate,null);assert.equal(done.driver.writes,1);assert.equal((await done.service.provenance('allowed',{sheetId:SHEET})).records.length,1);
+});
+test('new-profile opening dates block prepare before upload, reservation or intent, and reject a caller-supplied alternative',async()=>{
+  for(const date of ['2027-01-30','2027-01-31']){
+    const {driver,service}=setup(),req=request(driver,{text:`Date,Description,Amount\n${date},Corner Shop,-25.40\n`});
+    driver.state.accounts[0].openingDate='2027-01-31';driver.state.openingContract={profile:'au-aud-basic',version:'1.0.0',openingDate:'2027-01-31'};
+    let reservations=0;driver.reserveID=async()=>{reservations++;return 'never_reserved';};req.accounts=[{id:'ACC-TEST',openingDate:'2000-01-01'}];
+    await assert.rejects(service.prepare('allowed',req),e=>e.code==='transaction_before_opening'&&/following day/.test(e.message));
+    assert.equal(reservations,0);assert.equal(driver.sources.size,0);assert.equal(driver.manifests.size,0);assert.equal(driver.intents.size,0);assert.equal(driver.writes,0);assert.equal(driver.gate,null);
+    const baseline=(await service.provenance('allowed',{sheetId:SHEET})).baseline;
+    const preview=KittyImport.prepare({...baseline,files:req.files});assert.ok(preview.issues.some(i=>i.code==='transaction-before-opening'));
+    await assert.rejects(auditSources({files:req.files,rows:[],state:driver.state,proposal:{...req.proposal,rows:[]}}),e=>e.code==='source_review_required'&&e.issues.some(i=>i.code==='transaction-before-opening'));
+  }
+});
+test('new-profile earliest allowed date prepares and commits with identical preview/source-audit anchors',async()=>{
+  const {driver,service}=setup();driver.state.accounts[0].openingDate='2027-01-31';driver.state.openingContract={profile:'au-aud-basic',version:'1.0.0',openingDate:'2027-01-31'};
+  const req=request(driver,{text:'Date,Description,Amount\n2027-02-01,Corner Shop,-25.40\n'}),p=await service.prepare('allowed',req);
+  assert.equal((await service.commit('allowed',p.importId,{sheetId:SHEET,approval:true})).status,'verified');assert.equal(driver.writes,1);
+});
+test('invalid profile metadata blocks fresh preparation/commit but cannot hide status or cancellation',async()=>{
+  const fresh=setup(),req=request(fresh.driver);fresh.driver.state.openingContract={profile:'au-aud-basic',version:'1.0.0',error:'History starts changed.'};
+  await assert.rejects(fresh.service.prepare('allowed',req),e=>e.code==='opening_anchor_invalid');assert.equal(fresh.driver.sources.size,0);
+  const base=(await fresh.service.provenance('allowed',{sheetId:SHEET})).baseline;assert.equal(base.accounts[0].openingDate,'');assert.ok(KittyImport.prepare({...base,files:req.files}).issues.some(i=>i.code==='opening-anchor-invalid'));
+  const reviewed=await prepared();reviewed.driver.state.openingContract=fresh.driver.state.openingContract;
+  assert.equal((await reviewed.service.status('allowed',reviewed.result.importId,{sheetId:SHEET})).status,'proposed');
+  await assert.rejects(reviewed.service.commit('allowed',reviewed.result.importId,{sheetId:SHEET,approval:true}),e=>e.code==='opening_anchor_invalid');assert.equal(reviewed.driver.intents.size,0);assert.equal(reviewed.driver.gate,null);
+  assert.equal((await reviewed.service.cancel('allowed',reviewed.result.importId,{sheetId:SHEET})).status,'cancelled');
+  const held=await prepared();held.driver.fail='before';await held.service.commit('allowed',held.result.importId,{sheetId:SHEET,approval:true});held.driver.state.openingContract=fresh.driver.state.openingContract;
+  for(const action of ['status','cancel','commit'])assert.equal((await held.service[action]('allowed',held.result.importId,{sheetId:SHEET,approval:true})).status,'unknown');assert.equal(held.driver.writes,0);
+  const done=await prepared();await done.service.commit('allowed',done.result.importId,{sheetId:SHEET,approval:true});done.driver.state.openingContract=fresh.driver.state.openingContract;
+  assert.equal((await done.service.status('allowed',done.result.importId,{sheetId:SHEET})).status,'verified');assert.equal(done.driver.writes,1);
+});
+test('a new-profile anchor changed after review blocks the fresh commit before hold/intent creation',async()=>{
+  const {driver,service}=setup();driver.state.accounts[0].openingDate='2027-01-31';const req=request(driver),p=await service.prepare('allowed',req);
+  driver.state.accounts[0].openingDate='2027-02-28';
+  await assert.rejects(service.commit('allowed',p.importId,{sheetId:SHEET,approval:true}),e=>e.code==='transaction_before_opening');assert.equal(driver.gate,null);assert.equal(driver.intents.size,0);assert.equal(driver.writes,0);
+});
+test('legacy state and import-baseline digests preserve the original exact structures',()=>{
+  for(const version of [1,2]){
+    const {driver}=setup(version),s=driver.state;
+    const original={version:s.version,header:s.header,rows:s.rows,accounts:s.accounts,categories:s.categories,currency:'AUD',people:null,formulaFingerprint:s.formulaFingerprint};
+    assert.equal(stateDigest(s),digest(original));
+    assert.deepEqual(importBaseline(s),{existing:[],accounts:s.accounts,categories:s.categories,currency:'AUD'});
+    assert.equal(Object.hasOwn(importBaseline(s).accounts[0],'openingDate'),false);
+  }
 });

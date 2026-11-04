@@ -1,6 +1,6 @@
 # Clean household adaptation — source review
 
-The following findings come from the captured public formulas, not a recalculated new workbook. Preserve positional Settings references and the existing raw-tab contract while adapting this source. Clearing raw rows alone is insufficient.
+The following findings come from the captured public formulas, not a recalculated new workbook. `build.mjs` implements the basic-profile adaptation described below while preserving positional Settings references and the existing raw-tab contract. Its generated requests and local tests do not establish provider recalculation. Clearing raw rows alone is insufficient.
 
 | Area | Source evidence | Required behavior |
 |---|---|---|
@@ -29,4 +29,4 @@ The reviewed plan needs a durable identity and recoverable creation state. A boo
 - Validation and formula coverage extends beyond the source's initial row capacities.
 - A newly owned Google workbook recalculates without unexpected errors, then passes native projection, first import, replay and first close. Repeat with a second Google identity.
 
-None of these new-template acceptance cases has run. The source capture does not establish a visual clone, workbook protections, private sharing, OAuth, deployment or successful recalculation.
+Local generator tests cover configuration, request reconstruction, empty-domain structure, history gates, capacities and a synthetic native readback. None of the new-template **provider acceptance** cases has run. The source capture and generator do not establish a visual clone, workbook protections, private sharing, OAuth, deployment or successful recalculation.

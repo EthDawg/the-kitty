@@ -11,6 +11,37 @@ const native = context.NativeKitty;
 const original = JSON.parse(fs.readFileSync(path.join(resources, 'demo.json'), 'utf8'));
 const fixture = () => structuredClone(original);
 
+test('Google-recalculated fresh household keeps missing history unavailable and never marks it reconciled', () => {
+  const source = JSON.parse(fs.readFileSync(path.join(__dirname, '../../templates/evidence/initial-two-person.json'), 'utf8'));
+  const model = native.project(native.fromGrids(source.grids));
+  assert.equal(model.household, 'QA fixture - River (fictional)');
+  assert.equal(model.asOf, '2026-06-30');
+  assert.equal(model.transactions.length, 0);
+  assert.equal(Math.round(model.metrics['networth.cash'].num * 100), 620550);
+  assert.equal(model.metrics['networth.total'].num, null);
+  assert.equal(model.goals[0].savedPm, null);
+  assert.equal(model.publicFeedEnabled, false);
+  const missing = model.reconciliation.filter(check => check.a == null || check.b == null);
+  assert.ok(missing.length > 0);
+  assert.ok(missing.every(check => check.ok === false));
+});
+
+test('Google-recalculated one-person setup has no invented budgets, goals or optional forecasts', () => {
+  const source = JSON.parse(fs.readFileSync(path.join(__dirname, '../../templates/evidence/initial-solo.json'), 'utf8'));
+  const model = native.project(native.fromGrids(source.grids));
+  assert.equal(model.accounts.length, 1);
+  assert.equal(Math.round(model.metrics['networth.cash'].num * 100), 123456);
+  assert.equal(model.transactions.length, 0);
+  assert.equal(model.goals.length, 0);
+  assert.equal(model.budget.length, 0);
+  assert.equal(model.planning.mortgage, null);
+  assert.equal(model.planning.rental, null);
+  assert.equal(model.planning.safety.months, null);
+  assert.equal(model.planning.paydays.length, 0);
+  assert.equal(model.metrics['cashflow.income.month'].num, null);
+  assert.equal(model.metrics['tax.refund.current_year'].num, null);
+});
+
 test('native projection keeps pinned Sheet figures and all 925 transactions', () => {
   const model = native.project(fixture());
   assert.equal(model.transactions.length, 925);

@@ -220,8 +220,14 @@ struct ChecksView: View {
     List {
       Section("App against Sheet") {
         ForEach(store.household?.reconciliation ?? []) { c in
-          Label(c.what, systemImage: c.ok ? "checkmark.circle" : "exclamationmark.circle")
-            .foregroundStyle(c.ok ? KittyTheme.positive : KittyTheme.warning).font(.subheadline)
+          VStack(alignment: .leading, spacing: 6) {
+            Label(c.what, systemImage: c.ok ? "checkmark.circle" : "exclamationmark.circle")
+              .foregroundStyle(c.ok ? KittyTheme.positive : KittyTheme.warning).font(.subheadline)
+            if c.a == nil || c.b == nil {
+              Text("Not available until both recorded values are present.")
+                .font(.caption).foregroundStyle(KittyTheme.secondary)
+            }
+          }
         }
       }
       Section("Recorded Sheet checks") {

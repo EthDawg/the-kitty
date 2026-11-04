@@ -1,7 +1,8 @@
 import {createRequire} from 'node:module';
-import {ImportError,digest,sheetID,validateGate,gateVerified,validDate,dateSerial,cellsForRow,cleanRows,validateState,assertPublicFeedDisabled} from './core.mjs';
+import {ImportError,digest,sheetID,validateGate,gateVerified,validDate,dateSerial,cellsForRow,cleanRows,validateState,assertPublicFeedDisabled,assertOpeningContract,assertRowsAfterOpening} from './core.mjs';
 import {typedDigest,RECORD_HEADER} from './typed-google.mjs';
 import {auditSources} from './source-audit.mjs';
+import {verifyBasicCloseChecks} from './basic-close.mjs';
 const require=createRequire(import.meta.url);
 const cores=()=>({Records:require('../native-core/records.js'),Close:require('../native-core/close.js')});
 const clone=x=>structuredClone(x);
@@ -115,7 +116,7 @@ export async function prepareTyped(service,token,request){
   return service.queue.run(request.sheetId,async()=>{
     const {Records,Close}=cores();await service.driver.authorize(token,request.sheetId);
     const state=await service.driver.readTypedState(token,request.sheetId,request.operation==='close'?request.proposal?.periodEnd:undefined);
-    validateState(state.legacy,request.schemaVersion);must(state.version===request.schemaVersion,'schema_changed','The Sheet version changed. Refresh this review.');await checkGate(service,token,request.sheetId,state);assertPublicFeedDisabled(state.legacy);
+    validateState(state.legacy,request.schemaVersion);must(state.version===request.schemaVersion,'schema_changed','The Sheet version changed. Refresh this review.');await checkGate(service,token,request.sheetId,state);assertPublicFeedDisabled(state.legacy);assertOpeningContract(state.legacy);
     let files=[],records=[],rows=[],targetRows=[],writeSets=[],bindings=[],closeReview=null,acceptedEvidence=null;
     if(request.operation==='ingest'){
       files=typedFiles(request.files);const plainFiles=files.map(({bytes,...f})=>f);
@@ -155,8 +156,8 @@ async function postClose(service,token,manifest,state){
   // independently checked by verifyTyped; substituting the original boundary
   // here is necessary because this is postflight, not a second month close.
   const checked=cores().Close.prepare({periodEnd:manifest.close.periodEnd,baseline:{...state.baseline,asOf:manifest.before.baseline.asOf},evidence:{imports:accepted.imports},review:manifest.review});
-  const issues=[...(checked.canClose?[]:checked.issues)];
-  const checks=state.baseline.checks.filter(c=>c.type==='Close');
+  const issues=[...(checked.canClose?[]:checked.issues),...verifyBasicCloseChecks(state)];
+  const checks=(state.actualChecks??state.baseline.checks).filter(c=>c.type==='Close');
   if(!checks.length||checks.some(c=>c.status!=='OK'||c.items===null)||state.closeMissing!==0)issues.push({code:'close_sheet_check_failed',message:'The actual Sheet close checks have not confirmed this period.'});
   for(const expected of state.baseline.projectedBalances.filter(x=>x.date===manifest.close.periodEnd)){const account=state.baseline.accounts.find(a=>a.id===expected.accountId);if(account?.balanceMinor!==expected.amountMinor)issues.push({code:'close_balance_readback',recordId:expected.accountId,message:'The calculated Sheet balance differs from the verified period projection.'});}
   return issues;
@@ -184,6 +185,7 @@ export async function lifecycleTyped(service,token,manifest,importId,request,act
   }
   await checkGate(service,token,request.sheetId,state,importId);
   assertPublicFeedDisabled(state.legacy);
+  assertRowsAfterOpening(manifest.rows??[],state.legacy);
   must(typedDigest(state)===manifest.baseline,'stale_proposal','The Sheet changed since this review. Cancel and refresh it.');
   await service.driver.verifySources(token,manifest);
   if(manifest.operation==='close'){

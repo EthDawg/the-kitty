@@ -37,6 +37,21 @@ export function validateState(state, requestedVersion) {
 export function assertPublicFeedDisabled(state) {
   assert(state.publicFeedEnabled!==true,'public_feed_enabled','The Kitty public_feed setting enables this Sheet\'s known public JSON feed. Turn that setting off on the Kitty tab, then refresh before importing or closing a month.',409);
 }
+export function assertOpeningContract(state) {
+  assert(!state.openingContract?.error,'opening_anchor_invalid',`${state.openingContract?.error??''} Restore the reviewed opening settings before importing; existing import status and cancellation remain available.`,409);
+}
+export function assertRowsAfterOpening(rows,state) {
+  assertOpeningContract(state);
+  const accounts=new Map(state.accounts.map(account=>[account.id,account]));
+  for(const row of rows){
+    assert(row && typeof row==='object','invalid_row','An import row is missing.');
+    const account=accounts.get(row.accountId);
+    if(!account || !Object.hasOwn(account,'openingDate'))continue;
+    assert(validDate(account.openingDate),'opening_anchor_invalid','The selected account has no valid opening anchor. Restore its reviewed opening settings before importing.',409);
+    assert(typeof row.date==='string' && validDate(row.date),'invalid_date','An import row needs a valid YYYY-MM-DD date.');
+    assert(row.date>account.openingDate,'transaction_before_opening',`${account.name||account.id}: the transaction dated ${row.date} is on or before the opening balance date ${account.openingDate}. Export transactions from the following day; this activity is already represented by the opening balance.`,409);
+  }
+}
 export const stateDigest = state => digest({version:state.version,header:state.header,rows:state.rows,accounts:state.accounts,categories:state.categories,currency:state.currency??'AUD',people:state.people??null,formulaFingerprint:state.formulaFingerprint??null});
 export const GATE_PROPERTIES = {importId:'kittyActiveImport',proposalDigest:'kittyActiveDigest',rowsHash:'kittyActiveRowsHash',stateHash:'kittyActiveStateHash',version:'kittyActiveVersion'};
 export function validateGate(gate) {
@@ -75,6 +90,7 @@ export function cleanRows(rows, files, state) {
   const categories = new Set(state.categories.map(x=>x.id));
   const fileIds = new Set(files.map(x=>x.id));
   const sourceRows = new Set();
+  assertRowsAfterOpening(rows,state);
   return rows.map((row,index)=> {
     assert(row && typeof row === 'object', 'invalid_row', 'An import row is missing.');
     assert(typeof row.date === 'string' && validDate(row.date), 'invalid_date', `Row ${index+1} needs a valid YYYY-MM-DD date.`);
@@ -153,6 +169,7 @@ export class ImportService {
       validateState(state,request.schemaVersion);
       await this.checkSheetGate(token,request.sheetId,state);
       assertPublicFeedDisabled(state);
+      assertOpeningContract(state);
       state.provenance=(await this.hydrate(token,request.sheetId,state)).records;
       const files=cleanFiles(request.files);
       const rows=cleanRows(request.proposal?.rows,files,state);
@@ -184,6 +201,7 @@ export class ImportService {
       if (intent) return this.reconcile(manifest,state,importId);
       const gate=await this.checkSheetGate(token,request.sheetId,state,importId);
       assertPublicFeedDisabled(state);
+      assertRowsAfterOpening(manifest.rows,state);
       await this.driver.verifySources(token,manifest);
       assert(stateDigest(state)===manifest.baseline,'stale_proposal','The Sheet changed since you reviewed this import. Refresh and review the new proposal.',409);
       const expectedGate=gateFor(manifest,importId,state);
@@ -378,7 +396,8 @@ export function importBaseline(state) {
     if(evidence) Object.assign(row,{transactionId:row.id,id:evidence.proposalId,sourceRefs:evidence.sourceRefs,sourceId:evidence.sourceId,sourceRow:evidence.sourceRow,providerId:evidence.providerId});
     return row;
   });
-  return {existing,accounts:state.accounts,categories:state.categories,currency:state.currency??'AUD',...(state.people?{people:state.people}:{})};
+  const accounts=state.openingContract?.error?state.accounts.map(account=>({...account,openingDate:''})):state.accounts;
+  return {existing,accounts,categories:state.categories,currency:state.currency??'AUD',...(state.people?{people:state.people}:{})};
 }
 
 export const sourceFacts=(row,version)=>(version===1?[0,1,2,3,5]:[0,1,2,3,4,6,11,12]).map(i=>row?.[i]??'');

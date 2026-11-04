@@ -39,6 +39,9 @@ struct RootView: View {
     .sheet(isPresented: $store.showAccounts) {
       NavigationStack { AccountsView() }.environmentObject(store)
     }
+    .sheet(isPresented: $store.showHouseholdSetup) {
+      NavigationStack { HouseholdSetupView() }.environmentObject(store)
+    }
     .alert(
       "Let's sort that out",
       isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })
@@ -95,6 +98,12 @@ struct WelcomeView: View {
         } label: {
           Text("Connect my Google Sheet").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
         }.accessibilityIdentifier("connectSheet")
+        Button {
+          store.showHouseholdSetup = true
+        } label: {
+          Text(store.setupDraft.isLocked ? "Resume household setup" : "Start a new household")
+            .font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+        }.accessibilityIdentifier("startHousehold")
         Text("The demo is fictional. No account needed to explore.").font(.footnote)
           .foregroundStyle(KittyTheme.secondary).frame(maxWidth: .infinity).multilineTextAlignment(
             .center)

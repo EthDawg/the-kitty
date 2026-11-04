@@ -7,4 +7,6 @@ Config.local.xcconfig
 xcuserdata/
 *.xcresult/
 evidence/screenshots-*/
+evidence/private/
+evidence/*-export/
 .DS_Store

@@ -2,11 +2,13 @@ import http from 'node:http';
 import {pathToFileURL} from 'node:url';
 import {createImportHandler} from '../import-service/server.mjs';
 import {createAskHandler} from '../ai-service/server.mjs';
+import {createSetupHandler} from '../setup-service/server.mjs';
 
 // Exactly one instance owns the import queue. Do not cluster or autoscale this gateway.
-export function createServer({importService,askService}={}) {
+export function createServer({importService,askService,setupService}={}) {
   const imports=createImportHandler(importService?{service:importService}:{});
   const ask=createAskHandler(askService?{service:askService}:{});
+  const setup=createSetupHandler(setupService?{service:setupService}:{});
   const server=http.createServer(async(request,response)=>{
     const send=(status,body)=>{response.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});response.end(JSON.stringify(body));};
     try {
@@ -14,6 +16,7 @@ export function createServer({importService,askService}={}) {
       if(pathname==='/health' && request.method==='GET'){send(200,{status:'ok'});return;}
       // Dispatch before reading a byte. Each handler owns only its own body and errors.
       if(pathname.startsWith('/v1/imports/') && await imports(request,response))return;
+      if(pathname.startsWith('/v1/setup/') && await setup(request,response))return;
       if((pathname==='/v1/ask'||pathname.startsWith('/v1/ask/')) && await ask(request,response))return;
       send(404,{error:{code:'not_found',message:'This endpoint does not exist.'}});
     }catch{

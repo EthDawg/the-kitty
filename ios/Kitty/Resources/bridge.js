@@ -127,7 +127,8 @@
       accounts:m.accounts, transactions:m.tx, categories:m.cats, goals:m.goals, metrics:m.metrics,
       cashflow:m.cashflow, budget:m.budget, subscriptions:m.subs, checks:m.checks,
       savings:m.savings, networth:m.networth, upcoming, planning:details,
-      reconciliation:Engine.reconcile(m), mortgage:m.mortgage,
+      reconciliation:Engine.reconcile(m).map(check => ({...check,
+        ok:check.ok === true && Number.isFinite(check.a) && Number.isFinite(check.b)})), mortgage:m.mortgage,
       people:m.people, fetchedAt:m.fetchedAt};
   };
   const HEADERS = {

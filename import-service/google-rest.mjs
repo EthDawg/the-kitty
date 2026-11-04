@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ImportError, HEADERS, RECEIPT_TAB, RECEIPT_HEADERS, GATE_PROPERTIES, digest, pad, validateGate } from './core.mjs';
+import { ImportError, HEADERS, RECEIPT_TAB, RECEIPT_HEADERS, GATE_PROPERTIES, digest, pad, validateGate, validDate, isoDate, dateSerial } from './core.mjs';
 import {readTypedState,typedRequests} from './typed-google.mjs';
 const DRIVE='https://www.googleapis.com/drive/v3';
 const SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
@@ -12,6 +12,38 @@ export function knownPublicFeedEnabled(rows) {
   if(rows.length<2)return false;
   const row=rows.find(r=>String(r[0]).trim()==='public_feed');
   return !!row && String(row[1]).trim().toLowerCase()==='yes';
+}
+const OPENING_MARKERS=new Set(['template_profile','template_version','template_source_sha256','setup_input_sha256']);
+const OPENING_SOURCE_SHA256='41743ff2a6bcbc21fc112656a4a3af71d9d2d233aa23657e801b3112ad4268ab';
+const openingProfileRequested = (rows,settings=[]) =>
+  rows.some(row=>OPENING_MARKERS.has(String(row[0]).trim().toLowerCase())) ||
+  settings.some(row=>['opening anchor date','history starts'].includes(String(row[0]).trim().toLowerCase()));
+const openingDate = value => {
+  if(typeof value!=='number' || !Number.isInteger(value))return '';
+  try{const date=isoDate(value);return validDate(date) && date>='1900-01-01' && date<='2200-12-31'?date:'';}catch{return '';}
+};
+// This is a write precondition. Keep it as data so a damaged setting does not
+// prevent discovery/cancellation/verification of an already-started import.
+export function readOpeningContract({kitty,accounts,settings,version,grid}) {
+  if(!openingProfileRequested(kitty,settings))return undefined;
+  const named=(rows,key)=>rows.filter(row=>String(row[0]).trim()===key);
+  const profiles=named(kitty,'template_profile'),versions=named(kitty,'template_version'),sources=named(kitty,'template_source_sha256'),inputs=named(kitty,'setup_input_sha256');
+  const result={profile:'au-aud-basic',version:String(versions[0]?.[1]??'').trim()};
+  const invalid=message=>({...result,error:message});
+  const markerCount=kitty.filter(row=>OPENING_MARKERS.has(String(row[0]).trim().toLowerCase())).length;
+  if(markerCount!==4 || profiles.length!==1 || String(profiles[0]?.[1]??'').trim()!=='au-aud-basic' || versions.length!==1 || result.version!=='1.0.0' || version!==1 ||
+    sources.length!==1 || String(sources[0]?.[1]??'').trim()!==OPENING_SOURCE_SHA256 || inputs.length!==1 || !/^[a-f0-9]{64}$/.test(String(inputs[0]?.[1]??'').trim()))return invalid('The basic template metadata is missing or changed. Restore its au-aud-basic profile, version 1.0.0, pinned source hash and reviewed setup hash; this Sheet cannot be treated as an unmarked legacy workbook.');
+  if(named(settings,'Opening anchor date').length!==1 || named(settings,'History starts').length!==1 || settings[34]?.[0]!=='Opening anchor date' || settings[35]?.[0]!=='History starts')return invalid('The Opening anchor date and History starts settings must remain in Settings A35:B36.');
+  const anchor=openingDate(settings[34][1]),history=openingDate(settings[35][1]);
+  if(!anchor || !history || dateSerial(history)!==dateSerial(anchor)+1 || !history.endsWith('-01'))return invalid('The opening anchor must be a month end, with history starting the following day.');
+  const entered=new Map();
+  for(const sh of grid?.sheets??[])for(const block of sh.data??[])for(const [r,row]of(block.rowData??[]).entries())for(const [c,cell]of(row.values??[]).entries())if(cell.userEnteredValue)entered.set(`${sh.properties?.title}:${(block.startRow??0)+r}:${(block.startColumn??0)+c}`,cell.userEnteredValue);
+  if(entered.get('Settings:34:1')?.numberValue!==settings[34][1] || entered.get('Settings:35:1')?.formulaValue!=='=B35+1')return invalid('Keep the opening anchor as its original date input and History starts as =B35+1.');
+  if(String(accounts[0]?.[0]??'').trim()!=='Account ID' || String(accounts[0]?.[6]??'').trim()!=='Opening date')return invalid('The Accounts ID and Opening date columns no longer match this template.');
+  const rows=accounts.slice(1).map((row,index)=>({row,index:index+1})).filter(({row})=>row[0]);
+  if(!rows.length || new Set(rows.map(({row})=>String(row[0]))).size!==rows.length)return invalid('This template needs uniquely identified accounts with a common opening date.');
+  if(rows.some(({row,index})=>openingDate(row[6])!==anchor || entered.get(`Accounts:${index}:6`)?.numberValue!==row[6]))return invalid('Every Accounts opening date must be the same date input as Settings Opening anchor date.');
+  return {...result,openingDate:anchor};
 }
 export class GoogleDriver {
   constructor({fetchImpl=fetch}={}) { this.fetch=fetchImpl; }
@@ -61,12 +93,13 @@ export class GoogleDriver {
     const meta=await this.request(token,`${base}?fields=sheets(properties(sheetId,title,gridProperties))`);
     const tabs=Object.fromEntries(meta.sheets.map(s=>[s.properties.title,s.properties]));
     for(const title of ['Kitty','Accounts','Categories']) if(!tabs[title]) throw new ImportError('missing_tab',`This Sheet needs its ${title} tab.`);
-    const setupNames=['Kitty','Accounts','Categories'];
+    const setupNames=['Kitty','Accounts','Categories',...(tabs.Settings?['Settings']:[])];
     const setupURL=new URL(`${base}/values:batchGet`);
     for(const title of setupNames) setupURL.searchParams.append('ranges',`${quote(title)}!A1:Z`);
     setupURL.searchParams.set('valueRenderOption','UNFORMATTED_VALUE');
     const setup=await this.request(token,setupURL.toString());
-    const [kitty,accounts,categories]=setup.valueRanges.map(r=>r.values??[]);
+    const [kitty,accounts,categories,openingSettings=[]]=setup.valueRanges.map(r=>r.values??[]);
+    const hasOpeningProfile=openingProfileRequested(kitty,openingSettings);
     const accountCurrencyColumn=(accounts[0]??[]).findIndex(value=>String(value).trim().toLowerCase()==='currency');
     const version=Number(kitty.find(r=>r[0]==='sheet_version')?.[1]);
     if(!HEADERS[version]) throw new ImportError('unsupported_schema','This Sheet has no supported sheet_version.');
@@ -92,15 +125,29 @@ export class GoogleDriver {
     const formulaRanges={Transactions:'K2:Q2',Entries:'U2:U2',Payslips:'H2:H2',Valuations:'D2:E2',Accounts:'A1:P',Goals:'A1:J',Metrics:'A1:H','Compliance Checks':'A1:G','Cash Flow':'A1:T',Budget:'A1:I','Savings Finder':'A1:G','Mortgage Scenarios':'A1:H','Tax Forecast':'A1:F','Net Worth':'A1:I'};
     const formulaQuery=new URL(base);
     for(const [name,range] of Object.entries(formulaRanges))if(tabs[name])formulaQuery.searchParams.append('ranges',`${quote(name)}!${range}`);
+    if(hasOpeningProfile && tabs.Settings)formulaQuery.searchParams.append('ranges',"'Settings'!A1:C");
     formulaQuery.searchParams.set('fields','sheets(properties(title),data(startRow,startColumn,rowData(values(userEnteredValue))))');
     const formulaGrid=await this.request(token,formulaQuery.toString());
-    const formulas=[];
-    for(const sh of formulaGrid.sheets??[])for(const block of sh.data??[])for(const [r,row]of(block.rowData??[]).entries())for(const [c,cell]of(row.values??[]).entries())if(cell.userEnteredValue?.formulaValue)formulas.push([sh.properties.title,(block.startRow??0)+r,(block.startColumn??0)+c,cell.userEnteredValue.formulaValue]);
-    const formulaFingerprint=digest(formulas.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
+    const formulas=[],openingCheckInputs=[];
+    for(const sh of formulaGrid.sheets??[])for(const block of sh.data??[])for(const [r,row]of(block.rowData??[]).entries())for(const [c,cell]of(row.values??[]).entries()){
+      const tab=sh.properties.title,rowIndex=(block.startRow??0)+r,columnIndex=(block.startColumn??0)+c;
+      if(cell.userEnteredValue?.formulaValue)formulas.push([tab,rowIndex,columnIndex,cell.userEnteredValue.formulaValue]);
+      if(hasOpeningProfile && cell.userEnteredValue && (
+        tab==='Compliance Checks' && rowIndex>=4 && rowIndex<=27 && columnIndex<=6 ||
+        tab==='Settings' && columnIndex===1 && (rowIndex>=6&&rowIndex<=9 || rowIndex>=33&&rowIndex<=35) ||
+        tab==='Transactions' && rowIndex===1 && columnIndex>=10 && columnIndex<=16 ||
+        tab==='Payslips' && rowIndex===1 && columnIndex===7
+      ))openingCheckInputs.push({tab,rowIndex,columnIndex,userEnteredValue:cell.userEnteredValue});
+    }
+    // Settings was not historically part of this fingerprint. Its new-profile
+    // guard must not change a pre-existing Sheet's receipt or provenance hashes.
+    const formulaFingerprint=digest(formulas.filter(row=>row[0]!=='Settings').sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
+    const openingContract=readOpeningContract({kitty,accounts,settings:openingSettings,version,grid:formulaGrid});
     const meaningful=table.map((r,i)=>({r:pad(r,width),i})).filter(({r,i})=>i>0 && r.some(v=>v!==''));
     const receiptValid=!tabs[RECEIPT_TAB] || JSON.stringify(receiptTable[0])===JSON.stringify(RECEIPT_HEADERS);
     return {version,publicFeedEnabled:knownPublicFeedEnabled(kitty),currencyPresent:kitty.some(r=>r[0]==='currency'&&typeof r[1]==='string'&&r[1].trim()),people:[...new Set(['Joint',...String(kitty.find(r=>r[0]==='people')?.[1]??'').split(',').map(v=>v.trim()).filter(Boolean)])],currency:String(kitty.find(r=>r[0]==='currency')?.[1]??'AUD'),title,sheetTabId:tabs[title].sheetId,rowCount:tabs[title].gridProperties.rowCount,header:table[0]??[],rows:meaningful.map(x=>x.r),nextRowIndex:meaningful.length?meaningful.at(-1).i+1:1,inputFormulas,
-      accounts:accounts.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??''),owner:String(r[4]??''),...(accountCurrencyColumn>=0?{currency:String(r[accountCurrencyColumn]??'')}:{})})),
+      ...(openingContract?{openingContract,openingCheckInputs}:{}),
+      accounts:accounts.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??''),owner:String(r[4]??''),...(accountCurrencyColumn>=0?{currency:String(r[accountCurrencyColumn]??'')}:{}) ,...(openingContract?{openingDate:openingDate(r[6])}:{})})),
       categories:categories.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??'')})),
       formulaFingerprint,receiptValid,receiptTabId:tabs[RECEIPT_TAB]?.sheetId,receiptNextRow:receiptTable.length,allTabIds:Object.values(tabs).map(x=>x.sheetId),
       receipts:receiptTable.slice(1).filter(r=>r[0]).map(r=>({importId:r[0],digest:r[1],writtenAt:r[2],ids:r[3],manifestFile:r[4]}))};

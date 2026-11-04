@@ -68,3 +68,8 @@ test('production reader normalizes the fictional November account ledger to ever
   const state=await f.read('2026-11-30');assert.equal(state.baseline.transactions.length,825);
   for(const account of state.baseline.accounts)assert.equal(state.baseline.projectedBalances.find(p=>p.accountId===account.id).amountMinor,account.balanceMinor,account.id);
 });
+test('invalid opening date on a flagged new profile stays readable for status/cancel; legacy date errors remain strict',async()=>{
+  const f=fixture();f.raw.Accounts[1][6]='';f.legacy.openingContract={profile:'au-aud-basic',version:'1.0.0',error:'Accounts opening date changed.'};
+  const state=await f.read();assert.equal(state.baseline.accounts[0].openingDate,'');assert.equal(state.legacy.openingContract.error,'Accounts opening date changed.');
+  delete f.legacy.openingContract;await assert.rejects(f.read(),e=>e.code==='invalid_sheet_date');
+});

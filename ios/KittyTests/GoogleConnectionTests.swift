@@ -62,6 +62,62 @@ private final class RevocationGate {
 final class GoogleConnectionTests: XCTestCase {
   private enum FixtureError: Error { case credentialStoreLocked }
 
+  func testHouseholdCreationAuthorizationDoesNotOpenTheExistingSheetPicker() throws {
+    let config = GoogleConnection.Configuration(clientID: "synthetic.apps.googleusercontent.com",
+      callbackScheme: "com.googleusercontent.apps.synthetic")
+    let url = try GoogleConnection.authorizationURL(configuration: config,
+      state: "expected-state", challenge: "synthetic-pkce", selectSheet: false)
+    let query = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+    let values = Dictionary(uniqueKeysWithValues: query.map { ($0.name, $0.value ?? "") })
+    XCTAssertEqual(url.host, "accounts.google.com")
+    XCTAssertEqual(values["scope"], "https://www.googleapis.com/auth/drive.file")
+    XCTAssertEqual(values["state"], "expected-state")
+    XCTAssertEqual(values["code_challenge"], "synthetic-pkce")
+    XCTAssertEqual(values["code_challenge_method"], "S256")
+    XCTAssertEqual(values["prompt"], "consent select_account")
+    for pickerParameter in ["trigger_onepick", "mimetypes", "allow_multiple", "file_ids"] {
+      XCTAssertNil(values[pickerParameter], "New household access must not require an existing file.")
+    }
+    XCTAssertThrowsError(try GoogleConnection.authorizationURL(configuration: config,
+      state: "expected-state", challenge: "synthetic-pkce",
+      fileIDs: ["synthetic_sheet_12345"], selectSheet: false))
+  }
+
+  func testExistingSheetAndTemplateAuthorizationKeepsPickerParameters() throws {
+    let config = GoogleConnection.Configuration(clientID: "synthetic.apps.googleusercontent.com",
+      callbackScheme: "com.googleusercontent.apps.synthetic")
+    let url = try GoogleConnection.authorizationURL(configuration: config,
+      state: "expected-state", challenge: "synthetic-pkce", fileIDs: ["synthetic_template_12345"])
+    let query = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+    let values = Dictionary(uniqueKeysWithValues: query.map { ($0.name, $0.value ?? "") })
+    XCTAssertEqual(values["trigger_onepick"], "true")
+    XCTAssertEqual(values["mimetypes"], "application/vnd.google-apps.spreadsheet")
+    XCTAssertEqual(values["allow_multiple"], "false")
+    XCTAssertEqual(values["file_ids"], "synthetic_template_12345")
+  }
+
+  func testCreationCallbackStillRequiresExactStateAndCodeWithoutASelection() throws {
+    let config = GoogleConnection.Configuration(clientID: "synthetic.apps.googleusercontent.com",
+      callbackScheme: "com.googleusercontent.apps.synthetic")
+    let callback = try XCTUnwrap(URL(string: config.redirectURI + "?state=expected-state&code=synthetic-code"))
+    let result = try GoogleConnection.authorizationResult(callback: callback, configuration: config,
+      state: "expected-state", selectSheet: false)
+    XCTAssertEqual(result.code, "synthetic-code")
+    XCTAssertTrue(result.sheetIDs.isEmpty)
+    XCTAssertThrowsError(try GoogleConnection.authorizationResult(callback: callback,
+      configuration: config, state: "wrong-state", selectSheet: false))
+    XCTAssertThrowsError(try GoogleConnection.authorizationResult(callback: callback,
+      configuration: config, state: "expected-state"), "Existing-sheet connection still needs a selection.")
+    for suffix in ["&state=expected-state", "&code=another-code", "&picked_file_ids=synthetic_sheet_12345"] {
+      XCTAssertThrowsError(try GoogleConnection.authorizationResult(
+        callback: XCTUnwrap(URL(string: callback.absoluteString + suffix)), configuration: config,
+        state: "expected-state", selectSheet: false))
+    }
+    let denied = try XCTUnwrap(URL(string: config.redirectURI + "?state=expected-state&error=access_denied"))
+    XCTAssertThrowsError(try GoogleConnection.authorizationResult(callback: denied,
+      configuration: config, state: "expected-state", selectSheet: false))
+  }
+
   private struct Fixture {
     let bundle: Bundle
     let directory: URL

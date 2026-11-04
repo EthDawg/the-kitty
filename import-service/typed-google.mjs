@@ -1,4 +1,5 @@
 import {ImportError,HEADERS,digest,pad,isoDate,dateSerial,validDate,validateState,RECEIPT_HEADERS,RECEIPT_TAB} from './core.mjs';
+import {projectBasicCloseChecks} from './basic-close.mjs';
 
 export const TYPED_HEADERS={payslips:['Pay date','Person','Employer','Gross pay','Tax withheld','Super (employer)','Net pay'],valuations:['Month end','Item ID','Value']};
 export const RECORD_HEADER='Kitty record ID';
@@ -31,6 +32,7 @@ function table(title,grid,properties,width,headers,metadataColumn){
 }
 export async function readTypedState(driver,token,sheetId,periodEnd){
   const legacy=await driver.readState(token,sheetId);
+  const basicProfile=legacy.openingContract?.profile==='au-aud-basic';
   validateState(legacy);
   if(!legacy.currencyPresent)throw new ImportError('sheet_currency','The Sheet currency is missing. Configure it before importing.',409);
   const base=`${SHEETS}/${encodeURIComponent(sheetId)}`;
@@ -41,9 +43,11 @@ export async function readTypedState(driver,token,sheetId,periodEnd){
   for(const name of ['Settings','Accounts','Categories','Payslips','Assets','Compliance Checks','Metrics','Valuations'])if(!tabs[name])throw new ImportError('missing_tab',`This Sheet needs its ${name} tab.`,409);
   const ranges=["'Settings'!A1:C",`'Accounts'!A1:${legacy.version===1?'I':'P'}`,"'Categories'!A1:H",payslipRange,"'Assets'!A1:D","'Compliance Checks'!A1:G","'Metrics'!A1:H"];
   if(legacy.version===1)ranges.push(valuationRange);
+  if(basicProfile&&tabs.Subscriptions)ranges.push("'Subscriptions'!A1:B");
   const url=new URL(`${base}/values:batchGet`);for(const range of ranges)url.searchParams.append('ranges',range);url.searchParams.set('valueRenderOption','UNFORMATTED_VALUE');
   const raw=await driver.request(token,url.toString());
   const [settings,accounts,categories,payslips,assets,checks,metrics,valuations]=raw.valueRanges.map(valuesOf);
+  const subscriptions=basicProfile&&tabs.Subscriptions?valuesOf(raw.valueRanges.at(-1)):undefined;
   const requireHeader=(title,actual,expected)=>{if(!expected.every((name,i)=>h(name)===h(actual?.[i])))throw new ImportError('schema_mismatch',`The ${title} columns do not match the Kitty contract.`,409);};
   requireHeader('Accounts',accounts[0],['Account ID','Account','Institution','Type','Owner','Opening balance ($)','Opening date','Balance at as-of date ($)','Liquid',...(legacy.version===2?['Class','Valuation method','Currency','Status','Purpose','Linked account','Note']:[])]);
   requireHeader('Categories',categories[0],['Category ID','Category','Group','Flow']);
@@ -73,12 +77,20 @@ export async function readTypedState(driver,token,sheetId,periodEnd){
   }
   const accountRows=accounts.slice(1).filter(row=>row[0]);
   const currency=legacy.currency;
+  const accountOpeningDate=value=>{
+    try{return dateValue(value);}catch(error){
+      // A new-profile anchor error blocks mutations in the service. Preserve a
+      // readable snapshot for status/cancel rather than hiding the held import.
+      if(legacy.openingContract?.error)return '';
+      throw error;
+    }
+  };
   const normalizedAccounts=accountRows.map(row=>{
     const method=legacy.version===1?'ledger':String(row[10]??'').toLowerCase(),status=legacy.version===1?'active':String(row[12]??'').toLowerCase();
     if(!['ledger','statement','appraisal','market','estimate'].includes(method)||!['active','beta','closed'].includes(status))throw new ImportError('account_contract','An account has a missing or unsupported valuation method/status.',409);
     if(legacy.version===2 && !row[11])throw new ImportError('account_currency','A v2 account currency is missing.',409);
     return {id:String(row[0]),name:String(row[1]??''),type:String(row[3]??''),person:String(row[4]??''),owner:String(row[4]??''),
-      openingMinor:minor(row[5]),openingDate:dateValue(row[6]),balanceMinor:minor(row[7],{calculated:true}),currency:legacy.version===1?currency:String(row[11]),ledger:method==='ledger',method,status,...(legacy.version===2?{class:String(row[9]??'')}:{})};
+      openingMinor:minor(row[5]),openingDate:accountOpeningDate(row[6]),balanceMinor:minor(row[7],{calculated:true}),currency:legacy.version===1?currency:String(row[11]),ledger:method==='ledger',method,status,...(legacy.version===2?{class:String(row[9]??'')}:{})};
   });
   const itemKind=category=>{if(category==='Loans')return 'liability';if(['Cash','Property','Super','Shares','Vehicle','Crypto','Device'].includes(category))return 'asset';throw new ImportError('item_class','A valuation item has a missing or unsupported class. Resolve it before importing.',409);};
   const itemRows=legacy.version===1?assets.slice(1).filter(row=>row[0]).map(row=>({id:String(row[0]),name:String(row[1]??''),kind:itemKind(String(row[2]??'')),currency,status:'active',valuationRequired:true})):
@@ -91,6 +103,8 @@ export async function readTypedState(driver,token,sheetId,periodEnd){
   const valuationRecords=valuationRows.map((row,index)=>{const amount=minor(row.values[legacy.version===1?2:6]),itemId=String(row.values[legacy.version===1?1:3]),items=itemRows.filter(x=>x.id===itemId);if(items.length!==1)throw new ImportError('valuation_item','An existing valuation does not identify exactly one non-ledger item.',409);return {kind:'valuation',recordId:row.id||'',sheetRecordId:row.id||'',legacyLocator:`Valuations:${index}`,fields:{date:dateValue(row.values[legacy.version===1?0:2]),itemId,currency:items[0].currency,valueMinor:amount,valueKind:items[0].kind},sourceLabel:legacy.version===1?'':String(row.values[19]??'')};});
   const checkRows=checks.filter(row=>['Close','Data','Tax','Cash'].includes(row[1])).map(row=>({id:String(row[0]),type:String(row[1]),items:typeof row[2]==='number'&&Number.isFinite(row[2])?row[2]:null,status:String(row[4]??''),message:String(row[5]??'')}));
   const baseline={schemaVersion:legacy.version,currency,asOf,people:legacy.people,accounts:normalizedAccounts,categories:legacy.categories,items:itemRows,transactions,payslips:payslipRecords,valuations:valuationRecords,checks:checkRows,unresolvedReviews:[]};
+  const closeProjection=basicProfile&&periodEnd?projectBasicCloseChecks({baseline,inputs:legacy.openingCheckInputs,subscriptions},periodEnd):null;
+  if(closeProjection)baseline.checks=closeProjection.checks;
   const date=dateValue(periodEnd??asOf);
   baseline.projectedBalances=normalizedAccounts.map(a=>{
     if(a.openingDate>date)return {accountId:a.id,date,amountMinor:'0'};
@@ -102,7 +116,8 @@ export async function readTypedState(driver,token,sheetId,periodEnd){
   const formulaFingerprint=digest({legacy:legacy.formulaFingerprint,extra:extraFormulas.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))});
   const closeMissingRow=metrics.find(row=>row[0]==='close.items_missing');
   return {version:legacy.version,baseline,tables,formulaFingerprint,settingsInputs,
-    configuration:{accounts:accountRows.map(row=>row.filter((_,i)=>i!==7)),categories:categories.slice(1).filter(row=>row[0]),items:legacy.version===1?assets.slice(1).filter(row=>row[0]):[]},
+    configuration:{accounts:accountRows.map(row=>row.filter((_,i)=>i!==7)),categories:categories.slice(1).filter(row=>row[0]),items:legacy.version===1?assets.slice(1).filter(row=>row[0]):[],...(basicProfile?{subscriptions:subscriptions??null}:{})},
+    ...(closeProjection?{actualChecks:checkRows,closeProjection}:{}),
     asOfCell:{sheetTabId:tabs.Settings.sheetId,rowIndex:settingIndex,columnIndex:1,value:settings[settingIndex][1]},
     receipts:legacy.receipts,receiptValid:legacy.receiptValid,receiptTabId:legacy.receiptTabId,receiptNextRow:legacy.receiptNextRow,allTabIds:legacy.allTabIds,
     closeMissing:closeMissingRow&&typeof closeMissingRow[2]==='number'&&Number.isFinite(closeMissingRow[2])?closeMissingRow[2]:null,legacy};

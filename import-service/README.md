@@ -35,6 +35,10 @@ earlier write. It controls the known script feed only; it does not establish tha
 private or inspect other sharing/publication routes. External edits can still race the final read;
 this check does not add Google cell compare-and-swap.
 
+For the new `au-aud-basic` profile/version `1.0.0`, the writer independently checks the Kitty markers, Settings A35:B36 (`Opening anchor date` and `History starts`) and every Accounts G date. The anchor is a common month-end input; history is the next day via `=B35+1`. Only recognized-profile import baselines include ISO `accounts[].openingDate`. Posted transactions on or before that date fail with `transaction_before_opening`, before source storage, ID reservation, a new intent or a financial write. Combined CSV/document intake reruns the same source audit even if submitted CSV rows are empty. A malformed recognized profile fails with `opening_anchor_invalid`; provenance supplies an invalid anchor that also blocks local preview.
+
+These are fresh-write preconditions. Status, safe cancellation and existing-intent recovery remain reachable; a changed account/configuration can still make a prior write stale or unverified. Reserved template/setup markers or residual opening settings identify a damaged setup contract, so deleting one marker cannot silently enable legacy intake. Where present, Settings is included in the existing setup read to detect that damage. Genuine unmarked legacy Sheets receive no new account fields, historical state-digest changes or migration. These editable markers are configuration, not an access-control boundary, and external edits can race the final read.
+
 ## API
 
 The examples below describe the unchanged contract-1 transaction path. [Contract 2](CONTRACT-2.md)
@@ -157,6 +161,10 @@ A missing response is not evidence of a failed write. A prepared import may rema
 - Hosted HTTPS, rate-limit/proxy configuration, user-visible privacy policy, app OAuth configuration, revocation, second-identity access and provider acceptance remain deployment work.
 
 ## Verification evidence
+
+For the recognized `au-aud-basic` profile, close preview projects the pinned diagnostic checks at the requested month end from current raw records. This avoids approving the previous As-of month's flags and discovering different flags only after the close writes. The service first verifies the exact generated diagnostic/helper inputs; custom or incomplete rules remain unresolved. Review keys bind the projected counts, and postflight requires every actual diagnostic count/status to match them, alongside the existing source, balance and nonwaivable Close checks. Subscription merchant inputs participate in the unchanged-configuration check. Legacy and v2 close behavior is unchanged.
+
+`inspect-basic-close.mjs <saved-provider-state.json> <YYYY-MM-DD>` is an offline reader/comparator for normalized provider captures. It makes no network calls. A fictional, one-account July zero-activity provider primitive matched all 21 projected diagnostic counts/statuses and the opening balance; this proves that calculation case, not a hosted service or app `verified_close` receipt.
 
 The 58 contract-1 cases remain passing. They cover v1/v2 writes, exact cents/dates, source validation,
 provenance replay, readback, stale proposals, durable cancellation and shared-hold recovery. Contract 2

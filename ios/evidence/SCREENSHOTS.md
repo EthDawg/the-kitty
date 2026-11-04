@@ -35,3 +35,7 @@ Raw `.xcresult` bundles and exported attachments remain locally available under 
 ## Added planning and source review
 
 The inventory also retains the earlier regular-size captures 13–18 from the passing planning journeys and 19–22 from the passing original-document/confirmation/relaunch and month-end preview journeys. The latter month-end layout was subsequently simplified to surface unresolved checks first; its earlier screenshot remains historical evidence. All are full-resolution fictional simulator captures.
+
+## Clean household setup
+
+Six `setup-regular-` / `setup-se-` originals bring the inventory to 96. The fictional account editor, exact opening-balance review and saved draft after relaunch pass on iPhone 17 Pro and iPhone SE with accessibility extra-large text. The final small-screen capture uses `household-ui-se-04.xcresult` and asserts that the review row is fully in the viewport; the earlier passing run asserted reachability but its screenshot did not show the amount. The UI journey stops at local review and performs no Google authorization or workbook creation.

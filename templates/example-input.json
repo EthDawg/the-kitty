@@ -1,0 +1,18 @@
+{
+  "profile": "au-aud-basic",
+  "sheetVersion": 1,
+  "country": "AU",
+  "currency": "AUD",
+  "householdName": "River household",
+  "people": ["Sam", "Lee"],
+  "openingDate": "2026-06-30",
+  "accounts": [
+    {"id": "ACC-DAILY", "name": "Everyday", "institution": "Example institution", "type": "Transaction", "owner": "Joint", "openingMinor": "123450"},
+    {"id": "ACC-SAVE", "name": "Savings", "institution": "Example institution", "type": "Savings", "owner": "Joint", "openingMinor": "500000"},
+    {"id": "CARD-ONE", "name": "Household card", "institution": "Example institution", "type": "Credit card", "owner": "Sam", "openingMinor": "-2900"}
+  ],
+  "budgets": [{"categoryId": "GROCERIES", "monthlyMinor": "80000"}],
+  "emergencyAccountId": "ACC-SAVE",
+  "goal": {"name": "Learning trip", "targetMinor": "700000", "targetDate": "2027-06-30", "accountId": "ACC-SAVE"},
+  "capacity": {"transactions": 2000, "payslips": 500, "valuations": 500}
+}

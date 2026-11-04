@@ -147,7 +147,7 @@ final class GoogleConnection: NSObject, ObservableObject,
     }
   }
 
-  func authorize(fileIDs: [String] = []) async throws {
+  func authorize(fileIDs: [String] = [], selectSheet: Bool = true) async throws {
     guard let configuration else { throw ConnectionError.notConfigured }
     guard !isAuthorizing else { throw ConnectionError.alreadyAuthorizing }
     guard
@@ -170,33 +170,15 @@ final class GoogleConnection: NSObject, ObservableObject,
     let verifier = try Self.randomURLSafe(bytes: 32)
     let state = try Self.randomURLSafe(bytes: 32)
     let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URL
-    var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
-    components.queryItems = [
-      URLQueryItem(name: "client_id", value: configuration.clientID),
-      URLQueryItem(name: "redirect_uri", value: configuration.redirectURI),
-      URLQueryItem(name: "response_type", value: "code"),
-      URLQueryItem(name: "scope", value: Self.scope),
-      URLQueryItem(name: "code_challenge", value: challenge),
-      URLQueryItem(name: "code_challenge_method", value: "S256"),
-      URLQueryItem(name: "state", value: state),
-      URLQueryItem(name: "access_type", value: "offline"),
-      URLQueryItem(name: "prompt", value: "consent select_account"),
-      URLQueryItem(name: "trigger_onepick", value: "true"),
-      URLQueryItem(name: "mimetypes", value: "application/vnd.google-apps.spreadsheet"),
-      URLQueryItem(name: "allow_multiple", value: "false"),
-    ]
-
-    if !fileIDs.isEmpty {
-      components.queryItems?.append(
-        URLQueryItem(name: "file_ids", value: fileIDs.joined(separator: ",")))
-    }
+    let authorizationURL = try Self.authorizationURL(configuration: configuration,
+      state: state, challenge: challenge, fileIDs: fileIDs, selectSheet: selectSheet)
 
     let callback: URL = try await withTaskCancellationHandler(
       operation: {
         try await withCheckedThrowingContinuation {
           (continuation: CheckedContinuation<URL, Error>) in
           let authentication = ASWebAuthenticationSession(
-            url: components.url!, callbackURLScheme: configuration.callbackScheme
+            url: authorizationURL, callbackURLScheme: configuration.callbackScheme
           ) { url, error in
             if let url {
               continuation.resume(returning: url)
@@ -218,21 +200,11 @@ final class GoogleConnection: NSObject, ObservableObject,
       }, onCancel: { Task { @MainActor [weak self] in self?.authSession?.cancel() } })
 
     try Task.checkCancellation()
-    guard generation == currentGeneration,
-      callback.scheme == configuration.callbackScheme, callback.path == "/oauthredirect",
-      let parsed = URLComponents(url: callback, resolvingAgainstBaseURL: false)
-    else { throw ConnectionError.invalidCallback }
-    let query = parsed.queryItems ?? []
-    guard query.filter({ $0.name == "state" }).count == 1,
-      query.first(where: { $0.name == "state" })?.value == state
-    else { throw ConnectionError.invalidCallback }
-    if query.contains(where: { $0.name == "error" }) { throw ConnectionError.missingPermission }
-    guard query.filter({ $0.name == "code" }).count == 1,
-      let code = query.first(where: { $0.name == "code" })?.value, !code.isEmpty
-    else { throw ConnectionError.invalidCallback }
-    let picks = try Self.selectedSheetIDs(from: query)
+    guard generation == currentGeneration else { throw ConnectionError.invalidCallback }
+    let authorization = try Self.authorizationResult(callback: callback,
+      configuration: configuration, state: state, selectSheet: selectSheet)
     let result = try await requestTokens([
-      "client_id": configuration.clientID, "code": code,
+      "client_id": configuration.clientID, "code": authorization.code,
       "code_verifier": verifier, "grant_type": "authorization_code",
       "redirect_uri": configuration.redirectURI,
     ])
@@ -244,7 +216,61 @@ final class GoogleConnection: NSObject, ObservableObject,
       access: result.access_token, refresh: result.refresh_token,
       expiresAt: Date().addingTimeInterval(result.expires_in), scope: result.scope ?? Self.scope)
     try save(next, newlyAuthorized: true)
-    pickedSheetIDs = picks
+    pickedSheetIDs = authorization.sheetIDs
+  }
+
+  /// Creation needs the same narrow scope, but has no existing file to choose.
+  /// Kept pure so both OAuth purposes can be checked without opening a browser.
+  static func authorizationURL(configuration: Configuration, state: String, challenge: String,
+                               fileIDs: [String] = [], selectSheet: Bool = true) throws -> URL {
+    guard selectSheet || fileIDs.isEmpty else { throw ConnectionError.invalidCallback }
+    var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
+    components.queryItems = [
+      URLQueryItem(name: "client_id", value: configuration.clientID),
+      URLQueryItem(name: "redirect_uri", value: configuration.redirectURI),
+      URLQueryItem(name: "response_type", value: "code"),
+      URLQueryItem(name: "scope", value: Self.scope),
+      URLQueryItem(name: "code_challenge", value: challenge),
+      URLQueryItem(name: "code_challenge_method", value: "S256"),
+      URLQueryItem(name: "state", value: state),
+      URLQueryItem(name: "access_type", value: "offline"),
+      URLQueryItem(name: "prompt", value: "consent select_account"),
+    ]
+    if selectSheet {
+      components.queryItems! += [
+        URLQueryItem(name: "trigger_onepick", value: "true"),
+        URLQueryItem(name: "mimetypes", value: "application/vnd.google-apps.spreadsheet"),
+        URLQueryItem(name: "allow_multiple", value: "false"),
+      ]
+      if !fileIDs.isEmpty {
+        components.queryItems?.append(URLQueryItem(name: "file_ids", value: fileIDs.joined(separator: ",")))
+      }
+    }
+    guard let url = components.url else { throw ConnectionError.invalidCallback }
+    return url
+  }
+
+  struct AuthorizationResult {
+    let code: String
+    let sheetIDs: [String]
+  }
+
+  static func authorizationResult(callback: URL, configuration: Configuration, state: String,
+                                  selectSheet: Bool = true) throws -> AuthorizationResult {
+    guard callback.scheme == configuration.callbackScheme, callback.path == "/oauthredirect",
+      let parsed = URLComponents(url: callback, resolvingAgainstBaseURL: false)
+    else { throw ConnectionError.invalidCallback }
+    let query = parsed.queryItems ?? []
+    guard query.filter({ $0.name == "state" }).count == 1,
+      query.first(where: { $0.name == "state" })?.value == state
+    else { throw ConnectionError.invalidCallback }
+    if query.contains(where: { $0.name == "error" }) { throw ConnectionError.missingPermission }
+    guard query.filter({ $0.name == "code" }).count == 1,
+      let code = query.first(where: { $0.name == "code" })?.value, !code.isEmpty
+    else { throw ConnectionError.invalidCallback }
+    if selectSheet { return AuthorizationResult(code: code, sheetIDs: try selectedSheetIDs(from: query)) }
+    guard !query.contains(where: { $0.name == "picked_file_ids" }) else { throw ConnectionError.invalidCallback }
+    return AuthorizationResult(code: code, sheetIDs: [])
   }
 
   static func selectedSheetIDs(from query: [URLQueryItem]) throws -> [String] {

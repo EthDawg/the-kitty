@@ -8,6 +8,7 @@ import {typedFiles,expectedTypedState,verifyTyped} from './typed.mjs';
 import {typedRequests,typedDigest,readTypedState,RECORD_HEADER,TYPED_HEADERS} from './typed-google.mjs';
 import {auditSources} from './source-audit.mjs';
 import {createServer} from './server.mjs';
+import {basicCheckInputs,projectBasicCloseChecks} from './basic-close.mjs';
 const require=createRequire(import.meta.url),KittyImport=require('../native-core/import.js');
 const SHEET='fictional_typed_sheet_123456',copy=x=>structuredClone(x);
 const sourceBytes=Buffer.from('%PDF-1.4\nFictional source: current-period values.\n%%EOF\n');
@@ -36,7 +37,8 @@ class MemoryTypedDriver {
     const vals=v===1?s.tables.valuations.rows:s.tables.ledger.rows.filter(r=>r.values[1]==='valuation');
     s.baseline.valuations=vals.map(({id,values:r})=>{const item=r[v===1?1:3];return {kind:'valuation',recordId:id,fields:{date:isoDate(r[v===1?0:2]),itemId:item,currency:'AUD',valueMinor:money(r[v===1?2:6]),valueKind:s.baseline.items.find(x=>x.id===item)?.kind}};});
     s.baseline.projectedBalances=s.baseline.accounts.map(a=>({accountId:a.id,date:day,amountMinor:s.baseline.transactions.filter(t=>t.accountId===a.id&&t.date>a.openingDate&&t.date<=day&&['posted','settled'].includes(t.status)).reduce((n,t)=>n+BigInt(t.amountMinor),BigInt(a.openingMinor)).toString()}));
-    s.legacy={version:v,publicFeedEnabled:s.publicFeedEnabled===true,title:v===1?'Transactions':'Entries',currency:'AUD',currencyPresent:true,people:s.baseline.people,header:HEADERS[v],rows:s.tables.ledger.rows.map(r=>r.values),nextRowIndex:s.tables.ledger.nextRowIndex,accounts:s.baseline.accounts.map(a=>({id:a.id,name:a.name,owner:a.person})),categories:s.baseline.categories,formulaFingerprint:'legacy-formulas',inputFormulas:[],receipts:s.receipts,receiptValid:true};
+    s.legacy={version:v,publicFeedEnabled:s.publicFeedEnabled===true,...(s.openingContract?{openingContract:s.openingContract}:{}),title:v===1?'Transactions':'Entries',currency:'AUD',currencyPresent:true,people:s.baseline.people,header:HEADERS[v],rows:s.tables.ledger.rows.map(r=>r.values),nextRowIndex:s.tables.ledger.nextRowIndex,accounts:s.baseline.accounts.map(a=>({id:a.id,name:a.name,owner:a.person,...(s.openingContract?{openingDate:a.openingDate}:{})})),categories:s.baseline.categories,formulaFingerprint:'legacy-formulas',inputFormulas:[],receipts:s.receipts,receiptValid:true};
+    if(this.basicDiagnostics&&periodEnd){s.actualChecks=copy(s.baseline.checks);s.closeProjection=projectBasicCloseChecks({baseline:s.baseline,inputs:basicCheckInputs(),subscriptions:[['Service','Merchant']]},periodEnd);s.baseline.checks=s.closeProjection.checks;}
     return s;
   }
   async readTypedState(token,sheet,date){if(this.readFails)throw new Error('read timeout');return this.current(date);}
@@ -164,6 +166,16 @@ test('close preflight requires accepted source evidence and writes only As-of pl
   const before=c.driver.current('2027-02-28'),requests=typedRequests(before,m,p.importId,'now');const writes=requests.filter(x=>x.updateCells).map(x=>x.updateCells);assert.ok(writes.some(x=>x.start.sheetId===12&&x.start.rowIndex===5&&x.start.columnIndex===1));assert.ok(!writes.some(x=>[10,11,13].includes(x.start.sheetId)));
   const result=await commit(c.service,p.importId);assert.equal(result.status,'verified',JSON.stringify(result.issues));assert.equal(result.verificationScope,'verified_close');assert.equal(c.driver.state.baseline.asOf,'2027-02-28');assert.equal(c.driver.state.settingsInputs[1][1],'Keep this');
 });
+test('first no-activity basic-profile close reviews target diagnostics before writing and verifies their recalculated state',async()=>{
+  const c=await closeReady(),cells=basicCheckInputs(),value=(row,column)=>cells.find(cell=>cell.tab==='Compliance Checks'&&cell.rowIndex===row&&cell.columnIndex===column)?.userEnteredValue.stringValue;
+  c.driver.state.baseline.checks=Array.from({length:24},(_,i)=>i+4).filter(row=>['Data','Tax','Cash','Close'].includes(value(row,1))).map(row=>({id:value(row,0),type:value(row,1),message:value(row,5),items:[4,5,6,7,8,9,18].includes(row)?null:0,status:row===18?'Awaiting first close':row<=9?'Unavailable':'OK'}));
+  c.driver.basicDiagnostics=true;
+  try{await c.service.prepare('allowed',c.closeRequest);assert.fail('Target month requires explicit review.');}catch(error){assert.equal(error.code,'close_review_required');const noActivity=error.issues.find(issue=>issue.id==='sheet-review:Accounts with no activity in the latest month');assert.ok(noActivity.evidenceKey.includes('"items":1'));c.closeRequest.proposal.review.decisions=Object.fromEntries(error.issues.filter(issue=>issue.severity==='review').map(issue=>[issue.id,{action:'acknowledge',reason:'Reviewed the exact target-month source and diagnostic.',recordIds:issue.recordIds,evidenceKey:issue.evidenceKey}]));}
+  const prepared=await c.service.prepare('allowed',c.closeRequest);
+  c.driver.afterWrite=state=>{const item=state.baseline.checks.find(row=>row.id==='Accounts with no activity in the latest month');item.items=1;item.status='Review';};
+  const result=await commit(c.service,prepared.importId);assert.equal(result.status,'verified',JSON.stringify(result.issues));assert.equal(result.verificationScope,'verified_close');assert.equal(c.driver.gate,null);assert.equal(c.driver.state.baseline.asOf,'2027-02-28');
+  const writes=c.driver.writes;assert.equal((await c.service.status('allowed',prepared.importId,{sheetId:SHEET})).status,'verified');assert.equal(c.driver.writes,writes);
+});
 test('close failure before write leaves As-of unchanged; postflight failure remains distinct and never rolls back/replays',async()=>{
   const c=await closeReady(),bad=copy(c.closeRequest);bad.proposal.evidenceImportIds=[];await assert.rejects(c.service.prepare('allowed',bad),e=>e.code==='close_review_required');assert.equal(c.driver.state.baseline.asOf,'2027-01-31');
   const p=await c.service.prepare('allowed',c.closeRequest);c.driver.afterWrite=(s,m)=>{if(m.operation==='close'){s.baseline.checks[0].status='Review';s.closeMissing=1;}};
@@ -229,4 +241,35 @@ test('typed hold discovery, uncertain outcome and safe cancellation survive a la
   await assert.rejects(c.service.provenance('allowed',{sheetId:SHEET,protocolVersion:2}),e=>e.code==='sheet_import_pending');
   for(const action of ['status','cancel','commit'])assert.equal((await c.service[action]('allowed',c.proposed.importId,{sheetId:SHEET,approval:true})).status,'unknown');assert.equal(c.driver.writes,0);
   const cancel=await prepared();cancel.driver.state.publicFeedEnabled=true;assert.equal((await cancel.service.cancel('allowed',cancel.proposed.importId,{sheetId:SHEET})).status,'cancelled');assert.equal((await commit(cancel.service,cancel.proposed.importId)).status,'cancelled');assert.equal(cancel.driver.writes,0);
+});
+function combinedOpeningRequest(driver,date,{omitRows=false}={}){
+  const text=`Date,Description,Amount\n${date},Corner Shop,-25.40\n`,csv={id:digest(text),name:'fictional-bank.csv',text,mimeType:'text/csv',byteLength:Buffer.byteLength(text),accountId:'A',mapping:{confirmed:true,date:'Date',description:'Description',amount:'Amount',sign:'money-in-positive',dateOrder:'ymd'}};
+  const decisions={'Corner Shop':{categoryId:'FOOD'}},proposal=KittyImport.prepare({...importBaseline(driver.current().legacy),files:[csv],decisions});
+  assert.equal(proposal.canCommit,true,JSON.stringify(proposal.issues));
+  return request([statement('97460')],{files:[source,csv],proposal:{records:[statement('97460')],rows:omitRows?[]:proposal.rows,decisions,csvReview:proposal.review}});
+}
+test('combined typed intake rejects on/before-opening CSV before source upload, including omitted client rows',async()=>{
+  for(const date of ['2027-01-30','2027-01-31'])for(const omitRows of [false,true]){
+    const c=setup(),req=combinedOpeningRequest(c.driver,date,{omitRows});c.driver.state.openingContract={profile:'au-aud-basic',version:'1.0.0',openingDate:'2027-01-31'};
+    let reservations=0;c.driver.reserveID=async()=>{reservations++;return 'never_reserved';};
+    await assert.rejects(c.service.prepare('allowed',req),e=>omitRows?e.code==='source_review_required'&&e.issues.some(i=>i.code==='transaction-before-opening'):e.code==='transaction_before_opening');
+    assert.equal(reservations,0);assert.equal(c.driver.sources.size,0);assert.equal(c.driver.manifests.size,0);assert.equal(c.driver.intents.size,0);assert.equal(c.driver.writes,0);assert.equal(c.driver.gate,null);
+  }
+});
+test('combined new-profile intake accepts first post-opening day and blocks an anchor moved after review',async()=>{
+  const c=setup();c.driver.state.openingContract={profile:'au-aud-basic',version:'1.0.0',openingDate:'2027-01-31'};
+  const req=combinedOpeningRequest(c.driver,'2027-02-01'),p=await c.service.prepare('allowed',req);assert.equal(p.counts.transaction,1);assert.equal((await commit(c.service,p.importId)).status,'verified');
+  const changed=setup(),old=combinedOpeningRequest(changed.driver,'2027-02-01'),reviewed=await changed.service.prepare('allowed',old);
+  changed.driver.state.openingContract={profile:'au-aud-basic',version:'1.0.0',openingDate:'2027-02-28'};changed.driver.state.baseline.accounts[0].openingDate='2027-02-28';
+  await assert.rejects(commit(changed.service,reviewed.importId),e=>e.code==='transaction_before_opening');assert.equal(changed.driver.intents.size,0);assert.equal(changed.driver.gate,null);assert.equal(changed.driver.writes,0);
+});
+test('bad new-profile metadata blocks typed mutations but leaves existing lifecycle paths reachable',async()=>{
+  const bad={profile:'au-aud-basic',version:'1.0.0',error:'History starts changed.'};
+  const fresh=setup();fresh.driver.state.openingContract=bad;
+  await assert.rejects(fresh.service.prepare('allowed',request([pay()])),e=>e.code==='opening_anchor_invalid');assert.equal(fresh.driver.sources.size,0);
+  const reviewed=await prepared();reviewed.driver.state.openingContract=bad;
+  await assert.rejects(commit(reviewed.service,reviewed.proposed.importId),e=>e.code==='opening_anchor_invalid');assert.equal(reviewed.driver.intents.size,0);assert.equal(reviewed.driver.gate,null);
+  assert.equal((await reviewed.service.status('allowed',reviewed.proposed.importId,{sheetId:SHEET})).status,'proposed');assert.equal((await reviewed.service.cancel('allowed',reviewed.proposed.importId,{sheetId:SHEET})).status,'cancelled');
+  const held=await prepared();held.driver.fail='before';await commit(held.service,held.proposed.importId);held.driver.state.openingContract=bad;
+  for(const action of ['status','cancel','commit'])assert.equal((await held.service[action]('allowed',held.proposed.importId,{sheetId:SHEET,approval:true})).status,'unknown');assert.equal(held.driver.writes,0);
 });

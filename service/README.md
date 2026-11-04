@@ -1,6 +1,6 @@
 # Kitty service gateway
 
-One app-configured HTTPS base URL serves bank imports and Ask. The Google Sheet remains the
+One app-configured HTTPS base URL serves household setup, bank imports and Ask. The Google Sheet remains the
 canonical financial record; original import evidence and durable recovery records remain in the
 user's Google Drive. The gateway has no financial database and retains no Google OAuth tokens.
 
@@ -15,10 +15,10 @@ Requires Node 22+, with no npm dependencies. The default listener is `127.0.0.1:
 The container runs as the unprivileged Node user. Configure the app's single service URL at build
 time. Consumers should not be asked to host a server or paste an endpoint.
 
-Routes are `/v1/imports/*`, `/v1/ask`, `/v1/ask/preview`, `/v1/ask/capabilities`, and `/health`.
+Routes are `/v1/setup/*`, `/v1/imports/*`, `/v1/ask`, `/v1/ask/preview`, `/v1/ask/capabilities`, and `/health`.
 Dispatch occurs before reading the body; only the selected handler consumes it. Health confirms
 that this process is running, not Google access, AI provider availability or import acceptance.
-See the [import contract](../import-service/README.md) and [Ask contract](../ai-service/README.md).
+See the [setup contract](../setup-service/README.md), [import contract](../import-service/README.md) and [Ask contract](../ai-service/README.md).
 
 **Run exactly one process and one replica.** Do not use Node clustering, autoscaling or overlapping
 rolling replacements. The import queue is process-local. A shared hold on the Sheet survives

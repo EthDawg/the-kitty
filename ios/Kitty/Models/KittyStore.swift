@@ -15,6 +15,13 @@ import SwiftUI
   @Published var showSettings = false
   @Published var showImport = false
   @Published var showAccounts = false
+  @Published var showHouseholdSetup = false
+  @Published var setupDraft = HouseholdSetupDraft()
+  @Published var setupBusy = false
+  @Published var setupLoadBlocked = false
+  var setupStorageOverride: URL?
+  var setupPersistence: ((Data, URL) throws -> Void)?
+  var setupRemoval: ((URL) throws -> Void)?
   @Published var lastSynced: Date?
   @Published var isOffline = false
   @Published var selectedSheetID: String = ""
@@ -68,11 +75,15 @@ import SwiftUI
       attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication])
     return base
   }
-  init(google: GoogleConnection? = nil) {
+  init(google: GoogleConnection? = nil, setupStorage: URL? = nil) {
     self.google = google ?? GoogleConnection()
+    self.setupStorageOverride = setupStorage
     do { engine = try EngineBridge() } catch { self.error = error.localizedDescription }
     let args = ProcessInfo.processInfo.arguments
     if args.contains("--uitest-reset") {
+      if args.contains("--uitest-setup") {
+        try? FileManager.default.removeItem(at: storage.appendingPathComponent("household-setup-practice.json"))
+      }
       try? FileManager.default.removeItem(at: storage.appendingPathComponent("import-demo.json"))
       if let files = try? FileManager.default.contentsOfDirectory(
         at: storage, includingPropertiesForKeys: nil)
@@ -101,6 +112,7 @@ import SwiftUI
       }
     }
     loadDraft()
+    loadHouseholdSetup()
   }
   var cacheURL: URL { storage.appendingPathComponent("sheet-\(selectedSheetID).json") }
   func persist(_ data: Data, at url: URL) throws {
@@ -112,7 +124,7 @@ import SwiftUI
     try url.setResourceValues(values)
   }
   func openDemo() {
-    guard !importBusy else {
+    guard !importBusy, !setupBusy else {
       error = "Wait for the current import check before switching households."
       return
     }
@@ -143,13 +155,14 @@ import SwiftUI
     } catch { self.error = error.localizedDescription }
   }
   func showWelcome() {
+    guard !setupBusy else { return }
     googleEpoch = UUID()
     mode = .welcome
     household = nil
     UserDefaults.standard.removeObject(forKey: "kitty.mode")
   }
   func connect(createDemo: Bool = false) async {
-    guard !busy, !importBusy, !disconnecting else { return }
+    guard !busy, !importBusy, !setupBusy, !disconnecting else { return }
     busy = true
     error = nil
     defer { busy = false }
@@ -185,7 +198,7 @@ import SwiftUI
   }
   func disconnect() async {
     guard !disconnecting else { return }
-    guard !importBusy else {
+    guard !importBusy, !setupBusy else {
       error = "Wait for the current import check before disconnecting Google."
       return
     }
@@ -209,8 +222,9 @@ import SwiftUI
     error = [warning, cleanupWarning].compactMap { $0 }.joined(separator: " ")
     if error?.isEmpty == true { error = nil }
   }
-  private func clearGoogleData(removeLocalFiles: Bool = true) -> String? {
+  func clearGoogleData(removeLocalFiles: Bool = true) -> String? {
     var failed = false
+    if removeLocalFiles, !clearHouseholdSetupForDisconnect() { failed = true }
     if removeLocalFiles,
       let contents = try? FileManager.default.contentsOfDirectory(
         at: storage, includingPropertiesForKeys: nil)
@@ -265,7 +279,7 @@ import SwiftUI
     })
   }
   func select(_ file: GoogleSheetFile) async {
-    guard !busy, !importBusy, !disconnecting else { return }
+    guard !busy, !importBusy, !setupBusy, !disconnecting else { return }
     busy = true
     error = nil
     defer { busy = false }

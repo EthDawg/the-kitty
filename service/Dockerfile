@@ -3,6 +3,9 @@ WORKDIR /app
 COPY --chown=node:node service ./service
 COPY --chown=node:node import-service/*.mjs ./import-service/
 COPY --chown=node:node ai-service/*.mjs ./ai-service/
+COPY --chown=node:node setup-service/*.mjs ./setup-service/
+COPY --chown=node:node templates/build.mjs ./templates/build.mjs
+COPY --chown=node:node templates/source/davies-v1.json ./templates/source/davies-v1.json
 COPY --chown=node:node native-core/import.js native-core/sheet-contract.js native-core/records.js native-core/close.js ./native-core/
 USER node
 ENV KITTY_SERVICE_HOST=0.0.0.0

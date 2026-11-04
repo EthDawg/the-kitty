@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from './server.mjs';
 import {createImportHandler} from '../import-service/server.mjs';
 import {createAskHandler} from '../ai-service/server.mjs';
+import {createSetupHandler} from '../setup-service/server.mjs';
 
 async function serverFor(t,options={}) {
  const server=createServer(options);await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -41,6 +42,28 @@ test('handlers decline other routes without reading or touching the request body
  const request=url=>({url,method:'POST',[Symbol.asyncIterator](){throw new Error('Body was consumed');}});
  assert.equal(await createImportHandler({service:{}})(request('/v1/ask/preview'),{}),false);
  assert.equal(await createAskHandler({service:{}})(request('/v1/imports/prepare'),{}),false);
+  assert.equal(await createSetupHandler({service:{}})(request('/v1/imports/prepare'),{}),false);
+});
+test('gateway delivers setup reservation and lifecycle bindings intact without consuming other service bodies',async t=>{
+ const calls=[],setupId='synthetic_setup_123456',digest='a'.repeat(64),methods=['reserve','begin','continue','status','cancel'];
+ const setupService=Object.fromEntries(methods.map(method=>[method,async(...args)=>{calls.push([method,...args]);return {setupId,proposalDigest:digest,ownerPermissionId:'synthetic-owner',status:method==='reserve'?'reserved':'prepared'};}]));
+ const base=await serverFor(t,{setupService,importService:{},askService:{}});
+ const input={householdName:'Fictional Household'},binding={proposalDigest:digest,createIntentId:'create_intent_123456',initializeIntentId:'initialize_intent_123456',ownerPermissionId:'synthetic-owner'};
+ for(const [path,body]of [['/v1/setup/reserve',{input}],[`/v1/setup/${setupId}/begin`,{...binding,input,approval:true}],[`/v1/setup/${setupId}/continue`,{proposalDigest:digest,approval:true}],[`/v1/setup/${setupId}/cancel`,{...binding,input}]])assert.equal((await fetch(base+path,{method:'POST',headers,body:JSON.stringify(body)})).status,200);
+ const query=new URLSearchParams({proposalDigest:digest});assert.equal((await fetch(`${base}/v1/setup/${setupId}/status?${query}`,{headers})).status,200);
+ assert.deepEqual(calls,[['reserve','synthetic-token',{input}],['begin','synthetic-token',setupId,{...binding,input,approval:true}],['continue','synthetic-token',setupId,{proposalDigest:digest,approval:true}],['cancel','synthetic-token',setupId,{...binding,input}],['status','synthetic-token',setupId,{proposalDigest:digest}]]);
+});
+test('setup routes enforce bearer, origin, JSON, body bounds and suppress internal errors',async t=>{
+ let calls=0;const base=await serverFor(t,{setupService:{reserve:async()=>{calls++;throw new Error('secret token provider diagnostic');}},importService:{},askService:{}});
+ const path=base+'/v1/setup/reserve';
+ assert.equal((await fetch(path,{method:'POST',headers:{'content-type':'application/json'},body:'{}'})).status,401);
+ assert.equal((await fetch(path,{method:'POST',headers:{...headers,origin:'https://example.test'},body:'{}'})).status,403);
+ assert.equal((await fetch(path,{method:'POST',headers:{authorization:headers.authorization},body:'{}'})).status,400);
+ assert.equal((await fetch(path,{method:'POST',headers,body:'[]'})).status,400);
+ assert.equal((await fetch(path,{method:'POST',headers,body:'{'})).status,400);
+ assert.equal((await fetch(path,{method:'POST',headers,body:JSON.stringify({padding:'x'.repeat(65536)})})).status,413);
+ const response=await fetch(path,{method:'POST',headers,body:'{}'});assert.equal(response.status,500);const text=await response.text();assert.ok(!text.includes('secret token'));assert.equal(calls,1);assert.equal(response.headers.get('access-control-allow-origin'),null);
+ assert.equal((await fetch(base+'/v1/setup/unknown',{headers})).status,404);
 });
 test('gateway forwards provenance and cancellation with exact Sheet and import binding',async t=>{
  const calls=[];const base=await serverFor(t,{importService:{provenance:async(token,body)=>{calls.push(['provenance',token,body]);return {baseline:{existing:[]}};},cancel:async(token,id,body)=>{calls.push(['cancel',token,id,body]);return {status:'cancelled'};}},askService:{}});

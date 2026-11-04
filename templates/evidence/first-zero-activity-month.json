@@ -1,0 +1,166 @@
+{
+  "kind": "fictional-google-asof-recalculation-primitive",
+  "openingDate": "2026-06-30",
+  "targetDate": "2026-07-31",
+  "beforeProjectionIssues": [],
+  "afterProjectionIssues": [],
+  "afterReadbackIssues": [],
+  "projectedBalances": [
+    {
+      "accountId": "ACC-SOLO",
+      "date": "2026-07-31",
+      "amountMinor": "123456"
+    }
+  ],
+  "targetChecks": [
+    {
+      "id": "Work expenses without a receipt",
+      "type": "Tax",
+      "items": null,
+      "status": "Unavailable",
+      "message": "Tax setup and evidence are not configured in this profile."
+    },
+    {
+      "id": "Work equipment over the immediate-deduction limit",
+      "type": "Tax",
+      "items": null,
+      "status": "Unavailable",
+      "message": "Tax setup and evidence are not configured in this profile."
+    },
+    {
+      "id": "Large rental repairs",
+      "type": "Tax",
+      "items": null,
+      "status": "Unavailable",
+      "message": "Tax setup and evidence are not configured in this profile."
+    },
+    {
+      "id": "Donations without a receipt",
+      "type": "Tax",
+      "items": null,
+      "status": "Unavailable",
+      "message": "Tax setup and evidence are not configured in this profile."
+    },
+    {
+      "id": "Rental property ran at a loss (prior year)",
+      "type": "Tax",
+      "items": null,
+      "status": "Unavailable",
+      "message": "Tax setup and evidence are not configured in this profile."
+    },
+    {
+      "id": "Salary deposits match payslips (prior year)",
+      "type": "Data",
+      "items": null,
+      "status": "Unavailable",
+      "message": "A gap means a missing pay or a deposit in the wrong category."
+    },
+    {
+      "id": "Uncategorised transactions",
+      "type": "Data",
+      "items": 0,
+      "status": "OK",
+      "message": "They are left out of budgets and tax totals until categorised."
+    },
+    {
+      "id": "Unknown category IDs",
+      "type": "Data",
+      "items": 0,
+      "status": "OK",
+      "message": "A typo in a category ID drops the row from every view."
+    },
+    {
+      "id": "Possible duplicate charges",
+      "type": "Data",
+      "items": 0,
+      "status": "OK",
+      "message": "Identical date, account, merchant and amount need review. Repeated real charges are possible; this is not proof of money to recover."
+    },
+    {
+      "id": "Transfers that do not net to zero",
+      "type": "Data",
+      "items": 0,
+      "status": "OK",
+      "message": "A nonzero total needs review. A zero total alone does not prove matching transfer pairs; the close checks original evidence."
+    },
+    {
+      "id": "Card interest charged (last 12 months)",
+      "type": "Cash",
+      "items": 0,
+      "status": "OK",
+      "message": "Interest means the card was not paid in full that month."
+    },
+    {
+      "id": "Transactions after the as-of date",
+      "type": "Data",
+      "items": 0,
+      "status": "OK",
+      "message": "Rows dated after the as-of date are left out of every view."
+    },
+    {
+      "id": "Valuations missing for the as-of date",
+      "type": "Close",
+      "items": 0,
+      "status": "OK",
+      "message": "Every configured valuation item needs month-end evidence. No asset items are configured in the basic profile."
+    },
+    {
+      "id": "Salary deposits without a payslip (current year)",
+      "type": "Close",
+      "items": 0,
+      "status": "OK",
+      "message": "Only actual salary deposits and payslips require matching evidence. A household without income does not need a fictional payslip."
+    },
+    {
+      "id": "Accounts with no activity in the latest month",
+      "type": "Data",
+      "items": 1,
+      "status": "Review",
+      "message": "No activity can be legitimate. The authoritative close requires a reviewed statement for every account, including inactive months."
+    },
+    {
+      "id": "Subscriptions charged but not on the list",
+      "type": "Data",
+      "items": 0,
+      "status": "OK",
+      "message": "A new subscription, often a free trial that rolled into a paid plan, is invisible to the usage and price checks until it is on the list."
+    },
+    {
+      "id": "Repeated transaction IDs",
+      "type": "Data",
+      "items": 0,
+      "status": "OK",
+      "message": "Usually the same statement imported twice. Views look rows up by ID, so every ID must be used once."
+    },
+    {
+      "id": "Transactions overlap the opening anchor",
+      "type": "Close",
+      "items": 0,
+      "status": "OK",
+      "message": "Opening balances already include earlier movements. Remove or correct overlapping source records before close."
+    },
+    {
+      "id": "Unknown account IDs",
+      "type": "Close",
+      "items": 0,
+      "status": "OK",
+      "message": "Every transaction must identify a configured account."
+    },
+    {
+      "id": "Unknown transaction people",
+      "type": "Close",
+      "items": 0,
+      "status": "OK",
+      "message": "Every transaction person must be a configured person or Joint."
+    },
+    {
+      "id": "As-of date precedes the opening anchor",
+      "type": "Close",
+      "items": 0,
+      "status": "OK",
+      "message": "The opening anchor is immutable. Close advances As-of one month at a time."
+    }
+  ],
+  "formulaErrors": [],
+  "limits": "Only the fictional fixture As-of input advanced. All21 scoped diagnostic values/statuses matched the preflight target projection. This did not call the hosted close writer, save a verified_close receipt or prove statement evidence."
+}

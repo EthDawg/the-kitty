@@ -38,6 +38,8 @@ Separate amount columns use `debit`, `credit`, `debitSign: 'positive'|'negative'
 
 A supplied `Status`, `Posting status` or `Transaction status` header must be mapped. Pending rows are excluded and counted; unfamiliar status values block the import. Native UTF-8 decoding preserves the BOM so the source ID and service SHA-256 refer to exactly the same original bytes.
 
+For a recognized new-household profile, the trusted service baseline adds `accounts[].openingDate` as an ISO date. Posted CSV rows on or before it fail with `transaction-before-opening`; pending rows remain excluded. An invalid supplied date fails with `opening-anchor-invalid`. Use an export beginning the following day: the opening balance already represents earlier activity. The dates also bind review acknowledgements. Legacy baselines omit this key and retain their prior behavior and review keys. The service must derive these dates from the actual Sheet, not a client-supplied account object.
+
 ## Decisions and acknowledgements
 
 Per-row decisions are keyed by `row.id` (or exact description for an explicitly chosen rule): `{categoryId, merchant?, person?, acceptUncategorised?}`. Unknown category IDs always block. `duplicate:'skip'` deliberately excludes a candidate; `duplicate:'keep'` explicitly treats a legacy tuple match as an extra real charge and creates a source-bound identity. A provider ID already in the Sheet cannot be forced in a second time.

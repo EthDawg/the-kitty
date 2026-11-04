@@ -150,6 +150,11 @@
       const fileId=str(file.id||'source-'+stableID(str(file.text))),meta={id:fileId,name:str(file.name||'Import '+(fileIndex+1)),accountId:str(file.accountId),status:'blocked',rows:0};result.files.push(meta);
       try{
         if(!accounts.has(meta.accountId))fail('account-unknown','Select an account that exists in your connected Sheet.');
+        const selectedAccount=accounts.get(meta.accountId);let openingDate=null;
+        if(own(selectedAccount,'openingDate')){
+          try{openingDate=strictDate(selectedAccount.openingDate,'ymd');if(openingDate!==selectedAccount.openingDate)throw new Error();}
+          catch{fail('opening-anchor-invalid','The selected account has invalid opening settings. Restore the reviewed opening anchor and history settings in the Sheet, then refresh.');}
+        }
         const accountCurrency=str(accounts.get(meta.accountId).currency||input.currency||'AUD').trim().toUpperCase();
         if(!CURRENCIES.has(accountCurrency))fail('currency-unsupported','The selected account currency '+accountCurrency+' is not supported by this two-decimal importer.');
         if(input.currency&&accountCurrency!==sheetCurrency)fail('currency-mismatch','The selected account currency differs from the Sheet currency. Currency conversion is not supported.');
@@ -178,6 +183,7 @@
             if(status&&['pending','authorised','authorized','processing'].includes(status)){result.excluded.push({fileId,sourceRow:rec.row,reason:'pending',description:get(rec,'description')});result.counts.pending++;continue;}
             if(status&&!['posted','settled','completed','complete','cleared','booked'].includes(status))fail('status-unknown','Unknown posting status “'+status+'”. Confirm whether the transaction is posted.');
             const date=strictDate(get(rec,'date'),mapping.dateOrder);
+            if(openingDate && date<=openingDate)fail('transaction-before-opening','The transaction is on or before the opening balance date '+openingDate+'. Export transactions from the following day; earlier activity is already represented by the opening balance.');
             const description=get(rec,'description');if(!description)fail('description-missing','The original bank description is missing.');
             if(expectedSuffix&&mapping.account&&!get(rec,'account').replace(/\W/g,'').endsWith(expectedSuffix))fail('account-mismatch','The file’s account number does not match the selected account.');
             if(mapping.account&&get(rec,'account'))sourceAccounts.add(get(rec,'account'));
@@ -190,7 +196,7 @@
             if(!Number.isSafeInteger(n)||Math.abs(n)>MAX_MINOR)fail('amount-range','Combined amount exceeds the exact-currency range.');
             const row={date,accountId:meta.accountId,description,amountMinor:String(n),decimalAmount:decimalAmount(String(n)),currency:accountCurrency,providerId:get(rec,'providerId'),status:'posted',sourceId:fileId,sourceRow:rec.row,sourceLine:rec.line,sourceRefs:[{fileId,row:rec.row,line:rec.line}],balanceMinor:mapping.balance&&get(rec,'balance')!==''?money(get(rec,'balance'),false):null};
             if(previous){if(date<previous.date)ascending=false;if(date>previous.date)descending=false;}previous=row;fileRows.push(row);result.counts.parsed++;
-          }catch(e){result.counts.invalid++;issue(e.code||'row-invalid','error',meta.name+', line '+rec.line+': '+e.message,'Correct the source or its mapping, then review the import again.',{fileId,sourceRow:rec.row});}
+          }catch(e){result.counts.invalid++;issue(e.code||'row-invalid','error',meta.name+', line '+rec.line+': '+e.message,e.code==='transaction-before-opening'?'Choose an export beginning the day after the opening balance date.':'Correct the source or its mapping, then review the import again.',{fileId,sourceRow:rec.row});}
         }
         if(sourceAccounts.size>1)issue('multiple-accounts','error','This file contains more than one account number.','Export each account separately, then select its matching Sheet account.',{fileId});
         // Validate supplied running balances without assuming source sort direction.
@@ -216,7 +222,7 @@
           if(!Number.isSafeInteger(net)||Number(minor(file.openingMinor))+net!==Number(minor(file.closingMinor)))issue('closing-mismatch','error','Transactions do not reconcile from opening to closing balance.','Check missing rows and the bank/card sign convention.',{fileId});else balanceChecks++;
         }
         meta.balanceChecks=balanceChecks;meta.balanceBasis=balanceChecks?'source arithmetic':'not established';meta.status='parsed';all.push({fileId,rows:fileRows});
-      }catch(e){issue(e.code||'file-invalid','error',meta.name+': '+e.message,'Choose a supported CSV or confirm a mapping before continuing.',{fileId});}
+      }catch(e){issue(e.code||'file-invalid','error',meta.name+': '+e.message,e.code==='opening-anchor-invalid'?'Restore the reviewed opening anchor and history settings in the Sheet, then refresh.':'Choose a supported CSV or confirm a mapping before continuing.',{fileId});}
     }
     const existingByTuple=new Map(),existingByProvider=new Map(),existingByID=new Map(),historyByDescription=new Map(),fuzzyCandidates=new Map();
     const fuzzyKey=r=>JSON.stringify([r.accountId,r.amountMinor,normalDescription(r.description)]);
@@ -316,7 +322,8 @@
     const scope=stableID(canonical({
       files:(input.files||[]).map(f=>({id:f.id,name:f.name,text:f.text,accountId:f.accountId,mapping:f.mapping,openingMinor:f.openingMinor,closingMinor:f.closingMinor})).sort((a,b)=>str(a.id).localeCompare(str(b.id))),
       existing:existing.map(r=>[r.id,r.accountId,r.date,r.description,r.amountMinor,r.categoryId]).sort((a,b)=>canonical(a).localeCompare(canonical(b))),
-      categories:[...categories].sort(),currency:sheetCurrency,dateOrder:input.dateOrder||null
+      categories:[...categories].sort(),currency:sheetCurrency,dateOrder:input.dateOrder||null,
+      ...([...accounts.values()].some(a=>own(a,'openingDate'))?{openingDates:[...accounts.entries()].filter(([,a])=>own(a,'openingDate')).map(([id,a])=>[id,a.openingDate]).sort((a,b)=>a[0].localeCompare(b[0]))}:{})
     }));
     const requested=(decisionFor('$review')||{}).acknowledge;
     const acknowledgements=new Set(Array.isArray(requested)?requested.filter(k=>typeof k==='string'):[]);

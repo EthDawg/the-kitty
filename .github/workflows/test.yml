@@ -9,8 +9,8 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: artifact, native projection, import and Ask checks
-        run: node --test native-core/*.test.js import-service/*.test.mjs ai-service/ask.test.mjs service/server.test.mjs ios/scripts/projection.test.cjs test.js
+      - name: artifact, native projection, setup, import and Ask checks
+        run: node --test native-core/*.test.js import-service/*.test.mjs templates/*.test.mjs setup-service/*.test.mjs ai-service/ask.test.mjs service/server.test.mjs ios/scripts/projection.test.cjs test.js
       - name: bundled finance cores match their shared sources
         run: |
           for core in import sheet-contract records close; do

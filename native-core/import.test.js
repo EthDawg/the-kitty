@@ -286,3 +286,34 @@ test('supported two-decimal household works but mixed-currency amounts are refus
   const p=prep([one()],{accounts:usd,currency:'USD'});assert.equal(p.canCommit,true);assert.equal(p.rows[0].currency,'USD');
   const mixed=prep([one()],{accounts:usd,currency:'AUD'});assert.equal(mixed.rows.length,0);assert.ok(codes(mixed).includes('currency-mismatch'));
 });
+test('configured opening anchor rejects posted rows on and before it, and permits the following day',()=>{
+  const anchored=accounts.map(a=>({...a,openingDate:'2027-01-31'}));
+  for(const date of ['30/01/2027','31/01/2027']){
+    const p=prep([file(header+'\n'+date+',Coffee,-4.50')],{accounts:anchored});
+    assert.equal(p.canCommit,false);assert.equal(p.rows.length,0);assert.ok(codes(p).includes('transaction-before-opening'));
+    assert.match(p.issues[0].message,/following day/);
+  }
+  assert.equal(prep([file(header+'\n01/02/2027,Coffee,-4.50')],{accounts:anchored}).canCommit,true);
+  const pending=prep([file(header+',Status\n31/01/2027,Coffee,-4.50,Pending',{mapping:{...mapping,status:'Status'}})],{accounts:anchored});
+  assert.equal(pending.counts.pending,1);assert.equal(pending.counts.errors,0);
+});
+test('invalid supplied opening anchor cannot silently disable the boundary',()=>{
+  for(const openingDate of ['',null,'2027-02-30','31/01/2027',12345]){
+    const p=prep([one()],{accounts:[{...accounts[0],openingDate}]});
+    assert.equal(p.canCommit,false);assert.equal(p.rows.length,0);assert.ok(codes(p).includes('opening-anchor-invalid'));
+  }
+  // Legacy account dictionaries have no anchor metadata; their historical input remains accepted.
+  assert.equal(prep([file(header+'\n01/01/2001,Coffee,-4.50')]).canCommit,true);
+});
+test('opening-date changes invalidate review acknowledgements only when anchor metadata is present',()=>{
+  const files=[file(header+'\n03/02/2027,Coffee,-4.50\n03/02/2027,Coffee,-4.50')];
+  const anchored=accounts.map(a=>({...a,openingDate:'2027-01-31'}));
+  const accepted=acceptReviews(files,{accounts:anchored});assert.equal(accepted.proposal.canCommit,true);
+  const changed=prep(files,{accounts:anchored.map(a=>({...a,openingDate:'2026-12-31'})),decisions:accepted.decisions});
+  assert.equal(changed.canCommit,false);assert.ok(changed.review.pending.length);
+  const reordered=prep(files,{accounts:anchored.slice().reverse(),decisions:accepted.decisions});assert.equal(reordered.canCommit,true);
+});
+test('legacy review keys remain identical to the released unanchored importer',()=>{
+  const input={accounts:[{id:'A',name:'Cash',owner:'Joint',currency:'AUD'}],categories:[{id:'FOOD',name:'Food'}],existing:[],decisions:{Coffee:{categoryId:'FOOD'}},files:[file(header+'\n03/02/2027,Coffee,-4.50\n03/02/2027,Coffee,-4.50')]};
+  assert.deepEqual(I.prepare(input).review.pending,['repeated-charge@7e5e36b048026778','repeated-charge@0ff8665111f40fe3']);
+});

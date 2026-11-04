@@ -21,6 +21,9 @@ struct SettingsView: View {
         }
       }
       Section("Your Google Sheet") {
+        NavigationLink(store.setupDraft.isLocked ? "Resume household setup" : "Start a new household") {
+          HouseholdSetupView()
+        }.disabled(store.busy || store.importBusy || store.disconnecting)
         if !store.selectedSheetID.isEmpty {
           Text(store.selectedSheetName).font(.headline)
           if !store.sheetCanEdit { Text("View-only access").font(.caption).foregroundStyle(KittyTheme.secondary) }
@@ -159,6 +162,7 @@ struct PrivacyView: View {
       }
       Section("Retention and deletion") {
         Text("Sheet copies, original import files and pending reviews are stored in protected app storage. Discarding an unsubmitted review removes its local files. Disconnecting removes cached Sheet data; an unresolved save retains its recovery receipt as described above. Removing the app removes its local records.")
+        Text("New household setup saves the settings you approve and a recovery record in your Google Drive. Unsubmitted setup details stay on this device. An interrupted creation keeps its protected operation record so it can be checked before another Sheet is created.")
         Text("Your Sheet, imported originals and receipts in Google Drive remain under your control until you delete them in Drive. The import service uses your Google token for the request and does not keep a separate household database. AI providers may retain approved context under their own policies. Removing local data does not delete a conversation you created with another provider.")
       }
       Section("No tracking") {

@@ -1,0 +1,43 @@
+{
+  "description": "Sanitized validation-only samples from Google readback of the generated fictional two-person workbook, 5 November 2026. No workbook, owner or household identifiers are retained.",
+  "range": "Transactions!B2:B2001",
+  "count": 2000,
+  "cells": [
+    {
+      "rowIndex": 1,
+      "columnIndex": 1,
+      "dataValidation": {
+        "condition": {"type": "CUSTOM_FORMULA", "values": [{"userEnteredValue": "=AND(ISNUMBER(B2),B2>INDIRECT(\"Settings!B35\"))"}]},
+        "inputMessage": "Use a date after the opening anchor. Earlier movements are already included in opening balances.",
+        "strict": true
+      }
+    },
+    {
+      "rowIndex": 2,
+      "columnIndex": 1,
+      "dataValidation": {
+        "condition": {"type": "CUSTOM_FORMULA", "values": [{"userEnteredValue": "=AND(ISNUMBER(B3),B3>INDIRECT(\"Settings!B35\"))"}]},
+        "inputMessage": "Use a date after the opening anchor. Earlier movements are already included in opening balances.",
+        "strict": true
+      }
+    },
+    {
+      "rowIndex": 32,
+      "columnIndex": 1,
+      "dataValidation": {
+        "condition": {"type": "CUSTOM_FORMULA", "values": [{"userEnteredValue": "=AND(ISNUMBER(B33),B33>INDIRECT(\"Settings!B35\"))"}]},
+        "inputMessage": "Use a date after the opening anchor. Earlier movements are already included in opening balances.",
+        "strict": true
+      }
+    },
+    {
+      "rowIndex": 2000,
+      "columnIndex": 1,
+      "dataValidation": {
+        "condition": {"type": "CUSTOM_FORMULA", "values": [{"userEnteredValue": "=AND(ISNUMBER(B2001),B2001>INDIRECT(\"Settings!B35\"))"}]},
+        "inputMessage": "Use a date after the opening anchor. Earlier movements are already included in opening balances.",
+        "strict": true
+      }
+    }
+  ]
+}

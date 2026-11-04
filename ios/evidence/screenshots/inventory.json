@@ -1174,5 +1174,77 @@
     "evidenceLimit": "Fictional simulator data; visible viewport only. No physical-device, VoiceOver, live Google or import acceptance.",
     "caption": "Activity title and search at large accessibility text",
     "observedResult": "Activity title and search field are separate; the test asserts their frames do not intersect."
+  },
+  {
+    "file": "setup-regular-29-resumed-household-draft.png",
+    "sha256": "16dc65d452489d9bde5b0d829ac4a04c36ce9564b027415b97fa26598a673f53",
+    "workflow": "HouseholdSetupUITests/testHouseholdOpeningReviewAndDraftSurviveRelaunchWithoutCreatingASheet()",
+    "capturedAtUnix": 1793808374.805,
+    "device": "iPhone 17 Pro",
+    "sourceResult": "household-ui-regular-01.xcresult",
+    "fullResolution": true,
+    "evidenceLimit": "Fictional local setup draft and review only; no Google authorization or Sheet creation in this UI journey.",
+    "caption": "Saved account and opening balance after relaunch",
+    "observedResult": "Setup review shows the exact balance; draft survives relaunch. Associated simulator workflow passed."
+  },
+  {
+    "file": "setup-regular-28-reviewed-household-opening-balances.png",
+    "sha256": "49ded4ac44d20db42f31e83c6b6dd4c72554885c2235101bfe189bbe51780b81",
+    "workflow": "HouseholdSetupUITests/testHouseholdOpeningReviewAndDraftSurviveRelaunchWithoutCreatingASheet()",
+    "capturedAtUnix": 1793808369.881,
+    "device": "iPhone 17 Pro",
+    "sourceResult": "household-ui-regular-01.xcresult",
+    "fullResolution": true,
+    "evidenceLimit": "Fictional local setup draft and review only; no Google authorization or Sheet creation in this UI journey.",
+    "caption": "Reviewed account and exact opening balance",
+    "observedResult": "Setup review shows the exact balance; draft survives relaunch. Associated simulator workflow passed."
+  },
+  {
+    "file": "setup-regular-27-household-opening-account.png",
+    "sha256": "955de6c9a2c71a5d070c8a2d9a5ef41550dd76a3ce7e729cbaf9d0c9fb16a8f6",
+    "workflow": "HouseholdSetupUITests/testHouseholdOpeningReviewAndDraftSurviveRelaunchWithoutCreatingASheet()",
+    "capturedAtUnix": 1793808361.772,
+    "device": "iPhone 17 Pro",
+    "sourceResult": "household-ui-regular-01.xcresult",
+    "fullResolution": true,
+    "evidenceLimit": "Fictional local setup draft and review only; no Google authorization or Sheet creation in this UI journey.",
+    "caption": "Exact opening amount and held/owed choice",
+    "observedResult": "Setup review shows the exact balance; draft survives relaunch. Associated simulator workflow passed."
+  },
+  {
+    "file": "setup-se-29-resumed-household-draft.png",
+    "sha256": "ea2f9e8653ebafb2194683b1db939447aee3f229f2a55114832ec5a9af331d52",
+    "workflow": "HouseholdSetupUITests/testHouseholdOpeningReviewAndDraftSurviveRelaunchWithoutCreatingASheet()",
+    "capturedAtUnix": 1793809200.652,
+    "device": "iPhone SE \u00b7 accessibility extra-large \u00b7 dark",
+    "sourceResult": "household-ui-se-04.xcresult",
+    "fullResolution": true,
+    "evidenceLimit": "Fictional local setup draft and review only; no Google authorization or Sheet creation in this UI journey.",
+    "caption": "Saved account and opening balance after relaunch",
+    "observedResult": "Setup review shows the exact balance; draft survives relaunch. Associated simulator workflow passed."
+  },
+  {
+    "file": "setup-se-28-reviewed-household-opening-balances.png",
+    "sha256": "0dc37a9041309635564f78a092cfec1361831872d92c0b06554af3e5d3813df8",
+    "workflow": "HouseholdSetupUITests/testHouseholdOpeningReviewAndDraftSurviveRelaunchWithoutCreatingASheet()",
+    "capturedAtUnix": 1793809171.192,
+    "device": "iPhone SE \u00b7 accessibility extra-large \u00b7 dark",
+    "sourceResult": "household-ui-se-04.xcresult",
+    "fullResolution": true,
+    "evidenceLimit": "Fictional local setup draft and review only; no Google authorization or Sheet creation in this UI journey.",
+    "caption": "Reviewed account and exact opening balance",
+    "observedResult": "Setup review shows the exact balance; draft survives relaunch. Associated simulator workflow passed."
+  },
+  {
+    "file": "setup-se-27-household-opening-account.png",
+    "sha256": "85e6f3540420ce6a77daf87b361f56d050585a91cb12c2f0d9c1598792511098",
+    "workflow": "HouseholdSetupUITests/testHouseholdOpeningReviewAndDraftSurviveRelaunchWithoutCreatingASheet()",
+    "capturedAtUnix": 1793809148.356,
+    "device": "iPhone SE \u00b7 accessibility extra-large \u00b7 dark",
+    "sourceResult": "household-ui-se-04.xcresult",
+    "fullResolution": true,
+    "evidenceLimit": "Fictional local setup draft and review only; no Google authorization or Sheet creation in this UI journey.",
+    "caption": "Exact opening amount and held/owed choice",
+    "observedResult": "Setup review shows the exact balance; draft survives relaunch. Associated simulator workflow passed."
   }
 ]
