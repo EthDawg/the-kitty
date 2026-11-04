@@ -4,7 +4,7 @@
     python3 build.py --no-snapshot   # dist/kitty.html, no data bundled: the page reads your sheet live
     python3 build.py --v2            # dist/kitty-v2.html against the v2 sheet (the ledger model), from data/snapshot-v2.json
 
-Also writes dist/local.html (or dist/local-v2.html), the same page wrapped in the viewer's document skeleton,
+The v2 build also writes dist/kit.html, the component gallery. Also writes dist/local.html (or dist/local-v2.html), the same page wrapped in the viewer's document skeleton,
 for local checks (serve dist/ with `python3 -m http.server`; the page runs without any connector on the bundled
 data). Sheet IDs and the page URL come from kitty.config.json; the published 1.1 page keeps reading the 1.1
 demo sheet until phase C cuts the artifact over to v2 (the v2 build's QR points at staging_url while it exists).
@@ -68,4 +68,6 @@ open(os.path.join(OUT, f'kitty{suffix}.html'), 'w', encoding='utf-8').write(page
 skel = ('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>')
 open(os.path.join(OUT, f'local{suffix}.html'), 'w', encoding='utf-8').write(skel + page + '</body></html>')
+if v2:  # the kit gallery: the same page, told to draw its components instead of Home (Playwright screenshots it in four states)
+    open(os.path.join(OUT, 'kit.html'), 'w', encoding='utf-8').write(skel + '<script>window.__KIT_GALLERY__=1;</script>' + page + '</body></html>')
 print(f"dist/kitty{suffix}.html: {len(page.encode()) // 1024} KB page; snapshot {'omitted' if no_snapshot else snapshot_file + ' bundled'}; sheet {sheet_id}; {len(merchants['merchants']['merchants'])} merchants; {len(logos)} logos")

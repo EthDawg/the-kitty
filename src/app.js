@@ -329,6 +329,33 @@
   }
 
   // ----- Home -----
+  // ----- The kit gallery (dist/kit.html): every component from the functions the page really uses, on the bundled household -----
+  function renderGallery() {
+    const m = S.m, v = $("#v-home"); const es = m.entries.filter((e) => e.kind === "transaction").slice(-6).reverse(); const sp = E.spend(m.tx, E.window("quarter", m.asOf));
+    const months = m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending })); const item = review().items[0];
+    const sect = (id, html, wide) => `<div class="card${wide ? " wide" : ""}" data-kit="${id}"><h3>${id}</h3>${html}</div>`;
+    let flow = ""; try { flow = flowSVG(sp, sp.in, CW(1)); } catch (e) { flow = Kit.EmptyState("d3 did not load"); }
+    let jar = ""; try { jar = jarSVG(sp, CW(1 / 2)); } catch (e) { jar = Kit.EmptyState("d3 did not load"); }
+    v.innerHTML = `<div class="kitg">${[
+      sect("Ring", ringSVG(0.92, "var(--accent)", "$11k", "of $12k")),
+      sect("Bar", monthBarsSVG(months)),
+      sect("StatTile", `<div class="statline">${Kit.StatTile("In", fmt0(months[11].in))}${Kit.StatTile("Out", fmt0(months[11].out), "last month")}</div>`),
+      sect("Sparkline", sparkSVG(months.map((x) => x.out), 320, 60, "var(--accent)")),
+      sect("Sankey", flow, true),
+      sect("Pack", jar),
+      sect("EntryRow", es.slice(0, 2).map((e) => Kit.EntryRow(e, ctx(), { category: true })).join("")),
+      sect("EntryList", Kit.EntryList(es, ctx(), {}), true),
+      sect("Table", `<div class="tablewrap"><table class="t"><thead><tr><th>Month</th><th>In</th><th>Out</th></tr></thead><tbody>${months.slice(-4).map((c) => `<tr><td>${esc(E.fmtMonth(c.month, true))}</td><td class="num">${fmt0(c.in)}</td><td class="num">${fmt0(c.out)}</td></tr>`).join("")}</tbody></table></div>`),
+      sect("Drawer", `<div class="static-drawer"><h2>A drawer</h2><p class="sub">Slides over the page; its content is any kit component.</p></div>`),
+      sect("ReviewCard", item ? Kit.ReviewCard(item, ctx()) : Kit.EmptyState("Nothing to review")),
+      sect("Chip", `<div class="chips">${Kit.Chip("Everyone", true)}${Kit.Chip("Jordan")}${Kit.Chip("Mia")}</div>`),
+      sect("EmptyState", Kit.EmptyState("Nothing due in the next 35 days.")),
+      sect("Skeleton", Kit.Skeleton(4)),
+      sect("Toast", `<div class="toast static-toast">Back to the default page</div>`),
+      sect("Tray", Kit.Tray([{ id: "x", title: "Property" }, { id: "y", title: "Super" }])),
+    ].join("")}</div>`;
+    $$("header.top, nav.tabs").forEach((x) => { x.style.display = "none"; });
+  }
   // ----- Home is the canvas: widgets from the kit, laid out per person. The page is a plain CSS grid until GridStack mounts on it, so a
   // blocked script costs dragging, not the page. Heights follow the content; a width snaps to a size the manifest declares. -----
   const isPhone = () => window.matchMedia("(max-width:819px)").matches;
@@ -355,7 +382,7 @@
       return `<div class="wcell grid-stack-item" data-wid="${esc(it.id)}" gs-id="${esc(it.id)}" gs-x="${it.x}" gs-y="${it.y}" gs-w="${it.w}" gs-h="1" gs-min-w="${Math.min(...w.sizes.map((s) => s.w))}" gs-size-to-content="true" style="--ww:${it.w};--i:${Math.min(i, 5)}"><div class="grid-stack-item-content"><div class="wbox">${tools}${body}</div></div></div>`;
     };
     const hiddenOn = lay.hiddenOn;
-    const bar = `<div class="arrangebar">${a ? `${hiddenOn.length ? `<span class="sub">Hidden:</span>${hiddenOn.map((id) => `<button class="chip" data-wshow="${esc(id)}">+ ${esc(Kit.widget(id).title)}</button>`).join("")}` : ""}<button class="linkbtn" data-wreset>Back to the default</button><button class="btn sm" data-arrange>Done</button>` : `<button class="linkbtn" data-arrange>Arrange this page</button>`}</div>`;
+    const bar = `<div class="arrangebar">${a ? `${hiddenOn.length ? `<span class="sub">Hidden:</span>${Kit.Tray(hiddenOn.map((id) => ({ id, title: Kit.widget(id).title })))}` : ""}<button class="linkbtn" data-wreset>Back to the default</button><button class="btn sm" data-arrange>Done</button>` : `<button class="linkbtn" data-arrange>Arrange this page</button>`}</div>`;
     return `<div class="canvas${a ? " arranging" : ""}${phone ? " phone" : ""}" id="canvas">${lay.items.map((it, i) => cell(it, i, lay.items.length)).join("")}</div>${fixedLayout() ? "" : bar}`;
   }
   function unmountCanvas() { if (S.grid) { try { S.grid.destroy(false); } catch (e) { /* the DOM is about to go */ } S.grid = null; } }
@@ -393,6 +420,7 @@
     }));
   }
   function renderHome() {
+    if (window.__KIT_GALLERY__) return renderGallery();   // a resize re-renders; the gallery stays the gallery
     const m = S.m, v = $("#v-home");
     unmountCanvas();
     if (!m.tx.length) { v.innerHTML = `<div class="card hero"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">Your sheet is set up. It just has no transactions yet.</h1><p class="vs">Bring in the last three months from each account (Setup → Getting your data in), run the importer, append the rows, move the As-of date. The page fills in as the sheet does.</p><div class="heronum"><button class="btn lime" data-go="setup">How to bring data in</button></div></div>`; bindCommon(v); return; }
@@ -843,7 +871,12 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const m = S.m, v = $("#v-setup"); const cc = S.setupCountry || pref("country", m.kitty.country || "AU");
     const country = SOURCES.countries.find((c) => c.code === cc) || SOURCES.countries[0];
     const sheetLink = `https://docs.google.com/spreadsheets/d/${sheetId()}/edit`;
+    const onNow = WID(m).filter((w) => !w.core).map((w) => w.title);
     v.innerHTML = `
+      <div class="card" style="--i:0"><div class="cardhead"><span class="q">Why Home looks the way it does</span></div>
+        <div class="prose"><p>Home is made of widgets, and what's in your sheet switches them on, not a setting. Add a property to Accounts and its widgets appear once, with a note and an undo. A widget with nothing to say stays off, so you never see an empty tile. Arrange moves, resizes and hides them, and that layout is yours, kept with you and never in the sheet. Anything marked beta stays off until you make it active.</p>
+        <p class="sub">${onNow.length ? `On for this household: ${esc(onNow.join(", "))}.` : "Nothing beyond the everyday set is on yet."}</p></div>
+      </div>
       <div class="card" style="--i:0"><div class="cardhead"><span class="q">How The Kitty is built</span><span class="sub">and why, so you can keep it or copy it</span></div>
         <div class="statline"><div class="stat"><div class="k">Source of truth</div><div class="v">1 sheet</div></div><div class="stat"><div class="k">Servers</div><div class="v">0</div></div><div class="stat"><div class="k">Page</div><div class="v">1 file</div></div><div class="stat"><div class="k">Monthly upkeep</div><div class="v">~20 min</div></div></div>
         <div class="prose"><p>The whole system is <b>one Google Sheet</b> that does every calculation, and <b>one page</b> (this one) that reads it and never computes a number the sheet already owns. Bank files are appended as raw rows; formulas turn them into views; a Metrics tab names each headline figure; the page draws those and says where each came from. There is no database, no server, no account to keep alive. If this page vanished tomorrow the household would still have everything, in a format their accountant can open.</p></div>
@@ -1312,7 +1345,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   async function ensureWorthKey() { if (!canWriteSheet() || S.m.sheetVersion < 2 || S.m.kitty.worth_it_min != null && S.m.kitty.worth_it_min !== "" || S.wroteWorthKey) return; S.wroteWorthKey = true; try { await writeKitty("worth_it_min", 40); S.m.kitty.worth_it_min = "40"; } catch (e) { /* the default stands */ } }
   async function boot() {
     window.matchMedia("(max-width:819px)").addEventListener("change", () => { if (S.m) renderHome(); });
-    const saved = store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
+    const saved = window.__KIT_GALLERY__ ? "home" : store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
     if (SNAP) { setModel(demoModel()); renderAll(); }
     if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);
     else gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
@@ -1337,6 +1370,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     if (db && user) { try { const id = await user.id(); if (id) { S.dbDoc = db.doc(`data/users/${id}/kitty`); const snap = await S.dbDoc.get(); if (snap.exists) { const d = snap.data() || {}; if ((d.savedAt || 0) > (store.get("prefsSavedAt", 0))) { Object.assign(S.prefs, d); store.set("prefs", S.prefs); } } } } catch (e) { S.dbDoc = null; } }
     S.canWrite = S.isOwner || !!S.prefs.sheet;
     if (S.m) renderAll();
+    if (window.__KIT_GALLERY__ && S.m) { switchTab("home", true); return; }
     if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); if (ok) ensureWorthKey(); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     if (S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);

@@ -512,8 +512,15 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .canvas .ui-resizable-e{width:14px;right:-2px;top:12px;bottom:12px;cursor:ew-resize;border-radius:7px;background:color-mix(in srgb,var(--accent) 30%,transparent)}
 .arrangebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end;padding:12px 6px 4px}
 .wlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.wrow{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
-.wrow .mid{display:flex;flex-direction:column;min-width:0}.wrow .t{font-weight:600}.wrow .s{font-size:12.5px;color:var(--muted)}
+.whrow{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.whrow .mid{display:flex;flex-direction:column;min-width:0}.whrow .t{font-weight:600}.whrow .s{font-size:12.5px;color:var(--muted)}
+.tray{display:flex;flex-wrap:wrap;gap:8px}
+.skel{display:flex;flex-direction:column;gap:10px}.skel span{height:12px;border-radius:6px;background:var(--surface2)}
+.kitg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.kitg .card h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.kitg .wide{grid-column:span 2}
+.kitg .static-drawer{position:static;box-shadow:var(--shadow);border-radius:var(--r);background:var(--surface);padding:16px;width:auto;transform:none}
+.kitg .static-toast{position:static;display:inline-block;transform:none;opacity:1}
 .wtotal{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
 .toast button{pointer-events:auto;margin-left:8px;color:inherit;font:inherit;text-decoration:underline;background:none}
 
@@ -522,6 +529,7 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
   header.top{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}
   .span-8,.span-7,.span-6,.span-5,.span-4{grid-column:span 12}
   .canvas>.wcell{grid-column:span 12}
+  .kitg{grid-template-columns:minmax(0,1fr)}.kitg .wide{grid-column:auto}
   nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);justify-content:space-around;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));gap:0}
   nav.tabs button{flex:1;flex-direction:column;gap:3px;font-size:11px;padding:6px 4px;border-radius:14px;color:var(--muted);min-width:0}
   nav.tabs .ic{width:24px;height:24px;transition:transform .35s var(--spring)}

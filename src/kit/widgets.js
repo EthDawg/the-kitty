@@ -12,7 +12,7 @@
   const COLS = 12;
   const active = (m, f) => m.accounts.filter((a) => a.status === "active" && f(String(a.type || "").toLowerCase(), a));
   const held = (m, f) => { const rows = active(m, f).map((a) => ({ id: a.id, name: a.name, sub: a.purpose || a.bank || "", value: E.balanceAt(a, m.asOf) })); return rows.length ? { rows, total: rows.reduce((s, r) => s + (r.value || 0), 0) } : null; };
-  const list = (rows, size) => `<div class="wlist">${rows.slice(0, size === "wide" ? 8 : 4).map((r) => `<div class="wrow"><span class="mid"><span class="t">${esc(r.name)}</span>${r.sub ? `<span class="s">${esc(r.sub)}</span>` : ""}</span><b class="num">${E.fmt0(r.value)}</b></div>`).join("")}</div>`;
+  const list = (rows, size) => `<div class="wlist">${rows.slice(0, size === "wide" ? 8 : 4).map((r) => `<div class="whrow"><span class="mid"><span class="t">${esc(r.name)}</span>${r.sub ? `<span class="s">${esc(r.sub)}</span>` : ""}</span><b class="num">${E.fmt0(r.value)}</b></div>`).join("")}</div>`;
   const heldCard = (q, drill) => (p, size) => `<div class="cardhead"><span class="q">${esc(q)}</span><button class="linkbtn" data-open="${esc(drill)}">Net worth →</button></div><div class="wtotal num">${E.fmt0(p.total)}</div>${list(p.rows, size)}`;
   const nextDue = (c, asOf) => (c.next && c.next >= asOf ? c.next : null);
 
@@ -74,5 +74,11 @@
     const a = items.slice(); const i = a.findIndex((x) => x.id === id), j = i + delta; if (i < 0 || j < 0 || j >= a.length) return items;
     [a[i], a[j]] = [a[j], a[i]]; return a;
   };
+  // Small kit pieces with no home in the row file. The gallery renders them; the arrange tray is the first real user.
+  K.Chip = (label, on) => `<button class="chip${on ? " on" : ""}">${esc(label)}</button>`;
+  K.StatTile = (k, v, d) => `<div class="stat"><div class="k">${esc(k)}</div><div class="v num">${esc(v)}</div>${d ? `<div class="sub">${esc(d)}</div>` : ""}</div>`;
+  K.EmptyState = (text) => `<div class="empty">${esc(text)}</div>`;
+  K.Skeleton = (lines) => `<div class="skel" aria-hidden="true">${Array.from({ length: lines || 3 }, (_, i) => `<span style="width:${92 - i * 14}%"></span>`).join("")}</div>`;
+  K.Tray = (items) => `<div class="tray" role="group" aria-label="Hidden widgets">${items.map((i) => `<button class="chip" data-wshow="${esc(i.id)}">+ ${esc(i.title)}</button>`).join("")}</div>`;
   return K;
 });
