@@ -36,7 +36,7 @@ class MemoryTypedDriver {
     const vals=v===1?s.tables.valuations.rows:s.tables.ledger.rows.filter(r=>r.values[1]==='valuation');
     s.baseline.valuations=vals.map(({id,values:r})=>{const item=r[v===1?1:3];return {kind:'valuation',recordId:id,fields:{date:isoDate(r[v===1?0:2]),itemId:item,currency:'AUD',valueMinor:money(r[v===1?2:6]),valueKind:s.baseline.items.find(x=>x.id===item)?.kind}};});
     s.baseline.projectedBalances=s.baseline.accounts.map(a=>({accountId:a.id,date:day,amountMinor:s.baseline.transactions.filter(t=>t.accountId===a.id&&t.date>a.openingDate&&t.date<=day&&['posted','settled'].includes(t.status)).reduce((n,t)=>n+BigInt(t.amountMinor),BigInt(a.openingMinor)).toString()}));
-    s.legacy={version:v,title:v===1?'Transactions':'Entries',currency:'AUD',currencyPresent:true,people:s.baseline.people,header:HEADERS[v],rows:s.tables.ledger.rows.map(r=>r.values),nextRowIndex:s.tables.ledger.nextRowIndex,accounts:s.baseline.accounts.map(a=>({id:a.id,name:a.name,owner:a.person})),categories:s.baseline.categories,formulaFingerprint:'legacy-formulas',inputFormulas:[],receipts:s.receipts,receiptValid:true};
+    s.legacy={version:v,publicFeedEnabled:s.publicFeedEnabled===true,title:v===1?'Transactions':'Entries',currency:'AUD',currencyPresent:true,people:s.baseline.people,header:HEADERS[v],rows:s.tables.ledger.rows.map(r=>r.values),nextRowIndex:s.tables.ledger.nextRowIndex,accounts:s.baseline.accounts.map(a=>({id:a.id,name:a.name,owner:a.person})),categories:s.baseline.categories,formulaFingerprint:'legacy-formulas',inputFormulas:[],receipts:s.receipts,receiptValid:true};
     return s;
   }
   async readTypedState(token,sheet,date){if(this.readFails)throw new Error('read timeout');return this.current(date);}
@@ -204,4 +204,29 @@ test('HTTP protocol2 preserves verification scope, target-date provenance and st
     const bad=pay();bad.fields.netMinor='1';const failed=await post('/v1/imports/prepare',request([bad]));assert.equal(failed.status,409);const error=await failed.json();assert.ok(error.error.issues.length);assert.equal(error.error.code,'source_review_required');
     const unsupported=await post('/v1/imports/prepare',{...request([pay()]),protocolVersion:3});assert.equal(unsupported.status,400);assert.equal((await unsupported.json()).error.code,'unsupported_protocol');
   }finally{await new Promise(resolve=>server.close(resolve));}
+});
+test('known public feed blocks typed prepare and fresh commit on both schemas without storing new evidence',async()=>{
+  for(const version of [1,2]){
+    const c=setup(version),req=request([pay()],{schemaVersion:version}),before=await c.service.provenance('allowed',{sheetId:SHEET,protocolVersion:2});c.driver.state.publicFeedEnabled=true;
+    const readable=await c.service.provenance('allowed',{sheetId:SHEET,protocolVersion:2});assert.equal(readable.publicFeedEnabled,true);assert.equal(readable.revisionDigest,before.revisionDigest);
+    await assert.rejects(c.service.prepare('allowed',req),e=>e.code==='public_feed_enabled');assert.equal(c.driver.sources.size,0);assert.equal(c.driver.manifests.size,0);assert.equal(c.driver.intents.size,0);assert.equal(c.driver.gate,null);assert.equal(c.driver.writes,0);
+    c.driver.state.publicFeedEnabled=false;const p=await c.service.prepare('allowed',req);c.driver.state.publicFeedEnabled=true;
+    await assert.rejects(commit(c.service,p.importId),e=>e.code==='public_feed_enabled');assert.equal(c.driver.sources.size,1);assert.equal(c.driver.manifests.size,1);assert.equal(c.driver.intents.size,0);assert.equal(c.driver.gate,null);assert.equal(c.driver.writes,0);
+    assert.equal((await c.service.status('allowed',p.importId,{sheetId:SHEET})).status,'proposed');c.driver.state.publicFeedEnabled=false;assert.equal((await commit(c.service,p.importId)).status,'verified');
+  }
+});
+test('known feed guards new month close but never invalidates an already-written close receipt',async()=>{
+  const c=await closeReady(),manifestCount=c.driver.manifests.size,intentCount=c.driver.intents.size,writes=c.driver.writes;
+  c.driver.state.publicFeedEnabled=true;await assert.rejects(c.service.prepare('allowed',c.closeRequest),e=>e.code==='public_feed_enabled');assert.equal(c.driver.manifests.size,manifestCount);assert.equal(c.driver.intents.size,intentCount);assert.equal(c.driver.writes,writes);
+  c.driver.state.publicFeedEnabled=false;const p=await c.service.prepare('allowed',c.closeRequest);c.driver.state.publicFeedEnabled=true;
+  await assert.rejects(commit(c.service,p.importId),e=>e.code==='public_feed_enabled');assert.equal(c.driver.state.baseline.asOf,'2027-01-31');assert.equal(c.driver.intents.size,intentCount);assert.equal(c.driver.gate,null);assert.equal(c.driver.writes,writes);
+  c.driver.state.publicFeedEnabled=false;c.driver.clearFails=true;assert.equal((await commit(c.service,p.importId)).status,'unknown');c.driver.state.publicFeedEnabled=true;c.driver.clearFails=false;
+  for(const action of ['status','cancel','commit']){const result=await c.service[action]('allowed',p.importId,{sheetId:SHEET,approval:true});assert.equal(result.status,'verified');assert.equal(result.verificationScope,'verified_close');}assert.equal(c.driver.gate,null);assert.equal(c.driver.writes,writes+1);
+});
+test('typed hold discovery, uncertain outcome and safe cancellation survive a later feed change',async()=>{
+  const c=await prepared();c.driver.fail='before';await commit(c.service,c.proposed.importId);c.driver.state.publicFeedEnabled=true;
+  await assert.rejects(c.service.prepare('allowed',c.req),e=>e.code==='sheet_import_pending'&&e.recovery.importId===c.proposed.importId);
+  await assert.rejects(c.service.provenance('allowed',{sheetId:SHEET,protocolVersion:2}),e=>e.code==='sheet_import_pending');
+  for(const action of ['status','cancel','commit'])assert.equal((await c.service[action]('allowed',c.proposed.importId,{sheetId:SHEET,approval:true})).status,'unknown');assert.equal(c.driver.writes,0);
+  const cancel=await prepared();cancel.driver.state.publicFeedEnabled=true;assert.equal((await cancel.service.cancel('allowed',cancel.proposed.importId,{sheetId:SHEET})).status,'cancelled');assert.equal((await commit(cancel.service,cancel.proposed.importId)).status,'cancelled');assert.equal(cancel.driver.writes,0);
 });

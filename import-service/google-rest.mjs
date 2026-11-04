@@ -6,6 +6,13 @@ const SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const quote = value => `'${String(value).replace(/'/g,"''")}'`;
 const property = (key,value) => `appProperties has { key='${key}' and value='${String(value).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}' }`;
 const plainCell = value => ({userEnteredValue:typeof value==='number'?{numberValue:value}:typeof value==='boolean'?{boolValue:value}:{stringValue:String(value??'')}});
+// Match the known Apps Script feed gate: first exact trimmed key, then a
+// trimmed/case-insensitive "yes" value. This says nothing about other sharing.
+export function knownPublicFeedEnabled(rows) {
+  if(rows.length<2)return false;
+  const row=rows.find(r=>String(r[0]).trim()==='public_feed');
+  return !!row && String(row[1]).trim().toLowerCase()==='yes';
+}
 export class GoogleDriver {
   constructor({fetchImpl=fetch}={}) { this.fetch=fetchImpl; }
   async request(token,url,{method='GET',body,headers={}}={}) {
@@ -92,7 +99,7 @@ export class GoogleDriver {
     const formulaFingerprint=digest(formulas.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
     const meaningful=table.map((r,i)=>({r:pad(r,width),i})).filter(({r,i})=>i>0 && r.some(v=>v!==''));
     const receiptValid=!tabs[RECEIPT_TAB] || JSON.stringify(receiptTable[0])===JSON.stringify(RECEIPT_HEADERS);
-    return {version,currencyPresent:kitty.some(r=>r[0]==='currency'&&typeof r[1]==='string'&&r[1].trim()),people:[...new Set(['Joint',...String(kitty.find(r=>r[0]==='people')?.[1]??'').split(',').map(v=>v.trim()).filter(Boolean)])],currency:String(kitty.find(r=>r[0]==='currency')?.[1]??'AUD'),title,sheetTabId:tabs[title].sheetId,rowCount:tabs[title].gridProperties.rowCount,header:table[0]??[],rows:meaningful.map(x=>x.r),nextRowIndex:meaningful.length?meaningful.at(-1).i+1:1,inputFormulas,
+    return {version,publicFeedEnabled:knownPublicFeedEnabled(kitty),currencyPresent:kitty.some(r=>r[0]==='currency'&&typeof r[1]==='string'&&r[1].trim()),people:[...new Set(['Joint',...String(kitty.find(r=>r[0]==='people')?.[1]??'').split(',').map(v=>v.trim()).filter(Boolean)])],currency:String(kitty.find(r=>r[0]==='currency')?.[1]??'AUD'),title,sheetTabId:tabs[title].sheetId,rowCount:tabs[title].gridProperties.rowCount,header:table[0]??[],rows:meaningful.map(x=>x.r),nextRowIndex:meaningful.length?meaningful.at(-1).i+1:1,inputFormulas,
       accounts:accounts.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??''),owner:String(r[4]??''),...(accountCurrencyColumn>=0?{currency:String(r[accountCurrencyColumn]??'')}:{})})),
       categories:categories.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??'')})),
       formulaFingerprint,receiptValid,receiptTabId:tabs[RECEIPT_TAB]?.sheetId,receiptNextRow:receiptTable.length,allTabIds:Object.values(tabs).map(x=>x.sheetId),

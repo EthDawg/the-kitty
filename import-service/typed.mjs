@@ -1,5 +1,5 @@
 import {createRequire} from 'node:module';
-import {ImportError,digest,sheetID,validateGate,gateVerified,validDate,dateSerial,cellsForRow,cleanRows,validateState} from './core.mjs';
+import {ImportError,digest,sheetID,validateGate,gateVerified,validDate,dateSerial,cellsForRow,cleanRows,validateState,assertPublicFeedDisabled} from './core.mjs';
 import {typedDigest,RECORD_HEADER} from './typed-google.mjs';
 import {auditSources} from './source-audit.mjs';
 const require=createRequire(import.meta.url);
@@ -115,7 +115,7 @@ export async function prepareTyped(service,token,request){
   return service.queue.run(request.sheetId,async()=>{
     const {Records,Close}=cores();await service.driver.authorize(token,request.sheetId);
     const state=await service.driver.readTypedState(token,request.sheetId,request.operation==='close'?request.proposal?.periodEnd:undefined);
-    validateState(state.legacy,request.schemaVersion);must(state.version===request.schemaVersion,'schema_changed','The Sheet version changed. Refresh this review.');await checkGate(service,token,request.sheetId,state);
+    validateState(state.legacy,request.schemaVersion);must(state.version===request.schemaVersion,'schema_changed','The Sheet version changed. Refresh this review.');await checkGate(service,token,request.sheetId,state);assertPublicFeedDisabled(state.legacy);
     let files=[],records=[],rows=[],targetRows=[],writeSets=[],bindings=[],closeReview=null,acceptedEvidence=null;
     if(request.operation==='ingest'){
       files=typedFiles(request.files);const plainFiles=files.map(({bytes,...f})=>f);
@@ -183,6 +183,7 @@ export async function lifecycleTyped(service,token,manifest,importId,request,act
     catch{const observed=await service.driver.findIntent(token,manifest.intentFileId,request.sheetId);return observed?.status==='cancelled'?cancelled():unknown(manifest,importId);}
   }
   await checkGate(service,token,request.sheetId,state,importId);
+  assertPublicFeedDisabled(state.legacy);
   must(typedDigest(state)===manifest.baseline,'stale_proposal','The Sheet changed since this review. Cancel and refresh it.');
   await service.driver.verifySources(token,manifest);
   if(manifest.operation==='close'){
@@ -202,6 +203,6 @@ export async function provenanceTyped(service,token,request){
   return service.queue.run(request.sheetId,async()=>{
     await service.driver.authorize(token,request.sheetId);const state=await service.driver.readTypedState(token,request.sheetId,request.periodEnd);await checkGate(service,token,request.sheetId,state);
     const accepted=await evidence(service,token,request.sheetId,state);
-    return {sheetId:request.sheetId,schemaVersion:state.version,protocolVersion:2,baseline:state.baseline,records:accepted.imports.flatMap(x=>x.records),evidence:{imports:accepted.imports},evidenceImportIds:accepted.imports.map(x=>x.importId),issues:accepted.issues,revisionDigest:typedDigest(state)};
+    return {sheetId:request.sheetId,schemaVersion:state.version,protocolVersion:2,publicFeedEnabled:state.legacy.publicFeedEnabled===true,baseline:state.baseline,records:accepted.imports.flatMap(x=>x.records),evidence:{imports:accepted.imports},evidenceImportIds:accepted.imports.map(x=>x.importId),issues:accepted.issues,revisionDigest:typedDigest(state)};
   });
 }

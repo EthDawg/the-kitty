@@ -4,6 +4,10 @@ extension KittyStore {
   func commitSourceImport(operation: String) async {
     guard !importBusy else { return }
     guard ["ingest", "close"].contains(operation) else { error = "This saved review has an unsupported operation."; return }
+    if draft.remote == nil, let message = importPublicationNotice {
+      error = message
+      return
+    }
     guard isDemo || sheetCanEdit || draft.remote != nil else {
       error = "This Google account can view the Sheet but cannot save this review. Your originals are preserved."
       return
@@ -32,6 +36,7 @@ extension KittyStore {
           if draft.remote != nil { return }
           throw KittyError.message("The current Sheet and source evidence could not be checked. Your review is preserved.")
         }
+        if let message = importPublicationNotice { throw KittyError.message(message) }
         if operation == "close" { try calculatePeriodClose() }
         let freshData = operation == "close" ? closeProposalData : sourceProposalData
         guard let freshData,

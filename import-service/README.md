@@ -25,6 +25,16 @@ The service creates a private Drive folder named `The Kitty imports · <sheet-pr
 
 Evidence files inherit the importing user's folder permissions. Sharing a Sheet does **not** automatically share original source files. No broad sharing change is performed by this service.
 
+The writer also reads `Kitty.public_feed` using the known Apps Script feed's exact rule: the first
+trimmed `public_feed` key enables it only when its value trims/lowercases to `yes`. Enabled feeds
+block new preparation/source storage and fresh import/close commits with `public_feed_enabled`;
+turn the setting off and refresh. Provenance remains readable and exposes `publicFeedEnabled` as
+current metadata. Status, cancellation and uncertain-write recovery remain available. This flag
+is excluded from historical receipt digests, so a later publishing change does not invalidate an
+earlier write. It controls the known script feed only; it does not establish that a workbook is
+private or inspect other sharing/publication routes. External edits can still race the final read;
+this check does not add Google cell compare-and-swap.
+
 ## API
 
 The examples below describe the unchanged contract-1 transaction path. [Contract 2](CONTRACT-2.md)

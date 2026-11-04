@@ -1,0 +1,95 @@
+{
+  "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM/edit",
+  "observedAt": "2026-11-05",
+  "sheets": [
+    {
+      "title": "Kitty",
+      "blocks": [
+        {
+          "startRow": 17,
+          "startColumn": 1,
+          "rows": [
+            [
+              {
+                "stringValue": "public_feed"
+              },
+              {
+                "stringValue": "yes"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Tax Forecast",
+      "blocks": [
+        {
+          "startRow": 4,
+          "startColumn": 2,
+          "rows": [
+            [
+              {
+                "stringValue": "Jordan"
+              },
+              {
+                "stringValue": "Mia"
+              }
+            ],
+            [
+              {
+                "formulaValue": "=Settings!$B$9"
+              },
+              {
+                "formulaValue": "=Settings!$B$9"
+              }
+            ],
+            [
+              {
+                "formulaValue": "=IF(B5=Settings!$B$8,12/Settings!$B$10,1)"
+              },
+              {
+                "formulaValue": "=IF(C5=Settings!$B$8,12/Settings!$B$10,1)"
+              }
+            ],
+            [
+              {
+                "formulaValue": "=IF(B$4=\"Jordan\",Settings!$B$11,Settings!$B$12)"
+              },
+              {
+                "formulaValue": "=IF(C$4=\"Jordan\",Settings!$B$11,Settings!$B$12)"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Settings",
+      "blocks": [
+        {
+          "startRow": 11,
+          "startColumn": 1,
+          "rows": [
+            [
+              {
+                "stringValue": "Jordan's share of joint income and the rental property"
+              },
+              {
+                "numberValue": 0.5
+              }
+            ],
+            [
+              {
+                "stringValue": "Mia's share of joint income and the rental property"
+              },
+              {
+                "formulaValue": "=1-B11"
+              }
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

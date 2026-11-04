@@ -17,6 +17,34 @@ test('native projection keeps pinned Sheet figures and all 925 transactions', ()
   assert.equal(Math.round(model.metrics['networth.cash'].num * 100), 9938843);
   assert.equal(model.asOf, '2027-01-31');
 });
+test('public-feed projection matches the bound script first-key and yes rules', () => {
+  for (const [rows, expected] of [
+    [[], false],
+    [[{key:'public_feed',value:'no'}], false],
+    [[{key:' public_feed ',value:' YeS '}], true],
+    [[{key:'PUBLIC_FEED',value:'yes'}], false],
+    [[{key:'public_feed',value:true}], false],
+    [[{key:'public_feed',value:'yes'},{key:'public_feed',value:'no'}], true],
+    [[{key:'public_feed',value:'no'},{key:'public_feed',value:'yes'}], false],
+  ]) {
+    const data = fixture();
+    data.kitty = data.kitty.filter(row => String(row.key).trim() !== 'public_feed').concat(rows);
+    assert.equal(native.project(data).publicFeedEnabled, expected);
+  }
+});
+test('live grid publication state includes rows above the header and after blanks', () => {
+  const source = fixture();
+  const setup = source.kitty.filter(row => String(row.key).trim() !== 'public_feed').map(row => [row.key,row.value]);
+  for (const [grid, expected] of [
+    [[['Key','Value'],...setup,[],['public_feed','yes']],true],
+    [[[' public_feed ',' YeS '],['Key','Value'],...setup,['public_feed','no']],true],
+    [[['public_feed','no'],['Key','Value'],...setup,['public_feed','yes']],false],
+  ]) {
+    const snapshot = native.fromGrids({kitty:grid});
+    assert.equal(snapshot.publicFeedEnabled, expected);
+    assert.equal(native.project({...fixture(),kitty:snapshot.kitty,publicFeedEnabled:snapshot.publicFeedEnabled}).publicFeedEnabled, expected);
+  }
+});
 test('missing and malformed transaction amounts never become zero', () => {
   for (const value of [null, '', 'unreadable', NaN, true, 1e15]) {
     const data = fixture(); data.transactions[0].amount = value;

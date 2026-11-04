@@ -32,6 +32,11 @@ export function validateState(state, requestedVersion) {
   assert(!state.inputFormulas?.length, 'formula_in_inputs', 'A writable input column contains a formula. Nothing was changed.');
   assert(state.receiptValid !== false, 'receipt_schema', 'The import receipt tab has been changed. Nothing was written.');
 }
+// This is a current write precondition, not a historical receipt invariant.
+// Keep recovery available even if publishing was enabled after an earlier write.
+export function assertPublicFeedDisabled(state) {
+  assert(state.publicFeedEnabled!==true,'public_feed_enabled','The Kitty public_feed setting enables this Sheet\'s known public JSON feed. Turn that setting off on the Kitty tab, then refresh before importing or closing a month.',409);
+}
 export const stateDigest = state => digest({version:state.version,header:state.header,rows:state.rows,accounts:state.accounts,categories:state.categories,currency:state.currency??'AUD',people:state.people??null,formulaFingerprint:state.formulaFingerprint??null});
 export const GATE_PROPERTIES = {importId:'kittyActiveImport',proposalDigest:'kittyActiveDigest',rowsHash:'kittyActiveRowsHash',stateHash:'kittyActiveStateHash',version:'kittyActiveVersion'};
 export function validateGate(gate) {
@@ -147,6 +152,7 @@ export class ImportService {
       const state=await this.driver.readState(token,request.sheetId);
       validateState(state,request.schemaVersion);
       await this.checkSheetGate(token,request.sheetId,state);
+      assertPublicFeedDisabled(state);
       state.provenance=(await this.hydrate(token,request.sheetId,state)).records;
       const files=cleanFiles(request.files);
       const rows=cleanRows(request.proposal?.rows,files,state);
@@ -177,6 +183,7 @@ export class ImportService {
       if (intent?.status==='cancelled') return this.finishCancellation(token,manifest,importId);
       if (intent) return this.reconcile(manifest,state,importId);
       const gate=await this.checkSheetGate(token,request.sheetId,state,importId);
+      assertPublicFeedDisabled(state);
       await this.driver.verifySources(token,manifest);
       assert(stateDigest(state)===manifest.baseline,'stale_proposal','The Sheet changed since you reviewed this import. Refresh and review the new proposal.',409);
       const expectedGate=gateFor(manifest,importId,state);
@@ -264,7 +271,7 @@ export class ImportService {
     const result=await this.hydrate(token,request.sheetId,state);
     state.provenance=result.records;
     const baseline=importBaseline(state);
-    return {sheetId:request.sheetId,schemaVersion:state.version,records:result.records,issues:result.issues,baseline,revisionDigest:digest(baseline)};
+    return {sheetId:request.sheetId,schemaVersion:state.version,publicFeedEnabled:state.publicFeedEnabled===true,records:result.records,issues:result.issues,baseline,revisionDigest:digest(baseline)};
     });
   }
   async checkSheetGate(token,sheetId,state,allowedImportId) {

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {ImportService,ImportError,HEADERS,digest,dateSerial,SerialQueue,importBaseline,gateFor,validateGate,GATE_PROPERTIES} from './core.mjs';
-import {GoogleDriver} from './google-rest.mjs';
+import {GoogleDriver,knownPublicFeedEnabled} from './google-rest.mjs';
 import {auditSources} from './source-audit.mjs';
 import {createServer} from './server.mjs';
 const KittyImport=createRequire(import.meta.url)('../native-core/import.js');
@@ -417,4 +417,50 @@ test('append-tolerant hold recovery still checks schema, currency, people, accou
   assert.notEqual((await service.status('allowed',result.importId,{sheetId:SHEET})).status,'verified');
   assert.equal(driver.gate.importId,result.importId);assert.equal(clears(),0);assert.equal(driver.writes,1);
  }
+});
+
+test('Google reader matches the known public feed gate whitespace, case and first-key semantics',async()=>{
+  let rows=[];
+  const driver=new GoogleDriver({fetchImpl:async value=>{
+    const url=new URL(value);let body;
+    if(url.searchParams.get('fields')==='sheets(properties(sheetId,title,gridProperties))')body={sheets:['Kitty','Accounts','Categories','Transactions'].map((title,sheetId)=>({properties:{title,sheetId,gridProperties:{rowCount:100,columnCount:26}}}))};
+    else if(url.pathname.endsWith('/values:batchGet'))body=url.searchParams.getAll('ranges')[0].startsWith("'Kitty'")
+      ? {valueRanges:[{values:rows},{values:[['Account ID','Account'],['ACC-TEST','Test']]},{values:[['Category ID','Category'],['FOOD','Food']]}]}
+      : {valueRanges:[{values:[HEADERS[1]]}]};
+    else body={sheets:[]};return new Response(JSON.stringify(body));
+  }});
+  const prefix=[['Key','Value'],['sheet_version',1],['currency','AUD']];
+  for(const [tail,expected]of [
+    [[],false],[[[' public_feed ',' YeS \n']],true],[[['public_feed','no']],false],
+    [[['PUBLIC_FEED','yes']],false],[[['public_feed','no'],['public_feed','yes']],false],
+    [[['public_feed','yes'],['public_feed','no']],true],[[['public_feed',true]],false],
+    [[['PUBLIC_FEED','yes'],[' public_feed ','yes']],true]
+  ]){rows=prefix.concat(tail);assert.equal((await driver.readState('allowed',SHEET)).publicFeedEnabled,expected,JSON.stringify(tail));}
+  assert.equal(knownPublicFeedEnabled([]),false);assert.equal(knownPublicFeedEnabled([['public_feed','yes']]),false);
+});
+test('known public feed blocks new legacy preparation before source storage while provenance remains readable',async()=>{
+  for(const version of [1,2]){
+    const {driver,service}=setup(version),req=request(driver);const before=await service.provenance('allowed',{sheetId:SHEET});driver.state.publicFeedEnabled=true;
+    const after=await service.provenance('allowed',{sheetId:SHEET});assert.equal(after.publicFeedEnabled,true);assert.equal(after.revisionDigest,before.revisionDigest);
+    await assert.rejects(service.prepare('allowed',req),e=>e.code==='public_feed_enabled'&&e.status===409&&/refresh/.test(e.message));
+    assert.equal(driver.sources.size,0);assert.equal(driver.manifests.size,0);assert.equal(driver.intents.size,0);assert.equal(driver.writes,0);assert.equal(driver.gate,null);
+  }
+});
+test('fresh legacy commit rejects a feed enabled after preparation without creating a hold or intent',async()=>{
+  for(const version of [1,2]){
+    const {driver,service,result}=await prepared({version});driver.state.publicFeedEnabled=true;
+    assert.equal((await service.status('allowed',result.importId,{sheetId:SHEET})).status,'proposed');
+    await assert.rejects(service.commit('allowed',result.importId,{sheetId:SHEET,approval:true}),e=>e.code==='public_feed_enabled');
+    assert.equal(driver.sources.size,1);assert.equal(driver.manifests.size,1);assert.equal(driver.intents.size,0);assert.equal(driver.writes,0);assert.equal(driver.gate,null);
+    driver.state.publicFeedEnabled=false;assert.equal((await service.commit('allowed',result.importId,{sheetId:SHEET,approval:true})).status,'verified');
+  }
+});
+test('feed publishing never hides legacy hold recovery, cancellation or verification of an existing receipt',async()=>{
+  const held=await prepared();held.driver.fail='before';await held.service.commit('allowed',held.result.importId,{sheetId:SHEET,approval:true});held.driver.state.publicFeedEnabled=true;
+  await assert.rejects(held.service.prepare('allowed',held.req),e=>e.code==='sheet_import_pending'&&e.recovery.importId===held.result.importId);
+  await assert.rejects(held.service.provenance('allowed',{sheetId:SHEET}),e=>e.code==='sheet_import_pending');
+  for(const action of ['status','cancel','commit'])assert.equal((await held.service[action]('allowed',held.result.importId,{sheetId:SHEET,approval:true})).status,'unknown');assert.equal(held.driver.writes,0);
+  const cancelled=await prepared();cancelled.driver.state.publicFeedEnabled=true;assert.equal((await cancelled.service.cancel('allowed',cancelled.result.importId,{sheetId:SHEET})).status,'cancelled');assert.equal((await cancelled.service.commit('allowed',cancelled.result.importId,{sheetId:SHEET,approval:true})).status,'cancelled');assert.equal(cancelled.driver.writes,0);
+  const done=await prepared(),clear=done.driver.clearSheetGate.bind(done.driver);done.driver.clearSheetGate=async()=>false;assert.equal((await done.service.commit('allowed',done.result.importId,{sheetId:SHEET,approval:true})).status,'unknown');done.driver.clearSheetGate=clear;done.driver.state.publicFeedEnabled=true;
+  for(const action of ['status','cancel','commit'])assert.equal((await done.service[action]('allowed',done.result.importId,{sheetId:SHEET,approval:true})).status,'verified');assert.equal(done.driver.gate,null);assert.equal(done.driver.writes,1);assert.equal((await done.service.provenance('allowed',{sheetId:SHEET})).records.length,1);
 });

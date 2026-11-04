@@ -31,6 +31,29 @@ final class KittyTests: XCTestCase {
     XCTAssertEqual(household.transactions.first?.id, "T0925")
   }
 
+  func testPublicFeedFlagPreservesTheScriptFirstMatchingKey() throws {
+    let data = try editedDemo { object in
+      var kitty = object["kitty"] as! [[String: Any]]
+      kitty.removeAll { ($0["key"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) == "public_feed" }
+      kitty += [["key": " public_feed ", "value": " YeS "], ["key": "public_feed", "value": "no"]]
+      object["kitty"] = kitty
+    }
+    XCTAssertTrue(try EngineBridge().project(data).publicFeedEnabled)
+  }
+  func testGridFeedFlagSurvivesRowsOutsideTheSettingsTable() throws {
+    let engine = try EngineBridge()
+    let grids: [String: Any] = ["kitty": [
+      ["Key", "Value"], ["sheet_version", "1"], [], ["public_feed", " YeS "]
+    ]]
+    let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: engine.snapshot(grids: grids)) as? [String: Any])
+    XCTAssertEqual(snapshot["publicFeedEnabled"] as? Bool, true)
+    let data = try editedDemo { object in
+      object["kitty"] = snapshot["kitty"]
+      object["publicFeedEnabled"] = snapshot["publicFeedEnabled"]
+    }
+    XCTAssertTrue(try engine.project(data).publicFeedEnabled)
+  }
+
   func testNativeProjectionPreservesOriginalEvidenceAndGoalOverage() throws {
     let household = try EngineBridge().project(demoData())
     let transaction = try XCTUnwrap(household.transactions.first { $0.id == "T0919" })

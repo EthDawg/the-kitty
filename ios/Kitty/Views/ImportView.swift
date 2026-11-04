@@ -15,6 +15,7 @@ struct ImportView: View {
   var body: some View {
     List {
       introduction
+      ImportPublicationSection()
       if store.draft.remote != nil { recovery }
       sources.disabled(store.importLocked)
       SourceIntakeSection()
@@ -122,7 +123,7 @@ struct ImportView: View {
       }.disabled(store.importBusy).accessibilityIdentifier("checkImportReceipt")
       if store.draft.remote?.status == "proposed", store.draft.remote?.recoveryOnly == false {
         Button("Continue this reviewed save") { Task { await store.commitImport() } }.disabled(
-          store.importBusy)
+          store.importBusy || store.importPublicationNotice != nil)
       }
       Button("Cancel pending save and review again") { confirmCancel = true }.disabled(
         store.importBusy)
@@ -325,7 +326,8 @@ struct ImportView: View {
             proposal.noOpMessage != nil ? "Nothing to add" : store.isDemo ? "Complete practice import" : "Save to my Sheet",
             systemImage: "checkmark.shield")
         }
-      }.disabled(!proposal.canCommit || store.importBusy || store.importEvidenceLoading || (!store.isDemo && !store.sheetCanEdit))
+      }.disabled(!proposal.canCommit || store.importBusy || store.importEvidenceLoading
+        || store.importPublicationNotice != nil || (!store.isDemo && !store.sheetCanEdit))
         .opacity(proposal.canCommit ? 1 : 0.5)
         .accessibilityIdentifier("saveImport")
       if !store.isDemo && !store.sheetCanEdit {

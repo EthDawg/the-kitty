@@ -116,7 +116,14 @@
       upcoming.push({date:pay.next,kind:'pay',title:pay.person + "'s estimated pay",sub:pay.employer,amount:pay.net});
     }
     upcoming.sort((a,b) => a.date.localeCompare(b.date));
+    // Match the bound script's first matching key, including its whitespace/case
+    // rules. Engine.model uses a dictionary, which would choose the last duplicate.
+    const publicFeed = (snapshot.kitty || []).find(row => String(row.key == null ? '' : row.key).trim() === 'public_feed');
+    const publicFeedEnabled = typeof snapshot.publicFeedEnabled === 'boolean'
+      ? snapshot.publicFeedEnabled
+      : String(publicFeed && publicFeed.value != null ? publicFeed.value : '').trim().toLowerCase() === 'yes';
     return {household:m.householdName, asOf:m.asOf, currency:m.kitty.currency || 'AUD', sheetVersion:Number(versions[0].value),
+      publicFeedEnabled,
       accounts:m.accounts, transactions:m.tx, categories:m.cats, goals:m.goals, metrics:m.metrics,
       cashflow:m.cashflow, budget:m.budget, subscriptions:m.subs, checks:m.checks,
       savings:m.savings, networth:m.networth, upcoming, planning:details,
@@ -142,6 +149,10 @@
       }
     }
     const snapshot = Engine.fromConnector(grids);
+    // The script scans the complete A:B grid, including rows above the table
+    // header and after blank rows. Its gate must not use a truncated table.
+    const publicFeed = (grids.kitty || []).find(row => row && String(row[0]).trim() === 'public_feed');
+    snapshot.publicFeedEnabled = !!publicFeed && String(publicFeed[1]).trim().toLowerCase() === 'yes';
     const grid = grids.cashflow || [];
     const index = grid.findIndex(row => row && row[0] === 'Month');
     if (index >= 0) {

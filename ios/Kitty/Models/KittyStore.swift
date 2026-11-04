@@ -50,6 +50,10 @@ import SwiftUI
   var googleEpoch = UUID()
   var currency: String { household?.currency ?? "AUD" }
   var isDemo: Bool { mode == .demo }
+  var importPublicationNotice: String? {
+    guard !isDemo, household?.publicFeedEnabled == true else { return nil }
+    return "Your Sheet is configured to allow its public data feed. Turn public_feed off on the Kitty tab, then refresh before saving records. Saved receipts can still be checked."
+  }
   var serviceURL: URL? {
     guard let raw = Bundle.main.object(forInfoDictionaryKey: "KittyServiceURL") as? String,
       let u = URL(string: raw), u.scheme == "https", u.host != nil
@@ -688,6 +692,9 @@ import SwiftUI
       }
       importBaseline = baseline
       importBaselineSheetID = id
+      if let publicFeedEnabled = evidence["publicFeedEnabled"] as? Bool {
+        household?.publicFeedEnabled = publicFeedEnabled
+      }
       if includeSources || !draft.documents.isEmpty || draft.closeReview != nil {
         let typed = try await client.provenance(sheetID: id, protocolVersion: 2,
           periodEnd: draft.closeReview?.periodEnd)
@@ -951,6 +958,10 @@ import SwiftUI
       return
     }
     guard !importBusy else { return }
+    if draft.remote == nil, let message = importPublicationNotice {
+      error = message
+      return
+    }
     guard isDemo || sheetCanEdit || draft.remote != nil else {
       error = "This Google account can view the Sheet but cannot save new imports. Your review is preserved."
       return
@@ -999,6 +1010,7 @@ import SwiftUI
           throw KittyError.message(
             "The current Sheet couldn't be checked. Your files and review are preserved.")
         }
+        if let message = importPublicationNotice { throw KittyError.message(message) }
         guard let data = proposalData, proposal?.canCommit == true else {
           throw KittyError.message(
             "The current Sheet needs a fresh review. Check the questions above.")

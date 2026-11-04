@@ -20,6 +20,7 @@ struct Household: Decodable {
   let reconciliation: [ReconciliationCheck]
   let people: [String]
   var planning: KittyPlanning? = nil
+  var publicFeedEnabled: Bool = false
   func value(_ id: String) -> Double? { metrics[id]?.num }
 }
 struct KittyAccount: Decodable, Identifiable {

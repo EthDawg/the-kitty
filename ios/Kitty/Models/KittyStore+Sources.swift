@@ -16,7 +16,8 @@ extension KittyStore {
       accounts: choices("accounts"), items: choices("items"))
   }
   var sourceImportCanCommit: Bool {
-    guard sourceProposal?.canCommit == true, sourceEvidenceValid, emptySourceAccountsNeedingEvidence.isEmpty else { return false }
+    guard importPublicationNotice == nil, sourceProposal?.canCommit == true, sourceEvidenceValid,
+      emptySourceAccountsNeedingEvidence.isEmpty else { return false }
     return draft.sources.isEmpty || proposal?.canCommit == true || proposal?.noOpMessage != nil
   }
   var emptySourceAccountsNeedingEvidence: [String] {
@@ -48,6 +49,9 @@ extension KittyStore {
       let ids = object["evidenceImportIds"] as? [String]
     else { throw KittyError.message("The current Sheet's document evidence is incomplete. Your originals and review are preserved.") }
     sourceBaseline = baseline; sourceBaselineSheetID = sheetID
+    if let publicFeedEnabled = object["publicFeedEnabled"] as? Bool {
+      household?.publicFeedEnabled = publicFeedEnabled
+    }
     acceptedSourceEvidence = imports; acceptedSourceImportIDs = ids
     sourceEvidenceValid = true
   }

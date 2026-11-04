@@ -76,6 +76,56 @@ import XCTest
     XCTAssertEqual(reopened.sourceProposal?.newCount, 0)
     XCTAssertEqual(reopened.sourceProposal?.alreadyPresent, 1)
   }
+  func testPublicFeedBlocksNewBankSaveWithoutChangingTheReview() async throws {
+    let (store, cleanup) = try isolated(); defer { cleanup() }
+    store.sampleImport()
+    XCTAssertNil(store.importPublicationNotice, "Local fictional practice does not publish a Sheet.")
+    store.mode = .connected
+    store.selectedSheetID = "synthetic_public_feed_123"
+    store.sheetCanEdit = true
+    store.household?.publicFeedEnabled = true
+    let before = try JSONEncoder().encode(store.draft)
+    let originalSources = store.draft.sources
+    await store.commitImport()
+    XCTAssertEqual(store.error, store.importPublicationNotice)
+    XCTAssertTrue(store.error?.contains("public_feed") == true)
+    XCTAssertNil(store.draft.remote)
+    XCTAssertFalse(store.importBusy)
+    XCTAssertEqual(store.draft.sources.map(\.sha256), originalSources.map(\.sha256))
+    let after = try JSONEncoder().encode(store.draft)
+    XCTAssertEqual(try JSONSerialization.jsonObject(with: before) as? NSDictionary,
+      try JSONSerialization.jsonObject(with: after) as? NSDictionary)
+  }
+  func testPublicFeedBlocksDocumentAndCloseWritesButPreservesOriginals() async throws {
+    let (store, cleanup) = try isolated(); defer { cleanup() }
+    let document = try await payslip(store)
+    XCTAssertTrue(store.sourceImportCanCommit)
+    store.mode = .connected
+    store.selectedSheetID = "synthetic_public_feed_123"
+    store.sheetCanEdit = true
+    var evidence: [String: Any] = ["sheetId": store.selectedSheetID,
+      "baseline": try XCTUnwrap(store.sourceBaseline), "publicFeedEnabled": true,
+      "evidence": ["imports": [[String: Any]]()], "evidenceImportIds": [String]()]
+    try store.acceptSourceEvidence(evidence, sheetID: store.selectedSheetID)
+    XCTAssertFalse(store.sourceImportCanCommit)
+    let before = try JSONEncoder().encode(store.draft)
+    for operation in ["ingest", "close"] {
+      await store.commitSourceImport(operation: operation)
+      XCTAssertEqual(store.error, store.importPublicationNotice)
+      XCTAssertTrue(store.error?.contains("public_feed") == true)
+      XCTAssertNil(store.draft.remote)
+      XCTAssertFalse(store.importBusy)
+    }
+    XCTAssertEqual(store.draft.documents.first?.bytes, document.bytes)
+    XCTAssertEqual(try JSONSerialization.jsonObject(with: before) as? NSDictionary,
+      try JSONSerialization.jsonObject(with: JSONEncoder().encode(store.draft)) as? NSDictionary)
+    // A refreshed Sheet with the feed off permits the same reviewed source again.
+    // This does not claim that Drive's separate sharing permissions are private.
+    evidence["publicFeedEnabled"] = false
+    try store.acceptSourceEvidence(evidence, sheetID: store.selectedSheetID)
+    XCTAssertNil(store.importPublicationNotice)
+    XCTAssertTrue(store.sourceImportCanCommit)
+  }
   func testConfirmedFieldEditInvalidatesProposalAndSavedBinding() async throws {
     let (store, cleanup) = try isolated(); defer { cleanup() }
     _ = try await payslip(store)

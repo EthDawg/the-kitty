@@ -28,6 +28,7 @@ struct PeriodCloseView: View {
         if let asOf = store.household?.asOf { LabeledContent("Sheet currently through", value: niceDate(asOf)) }
         if store.isDemo { Pill(title: "Practice checks · fictional data", symbol: "sparkles") }
       }
+      ImportPublicationSection()
       if store.draft.remote != nil {
         Section("Protected receipt") {
           Text("A save is awaiting verification. Resolve its receipt before beginning another review.")
@@ -37,7 +38,7 @@ struct PeriodCloseView: View {
           if store.draft.remote?.operation == "close", store.draft.remote?.status == "proposed",
             store.draft.remote?.recoveryOnly == false {
             Button("Continue this month-end close") { Task { await store.commitSourceImport(operation: "close") } }
-              .disabled(store.importBusy)
+              .disabled(store.importBusy || store.importPublicationNotice != nil)
           }
           Button("Cancel pending save") { confirmCancel = true }.disabled(store.importBusy)
         }
@@ -86,7 +87,8 @@ struct PeriodCloseView: View {
           } else {
             Button { confirmClose = true } label: {
               Label("Close through \(niceDate(review.periodEnd))", systemImage: "checkmark.shield")
-            }.disabled(!review.canClose || !store.sheetCanEdit || store.importLocked)
+            }.disabled(!review.canClose || !store.sheetCanEdit || store.importLocked
+              || store.importPublicationNotice != nil)
               .accessibilityIdentifier("closeMonth")
             Text("The Sheet's as-of date changes only after these checks pass. The app then reads the Sheet again to verify the completed close.")
               .font(.caption).foregroundStyle(KittyTheme.secondary)

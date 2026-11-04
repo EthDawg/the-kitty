@@ -1060,5 +1060,47 @@
     "evidenceLimit": "Fictional simulator workflow only. No live Google, hosted write, real file capture, provider AI, VoiceOver, physical-phone or store acceptance.",
     "caption": "Unresolved import review",
     "observedResult": "Affected simulator journey passed after accessibility layout changes. This image preserves the visible viewport; complete interactions and assertions remain in the result bundle."
+  },
+  {
+    "file": "feed-se-22-month-end-missing-evidence.png",
+    "sha256": "247ff2889ca715c0c0b0fa4c09d439258ab51fd750d429b0d4f6f306e17c5b31",
+    "workflow": "KittyUITests/testMonthClosePracticeShowsMissingEvidenceWithoutClaimingCompletion()",
+    "capturedAtUnix": 1793804051.009,
+    "device": "iPhone SE · dark mode · accessibility extra-large text",
+    "sourceResult": "public-feed-ui-01.xcresult",
+    "fullResolution": true,
+    "widthPx": 750,
+    "heightPx": 1334,
+    "evidenceLimit": "Fictional simulator workflow only; no live Google OAuth, hosted import, provider AI, physical-phone or store acceptance.",
+    "caption": "Month-end practice status and collapsed passed checks",
+    "observedResult": "The local practice journey passed after the public-feed write guard was added. This does not exercise a live connected Sheet or its public-feed notice. The viewport shows collapsed passed checks and the practice limit; individual missing checks are outside this capture and covered by the UI assertions."
+  },
+  {
+    "file": "feed-se-12-relaunched-import-adds-zero.png",
+    "sha256": "33b9737ae42aed098414b1ce235a1a55c93052349890d310a83f19072b0fccc3",
+    "workflow": "KittyUITests/testPracticeImportSurvivesRelaunchAndCannotBeImportedTwice()",
+    "capturedAtUnix": 1793804101.301,
+    "device": "iPhone SE · dark mode · accessibility extra-large text",
+    "sourceResult": "public-feed-ui-01.xcresult",
+    "fullResolution": true,
+    "widthPx": 750,
+    "heightPx": 1334,
+    "evidenceLimit": "Fictional simulator workflow only; no live Google OAuth, hosted import, provider AI, physical-phone or store acceptance.",
+    "caption": "Relaunched import with zero new rows",
+    "observedResult": "The local practice journey passed after the public-feed write guard was added. This does not exercise a live connected Sheet or its public-feed notice."
+  },
+  {
+    "file": "feed-se-11-practice-import-verified-local-receipt.png",
+    "sha256": "1ddbcdca606ae1bf45ae11c56d361290d12f10279be1799aedfaabe6614310fd",
+    "workflow": "KittyUITests/testPracticeImportSurvivesRelaunchAndCannotBeImportedTwice()",
+    "capturedAtUnix": 1793804084.833,
+    "device": "iPhone SE · dark mode · accessibility extra-large text",
+    "sourceResult": "public-feed-ui-01.xcresult",
+    "fullResolution": true,
+    "widthPx": 750,
+    "heightPx": 1334,
+    "evidenceLimit": "Fictional simulator workflow only; no live Google OAuth, hosted import, provider AI, physical-phone or store acceptance.",
+    "caption": "Verified local practice receipt",
+    "observedResult": "The local practice journey passed after the public-feed write guard was added. This does not exercise a live connected Sheet or its public-feed notice."
   }
 ]
