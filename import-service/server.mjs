@@ -31,12 +31,12 @@ export function createImportHandler({service=new ImportService({driver:new Googl
       if(parts.length){try{body=JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw new ImportError('invalid_json','The import request could not be read.');}}
       if(!body || Array.isArray(body) || typeof body!=='object')throw new ImportError('invalid_json','The request must be a JSON object.');
       if(request.method==='POST' && url.pathname==='/v1/imports/prepare'){send(200,await service.prepare(bearer,body));return true;}
-      if(request.method==='GET' && url.pathname==='/v1/imports/provenance'){send(200,await service.provenance(bearer,{sheetId:url.searchParams.get('sheetId')}));return true;}
+      if(request.method==='GET' && url.pathname==='/v1/imports/provenance'){send(200,await service.provenance(bearer,{sheetId:url.searchParams.get('sheetId'),...(url.searchParams.has('protocolVersion')?{protocolVersion:Number(url.searchParams.get('protocolVersion'))}:{}),...(url.searchParams.has('periodEnd')?{periodEnd:url.searchParams.get('periodEnd')}:{})}));return true;}
       if(match && match[2]==='commit' && request.method==='POST'){send(200,await service.commit(bearer,match[1],body));return true;}
       if(match && match[2]==='cancel' && request.method==='POST'){send(200,await service.cancel(bearer,match[1],body));return true;}
       if(match && match[2]==='status' && request.method==='GET'){send(200,await service.status(bearer,match[1],{sheetId:url.searchParams.get('sheetId')}));return true;}
       throw new ImportError('not_found','This endpoint does not exist.',404);
-    }catch(error){send(error instanceof ImportError?error.status:500,{error:{code:error instanceof ImportError?error.code:'internal_error',message:error instanceof ImportError?error.message:'The import could not be completed. Your existing records have not been confirmed changed.',...(error instanceof ImportError && error.recovery?{recovery:error.recovery}:{})}});}
+    }catch(error){send(error instanceof ImportError?error.status:500,{error:{code:error instanceof ImportError?error.code:'internal_error',message:error instanceof ImportError?error.message:'The import could not be completed. Your existing records have not been confirmed changed.',...(error instanceof ImportError && error.recovery?{recovery:error.recovery}:{}),...(error instanceof ImportError && error.issues?{issues:error.issues}:{})}});}
     return true;
   };
 }

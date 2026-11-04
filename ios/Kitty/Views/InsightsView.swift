@@ -76,6 +76,38 @@ struct InsightsView: View {
             SourceLink(label: "Budget tab", range: "Budget!A:I")
           }
           KittyCard {
+            SectionTitle(title: "Plan with your Sheet")
+            NavigationLink {
+              MortgagePlanningView()
+            } label: {
+              Label("Mortgage scenarios", systemImage: "house")
+            }.accessibilityIdentifier("insights.mortgage")
+            Divider()
+            NavigationLink {
+              TaxPlanningView()
+            } label: {
+              Label("Tax estimates & checks", systemImage: "doc.text.magnifyingglass")
+            }.accessibilityIdentifier("insights.tax")
+            Divider()
+            NavigationLink {
+              UpcomingPlanningView()
+            } label: {
+              Label("Upcoming & pay history", systemImage: "calendar")
+            }.accessibilityIdentifier("insights.upcoming")
+            Divider()
+            NavigationLink {
+              SafetyPlanningView()
+            } label: {
+              Label("Safety coverage", systemImage: "lifepreserver")
+            }.accessibilityIdentifier("insights.safety")
+            Divider()
+            NavigationLink {
+              RentalPlanningView()
+            } label: {
+              Label("Rental cash flow", systemImage: "building.2")
+            }.accessibilityIdentifier("insights.rental")
+          }
+          KittyCard {
             SectionTitle(title: "Explore a little further")
             NavigationLink {
               SubscriptionsView()
@@ -100,6 +132,12 @@ struct InsightsView: View {
             } label: {
               Label("Checks & evidence", systemImage: "checkmark.shield")
             }
+            Divider()
+            NavigationLink {
+              PeriodCloseView()
+            } label: {
+              Label("Review month end", systemImage: "calendar.badge.checkmark")
+            }.accessibilityIdentifier("insights.monthClose")
           }
         }.padding(20).frame(maxWidth: 720)
       }

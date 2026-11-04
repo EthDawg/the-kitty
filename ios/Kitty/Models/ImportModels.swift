@@ -82,6 +82,7 @@ struct ImportProposal: Decodable {
   let counts: ImportCounts?
   let excluded: [ImportExclusion]?
   let duplicates: [ImportDuplicate]?
+  let files: [ImportParsedFile]?
   var noOpMessage: String? {
     guard rows.isEmpty, issues.isEmpty else { return nil }
     let pending = counts?.pending ?? 0
@@ -97,11 +98,17 @@ struct ImportProposal: Decodable {
       ? "No posted transactions to add." : parts.joined(separator: " · ") + ". Nothing to add."
   }
 }
+struct ImportParsedFile: Decodable {
+  let accountId: String?
+  let empty: Bool?
+}
 
 struct PreparedImportReceipt: Codable {
   let importId: String
   let proposalDigest: String
   let status: String
+  var protocolVersion: Int? = nil
+  var operation: String? = nil
 }
 struct ImportRemoteBinding: Codable {
   let id: String
@@ -111,6 +118,8 @@ struct ImportRemoteBinding: Codable {
   let proposal: Data
   var attempted: Bool
   var status: String
+  var protocolVersion: Int? = nil
+  var operation: String? = nil
   var recoveryOnly: Bool { localDraftDigest.isEmpty || proposal.isEmpty }
 
   func matches(draft: ImportDraft, sheetID: String) throws -> Bool {
@@ -120,6 +129,9 @@ struct ImportRemoteBinding: Codable {
 }
 struct ImportDraft: Codable {
   var sources: [ImportSource] = []
+  var documents: [SourceDocument] = []
+  var sourceReviews: [SourceReviewDraft] = []
+  var closeReview: PeriodCloseDraft?
   var categories: [String: String] = [:]
   var accepted: [String] = []
   var duplicateChoices: [String: String] = [:]
@@ -130,12 +142,15 @@ struct ImportDraft: Codable {
 
   init() {}
   private enum CodingKeys: String, CodingKey {
-    case sources, categories, accepted, duplicateChoices, distinctSourceRows, boundSheetID, remote,
+    case sources, documents, sourceReviews, closeReview, categories, accepted, duplicateChoices, distinctSourceRows, boundSheetID, remote,
       remoteImportID
   }
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: CodingKeys.self)
     sources = try c.decodeIfPresent([ImportSource].self, forKey: .sources) ?? []
+    documents = try c.decodeIfPresent([SourceDocument].self, forKey: .documents) ?? []
+    sourceReviews = try c.decodeIfPresent([SourceReviewDraft].self, forKey: .sourceReviews) ?? []
+    closeReview = try c.decodeIfPresent(PeriodCloseDraft.self, forKey: .closeReview)
     categories = try c.decodeIfPresent([String: String].self, forKey: .categories) ?? [:]
     accepted = try c.decodeIfPresent([String].self, forKey: .accepted) ?? []
     duplicateChoices =
@@ -153,6 +168,9 @@ struct ImportDraft: Codable {
   func encode(to encoder: Encoder) throws {
     var c = encoder.container(keyedBy: CodingKeys.self)
     try c.encode(sources, forKey: .sources)
+    try c.encode(documents, forKey: .documents)
+    try c.encode(sourceReviews, forKey: .sourceReviews)
+    try c.encodeIfPresent(closeReview, forKey: .closeReview)
     try c.encode(categories, forKey: .categories)
     try c.encode(accepted, forKey: .accepted)
     try c.encode(duplicateChoices, forKey: .duplicateChoices)
@@ -186,11 +204,12 @@ struct ImportDraft: Codable {
     return result
   }
   func afterVerifiedReceipt() -> ImportDraft {
-    if remote?.recoveryOnly == true {
+    if remote?.recoveryOnly == true || remote?.operation == "close" {
       // A discovered receipt belongs to an earlier import, not these staged files.
       var reopened = self
       reopened.remote = nil
       reopened.accepted = []
+      reopened.closeReview = nil
       return reopened
     }
     var cleared = ImportDraft()
@@ -209,6 +228,8 @@ struct ImportServiceResult: Codable {
   let proposalDigest: String?
   let issues: [ImportServiceIssue]?
   let verificationScope: String?
+  var protocolVersion: Int? = nil
+  var operation: String? = nil
 }
 struct ImportServiceFailure: LocalizedError {
   let code: String

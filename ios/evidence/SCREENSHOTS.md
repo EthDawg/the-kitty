@@ -2,7 +2,13 @@
 
 Full-resolution originals, captions, workflows, results and hashes are retained in [the inventory](screenshots/inventory.json). All captures contain the fictional Davies household only. They do not establish live Google access, provider AI, physical-device acceptance or store approval.
 
-The final small-screen run, `native-final-acceptance.xcresult`, passed 52 unit tests and seven UI journeys on iPhone SE in dark mode with accessibility extra-large text. Its 12 captures have an `se-` prefix. The regular-size final Home run also passed; its two captures have a `final-` prefix. The original complete iPhone 17 Pro run remains preserved below.
+The current expanded run, `typed-acceptance-final.xcresult`, passes 90 native tests and all 12 UI journeys on iPhone SE in dark mode with accessibility extra-large text. Its 24 untouched 750×1334 captures have a `typed-se-` prefix. The inventory now retains 60 originals in total. Large-text captures preserve the visible viewport of a scrollable section; the complete assertions and interactions remain in the result bundle.
+
+- [Current Home](screenshots/typed-se-01-home-cash-and-demo-status.png), [practice receipt](screenshots/typed-se-11-practice-import-verified-local-receipt.png) and [zero-row replay](screenshots/typed-se-12-relaunched-import-adds-zero.png).
+- [Mortgage estimate](screenshots/typed-se-13-mortgage-recorded-rate-scenario.png), [original payslip](screenshots/typed-se-19-retained-original-payslip.png) and [pay-date source review](screenshots/typed-se-20-document-field-confirmation.png).
+- [Month-end practice status](screenshots/typed-se-22-month-end-missing-evidence.png), [transfer explanation](screenshots/typed-se-23-explicit-transfer-pair-review.png) and [retained decision](screenshots/typed-se-24-retained-transfer-decision.png).
+
+The earlier small-screen run, `native-final-acceptance.xcresult`, passed 52 unit tests and seven UI journeys on iPhone SE in dark mode with accessibility extra-large text. Its 12 captures have an `se-` prefix. The regular-size final Home run also passed; its two captures have a `final-` prefix. The original complete iPhone 17 Pro run remains preserved below.
 
 - [Final Home](screenshots/final-01-home-cash-and-demo-status.png) and [account basis](screenshots/final-02-cash-account-evidence.png).
 - [Small-screen Home](screenshots/se-01-home-cash-and-demo-status.png), [practice receipt](screenshots/se-11-practice-import-verified-local-receipt.png) and [relaunch/replay](screenshots/se-12-relaunched-import-adds-zero.png).
@@ -23,3 +29,7 @@ The final small-screen run, `native-final-acceptance.xcresult`, passed 52 unit t
 | [Relaunch and repeat](screenshots/12-relaunched-import-adds-zero.png) | The durable local receipt survives a fresh launch; replay offers zero new rows. |
 
 Raw `.xcresult` bundles and exported attachments remain locally available under `ios/evidence/` and are excluded from Git. The selected originals above are retained with the code.
+
+## Added planning and source review
+
+The inventory also retains the earlier regular-size captures 13–18 from the passing planning journeys and 19–22 from the passing original-document/confirmation/relaunch and month-end preview journeys. The latter month-end layout was subsequently simplified to surface unresolved checks first; its earlier screenshot remains historical evidence. All are full-resolution fictional simulator captures.

@@ -17,20 +17,22 @@ struct ImportView: View {
       introduction
       if store.draft.remote != nil { recovery }
       sources.disabled(store.importLocked)
+      SourceIntakeSection()
       if let proposal = store.proposal {
         review(proposal).disabled(store.importLocked)
-        if store.draft.remote == nil { save(proposal) }
+        if store.draft.remote == nil && store.draft.documents.isEmpty { save(proposal) }
       }
+      if !store.draft.documents.isEmpty { SourceSaveSection() }
       if let state = store.importState {
         Section { Text(state).font(.subheadline).accessibilityIdentifier("importState") }
       }
-      if store.importCanDiscard && !store.draft.sources.isEmpty {
+      if store.importCanDiscard && store.hasImportSources {
         Section {
           Button("Discard this local review", role: .destructive) { confirmDiscard = true }
         }
       }
     }
-    .navigationTitle("Import a statement").navigationBarTitleDisplayMode(.inline)
+    .navigationTitle("Import your records").navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button("Done") {
@@ -45,7 +47,7 @@ struct ImportView: View {
       if store.draft.remote != nil {
         await store.checkImportStatus()
       } else if !store.isDemo {
-        _ = await store.refreshImportEvidence()
+        _ = await store.refreshImportEvidence(includeSources: true)
       }
     }
     .fileImporter(
@@ -93,7 +95,7 @@ struct ImportView: View {
     Section {
       VStack(alignment: .leading, spacing: 10) {
         Text(
-          "Choose an account and its bank CSV. Review the changes before saving."
+          "Add bank CSVs, payslips, valuations or statement balances. Check the original evidence before saving."
         )
         .font(.subheadline).foregroundStyle(KittyTheme.secondary)
       }.padding(.vertical, 8)

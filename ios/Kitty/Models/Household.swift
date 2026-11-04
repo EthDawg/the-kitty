@@ -19,6 +19,7 @@ struct Household: Decodable {
   let upcoming: [UpcomingItem]
   let reconciliation: [ReconciliationCheck]
   let people: [String]
+  var planning: KittyPlanning? = nil
   func value(_ id: String) -> Double? { metrics[id]?.num }
 }
 struct KittyAccount: Decodable, Identifiable {
@@ -61,6 +62,8 @@ struct CashMonth: Decodable, Identifiable {
 struct BudgetCategory: Decodable, Identifiable {
   let name, status: String
   let monthly, latest, avg3, ytd, used: Double?
+  var toDate: Double? = nil
+  var left: Double? = nil
   var id: String { name }
 }
 struct KittySubscription: Decodable, Identifiable {

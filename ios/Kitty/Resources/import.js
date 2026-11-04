@@ -34,7 +34,7 @@
     if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}';
     return JSON.stringify(value===undefined?null:value);
   }
-  function parseCSV(text) {
+  function parseCSV(text,options) {
     if (typeof text!=='string') fail('file-unreadable','The file could not be read as text. Export a UTF-8 CSV.');
     if (text.length>10000000) fail('file-too-large','This file is larger than the 10 MB import limit. Export a shorter period.');
     text=text.replace(/^\uFEFF/,'');
@@ -61,7 +61,7 @@
     if(headers.some(v=>!v))fail('csv-header','Every column needs a header. Check the original export.');
     if(new Set(headers).size!==headers.length)fail('csv-header','The file has duplicate column names. Rename them before mapping.');
     records.forEach((r,i)=>{r.row=i+2;if(r.values.length!==headers.length)fail('csv-columns','Line '+r.line+' has '+r.values.length+' fields; expected '+headers.length+'. Check quoting and separators.');});
-    if(!records.length)fail('file-empty','The CSV has headings but no transactions. Choose a period with activity.');
+    if(!records.length&&!(options&&options.allowEmpty===true))fail('file-empty','The CSV has headings but no transactions. Choose a period with activity.');
     return {headers,records};
   }
   function detectFormat(input){
@@ -161,8 +161,14 @@
         const contentKey=JSON.stringify([meta.accountId,file.text]);
         if(seenFiles.has(contentKey)){meta.status='already-selected';result.duplicates.push({fileId,reason:'same-file',ofFileId:seenFiles.get(contentKey)});continue;}
         seenFiles.set(contentKey,fileId);
-        const csv=parseCSV(file.text);meta.headers=csv.headers;meta.rows=csv.records.length;result.counts.source+=csv.records.length;
+        const csv=parseCSV(file.text,{allowEmpty:input.allowEmptyFiles===true});meta.headers=csv.headers;meta.rows=csv.records.length;result.counts.source+=csv.records.length;
         const mapping=resolveMapping(csv,file);if(mapping.id==='custom'&&!mapping.dateOrder&&input.dateOrder)mapping.dateOrder=input.dateOrder;meta.format=mapping.id;meta.mapping=mapping;
+        if(!csv.records.length){
+          if(mapping.id==='custom'&&!mapping.dateOrder)fail('date-order','Confirm the date order for this empty export’s mapping.');
+          // Empty rows establish neither no activity nor an account identity.
+          // Typed intake must bind reviewed statement evidence separately.
+          meta.empty=true;
+        }
         const account=accounts.get(meta.accountId);const expectedSuffix=str(account.numberSuffix||account.accountSuffix).replace(/\W/g,'');
         const get=(record,key)=>mapping[key]?str(record.values[csv.headers.indexOf(mapping[key])]).trim():'';
         const fileRows=[];let previous=null;let balanceChecks=0;let ascending=true,descending=true;const sourceAccounts=new Set();

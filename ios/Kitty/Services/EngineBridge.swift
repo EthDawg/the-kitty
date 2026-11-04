@@ -10,9 +10,8 @@ import JavaScriptCore
     }
     context = ctx
     context.exceptionHandler = { [weak self] _, value in self?.scriptError = value?.toString() }
-    for name in ["engine", "bridge", "import"] {
+    for name in ["engine", "bridge", "import", "sheet-contract", "records", "close"] {
       guard let url = Bundle.main.url(forResource: name, withExtension: "js") else {
-        if name == "import" { continue }
         throw KittyError.message("The app is missing its calculation engine.")
       }
       context.evaluateScript(try String(contentsOf: url, encoding: .utf8))

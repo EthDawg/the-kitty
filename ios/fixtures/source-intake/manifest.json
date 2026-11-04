@@ -1,0 +1,49 @@
+{
+  "fictional": true,
+  "source": "committed Davies fixtures only",
+  "expected": {
+    "statement": {
+      "accountId": "ACC-EVD",
+      "periodStart": "2027-01-01",
+      "periodEnd": "2027-01-31",
+      "openingMinor": "533517",
+      "closingMinor": "597106"
+    },
+    "payslip": {
+      "payDate": "2027-02-01",
+      "personOnDocument": "Jordan Davies",
+      "grossMinor": "525000",
+      "taxMinor": "125000",
+      "superMinor": "63000",
+      "netMinor": "400000"
+    },
+    "valuation": {
+      "date": "2027-01-31",
+      "itemId": "LN-HOME",
+      "valueMinor": "-59171518",
+      "valueKind": "liability"
+    }
+  },
+  "files": [
+    {
+      "name": "source-statement-text.pdf",
+      "sha256": "82f975421af2b2487862851743a89c5e1bd2bb1e55a0e8473cfc581a9f55fbfc",
+      "byteLength": 2714
+    },
+    {
+      "name": "source-statement-scanned.pdf",
+      "sha256": "106113fd0f20e6da0f25e9666f1f849afc7e15577315d4dfd86c4f1a11c64c64",
+      "byteLength": 132314
+    },
+    {
+      "name": "source-payslip-ytd.pdf",
+      "sha256": "910fdb2f916bfa8211317454dd56431e971d835cadcb6fc82b31d84995226d5b",
+      "byteLength": 2355
+    },
+    {
+      "name": "source-valuation-loan.pdf",
+      "sha256": "b1787dd38ffcab44f85bc2890b0a9708cd09beffcb2625d3e3e8b44482ba3794",
+      "byteLength": 2270
+    }
+  ]
+}

@@ -21,6 +21,8 @@ const proposal = KittyImport.prepare({
 
 Three exact synthetic bank formats from the existing project are recognised. Their real-world bank counterparts remain unverified. BOM, quotes, multiline fields and CRLF are supported. Invalid rows block the whole proposal; unsupported files fail visibly.
 
+Typed source intake may opt into `prepare({allowEmptyFiles:true, ...})` for a header-only bank export. It still checks the account, supported currency and recognized or confirmed mapping; generic mappings require a date order. `files[].empty:true` distinguishes these sources. A header-only file does not establish account identity or prove no activity. The typed writer must separately require matching reviewed statement-balance evidence. An empty-only proposal still has `canCommit:false`. The lower-level equivalent is `parseCSV(text, {allowEmpty:true})`; defaults continue to reject heading-only files, and entirely empty/malformed files always fail.
+
 For an unfamiliar format, supply a **user-confirmed** mapping:
 
 ```js

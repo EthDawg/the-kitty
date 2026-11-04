@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import {prepareTyped,lifecycleTyped,provenanceTyped} from './typed.mjs';
 
 export class ImportError extends Error {
   constructor(code, message, status = 400, recovery) { super(message); this.code = code; this.status = status; if(recovery)this.recovery=recovery; }
@@ -63,7 +64,7 @@ function text(value, name, max = 2000) {
   assert(typeof value === 'string' && value.length <= max, 'invalid_row', `Invalid ${name}.`);
   return value;
 }
-function cleanRows(rows, files, state) {
+export function cleanRows(rows, files, state) {
   assert(Array.isArray(rows) && rows.length > 0 && rows.length <= 1000, 'row_limit', 'An import must contain between 1 and 1,000 new rows.');
   const accounts = new Set(state.accounts.map(x=>x.id));
   const categories = new Set(state.categories.map(x=>x.id));
@@ -138,6 +139,8 @@ export class SerialQueue {
 export class ImportService {
   constructor({driver,queue = new SerialQueue(),auditSources,now = ()=>new Date().toISOString()}) { this.driver=driver;this.queue=queue;this.auditSources=auditSources;this.now=now; }
   async prepare(token,request) {
+    assert(request.protocolVersion===undefined || [1,2].includes(request.protocolVersion),'unsupported_protocol','This import protocol is not supported.');
+    if(request.protocolVersion===2)return prepareTyped(this,token,request);
     sheetID(request.sheetId);
     return this.queue.run(request.sheetId,async()=> {
       await this.driver.authorize(token,request.sheetId);
@@ -165,6 +168,7 @@ export class ImportService {
     return this.queue.run(request.sheetId,async()=> {
       await this.driver.authorize(token,request.sheetId);
       const manifest=await this.driver.loadManifest(token,importId,request.sheetId);
+      if(manifest.contract===2)return lifecycleTyped(this,token,manifest,importId,request,'commit');
       const state=await this.driver.readState(token,request.sheetId);
       validateState(state,manifest.schemaVersion);
       const receipt=state.receipts.find(r=>r.importId===importId);
@@ -214,6 +218,7 @@ export class ImportService {
     return this.queue.run(request.sheetId,async()=>{
     await this.driver.authorize(token,request.sheetId);
     const manifest=await this.driver.loadManifest(token,importId,request.sheetId);
+    if(manifest.contract===2)return lifecycleTyped(this,token,manifest,importId,request,'status');
     const state=await this.driver.readState(token,request.sheetId);
     const receipt=state.receipts.find(r=>r.importId===importId);
     if(receipt) return this.finish(token,manifest,state,importId,receipt);
@@ -228,6 +233,7 @@ export class ImportService {
     return this.queue.run(request.sheetId,async()=>{
       await this.driver.authorize(token,request.sheetId);
       const manifest=await this.driver.loadManifest(token,importId,request.sheetId);
+      if(manifest.contract===2)return lifecycleTyped(this,token,manifest,importId,request,'cancel');
       const state=await this.driver.readState(token,request.sheetId);
       const receipt=state.receipts.find(r=>r.importId===importId);
       if(receipt)return this.finish(token,manifest,state,importId,receipt);
@@ -247,6 +253,8 @@ export class ImportService {
   }
   cancelled(manifest,importId) { return {importId,proposalDigest:manifest.proposalDigest,status:'cancelled',counts:{new:manifest.rows.length},issues:[]}; }
   async provenance(token,request) {
+    assert(request.protocolVersion===undefined || [1,2].includes(request.protocolVersion),'unsupported_protocol','This import protocol is not supported.');
+    if(request.protocolVersion===2)return provenanceTyped(this,token,request);
     sheetID(request.sheetId);
     return this.queue.run(request.sheetId,async()=>{
     await this.driver.authorize(token,request.sheetId);
@@ -307,7 +315,7 @@ export class ImportService {
         const manifest=manifests[receiptIndex].value;
         assert(manifest.schemaVersion===state.version && manifest.proposalDigest===receipt.digest,'provenance_receipt_mismatch','The evidence receipt does not match this import.',409);
         const expectedIds=manifest.targetRows.map(r=>r[0]);
-        assert(receipt.manifestFile===receipt.importId && JSON.stringify(JSON.parse(receipt.ids))===JSON.stringify(expectedIds),'provenance_receipt_mismatch','The evidence receipt refers to different records.',409);
+        assert(receipt.manifestFile===receipt.importId && JSON.stringify(JSON.parse(receipt.ids))===JSON.stringify(manifest.contract===2?manifest.recordRefs:expectedIds),'provenance_receipt_mismatch','The evidence receipt refers to different records.',409);
         const sourceHashes=new Map(manifest.sources.map(f=>[f.id,f.sha256]));
         for(let i=0;i<manifest.targetRows.length;i++) {
           const target=manifest.targetRows[i],source=manifest.rows[i];

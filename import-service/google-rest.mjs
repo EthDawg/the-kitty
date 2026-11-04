@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ImportError, HEADERS, RECEIPT_TAB, RECEIPT_HEADERS, GATE_PROPERTIES, digest, pad, validateGate } from './core.mjs';
+import {readTypedState,typedRequests} from './typed-google.mjs';
 const DRIVE='https://www.googleapis.com/drive/v3';
 const SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const quote = value => `'${String(value).replace(/'/g,"''")}'`;
@@ -10,7 +11,8 @@ export class GoogleDriver {
   async request(token,url,{method='GET',body,headers={}}={}) {
     if(typeof token!=='string' || !token || token.length>8192) throw new ImportError('unauthorized','Reconnect Google to continue.',401);
     let response;
-    try { response=await this.fetch(url,{method,headers:{Authorization:`Bearer ${token}`,...headers,...(body && typeof body!=='string'?{'Content-Type':'application/json'}:{})},body:body?typeof body==='string'?body:JSON.stringify(body):undefined,signal:AbortSignal.timeout(30000)}); }
+    const binary=Buffer.isBuffer(body)||body instanceof Uint8Array;
+    try { response=await this.fetch(url,{method,headers:{Authorization:`Bearer ${token}`,...headers,...(body && typeof body!=='string'&&!binary?{'Content-Type':'application/json'}:{})},body:body?typeof body==='string'||binary?body:JSON.stringify(body):undefined,signal:AbortSignal.timeout(30000)}); }
     catch { throw new ImportError('provider_unavailable','Google did not confirm this request. Check the import before retrying.',503); }
     if(!response.ok) {
       const code=response.status===401?'google_reconnect':response.status===403?'google_permission':response.status===404?'not_found':'google_request_failed';
@@ -90,7 +92,7 @@ export class GoogleDriver {
     const formulaFingerprint=digest(formulas.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
     const meaningful=table.map((r,i)=>({r:pad(r,width),i})).filter(({r,i})=>i>0 && r.some(v=>v!==''));
     const receiptValid=!tabs[RECEIPT_TAB] || JSON.stringify(receiptTable[0])===JSON.stringify(RECEIPT_HEADERS);
-    return {version,people:[...new Set(['Joint',...String(kitty.find(r=>r[0]==='people')?.[1]??'').split(',').map(v=>v.trim()).filter(Boolean)])],currency:String(kitty.find(r=>r[0]==='currency')?.[1]??'AUD'),title,sheetTabId:tabs[title].sheetId,rowCount:tabs[title].gridProperties.rowCount,header:table[0]??[],rows:meaningful.map(x=>x.r),nextRowIndex:meaningful.length?meaningful.at(-1).i+1:1,inputFormulas,
+    return {version,currencyPresent:kitty.some(r=>r[0]==='currency'&&typeof r[1]==='string'&&r[1].trim()),people:[...new Set(['Joint',...String(kitty.find(r=>r[0]==='people')?.[1]??'').split(',').map(v=>v.trim()).filter(Boolean)])],currency:String(kitty.find(r=>r[0]==='currency')?.[1]??'AUD'),title,sheetTabId:tabs[title].sheetId,rowCount:tabs[title].gridProperties.rowCount,header:table[0]??[],rows:meaningful.map(x=>x.r),nextRowIndex:meaningful.length?meaningful.at(-1).i+1:1,inputFormulas,
       accounts:accounts.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??''),owner:String(r[4]??''),...(accountCurrencyColumn>=0?{currency:String(r[accountCurrencyColumn]??'')}:{})})),
       categories:categories.slice(1).filter(r=>r[0]).map(r=>({id:String(r[0]),name:String(r[1]??'')})),
       formulaFingerprint,receiptValid,receiptTabId:tabs[RECEIPT_TAB]?.sheetId,receiptNextRow:receiptTable.length,allTabIds:Object.values(tabs).map(x=>x.sheetId),
@@ -105,7 +107,7 @@ export class GoogleDriver {
   }
   async upload(token,metadata,contents,mimeType) {
     const boundary=`kitty_${randomUUID()}`;
-    const body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n${contents}\r\n--${boundary}--`;
+    const body=Buffer.concat([Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`),Buffer.isBuffer(contents)?contents:Buffer.from(contents,'utf8'),Buffer.from(`\r\n--${boundary}--`)]);
     return this.request(token,'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':`multipart/related; boundary=${boundary}`},body});
   }
   async folder(token,sheetId) {
@@ -118,7 +120,8 @@ export class GoogleDriver {
     const props={kittyKind:'source',kittySheet:sheetId,kittyHash:file.sha256};
     const matches=await this.findFiles(token,props);
     if(matches[0]) return {sourceId:file.id,fileId:matches[0].id,sha256:file.sha256};
-    const result=await this.upload(token,{parents:[await this.folder(token,sheetId)],name:file.name.replace(/[\u0000-\u001f]/g,'_'),mimeType:'text/csv',appProperties:props},file.text,'text/csv; charset=UTF-8');
+    const mime=file.mimeType??'text/csv';
+    const result=await this.upload(token,{parents:[await this.folder(token,sheetId)],name:file.name.replace(/[\u0000-\u001f]/g,'_'),mimeType:mime,appProperties:props},file.bytes??file.text,mime);
     return {sourceId:file.id,fileId:result.id,sha256:file.sha256};
   }
   async reserveID(token) { return (await this.request(token,`${DRIVE}/files/generateIds?count=1&space=drive&type=files`)).ids[0]; }
@@ -132,7 +135,7 @@ export class GoogleDriver {
     if(meta.trashed || meta.appProperties?.kittyKind!=='manifest' || meta.appProperties.kittySheet!==sheetId)throw new ImportError('import_permission','This import does not belong to the selected Sheet.',403);
     const manifest=await this.request(token,`${DRIVE}/files/${encodeURIComponent(importId)}?alt=media`);
     const {proposalDigest,...original}=manifest;
-    if(manifest.sheetId!==sheetId || manifest.contract!==1 || digest(original)!==proposalDigest || proposalDigest!==meta.appProperties.kittyDigest)throw new ImportError('manifest_changed','The prepared import changed. Prepare a new import.',409);
+    if(manifest.sheetId!==sheetId || ![1,2].includes(manifest.contract) || digest(original)!==proposalDigest || proposalDigest!==meta.appProperties.kittyDigest)throw new ImportError('manifest_changed','The prepared import changed. Prepare a new import.',409);
     return manifest;
   }
   async verifySources(token,manifest) {
@@ -151,6 +154,8 @@ export class GoogleDriver {
   async storeIntent(token,intentFileId,importId,sheetId,intent) {
     return this.upload(token,{id:intentFileId,parents:[await this.folder(token,sheetId)],name:`Kitty import ${importId} write intent.json`,mimeType:'application/json',appProperties:{kittyKind:'intent',kittySheet:sheetId,kittyImport:importId,kittyIntent:intent.status??'writing'}},JSON.stringify(intent),'application/json');
   }
+  async readTypedState(token,sheetId,periodEnd){return readTypedState(this,token,sheetId,periodEnd);}
+  async atomicTypedInsert(token,sheetId,state,manifest,importId,writtenAt){return this.request(token,`${SHEETS}/${encodeURIComponent(sheetId)}:batchUpdate`,{method:'POST',body:{requests:typedRequests(state,manifest,importId,writtenAt)}});}
   async atomicInsert(token,sheetId,state,manifest,importId,writtenAt) {
     const width=HEADERS[state.version].length;
     const count=manifest.targetRows.length;

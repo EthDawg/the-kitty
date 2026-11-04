@@ -24,10 +24,21 @@ import SwiftUI
   @Published var proposal: ImportProposal?
   @Published var importState: String?
   @Published var importBusy = false
+  @Published var sourceProposal: SourceImportProposal?
+  @Published var sourceReviewNotice: String?
+  @Published var closeProposal: PeriodCloseProposal?
+  @Published var sourceBaseline: [String: Any]?
+  var sourceBaselineSheetID: String?
+  var sourceProposalData: Data?
+  var closeProposalData: Data?
+  var acceptedSourceEvidence: [[String: Any]] = []
+  var acceptedSourceImportIDs: [String] = []
+  var demoSourceRecords: [[String: Any]] = []
+  var sourceEvidenceValid = true
   let google: GoogleConnection
   private(set) var engine: EngineBridge?
-  private var snapshotData: Data?
-  private var proposalData: Data?
+  var snapshotData: Data?
+  var proposalData: Data?
   private var demoImported: [[String: Any]] = []
   private var demoImportEvidenceValid = true
   private var importBaseline: [String: Any]?
@@ -36,7 +47,7 @@ import SwiftUI
   @Published var importEvidenceNotice: String?
   var importPersistence: ((Data, URL) throws -> Void)?
   var importStorageOverride: URL?
-  private var googleEpoch = UUID()
+  var googleEpoch = UUID()
   var currency: String { household?.currency ?? "AUD" }
   var isDemo: Bool { mode == .demo }
   var serviceURL: URL? {
@@ -62,7 +73,7 @@ import SwiftUI
       if let files = try? FileManager.default.contentsOfDirectory(
         at: storage, includingPropertiesForKeys: nil)
       {
-        for file in files where file.lastPathComponent.hasPrefix("practice-receipt-") {
+        for file in files where file.lastPathComponent.hasPrefix("practice-receipt-") || file.lastPathComponent.hasPrefix("practice-sources-") {
           try? FileManager.default.removeItem(at: file)
         }
       }
@@ -120,6 +131,7 @@ import SwiftUI
       draft = ImportDraft()
       proposal = nil
       importState = nil
+      clearSourceState()
       UserDefaults.standard.set("demo", forKey: "kitty.mode")
       askQuestion = ""
       askTransactionID = nil
@@ -208,7 +220,8 @@ import SwiftUI
         // It remains hidden until this Sheet is explicitly authorised again.
         if file.lastPathComponent.hasPrefix("import-"),
           let data = try? Data(contentsOf: file),
-          let saved = try? JSONDecoder().decode(ImportDraft.self, from: data), saved.remote != nil
+          let saved = try? JSONDecoder().decode(ImportDraft.self, from: data),
+          let remote = saved.remote, !["verified", "cancelled"].contains(remote.status)
         {
           continue
         }
@@ -226,6 +239,7 @@ import SwiftUI
     proposal = nil
     demoImported = []
     importState = nil
+    clearSourceState()
     lastSynced = nil
     isOffline = false
     selectedTab = 0
@@ -486,7 +500,7 @@ import SwiftUI
   var draftURL: URL { importStorage.appendingPathComponent("import-\(importSheetKey).json") }
   var importLocked: Bool { importBusy || importEvidenceLoading || draft.remote != nil }
   var importCanDiscard: Bool { !importLocked }
-  private func persistImport(_ data: Data, at url: URL) throws {
+  func persistImport(_ data: Data, at url: URL) throws {
     if let importPersistence {
       try importPersistence(data, url)
     } else {
@@ -508,6 +522,8 @@ import SwiftUI
   func loadDraft() {
     importBaseline = nil
     importBaselineSheetID = nil
+    clearSourceState()
+    if isDemo { loadDemoSourceEvidence() }
     if isDemo, !loadDemoImportEvidence() { return }
     guard FileManager.default.fileExists(atPath: draftURL.path) else { return }
     do {
@@ -520,10 +536,9 @@ import SwiftUI
       if let remote = saved.remote {
         importState = "A saved import needs its receipt checked before you make further changes."
         if !remote.proposal.isEmpty {
-          proposalData = remote.proposal
-          proposal = try JSONDecoder().decode(ImportProposal.self, from: remote.proposal)
+          try restorePreparedProposal(remote)
         }
-      } else if !saved.sources.isEmpty {
+      } else if !saved.sources.isEmpty || !saved.documents.isEmpty {
         prepareImport()
       }
     } catch {
@@ -531,17 +546,20 @@ import SwiftUI
         "Your saved review could not be opened; it has not been deleted. \(error.localizedDescription)"
     }
   }
-  @discardableResult private func loadDemoImportEvidence() -> Bool {
+  @discardableResult func loadDemoImportEvidence() -> Bool {
     do {
       let files = try FileManager.default.contentsOfDirectory(
         at: importStorage, includingPropertiesForKeys: nil
       )
-      .filter { $0.lastPathComponent.hasPrefix("practice-receipt-") && $0.pathExtension == "json" }
+      .filter { ($0.lastPathComponent.hasPrefix("practice-receipt-") || $0.lastPathComponent.hasPrefix("practice-sources-")) && $0.pathExtension == "json" }
       var rows: [[String: Any]] = []
       var seen = Set<String>()
       for file in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
-        let receipt = try JSONDecoder().decode(DemoImportReceipt.self, from: Data(contentsOf: file))
-        for row in try receipt.validatedRows() {
+        let bytes = try Data(contentsOf: file)
+        let receiptRows = file.lastPathComponent.hasPrefix("practice-sources-")
+          ? try JSONDecoder().decode(DemoSourceReceipt.self, from: bytes).validatedRows()
+          : try JSONDecoder().decode(DemoImportReceipt.self, from: bytes).validatedRows()
+        for row in receiptRows {
           guard let id = row["id"] as? String else {
             throw KittyError.message("A practice receipt is missing a row ID.")
           }
@@ -605,7 +623,7 @@ import SwiftUI
       }
       guard url.pathExtension.lowercased() == "csv" else {
         throw KittyError.message(
-          "This release imports CSV exports. A PDF needs reviewed extraction; it hasn't been imported."
+          "Choose a CSV export for bank transactions. Use Add documents to review a PDF original."
         )
       }
       let bytes = try Data(contentsOf: url)
@@ -623,7 +641,9 @@ import SwiftUI
         return
       }
       guard draft.sources.count < 20,
-        draft.sources.reduce(0, { $0 + $1.text.utf8.count }) + bytes.count < 9 * 1024 * 1024
+        draft.sources.count + draft.documents.count < 20,
+        draft.sources.reduce(0, { $0 + $1.text.utf8.count })
+          + draft.documents.reduce(0, { $0 + $1.byteLength * 4 / 3 + 4 }) + bytes.count < 9 * 1024 * 1024
       else {
         throw KittyError.message(
           "Import up to 20 files and 9 MB together. Save this batch before adding more.")
@@ -636,9 +656,9 @@ import SwiftUI
     else { return }
     addFile(url, accountID: "ACC-EVD")
   }
-  func refreshImportEvidence(refreshSheet: Bool = true) async -> Bool {
+  func refreshImportEvidence(refreshSheet: Bool = true, includeSources: Bool = false) async -> Bool {
     if isDemo {
-      guard loadDemoImportEvidence() else { return false }
+      guard loadDemoImportEvidence(), loadDemoSourceEvidence() else { return false }
       if draft.remote == nil { prepareImport() }
       return true
     }
@@ -655,7 +675,8 @@ import SwiftUI
         if isOffline { return false }
       }
       let token = try await google.accessToken()
-      let evidence = try await ImportServiceClient(baseURL: endpoint, token: token).provenance(
+      let client = ImportServiceClient(baseURL: endpoint, token: token)
+      let evidence = try await client.provenance(
         sheetID: id)
       guard googleEpoch == epoch, selectedSheetID == id else { return false }
       guard let baseline = evidence["baseline"] as? [String: Any],
@@ -667,6 +688,12 @@ import SwiftUI
       }
       importBaseline = baseline
       importBaselineSheetID = id
+      if includeSources || !draft.documents.isEmpty || draft.closeReview != nil {
+        let typed = try await client.provenance(sheetID: id, protocolVersion: 2,
+          periodEnd: draft.closeReview?.periodEnd)
+        guard googleEpoch == epoch, selectedSheetID == id else { return false }
+        try acceptSourceEvidence(typed, sheetID: id)
+      }
       let issues = evidence["issues"] as? [[String: Any]] ?? []
       importEvidenceNotice =
         issues.isEmpty
@@ -705,6 +732,7 @@ import SwiftUI
   }
   func prepareImport() {
     guard draft.remote == nil, let h = household, let engine else { return }
+    defer { prepareSourceImport() }
     guard !draft.sources.isEmpty else {
       proposal = nil
       proposalData = nil
@@ -738,6 +766,9 @@ import SwiftUI
           input[key] = importBaseline[key]
         }
       }
+      // Header-only exports can be read in typed intake. Their account must still
+      // have a reviewed statement balance before the combined proposal can save.
+      if !draft.documents.isEmpty { input["allowEmptyFiles"] = true }
       let data = try engine.call("KittyImport", method: "prepare", input: input)
       proposal = try JSONDecoder().decode(ImportProposal.self, from: data)
       var wire = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
@@ -764,6 +795,11 @@ import SwiftUI
       proposal = nil
       proposalData = nil
       importState = nil
+      sourceProposal = nil
+      sourceProposalData = nil
+      sourceReviewNotice = nil
+      closeProposal = nil
+      closeProposalData = nil
     } catch {
       self.error =
         "The saved review could not be removed. It is still available. \(error.localizedDescription)"
@@ -806,7 +842,7 @@ import SwiftUI
       importState = "This receipt remains protected until the service confirms its outcome."
     }
   }
-  private func handleImportResult(_ result: ImportServiceResult) async throws {
+  func handleImportResult(_ result: ImportServiceResult) async throws {
     guard var binding = draft.remote, binding.id == result.importId,
       binding.sheetID.isEmpty || binding.sheetID == selectedSheetID,
       let resultDigest = result.proposalDigest,
@@ -820,15 +856,34 @@ import SwiftUI
       // status can recover/cancel it, but cannot confer approval to write again.
       binding = ImportRemoteBinding(
         id: binding.id, sheetID: selectedSheetID, proposalDigest: resultDigest,
-        localDraftDigest: "", proposal: Data(), attempted: true, status: result.status)
+        localDraftDigest: "", proposal: Data(), attempted: true, status: result.status,
+        protocolVersion: result.protocolVersion, operation: result.operation)
     } else if binding.proposalDigest != resultDigest {
       throw KittyError.message("The receipt digest changed. The original review stays protected.")
+    }
+    if binding.recoveryOnly && result.protocolVersion == 2 {
+      binding.protocolVersion = 2
+      binding.operation = result.operation
+    }
+    if binding.protocolVersion == 2 {
+      guard result.protocolVersion == 2, result.operation == binding.operation,
+        ["ingest", "close"].contains(result.operation ?? "") else {
+        throw KittyError.message("The response did not match this document or month-end review. Its receipt remains protected.")
+      }
+      if result.status == "verified" {
+        let required = binding.operation == "close" ? "verified_close" : "verified_intake"
+        guard result.verificationScope == required else {
+          throw KittyError.message("The service has not verified the complete requested action. Check this same receipt again.")
+        }
+      }
     }
     binding.status = result.status
     draft.remote = binding
     try saveDraft()
     switch result.status {
     case "verified":
+      let closedMonth = binding.operation == "close"
+      let savedSources = binding.protocolVersion == 2 && !closedMonth
       let archive = importStorage.appendingPathComponent("import-receipt-\(binding.id).json")
       try persistImport(JSONEncoder().encode(draft), at: archive)
       var cleared = draft.afterVerifiedReceipt()
@@ -837,12 +892,18 @@ import SwiftUI
       draft = cleared
       proposal = nil
       proposalData = nil
-      importState =
-        "Imported rows saved and checked against your Sheet. This does not close the whole month."
+      sourceProposal = nil
+      sourceProposalData = nil
+      sourceReviewNotice = nil
+      closeProposal = nil
+      closeProposalData = nil
+      importState = closedMonth ? "Month closed. Source reconciliation and the refreshed Sheet checks were verified."
+        : savedSources ? "Reviewed records and source evidence saved and checked in your Sheet. The month is still open."
+        : "Imported rows saved and checked against your Sheet. This does not close the whole month."
       await refresh()
       if error != nil {
-        importState =
-          "The imported rows were verified. The dashboard couldn't refresh yet; try refreshing it again."
+        importState = closedMonth ? "The month-end close was verified. Refresh the dashboard to see its latest figures."
+          : "The saved records were verified. The dashboard couldn't refresh yet; try refreshing it again."
       } else {
         _ = await refreshImportEvidence(refreshSheet: false)
       }
@@ -885,6 +946,10 @@ import SwiftUI
     }
   }
   func commitImport() async {
+    if draft.remote?.protocolVersion == 2 || (!draft.documents.isEmpty && draft.remote == nil) {
+      await commitSourceImport(operation: draft.remote?.operation ?? "ingest")
+      return
+    }
     guard !importBusy else { return }
     guard isDemo || sheetCanEdit || draft.remote != nil else {
       error = "This Google account can view the Sheet but cannot save new imports. Your review is preserved."

@@ -1,5 +1,6 @@
 build/
 build-device/
+build-release/
 DerivedData/
 Config.local.xcconfig
 *.xcuserstate

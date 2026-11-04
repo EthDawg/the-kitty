@@ -181,6 +181,37 @@ final class GoogleConnectionTests: XCTestCase {
     XCTAssertNil(store.error)
   }
 
+  func testDisconnectRemovesCompletedOriginalsButRetainsUnknownReceipt() async throws {
+    let fixture = try fixture()
+    let preferences = preserveStorePreferences()
+    defer { fixture.cleanUp(); restoreStorePreferences(preferences) }
+    let gate = RevocationGate()
+    defer { gate.release() }
+    let store = try privateStore(fixture: fixture, gate: gate, status: 200)
+    var files: [String: URL] = [:]
+    defer { for url in files.values { try? FileManager.default.removeItem(at: url) } }
+    for status in ["verified", "cancelled", "unknown"] {
+      var draft = ImportDraft()
+      draft.boundSheetID = store.selectedSheetID
+      draft.documents = [SourceDocument(name: "fictional.pdf", mimeType: "application/pdf", bytes: Data("%PDF-synthetic".utf8))]
+      draft.remote = ImportRemoteBinding(id: "synthetic_import_123", sheetID: store.selectedSheetID,
+        proposalDigest: String(repeating: "a", count: 64), localDraftDigest: "local", proposal: Data("{}".utf8),
+        attempted: true, status: status, protocolVersion: 2, operation: "ingest")
+      let url = store.storage.appendingPathComponent("import-receipt-test-\(UUID().uuidString).json")
+      files[status] = url
+      try JSONEncoder().encode(draft).write(to: url)
+    }
+    let task = Task { await store.disconnect() }
+    await fulfillment(of: [gate.started], timeout: 2)
+    XCTAssertFalse(FileManager.default.fileExists(atPath: files["verified"]!.path))
+    XCTAssertFalse(FileManager.default.fileExists(atPath: files["cancelled"]!.path))
+    XCTAssertTrue(FileManager.default.fileExists(atPath: files["unknown"]!.path))
+    XCTAssertNil(store.sourceBaseline)
+    XCTAssertTrue(store.draft.documents.isEmpty)
+    gate.release()
+    await task.value
+  }
+
   func testDemoChosenDuringDelayedRevokeSurvivesItsFailureCompletion() async throws {
     let fixture = try fixture()
     let preferences = preserveStorePreferences()

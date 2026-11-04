@@ -27,6 +27,17 @@ final class KittyUITests: XCTestCase {
     }
   }
 
+  private func revealPrecisely(_ element: XCUIElement, limit: Int = 24) {
+    for _ in 0..<limit {
+      if element.exists && element.isHittable { return }
+      // Small controlled drags avoid flinging past a field's confirmation at
+      // accessibility sizes, where a single field can be taller than a screen.
+      let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+      let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.43))
+      start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.1)
+    }
+  }
+
   private func openTab(_ name: String) {
     let tab = app.tabBars.buttons[name]
     XCTAssertTrue(tab.exists)
@@ -133,9 +144,80 @@ final class KittyUITests: XCTestCase {
     // Deliberately stop before copying or opening another app. This test sends no financial data.
   }
 
+  func testMortgageScenariosUseRecordedSheetOptions() {
+    openTab("Insights")
+    let loan = app.buttons["insights.mortgage"]
+    reveal(loan, limit: 18)
+    loan.tap()
+    XCTAssertTrue(app.navigationBars["Mortgage scenarios"].waitForExistence(timeout: 5))
+    let rates = app.descendants(matching: .any)["mortgage.rateScenario.picker"].firstMatch
+    reveal(rates, limit: 18)
+    XCTAssertTrue(rates.isHittable)
+    rates.tap()
+    XCTAssertTrue(app.buttons["6.29%"].waitForExistence(timeout: 5))
+    app.buttons["6.29%"].tap()
+    let repayment = app.descendants(matching: .any)["mortgage.rateScenario.repayment"].firstMatch
+    reveal(repayment)
+    XCTAssertTrue(repayment.label.contains("3,991.91"))
+    capture("13-mortgage-recorded-rate-scenario")
+    let extras = app.descendants(matching: .any)["mortgage.extraScenario.picker"].firstMatch
+    reveal(extras, limit: 18)
+    extras.tap()
+    XCTAssertTrue(app.buttons["$500.00"].waitForExistence(timeout: 5))
+    app.buttons["$500.00"].tap()
+    let total = app.descendants(matching: .any)["mortgage.extraScenario.repayment"].firstMatch
+    reveal(total)
+    XCTAssertTrue(total.label.contains("4,312.88"))
+    capture("14-mortgage-recorded-extra-repayment")
+  }
+
+  func testPlanningViewsKeepDatesSourcesAndExactFigures() {
+    openTab("Insights")
+    let tax = app.buttons["insights.tax"]
+    reveal(tax, limit: 18)
+    tax.tap()
+    XCTAssertTrue(app.navigationBars["Tax estimates"].waitForExistence(timeout: 5))
+    let refund = app.descendants(matching: .any)["tax.metric.tax.refund.prior_year"].firstMatch
+    reveal(refund)
+    XCTAssertTrue(refund.label.contains("12,038.94"))
+    XCTAssertTrue(refund.label.contains("FY26"))
+    capture("15-tax-estimates-and-period")
+    app.navigationBars.buttons.element(boundBy: 0).tap()
+
+    let upcoming = app.buttons["insights.upcoming"]
+    reveal(upcoming, limit: 18)
+    upcoming.tap()
+    XCTAssertTrue(app.navigationBars["Upcoming & pay"].waitForExistence(timeout: 5))
+    let slips = app.buttons["upcoming.payslips"]
+    reveal(slips)
+    slips.tap()
+    XCTAssertTrue(app.navigationBars["Payslip history"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["Northwind Logistics"].exists)
+    capture("16-recorded-payslip-evidence")
+    app.navigationBars.buttons.element(boundBy: 0).tap()
+    app.navigationBars.buttons.element(boundBy: 0).tap()
+
+    let safety = app.buttons["insights.safety"]
+    reveal(safety, limit: 18)
+    safety.tap()
+    let months = app.descendants(matching: .any)["safety.months"].firstMatch
+    reveal(months)
+    XCTAssertTrue(months.label.contains("3.66"))
+    capture("17-safety-recorded-months")
+    app.navigationBars.buttons.element(boundBy: 0).tap()
+
+    let rental = app.buttons["insights.rental"]
+    reveal(rental, limit: 18)
+    rental.tap()
+    let net = app.descendants(matching: .any)["rental.net"].firstMatch
+    reveal(net, limit: 18)
+    XCTAssertTrue(net.label.contains("26,989.75"))
+    capture("18-rental-recorded-cash-flow")
+  }
+
   func testSampleImportShowsUnresolvedCategoriesAndCannotClaimSaved() {
     app.buttons["importStatement"].tap()
-    XCTAssertTrue(app.navigationBars["Import a statement"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.navigationBars["Import your records"].waitForExistence(timeout: 5))
     let sample = app.buttons["sampleImport"]
     reveal(sample, limit: 14)
     XCTAssertTrue(sample.isHittable)
@@ -203,5 +285,103 @@ final class KittyUITests: XCTestCase {
     reveal(app.buttons["saveImport"], limit: 14)
     XCTAssertFalse(app.buttons["saveImport"].isEnabled)
     capture("12-relaunched-import-adds-zero")
+  }
+
+  func testDocumentOriginalAndCheckedFieldSurviveRelaunch() {
+    app.buttons["importStatement"].tap()
+    let sample = app.buttons["samplePayslip"]
+    reveal(sample, limit: 16)
+    sample.tap()
+    let source = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "sourceReview-")).firstMatch
+    reveal(source, limit: 16)
+    XCTAssertTrue(source.waitForExistence(timeout: 10))
+    source.tap()
+    XCTAssertTrue(app.navigationBars["Review payslip"].waitForExistence(timeout: 5))
+    let original = app.buttons["sourceOriginal"]
+    original.tap()
+    XCTAssertTrue(app.navigationBars["Original source"].waitForExistence(timeout: 5))
+    capture("19-retained-original-payslip")
+    app.buttons["Done"].tap()
+    let confirm = app.buttons["sourceConfirm-payDate"]
+    revealPrecisely(confirm)
+    XCTAssertTrue(confirm.isHittable)
+    confirm.tap()
+    XCTAssertTrue(confirm.label.contains("Checked"))
+    capture("20-document-field-confirmation")
+    app.terminate()
+    app.launchArguments = ["--demo"]
+    app.launch()
+    XCTAssertTrue(app.buttons["importStatement"].waitForExistence(timeout: 10))
+    app.buttons["importStatement"].tap()
+    reveal(source, limit: 16)
+    source.tap()
+    revealPrecisely(confirm)
+    XCTAssertTrue(confirm.label.contains("Checked"))
+    let person = app.descendants(matching: .any)["sourceField-person"].firstMatch
+    revealPrecisely(person)
+    XCTAssertTrue(person.label.contains("Choose"), "A full name on the source must not silently select a household person.")
+    capture("21-reopened-document-review")
+  }
+
+  func testMonthClosePracticeShowsMissingEvidenceWithoutClaimingCompletion() {
+    openTab("Insights")
+    let link = app.buttons["insights.monthClose"]
+    reveal(link, limit: 24)
+    link.tap()
+    XCTAssertTrue(app.navigationBars["Month-end review"].waitForExistence(timeout: 5))
+    let check = app.buttons["checkMonth"]
+    reveal(check, limit: 12)
+    check.tap()
+    let unresolved = app.staticTexts["Needs attention"].firstMatch
+    reveal(unresolved, limit: 24)
+    XCTAssertTrue(unresolved.exists)
+    capture("22-month-end-missing-evidence")
+    let limitation = app.staticTexts["closePracticeLimit"]
+    reveal(limitation, limit: 30)
+    XCTAssertTrue(limitation.exists)
+    XCTAssertFalse(app.buttons["closeMonth"].exists)
+  }
+  func testTransferReviewRequiresTwoRecordedSidesAndAnExplanation() {
+    openTab("Insights")
+    let link = app.buttons["insights.monthClose"]
+    reveal(link, limit: 24); link.tap()
+    let check = app.buttons["checkMonth"]
+    reveal(check, limit: 12); check.tap()
+    let matching = app.buttons["closeMatching"]
+    reveal(matching, limit: 16); matching.tap()
+    XCTAssertTrue(app.navigationBars["Match & review"].waitForExistence(timeout: 5))
+    let addTransfer = app.buttons["closeMatch.addTransfer"]
+    revealPrecisely(addTransfer); addTransfer.tap()
+    XCTAssertTrue(app.navigationBars["Review transfer"].waitForExistence(timeout: 5))
+    let allDates = app.switches["closeTransfer.allDates"]
+    revealPrecisely(allDates)
+    allDates.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+    XCTAssertEqual(allDates.value as? String, "1")
+    let search = app.textFields["closeTransfer.search"]
+    revealPrecisely(search)
+    search.tap(); search.typeText("2027-01-02")
+    if app.keyboards.buttons["Search"].exists { app.keyboards.buttons["Search"].tap() }
+    XCTAssertEqual(allDates.value as? String, "1", "Searching must preserve the chosen date range.")
+    let outgoing = app.buttons["closeTransfer.select.T0881"]
+    let incoming = app.buttons["closeTransfer.select.T0883"]
+    revealPrecisely(outgoing); outgoing.tap()
+    revealPrecisely(incoming); incoming.tap()
+    let reason = app.descendants(matching: .any)["closeTransfer.reason"].firstMatch
+    revealPrecisely(reason)
+    let save = app.buttons["closeTransfer.save"]
+    revealPrecisely(save)
+    XCTAssertFalse(save.isEnabled, "Two opposite amounts alone cannot approve a transfer.")
+    reason.tap(); reason.typeText("Checked the two original account entries for this transfer.")
+    app.buttons["closeTransfer.keyboardDone"].tap()
+    XCTAssertFalse(app.keyboards.firstMatch.exists)
+    revealPrecisely(save)
+    XCTAssertTrue(save.isEnabled)
+    capture("23-explicit-transfer-pair-review")
+    save.tap()
+    XCTAssertTrue(app.navigationBars["Match & review"].waitForExistence(timeout: 5))
+    let recorded = app.buttons["Remove pair"]
+    revealPrecisely(recorded)
+    XCTAssertTrue(recorded.exists)
+    capture("24-retained-transfer-decision")
   }
 }

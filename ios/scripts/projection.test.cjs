@@ -61,3 +61,67 @@ test('reordered input columns and blank formula cells are handled safely', () =>
   assert.equal(snapshot.cashflow[0].spending, 0);
   assert.equal(snapshot.cashflow[0].net, null);
 });
+
+test('planning preserves Sheet mortgage scenarios, payslips and exact rental totals', () => {
+  const model = native.project(fixture());
+  const planning = model.planning;
+  assert.equal(planning.mortgage.balance, 591715.18);
+  assert.equal(planning.mortgage.scenarios.length, 13);
+  const higher = planning.mortgage.scenarios.find(row => Math.abs(row.change - .005) < 1e-9);
+  assert.equal(Math.round(higher.repayment * 100), 399191);
+  assert.equal(planning.payslips.length, 83);
+  assert.equal(planning.paydays.find(row => row.person === 'Jordan').lastPaid, '2027-01-28');
+  assert.equal(planning.rental.from, '2026-02-01');
+  assert.equal(planning.rental.to, model.asOf);
+  assert.equal(planning.rental.rent, 29510);
+  assert.equal(planning.rental.net, -26989.75);
+});
+
+test('missing mortgage inputs and scenario results never become free repayments or zero changes', () => {
+  const data = fixture();
+  data.mortgage_inputs['Loan balance ($)'] = null;
+  data.mortgage[0].change_per_month = null;
+  data.mortgage[0].monthly_repayment = '#REF!';
+  data.mortgage_extra[0].extra_per_month = null;
+  data.mortgage_extra[0].years_saved = null;
+  const mortgage = native.project(data).planning.mortgage;
+  assert.equal(mortgage.balance, null);
+  assert.equal(mortgage.scenarios[0].changePm, null);
+  assert.equal(mortgage.scenarios[0].repayment, null);
+  assert.equal(mortgage.extras[0].extra, null);
+  assert.equal(mortgage.extras[0].saved, null);
+});
+
+test('safety target requires a named target and does not infer coverage from unrelated cash', () => {
+  const data = fixture();
+  data.accounts.forEach(row => { row.balance_at_as_of_date = 1_000_000; });
+  const originalMonths = data.metrics.find(row => row.metric_id === 'emergency.months_covered').value;
+  assert.equal(native.project(data).planning.safety.months, originalMonths);
+  data.settings = data.settings.filter(row => row.setting !== 'Emergency fund target (months of essential spending)');
+  data.metrics.find(row => row.metric_id === 'emergency.months_covered').compared_with = 'Last year';
+  assert.equal(native.project(data).planning.safety.target, null);
+});
+
+test('future payslips do not change the forecast and stale history does not invent a payday', () => {
+  const data = fixture();
+  data.payslips.push({...data.payslips.at(-1), pay_date:'2030-01-28', net_pay:99999});
+  let planning = native.project(data).planning;
+  assert.equal(planning.payslips.length, 83);
+  assert.equal(planning.paydays.find(row => row.person === 'Jordan').net, 3925.62);
+  data.payslips = data.payslips.filter(row => row.pay_date < '2026-01-01');
+  planning = native.project(data).planning;
+  assert.equal(planning.paydays.length, 0);
+  assert.equal(native.project(data).upcoming.filter(row => row.kind === 'pay').length, 0);
+  data.payslips[0].pay_date = '2025-02-30';
+  assert.throws(() => native.project(data), /payslip has an invalid date/);
+});
+
+test('rental totals exclude later transactions and use the actual as-of date', () => {
+  const data = fixture();
+  data.transactions.push({...data.transactions.at(-1), txn_id:'FUTURE-RENT', date:'2027-02-02', category_id:'RENT-REPAIR', amount:-99999});
+  assert.equal(native.project(data).planning.rental.net, -26989.75);
+  data.settings.find(row => row.setting === 'As-of date').value = '2027-01-15';
+  const rental = native.project(data).planning.rental;
+  assert.equal(rental.from, '2026-01-16');
+  assert.equal(rental.to, '2027-01-15');
+});

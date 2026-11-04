@@ -1,2 +1,4 @@
 # Preserve the sample bank export bytes for import evidence.
 ios/Kitty/Resources/sample-import.csv -text whitespace=cr-at-eol
+# PDF source evidence must retain its byte offsets and original bytes.
+ios/Kitty/Resources/*.pdf binary

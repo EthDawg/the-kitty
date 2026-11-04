@@ -35,6 +35,21 @@ test('empty and encoding-corrupt files have actionable errors',()=>{
   assert.throws(()=>I.parseCSV(''),/empty/);assert.throws(()=>I.parseCSV('A,B\n'),/no transactions/);
   assert.throws(()=>I.parseCSV('A,B\n\uFFFD,1'),/UTF-8/);
 });
+test('header-only exports require an explicit opt-in and still validate headers, account and mapping',()=>{
+  const empty=file('Date,Description,Credit,Debit,Balance\n',{mapping:undefined});
+  assert.equal(prep([empty]).counts.errors,1);
+  const p=prep([empty],{allowEmptyFiles:true});
+  assert.equal(p.counts.errors,0);assert.equal(p.rows.length,0);assert.equal(p.files[0].empty,true);assert.equal(p.files[0].status,'parsed');assert.equal(p.canCommit,false);
+  assert.deepEqual(I.parseCSV('A,B\n',{allowEmpty:true}),{headers:['A','B'],records:[]});
+  for(const text of ['', 'A,A\n','A,\n','A\n'])assert.throws(()=>I.parseCSV(text,{allowEmpty:true}));
+  assert.ok(codes(prep([{...empty,accountId:'missing'}],{allowEmptyFiles:true})).includes('account-unknown'));
+  assert.ok(codes(prep([file(header+'\n',{mapping:undefined})],{allowEmptyFiles:true})).includes('mapping-required'));
+  assert.ok(codes(prep([file(header+'\n',{mapping:{...mapping,amount:'Missing'}})],{allowEmptyFiles:true})).includes('mapping-invalid'));
+  assert.ok(codes(prep([file(header+'\n',{mapping:{...mapping,dateOrder:undefined}})],{allowEmptyFiles:true})).includes('date-order'));
+  assert.equal(prep([file(header+'\n')],{allowEmptyFiles:true}).counts.errors,0);
+  assert.equal(prep([empty,one({id:'F2'})],{allowEmptyFiles:true}).canCommit,true);
+  assert.ok(codes(prep([{...empty,openingMinor:'10000',closingMinor:'10001'}],{allowEmptyFiles:true})).includes('closing-mismatch'));
+});
 test('exact money handles signs and grouping without binary rounding',()=>{
   assert.equal(I.money('0.29'),'29');assert.equal(I.money('($1,234.56)'),'-123456');assert.equal(I.money('-$4.50'),'-450');
   assert.equal(I.decimalAmount('-1'),'-0.01');assert.equal(I.money('999999999999.99'),'99999999999999');

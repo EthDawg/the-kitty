@@ -1,6 +1,6 @@
 # Kitty import service
 
-A narrow, authenticated writer for the user-owned Kitty Sheet. It preserves the existing v1 input model and the `v2-ledger` Entries model. The original files, immutable proposal and write intent live in the user's Google Drive. Accepted financial records remain in their Sheet. This service has no financial database and stores no Google tokens.
+A narrow, authenticated writer for the user-owned Kitty Sheet. It supports reviewed CSV transactions, source-bound payslips/valuations/statement balances, and a separate verified month-close operation while preserving the v1 and `v2-ledger` raw models. The original files, immutable proposal and write intent live in the user's Google Drive. Accepted financial records remain in their Sheet. This service has no financial database and stores no Google tokens.
 
 **Implemented with local tests and a bounded live Google Sheets primitive test; not deployed as a service.** The local tests use a boundary fake and inspect actual generated Google batch requests. The live test used exact generated requests through the connected Google Drive tool on a new private synthetic copy. It established v1 insertion/formula behavior for populated, empty and stale-offset cases; it did not establish app OAuth consent, hosted-service execution, second-account access or complete month-end reconciliation. See [provider evidence](evidence/LIVE-ACCEPTANCE.md).
 
@@ -9,7 +9,7 @@ A narrow, authenticated writer for the user-owned Kitty Sheet. It preserves the 
 Requires Node 22+; no npm packages.
 
 ```sh
-node --test import-service/core.test.mjs
+node --test import-service/*.test.mjs
 node import-service/server.mjs
 ```
 
@@ -21,11 +21,16 @@ The standalone import server binds to `127.0.0.1:8787`. For the native app, use 
 
 The app sends its short-lived Google OAuth token as `Authorization: Bearer …`. The server uses only `drive.file`-compatible Drive and Sheets APIs. There are no service-account credentials or alternate identities. The workbook must have been created by or explicitly selected for the app's OAuth project; pasting an arbitrary Sheet ID does not grant access. Every request rechecks the selected file's MIME type and `capabilities.canEdit` using the caller's token.
 
-The service creates a private Drive folder named `The Kitty imports · <sheet-prefix>`. Original CSV text is stored once per content hash per Sheet. Each manifest retains its original filename, file hash, mapping, source rows, decisions, canonical target rows and baseline. It also reserves a Google Drive ID for a durable write-intent file. The `_KittyImports` hidden tab contains receipts. Five bounded `appProperties` on the Sheet file hold the active import ID, proposal digest, target-row hash, expected result-state hash and schema version. These properties belong to the same OAuth app; they require no additional scope. No access token or original file contents appear in application logs. Deployment infrastructure must likewise disable request-body and authorization-header logging.
+The service creates a private Drive folder named `The Kitty imports · <sheet-prefix>`. Original CSV text or validated PDF/image bytes are stored once per content hash per Sheet. Each manifest retains the original filenames/hashes, mappings, source rows/pages, reviewed field confirmations, canonical write sets and baseline. It also reserves a Google Drive ID for a durable write-intent file. The `_KittyImports` hidden tab contains receipts. Five bounded `appProperties` on the Sheet file hold the active import ID, proposal digest, target-record hash, expected result-state hash and schema version. These properties belong to the same OAuth app; they require no additional scope. No access token or original file contents appear in application logs. Deployment infrastructure must likewise disable request-body and authorization-header logging.
 
 Evidence files inherit the importing user's folder permissions. Sharing a Sheet does **not** automatically share original source files. No broad sharing change is performed by this service.
 
 ## API
+
+The examples below describe the unchanged contract-1 transaction path. [Contract 2](CONTRACT-2.md)
+defines combined CSV/document intake, original binary envelopes, target-date provenance and explicit
+month close. Both versions use the same routes, authorization, queue, shared hold, intent and receipt;
+there is no parallel writer. Contract-2 success always names `verified_intake` or `verified_close`.
 
 ### Shared import baseline and provenance
 
@@ -65,7 +70,7 @@ Manifest retrieval uses a bounded four-request worker pool. Exact same-file repl
 
 Supply the full result of `KittyImport.prepare` in `proposal`, plus the original files. Each file ID **must** equal the lowercase SHA-256 of its original UTF-8 bytes; arbitrary/reused labels are rejected. This binds replay identity to the actual evidence. For a custom bank mapping, send the reviewed mapping from `proposal.files[].mapping` on that source file. Optional `openingMinor` and `closingMinor` values are integer strings and remain part of the reviewed evidence/reconciliation check. Row `decision` objects and evidence-bound `proposal.review.acknowledged` must be retained. File-level decisions may additionally be supplied in `proposal.decisions`.
 
-The service reads the fresh Sheet, validates the schema, checks all account/category references, reruns the shared importer on the original text, and compares normalized facts **and source references** with the proposed rows. The client's `canCommit`, amount, category, data version or claimed hash cannot bypass validation. This currently supports transaction imports only; payslips, valuations, PDF extraction and month-end close are separate unfinished capabilities.
+The service reads the fresh Sheet, validates the schema, checks all account/category references, reruns the shared importer on the original text, and compares normalized facts **and source references** with the proposed rows. The client's `canCommit`, amount, category, data version or claimed hash cannot bypass validation. Contract 1 imports transactions; use contract 2 for reviewed source documents and close. The server does not run OCR or infer document accuracy: each typed field must retain its exact value and explicit source-bound confirmation.
 
 Successful response:
 
@@ -102,7 +107,12 @@ Response statuses:
 - `conflict`: content, IDs, receipt or formulas differ. The app must show the issue and stop; it must not celebrate or replay.
 - `unknown`: the provider outcome cannot be established. Poll status; never submit a new batch automatically.
 
-Even `verified` is **not** a full financial month close. It does not assert source-statement closing balances, transfer pairs, Settings dates, payslips, valuations or all Compliance Checks have been reconciled. The response names this verification scope explicitly.
+Contract-1 `verified` and contract-2 `verified_intake` establish intake only. The separate contract-2
+close reconciles accepted source evidence before changing As-of, then checks actual raw facts,
+formula fingerprints, calculated balances, Close counts/statuses and the missing-items metric.
+Only `status:verified` with `verificationScope:verified_close` represents a completed close. A failed
+or unknown check after the atomic As-of/receipt write remains visibly unresolved; it never triggers
+an automatic rollback or second financial write.
 
 ### Status/recovery
 
@@ -127,17 +137,25 @@ A missing response is not evidence of a failed write. A prepared import may rema
 ## Important limits and release gates
 
 - Google Sheets has no documented compare-and-swap revision field for this writer. The single service queue serializes its own imports. Human edits and other clients are not locked. Input-cell insertion prevents a stale row offset from overwriting an existing row, and readback detects changed pre-existing records/duplicate IDs. These safeguards are not full database transaction isolation.
+- Reserved metadata headers and the explicitly approved As-of input are checked immediately before the batch. They still have the same external-editor race limit: Google offers no conditional cell write. Do not coordinate a close or reserved-column initialization concurrently with a manual editor.
 - Drive `appProperties` uses read/patch/read, with **no compare-and-swap**. The shared hold provides recovery across devices and process restarts under the single-writer deployment contract; it is not a cross-replica atomic lock. Property removal/corruption outside the service can defeat or block recovery. A future distributed writer needs a separate coordination design and acceptance tests.
 - All native clients must belong to the same configured Google OAuth application/project for app-scoped metadata. Cross-account/client visibility still needs live acceptance. The hold does not constrain an editor deliberately using a different OAuth app or directly editing their Sheet/metadata.
 - **Formula preservation:** the live v1 synthetic test preserved all seven helper anchors on a first row-2 import, plus external SUM/COUNTA references. Populated append preserved 1,386 inspected formulas. Keep formula fingerprint checks: these observations do not prove every template/version or future Google behavior. The v2 writer is locally tested but still needs a live v2 template run.
 - User-owned Drive evidence is application-immutable, not tamper-proof. Users retain control and can edit/delete their records. Changed/missing original bytes block commit; changed manifests are rejected.
-- The server accepts UTF-8 CSV text, at most 20 files, 5 MB each, 12 MB total HTTP payload and 1,000 proposed rows. These are explicit bounded release limits, not silent truncation.
-- Current writer preserves v1/v2 transaction layouts. It does not migrate the Sheet, perform payments, download bank data, advance As-of dates or infer tax treatment.
+- The server accepts UTF-8 CSV/text and signature-checked original PDF/PNG/JPEG files: at most 20 files, 5 MB each, 12 MB encoded HTTP payload and 1,000 combined proposed records. These are explicit bounded release limits, not silent truncation.
+- Intake preserves As-of and calculated balances. Close changes only the reviewed As-of input and its receipt. The writer does not migrate schemas, perform payments, download bank data, overwrite prior valuation corrections, change Settings B16/subscription Last used or infer tax treatment. Existing v2 transfer link columns are preserved; explicit pair decisions live in the close receipt.
 - Hosted HTTPS, rate-limit/proxy configuration, user-visible privacy policy, app OAuth configuration, revocation, second-identity access and provider acceptance remain deployment work.
 
 ## Verification evidence
 
-`node --test import-service/core.test.mjs` currently covers 58 cases covering v1/v2 writes, exact cents/dates, supplied balance reconciliation, repeat commits, process restart, unknown outcomes, stale proposals, source changes, wrong identity/Sheet, explicit approval, parallel requests, tampered facts/references, schema/formula changes, literal formula-like descriptions, HTTP authentication/origin checks, same-source provenance replay, different-file ambiguity, edited-source-fact invalidation, preserved annotation corrections, source-hash identity, original-file locator binding, cancellation tombstones and cancel/commit races. Shared-hold cases include a second device with an unchanged baseline, authenticated recovery discovery, completed recovery without private source access, matching-only cleanup, malformed metadata, external edits, metadata/intent/readback timeouts and lost cleanup responses. Recovery with an unrelated external append checks both status/cancel success and changed/missing/duplicate rows plus non-row invariant failures. Currency cases exercise the production v2 reader and invalidation after Sheet currency/people changes. Five combined-gateway tests check routing, body ownership, authentication and exact Sheet/import bindings.
+The 58 contract-1 cases remain passing. They cover v1/v2 writes, exact cents/dates, source validation,
+provenance replay, readback, stale proposals, durable cancellation and shared-hold recovery. Contract 2
+adds 32 writer/reader cases for binary originals, multi-tab writes, ID-less multiplicity, metadata
+collisions, exact replay, empty activity, combined CSV/documents, source evidence reads, and close
+preflight/postflight/unknown outcomes. Real fictional fixtures retain all nine payslips and sixteen
+valuations on both schema targets; all 825 November transactions reproduce the six recorded account
+balances. [Local acceptance](evidence/CONTRACT-2-LOCAL.md) distinguishes these checks from provider
+acceptance. Five combined-gateway cases check routing, body ownership, authentication and bindings.
 
 Provider contract references:
 
