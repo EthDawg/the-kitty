@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="The Kitty app icon">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5B3DF5"/><stop offset=".48" stop-color="#8E45FF"/><stop offset="1" stop-color="#FF5CC8"/></linearGradient><clipPath id="ic"><circle cx="512" cy="540" r="270"/></clipPath></defs>
+<rect width="1024" height="1024" rx="224" fill="url(#g)"/>
+<path fill="#E8B877" d="M300 440L272 190q0-26 26-13l168 160z"/><path fill="#FFB8A8" d="M326 396l-14-130 104 100z"/>
+<path fill="#E8B877" d="M724 440l28-250q0-26-26-13L558 337z"/><path fill="#FFB8A8" d="M698 396l14-130-104 100z"/>
+<circle fill="#E8B877" cx="512" cy="540" r="270"/>
+<path fill="#FBF4E6" d="M300 600c0-100 424-100 424 0 0 140-80 230-212 230S300 740 300 600z" clip-path="url(#ic)"/>
+<circle fill="#FBF4E6" cx="392" cy="470" r="28"/><circle fill="#FBF4E6" cx="632" cy="470" r="28"/>
+<path fill="none" stroke="#17122B" stroke-width="24" stroke-linecap="round" d="M364 540q48-56 96 0M564 540q48-56 96 0"/>
+<path fill="#17122B" d="M456 610q56-28 112 0 14 8 0 22l-42 42q-14 14-28 0l-42-42q-14-14 0-22z"/><path fill="none" stroke="#17122B" stroke-width="18" stroke-linecap="round" d="M456 700q28 36 56 0q28 36 56 0"/>
+<circle fill="#FF9E8C" opacity=".5" cx="350" cy="640" r="40"/><circle fill="#FF9E8C" opacity=".5" cx="674" cy="640" r="40"/>
+</svg>
