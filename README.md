@@ -111,3 +111,9 @@ Recorded on the page's Setup tab under "Why this, not that", and in the commit h
 version: the sheet is the only owner of numbers; the page is disposable; writes are few, narrow and
 reread; demo data is bundled because it is fictional and real data never is; charts are hand-drawn
 SVG with d3 for layout maths only.
+
+## Design foundations and source demos (optional)
+
+The [implementation kit](design-system/README.md) includes a reusable component/state library, finite motion, provenance contracts, a focused implementation brief and an opt-in themed build. The [fictional source portal](demo-portals/README.md) supplies downloadable files and a verified local source-to-ledger journey. These additions do not change the production app, live Sheet or deployment.
+
+Run `python3 design-system/check.py`, then serve the repository locally and open `/design-system/`.

@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {performVerifiedWrite,feedbackClass} from '../motion/feedback.mjs';
+const base = {authorize:async()=>true,write:async()=>({id:'r1'}),readback:async()=>({value:1}),matches:a=>a.value===1};
+test('success is impossible until readback matches', async()=>{const states=[];assert.equal(await performVerifiedWrite({...base,onState:s=>states.push(s)}),'verified');assert.deepEqual(states,['awaiting-permission','saving','checking','verified']);});
+test('truthy permission is not explicit permission',async()=>{let writes=0;assert.equal(await performVerifiedWrite({...base,authorize:async()=> 'yes',write:async()=>writes++}),'cancelled');assert.equal(writes,0)});
+test('unknown write outcome never auto-retries',async()=>{let writes=0;assert.equal(await performVerifiedWrite({...base,write:async()=>{writes++;throw Error('network timeout')}}),'outcome-unknown');assert.equal(writes,1)});
+test('readback failure and mismatched value stay distinct',async()=>{assert.equal(await performVerifiedWrite({...base,readback:async()=>{throw Error()}}),'readback-unavailable');assert.equal(await performVerifiedWrite({...base,matches:()=>false}),'conflict')});
+test('async matcher is awaited and must return literal true',async()=>{assert.equal(await performVerifiedWrite({...base,matches:async()=>false}),'conflict');assert.equal(await performVerifiedWrite({...base,matches:async()=>true}),'verified');assert.equal(await performVerifiedWrite({...base,matches:()=>1}),'conflict')});
+test('permission and matcher errors never report success',async()=>{assert.equal(await performVerifiedWrite({...base,authorize:async()=>{throw Error()}}),'permission-failed');assert.equal(await performVerifiedWrite({...base,matches:()=>{throw Error()}}),'verification-failed')});
+test('observer failure does not reinterpret confirmed result',async()=>assert.equal(await performVerifiedWrite({...base,onState:()=>{throw Error()}}),'verified'));
+test('only confirmed data can trigger celebration',()=>{for(const s of ['saving','checking','error','outcome-unknown','readback-unavailable','conflict'])assert.equal(feedbackClass(s),'');assert.equal(feedbackClass('verified'),'k-motion-confirmed')});

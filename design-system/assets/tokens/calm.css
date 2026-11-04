@@ -1,0 +1,80 @@
+/* Load AFTER Kitty's style.css. Explicit opt-in; original themes stay intact otherwise. */
+:root[data-kitty-theme="calm"] {
+  color-scheme:light;
+  --bg:#F7F5EF; --surface:#FFFFFF; --surface2:#EEEFE8; --surface3:#DCE9DF;
+  --ink:#182D2B; --ink2:#3E5551; --muted:#5E706A; --line:#D9DFD7;
+  --accent:#174E4A; --accent-ink:#FFFFFF; --accent-soft:#DCE9DF;
+  --accent2:#28665C; --magenta:#F2B68D; --glow:linear-gradient(135deg,#174E4A,#28665C);
+  --lime:#F2B68D; --lime-ink:#182D2B;
+  --good:#246348; --good-soft:#E1F0E6; --warn:#A13337; --warn-soft:#FBE7E4;
+  --amber:#825414; --amber-soft:#FFF0D1;
+  --c-in:#246348; --c-out:#735398; --c-loan:#825414; --c-kept:#174E4A; --c-dip:#A13337; --c-move:#5E706A;
+  --hero-bg:#174E4A; --hero-ink:#FFFFFF; --hero-muted:#DCE9DF;
+  --shadow:0 1px 3px #182D2B08,0 6px 20px #182D2B08;
+  --shadow-lg:0 16px 48px #182D2B24;
+  --r:20px; --r-sm:14px; --r-xs:8px;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --body:"DM Sans","Avenir Next",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.2,.8,.2,1);
+  --kitty-focus:#174E4A; --kitty-control:#77877E;
+}
+:root[data-kitty-theme="calm"][data-theme="dark"] {
+  color-scheme:dark;
+  --bg:#101F1D; --surface:#192C29; --surface2:#233B36; --surface3:#304B44;
+  --ink:#F7F5EF; --ink2:#D5E2D9; --muted:#AABEB3; --line:#3C564B;
+  --accent:#B8DCCB; --accent-ink:#101F1D; --accent-soft:#284B40;
+  --accent2:#DCE9DF; --magenta:#F2B68D; --glow:linear-gradient(135deg,#174E4A,#28665C);
+  --lime:#F2B68D; --lime-ink:#182D2B;
+  --good:#A7D9B6; --good-soft:#203D2D; --warn:#FFB8B0; --warn-soft:#4A2929;
+  --amber:#F5CD8F; --amber-soft:#40351F;
+  --c-in:#A7D9B6; --c-out:#CBB3E8; --c-loan:#F5CD8F; --c-kept:#B8DCCB; --c-dip:#FFB8B0; --c-move:#AABEB3;
+  --hero-bg:#174E4A; --hero-ink:#FFFFFF; --hero-muted:#DCE9DF;
+  --shadow:0 1px 3px #00000014,0 6px 20px #00000014; --shadow-lg:0 16px 48px #00000040;
+  --kitty-focus:#B8DCCB; --kitty-control:#82998B;
+}
+@media (prefers-color-scheme:dark) {
+  :root[data-kitty-theme="calm"]:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme:dark;
+    --bg:#101F1D; --surface:#192C29; --surface2:#233B36; --surface3:#304B44;
+    --ink:#F7F5EF; --ink2:#D5E2D9; --muted:#AABEB3; --line:#3C564B;
+    --accent:#B8DCCB; --accent-ink:#101F1D; --accent-soft:#284B40;
+    --accent2:#DCE9DF; --magenta:#F2B68D; --glow:linear-gradient(135deg,#174E4A,#28665C);
+    --lime:#F2B68D; --lime-ink:#182D2B;
+    --good:#A7D9B6; --good-soft:#203D2D; --warn:#FFB8B0; --warn-soft:#4A2929;
+    --amber:#F5CD8F; --amber-soft:#40351F;
+    --c-in:#A7D9B6; --c-out:#CBB3E8; --c-loan:#F5CD8F; --c-kept:#B8DCCB; --c-dip:#FFB8B0; --c-move:#AABEB3;
+    --hero-bg:#174E4A; --hero-ink:#FFFFFF; --hero-muted:#DCE9DF;
+    --shadow:0 1px 3px #00000014,0 6px 20px #00000014; --shadow-lg:0 16px 48px #00000040;
+    --kitty-focus:#B8DCCB; --kitty-control:#82998B;
+  }
+}
+:root[data-kitty-theme="calm"] body {font-size:16px;line-height:1.5}
+:root[data-kitty-theme="calm"] :is(.num,.amt,.big,.gpct,.stat .v,.day .tot,table.t .n) {font-variant-numeric:tabular-nums lining-nums}
+:root[data-kitty-theme="calm"] :is(.iconbtn,.periodbar .nav button) {min-width:44px;min-height:44px}
+:root[data-kitty-theme="calm"] :is(.btn,.btn.sm,.chip,.seg button,.linkbtn,.tbtn,nav.tabs button,.pill,.row,.need) {min-height:44px}
+:root[data-kitty-theme="calm"] :is(.field input,.field select,.sheetform input,.opt .edit input) {min-height:44px;font-size:16px}
+:root[data-kitty-theme="calm"] :is(input,select,textarea,.btn.ghost,.searchbox,.sheetform input) {border-color:var(--kitty-control)}
+:root[data-kitty-theme="calm"] :is(button,a,input,select,textarea,[tabindex]):focus-visible {outline:3px solid var(--kitty-focus);outline-offset:3px}
+:root[data-kitty-theme="calm"] .hero :is(button,a):focus-visible {outline-color:#F2B68D}
+:root[data-kitty-theme="calm"] .brand .paw {background:#174E4A;color:#F7F5EF;transform:none;box-shadow:none}
+:root[data-kitty-theme="calm"] .brand:hover .paw {transform:none}
+:root[data-kitty-theme="calm"] .hero {border-radius:24px}
+:root[data-kitty-theme="calm"] .hero :is(.blob,.blob2) {display:none}
+:root[data-kitty-theme="calm"] .pill.live .dot {animation:none}
+:root[data-kitty-theme="calm"] .btn {box-shadow:none}
+:root[data-kitty-theme="calm"] .row {padding-block:12px;border-radius:8px}
+:root[data-kitty-theme="calm"] .row + .row {border-top:1px solid var(--line)}
+:root[data-kitty-theme="calm"] .hero .fact .d.gain {color:#B6E3C6}
+:root[data-kitty-theme="calm"] .hero .fact .d.loss {color:#FFD3CB}
+:root[data-kitty-theme="calm"] .onb {--lime:#F2B68D;--lime-ink:#182D2B}
+@media (prefers-reduced-motion:reduce) {
+ :root[data-kitty-theme="calm"] *, :root[data-kitty-theme="calm"] *::before, :root[data-kitty-theme="calm"] *::after {animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+/* Integration QA: the original muted utility loses contrast inside a teal hero. */
+:root[data-kitty-theme="calm"] .hero .muted {color:var(--hero-muted)}
+/* Long goal names and exact amounts must wrap without widening the phone canvas. */
+:root[data-kitty-theme="calm"] .gtile {min-width:0}
+:root[data-kitty-theme="calm"] .gtop {flex-wrap:wrap;min-width:0}
+:root[data-kitty-theme="calm"] .gt {min-width:0;overflow-wrap:anywhere}
+:root[data-kitty-theme="calm"] .gof {margin-left:auto}
+:root[data-kitty-theme="calm"] .gt {flex:1 1 100px;white-space:normal}

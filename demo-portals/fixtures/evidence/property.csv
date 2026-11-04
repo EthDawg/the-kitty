@@ -1,0 +1,4 @@
+Property ID,Use,Address label,Owner share percent,Statement period,Gross rent AUD,Management fees AUD,Interest AUD,Repairs AUD,Net rental cash AUD,Evidence status
+PROP-HOME,PPOR,Demo family home,50,2027-02,0.00,0.00,0.00,0.00,0.00,Example only
+PROP-RENT-A,Investment,Demo rental A,50,2027-02,2400.00,160.00,2600.00,0.00,-360.00,Cash shortfall; tax result not determined
+PROP-RENT-B,Investment,Demo rental B,50,2027-02,2800.00,180.00,1500.00,100.00,1020.00,Cash surplus; tax result not determined

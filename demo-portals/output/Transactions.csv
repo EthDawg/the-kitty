@@ -1,0 +1,14 @@
+Txn ID,Date,Account ID,Bank description,Merchant,Amount,Category ID,Person,Receipt held,Note
+DEMO-T0001,2027-02-01,ACC-EVD,SALARY NORTHWIND LOGISTICS,Northwind Logistics,4000.00,SALARY,Joint,,Demo; source core/harbour-2027-02.csv row 2; Synthetic fixture author decision; not a learned rule
+DEMO-T0002,2027-02-02,ACC-EVD,TRANSFER TO EMERGENCY SAVER REF DEMO-X1,Emergency saver,-600.00,TRANSFER,Joint,,Demo; source core/harbour-2027-02.csv row 3; Synthetic fixture author decision; not a learned rule
+DEMO-T0003,2027-02-03,ACC-EVD,SOUTHERN CARD PAYMENT REF DEMO-X2,Southern Card,-500.00,CC-PAY,Joint,,Demo; source core/harbour-2027-02.csv row 4; Synthetic fixture author decision; not a learned rule
+DEMO-T0004,2027-02-04,ACC-EVD,GUMLEAF GROCER COBURG,Gumleaf Grocer,-86.40,GROCERIES,Joint,,Demo; source core/harbour-2027-02.csv row 5; Synthetic fixture author decision; not a learned rule
+DEMO-T0005,2027-02-05,ACC-EVD,MYSTERY MERCHANT 047,Mystery Merchant,-49.95,SHOPPING,Joint,,Demo; source core/harbour-2027-02.csv row 6; Explicit synthetic reviewer decision for this fixture only
+DEMO-T0006,2027-02-03,ACC-CC,PAYMENT FROM EVERYDAY REF DEMO-X2,Everyday account,500.00,CC-PAY,Joint,,Demo; source core/southern-2027-02.csv row 2; Synthetic fixture author decision; not a learned rule
+DEMO-T0007,2027-02-04,ACC-CC,GUMLEAF GROCER COBURG,Gumleaf Grocer,-45.95,GROCERIES,Joint,,Demo; source core/southern-2027-02.csv row 3; Synthetic fixture author decision; not a learned rule
+DEMO-T0008,2027-02-06,ACC-CC,STREAMING PLATYPUS MONTHLY,Streaming Platypus,-28.99,SUBS,Joint,,Demo; source core/southern-2027-02.csv row 4; Synthetic fixture author decision; not a learned rule
+DEMO-T0009,2027-02-08,ACC-CC,FLAT WHITE & FAIR DINKUM,Flat White & Fair Dinkum,-18.50,DINING,Joint,,Demo; source core/southern-2027-02.csv row 5; Synthetic fixture author decision; not a learned rule
+DEMO-T0010,2027-02-08,ACC-CC,FLAT WHITE & FAIR DINKUM,Flat White & Fair Dinkum,-18.50,DINING,Joint,,Demo; source core/southern-2027-02.csv row 6; Synthetic fixture author decision; not a learned rule
+DEMO-T0011,2027-02-09,ACC-CC,FLAT WHITE & FAIR DINKUM REFUND,Flat White & Fair Dinkum,18.50,DINING,Joint,,Demo; source core/southern-2027-02.csv row 7; Synthetic fixture author decision; not a learned rule
+DEMO-T0012,2027-02-02,ACC-SAV,TRANSFER FROM EVERYDAY REF DEMO-X1,Everyday account,600.00,TRANSFER,Joint,,Demo; source core/wattle-2027-02.csv row 2; Synthetic fixture author decision; not a learned rule
+DEMO-T0013,2027-02-28,ACC-SAV,INTEREST CREDIT,Wattle Credit Union,5.25,INTEREST,Joint,,Demo; source core/wattle-2027-02.csv row 3; Synthetic fixture author decision; not a learned rule

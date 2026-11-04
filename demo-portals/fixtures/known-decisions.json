@@ -1,0 +1,62 @@
+{
+  "SALARY NORTHWIND LOGISTICS": {
+    "category_id": "SALARY",
+    "merchant": "Northwind Logistics",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "TRANSFER TO EMERGENCY SAVER REF DEMO-X1": {
+    "category_id": "TRANSFER",
+    "merchant": "Emergency saver",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "SOUTHERN CARD PAYMENT REF DEMO-X2": {
+    "category_id": "CC-PAY",
+    "merchant": "Southern Card",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "GUMLEAF GROCER COBURG": {
+    "category_id": "GROCERIES",
+    "merchant": "Gumleaf Grocer",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "PAYMENT FROM EVERYDAY REF DEMO-X2": {
+    "category_id": "CC-PAY",
+    "merchant": "Everyday account",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "STREAMING PLATYPUS MONTHLY": {
+    "category_id": "SUBS",
+    "merchant": "Streaming Platypus",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "FLAT WHITE & FAIR DINKUM": {
+    "category_id": "DINING",
+    "merchant": "Flat White & Fair Dinkum",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "FLAT WHITE & FAIR DINKUM REFUND": {
+    "category_id": "DINING",
+    "merchant": "Flat White & Fair Dinkum",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "TRANSFER FROM EVERYDAY REF DEMO-X1": {
+    "category_id": "TRANSFER",
+    "merchant": "Everyday account",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  },
+  "INTEREST CREDIT": {
+    "category_id": "INTEREST",
+    "merchant": "Wattle Credit Union",
+    "person": "Joint",
+    "basis": "Synthetic fixture author decision; not a learned rule"
+  }
+}

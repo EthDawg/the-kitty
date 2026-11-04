@@ -1,0 +1,4 @@
+Event ID,Person,Scheme,Instrument,Event,Date,Units,Price currency,Price per unit,FX AUD per unit,Document reference
+EQ-RSU-1,Jordan Davies,RSU,DEMO,Vest,2027-02-15,10.000000,USD,100.00,1.55,DEMO-VEST-001
+EQ-ESPP-1,Jordan Davies,ESPP,DEMO,Purchase,2027-02-15,5.000000,USD,85.00,1.55,DEMO-ESPP-001
+EQ-OWN-1,Mia Davies,Personal,DEMOETF,Purchase,2027-02-15,20.000000,AUD,50.00,1.00,DEMO-CONTRACT-001

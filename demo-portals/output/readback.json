@@ -1,0 +1,160 @@
+{
+  "transactions": [
+    {
+      "txn_id": "DEMO-T0001",
+      "date": "2027-02-01",
+      "account_id": "ACC-EVD",
+      "bank_description": "SALARY NORTHWIND LOGISTICS",
+      "merchant": "Northwind Logistics",
+      "category_id": "SALARY",
+      "person": "Joint",
+      "amount": 4000.0,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0002",
+      "date": "2027-02-02",
+      "account_id": "ACC-EVD",
+      "bank_description": "TRANSFER TO EMERGENCY SAVER REF DEMO-X1",
+      "merchant": "Emergency saver",
+      "category_id": "TRANSFER",
+      "person": "Joint",
+      "amount": -600.0,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0003",
+      "date": "2027-02-03",
+      "account_id": "ACC-EVD",
+      "bank_description": "SOUTHERN CARD PAYMENT REF DEMO-X2",
+      "merchant": "Southern Card",
+      "category_id": "CC-PAY",
+      "person": "Joint",
+      "amount": -500.0,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0004",
+      "date": "2027-02-04",
+      "account_id": "ACC-EVD",
+      "bank_description": "GUMLEAF GROCER COBURG",
+      "merchant": "Gumleaf Grocer",
+      "category_id": "GROCERIES",
+      "person": "Joint",
+      "amount": -86.4,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0005",
+      "date": "2027-02-05",
+      "account_id": "ACC-EVD",
+      "bank_description": "MYSTERY MERCHANT 047",
+      "merchant": "Mystery Merchant",
+      "category_id": "SHOPPING",
+      "person": "Joint",
+      "amount": -49.95,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0006",
+      "date": "2027-02-03",
+      "account_id": "ACC-CC",
+      "bank_description": "PAYMENT FROM EVERYDAY REF DEMO-X2",
+      "merchant": "Everyday account",
+      "category_id": "CC-PAY",
+      "person": "Joint",
+      "amount": 500.0,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0007",
+      "date": "2027-02-04",
+      "account_id": "ACC-CC",
+      "bank_description": "GUMLEAF GROCER COBURG",
+      "merchant": "Gumleaf Grocer",
+      "category_id": "GROCERIES",
+      "person": "Joint",
+      "amount": -45.95,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0008",
+      "date": "2027-02-06",
+      "account_id": "ACC-CC",
+      "bank_description": "STREAMING PLATYPUS MONTHLY",
+      "merchant": "Streaming Platypus",
+      "category_id": "SUBS",
+      "person": "Joint",
+      "amount": -28.99,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0009",
+      "date": "2027-02-08",
+      "account_id": "ACC-CC",
+      "bank_description": "FLAT WHITE & FAIR DINKUM",
+      "merchant": "Flat White & Fair Dinkum",
+      "category_id": "DINING",
+      "person": "Joint",
+      "amount": -18.5,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0010",
+      "date": "2027-02-08",
+      "account_id": "ACC-CC",
+      "bank_description": "FLAT WHITE & FAIR DINKUM",
+      "merchant": "Flat White & Fair Dinkum",
+      "category_id": "DINING",
+      "person": "Joint",
+      "amount": -18.5,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0011",
+      "date": "2027-02-09",
+      "account_id": "ACC-CC",
+      "bank_description": "FLAT WHITE & FAIR DINKUM REFUND",
+      "merchant": "Flat White & Fair Dinkum",
+      "category_id": "DINING",
+      "person": "Joint",
+      "amount": 18.5,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0012",
+      "date": "2027-02-02",
+      "account_id": "ACC-SAV",
+      "bank_description": "TRANSFER FROM EVERYDAY REF DEMO-X1",
+      "merchant": "Everyday account",
+      "category_id": "TRANSFER",
+      "person": "Joint",
+      "amount": 600.0,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    },
+    {
+      "txn_id": "DEMO-T0013",
+      "date": "2027-02-28",
+      "account_id": "ACC-SAV",
+      "bank_description": "INTEREST CREDIT",
+      "merchant": "Wattle Credit Union",
+      "category_id": "INTEREST",
+      "person": "Joint",
+      "amount": 5.25,
+      "receipt_held": null,
+      "note": "Synthetic local fixture; not provider state"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Evidence ID,Income year end,Domain,Document,State,Owner,Reason
+TAX-PAY,2027-06-30,Employment,Final income statement,Missing,Jordan Davies,Income year is not complete
+TAX-RENT,2027-06-30,Rental A,Annual agent statement,Missing,Joint,Monthly sample is not annual evidence
+TAX-ESS,2027-06-30,Employee equity,ESS statement,Missing,Jordan Davies,Vest notice alone is insufficient

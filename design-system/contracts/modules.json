@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "defaultCanvas": ["cash", "next-actions", "activity", "goal"],
+  "policy": "Discovery may offer an optional module after validation; only an explicit user Add changes the canvas.",
+  "modules": [
+    {"id":"everyday","domain":"everyday","release":"foundation","requires":["accountId","ownerIds","currency","asOf","sourceIds"],"widgets":["cash","next-actions","activity","goal"]},
+    {"id":"tax-readiness","domain":"tax-readiness","release":"experimental","requires":["taxYear","taxpayerId","evidenceChecklist","sourceIds"],"widgets":["evidence-coverage","unresolved-records"]},
+    {"id":"property","domain":"property","release":"experimental","requires":["propertyId","ownershipHistory","usePeriods","period","sourceIds"],"widgets":["property-cashflow","property-evidence"]},
+    {"id":"equity","domain":"equity","release":"experimental","requires":["holdingId","ownerIds","instrumentId","planType","eventType","quantity","sourceIds"],"widgets":["holding-summary","event-timeline"]},
+    {"id":"crypto","domain":"crypto","release":"experimental","requires":["walletOrAccountId","ownerIds","assetId","eventType","quantity","occurredAt","sourceIds"],"widgets":["asset-positions","unmatched-transfers"]},
+    {"id":"super","domain":"super","release":"experimental","requires":["fundId","memberId","fundType","phase","asOf","sourceIds"],"widgets":["member-balance","contribution-evidence"]},
+    {"id":"insurance","domain":"insurance","release":"experimental","requires":["policyId","coveredEntityIds","renewalDate","premium","sourceIds"],"widgets":["renewal-timeline","coverage-records"]},
+    {"id":"assets","domain":"assets","release":"experimental","requires":["assetId","ownerIds","purchaseDate","sourceIds"],"widgets":["asset-register","replacement-plan"]}
+  ]
+}

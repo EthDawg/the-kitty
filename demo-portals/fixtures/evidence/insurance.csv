@@ -1,0 +1,4 @@
+Policy ID,Type,Insured item,Provider,Renewal date,Annual premium AUD,Excess AUD,Evidence status
+POL-HEALTH,Health,Davies family,She’ll Be Covered,2027-04-01,4800.00,750.00,Fictional summary; no cover advice
+POL-CAR,Car,Demo hatchback,She’ll Be Covered,2027-05-01,980.00,800.00,Fictional summary; no cover advice
+POL-HOME,Home,PROP-HOME,She’ll Be Covered,2027-07-01,1850.00,1000.00,Fictional summary; no cover advice

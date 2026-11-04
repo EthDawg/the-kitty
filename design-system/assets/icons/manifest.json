@@ -1,0 +1,207 @@
+{
+  "grid": 24,
+  "strokeWidth": 1.8,
+  "license": "Original artwork created for The Kitty; no third-party icon dependency.",
+  "icons": [
+    {
+      "name": "paw",
+      "symbol": "i-paw",
+      "file": "paw.svg"
+    },
+    {
+      "name": "home",
+      "symbol": "i-home",
+      "file": "home.svg"
+    },
+    {
+      "name": "list",
+      "symbol": "i-list",
+      "file": "list.svg"
+    },
+    {
+      "name": "insights",
+      "symbol": "i-insights",
+      "file": "insights.svg"
+    },
+    {
+      "name": "goal",
+      "symbol": "i-goal",
+      "file": "goal.svg"
+    },
+    {
+      "name": "setup",
+      "symbol": "i-setup",
+      "file": "setup.svg"
+    },
+    {
+      "name": "search",
+      "symbol": "i-search",
+      "file": "search.svg"
+    },
+    {
+      "name": "spark",
+      "symbol": "i-spark",
+      "file": "spark.svg"
+    },
+    {
+      "name": "x",
+      "symbol": "i-x",
+      "file": "x.svg"
+    },
+    {
+      "name": "chev",
+      "symbol": "i-chev",
+      "file": "chev.svg"
+    },
+    {
+      "name": "back",
+      "symbol": "i-back",
+      "file": "back.svg"
+    },
+    {
+      "name": "check",
+      "symbol": "i-check",
+      "file": "check.svg"
+    },
+    {
+      "name": "share",
+      "symbol": "i-share",
+      "file": "share.svg"
+    },
+    {
+      "name": "plus",
+      "symbol": "i-plus",
+      "file": "plus.svg"
+    },
+    {
+      "name": "refresh",
+      "symbol": "i-refresh",
+      "file": "refresh.svg"
+    },
+    {
+      "name": "dl",
+      "symbol": "i-dl",
+      "file": "dl.svg"
+    },
+    {
+      "name": "wallet",
+      "symbol": "i-wallet",
+      "file": "wallet.svg"
+    },
+    {
+      "name": "card",
+      "symbol": "i-card",
+      "file": "card.svg"
+    },
+    {
+      "name": "transfer",
+      "symbol": "i-transfer",
+      "file": "transfer.svg"
+    },
+    {
+      "name": "income",
+      "symbol": "i-income",
+      "file": "income.svg"
+    },
+    {
+      "name": "expense",
+      "symbol": "i-expense",
+      "file": "expense.svg"
+    },
+    {
+      "name": "shield",
+      "symbol": "i-shield",
+      "file": "shield.svg"
+    },
+    {
+      "name": "calendar",
+      "symbol": "i-calendar",
+      "file": "calendar.svg"
+    },
+    {
+      "name": "receipt",
+      "symbol": "i-receipt",
+      "file": "receipt.svg"
+    },
+    {
+      "name": "groceries",
+      "symbol": "i-groceries",
+      "file": "groceries.svg"
+    },
+    {
+      "name": "coffee",
+      "symbol": "i-coffee",
+      "file": "coffee.svg"
+    },
+    {
+      "name": "transport",
+      "symbol": "i-transport",
+      "file": "transport.svg"
+    },
+    {
+      "name": "health",
+      "symbol": "i-health",
+      "file": "health.svg"
+    },
+    {
+      "name": "travel",
+      "symbol": "i-travel",
+      "file": "travel.svg"
+    },
+    {
+      "name": "gift",
+      "symbol": "i-gift",
+      "file": "gift.svg"
+    },
+    {
+      "name": "sheet",
+      "symbol": "i-sheet",
+      "file": "sheet.svg"
+    },
+    {
+      "name": "warning",
+      "symbol": "i-warning",
+      "file": "warning.svg"
+    },
+    {
+      "name": "info",
+      "symbol": "i-info",
+      "file": "info.svg"
+    },
+    {
+      "name": "lock",
+      "symbol": "i-lock",
+      "file": "lock.svg"
+    },
+    {
+      "name": "moon",
+      "symbol": "i-moon",
+      "file": "moon.svg"
+    },
+    {
+      "name": "sun",
+      "symbol": "i-sun",
+      "file": "sun.svg"
+    },
+    {
+      "name": "edit",
+      "symbol": "i-edit",
+      "file": "edit.svg"
+    },
+    {
+      "name": "filter",
+      "symbol": "i-filter",
+      "file": "filter.svg"
+    },
+    {
+      "name": "clock",
+      "symbol": "i-clock",
+      "file": "clock.svg"
+    },
+    {
+      "name": "cat",
+      "symbol": "i-cat",
+      "file": "cat.svg"
+    }
+  ]
+}

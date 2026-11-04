@@ -1,0 +1,26 @@
+@import url("./theme.css");
+/* Semantic primitives; no remote fonts, logos or financial calculation. */
+.k-icon{width:22px;height:22px;flex:none;fill:none;vertical-align:middle}.k-eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.11em;font-weight:750;color:var(--muted);margin:0 0 12px}.k-muted,.k-secondary{color:var(--muted)}.k-secondary{display:block;font-size:12px;margin-top:4px}.k-tabular,.k-amount,.k-metric-value{font-variant-numeric:tabular-nums lining-nums}.k-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:8px;font-size:12px;line-height:1.4;font-weight:650;background:var(--soft);color:var(--ink2);white-space:nowrap}.k-badge--good{background:var(--good-soft);color:var(--good)}.k-badge--warning{background:var(--warn-soft);color:var(--warn)}.k-badge--error{background:var(--error-soft);color:var(--error)}.k-badge--info{background:var(--accent-soft);color:var(--accent)}.k-provenance{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:22px}.k-provenance .k-icon{width:16px;height:16px}.k-metric-value{font-size:clamp(36px,4.5vw,58px);font-weight:720;letter-spacing:-.055em;margin:12px 0 10px;line-height:1.08}.k-metric-detail{font-size:15px;margin:0;color:var(--ink2)}.k-metric--hero{color:#fff}.k-metric--hero .k-eyebrow,.k-metric--hero .k-metric-detail,.k-metric--hero .k-provenance{color:#dce9df}.k-metric--hero .k-badge{background:#ffffff20;color:#fff}.k-goal{display:flex;align-items:center;gap:20px}.k-goal h3{font-size:25px;margin:0;letter-spacing:-.035em}.k-goal h3 small{display:block;font-size:14px;letter-spacing:0;color:var(--muted);font-weight:500;margin:4px 0 12px}.k-ring{width:112px;height:112px;position:relative;flex:none;display:grid;place-items:center}.k-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}.k-ring circle{fill:none;stroke-width:8}.k-ring-track{stroke:var(--soft)}.k-ring-value{stroke:var(--accent);stroke-linecap:round}.k-ring span{font-variant-numeric:tabular-nums;font-weight:750;font-size:20px}.k-goal p{font-size:12px;margin-bottom:0}.k-goal .k-eyebrow{margin-bottom:8px}.k-monogram{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--soft);color:var(--ink2);font-weight:700;font-size:12px}.k-transaction{display:flex;align-items:center;gap:11px;border:0;background:none;color:inherit;text-align:left;padding:6px 2px;min-height:48px;width:100%;border-radius:10px;font:inherit;cursor:pointer}.k-transaction-text{min-width:0}.k-transaction-text strong{font-size:14px;font-weight:650;display:block}.k-transaction-text>span{font-size:12px;color:var(--muted);display:block;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.k-transaction:hover{color:var(--accent)}.k-amount{text-align:right!important;white-space:nowrap;font-size:14px;font-weight:650}.k-amount .k-secondary{font-weight:400}.k-category{font-size:12px}.k-select-cell{width:44px}.k-state{display:flex;gap:14px;border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 22px;background:var(--surface)}.k-state strong{font-size:15px}.k-state p{color:var(--muted);margin:5px 0 0;font-size:14px;max-width:75ch}.k-state--error{border-color:var(--error);background:var(--error-soft)}.k-state--error .k-icon{color:var(--error)}.k-state--partial,.k-state--stale{border-color:var(--warn);background:var(--warn-soft)}.k-state--loading .k-icon{animation:none}.k-skeleton{height:20px;border-radius:6px;background:var(--soft);margin:16px 0}.k-skeleton.big{height:54px;width:65%}.k-skeleton.short{width:40%}@keyframes kitty-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.k-state--loading .k-icon{animation:none}}
+
+/* Compact ledger retains amount and status in the main row without horizontal panning. */
+.k-mobile-meta{display:none!important}
+@media(max-width:650px){
+ .activity-table .k-category,.activity-table .k-status{display:none}
+ .k-transaction-text>.k-mobile-meta{display:grid!important;gap:5px;white-space:normal;max-width:none;font-size:11px;line-height:1.4;margin-top:6px}
+ .k-mobile-meta>span{display:block}
+ .k-mobile-meta .k-badge{font-size:10px;padding:3px 6px;white-space:normal}
+ .k-transaction{gap:8px;align-items:flex-start}
+ .k-monogram{width:28px;height:28px;border-radius:8px;font-size:10px;margin-top:2px}
+ .k-transaction-text strong{white-space:normal;overflow-wrap:anywhere;font-size:13px}
+ .k-transaction-text>span:not(.k-mobile-meta){display:none}
+ .k-amount{font-size:13px;vertical-align:top;padding-top:14px!important}
+}
+
+@media(max-width:650px){.activity-table{min-width:0;width:100%;table-layout:fixed}.activity-table th.k-select-cell{width:36px}.activity-table th.k-amount{width:102px}.activity-table .k-select-cell{width:36px}.activity-table td{padding-inline:2px}.activity-table input[type=checkbox]{margin:11px 6px}.k-transaction-text{width:100%}.k-transaction .k-monogram{display:none}}
+/* Keep financial metadata readable on phones; allow height instead of shrinking type. */
+@media(max-width:650px){
+ .k-transaction-text>.k-mobile-meta{font-size:13px}
+ .k-mobile-meta .k-badge{font-size:12px}
+ .k-transaction-text strong{font-size:14px}
+ .k-amount{font-size:14px}
+}

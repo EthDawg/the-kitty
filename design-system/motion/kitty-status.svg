@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" fill="none">
+ <g class="k-head"><path fill="#F7F5EF" stroke="#174E4A" stroke-width="3" d="M52 105V43q0-14 11-7l35 26q22-6 44 0l35-26q11-7 11 7v62c0 44-28 69-68 69s-68-25-68-69Z"/>
+ <path fill="#F2B68D" d="m65 53 21 16-21 8zm110 0-21 16 21 8Z"/>
+ <g class="k-eyes" fill="#174E4A"><circle cx="96" cy="108" r="6"/><circle cx="144" cy="108" r="6"/></g>
+ <path fill="#F2B68D" d="M114 121q-2-3 2-3h8q4 0 2 3l-5 6q-1 2-3 0Z"/></g>
+ <g class="k-spark" stroke="#986037" stroke-width="2.5" stroke-linecap="round"><path d="M207 58v12m-6-6h12"/><path d="M31 136v8m-4-4h8"/></g>
+ <circle cx="177" cy="156" r="23" fill="#DCE9DF" stroke="#174E4A" stroke-width="2"/>
+ <path class="k-check" d="m166 156 7 7 14-15" stroke="#174E4A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

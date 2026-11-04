@@ -1,0 +1,3 @@
+Event ID,Date UTC,Event,Asset,Quantity,AUD value,Fee AUD,From wallet,To wallet,Chain reference
+CR-1,2027-02-03T01:00:00Z,Buy,DEMOCOIN,0.01234567,1000.00,5.00,AUD account,Demo exchange,DEMO-TX-001
+CR-2,2027-02-04T01:00:00Z,Own-wallet transfer,DEMOCOIN,0.01000000,810.00,2.00,Demo exchange,Demo cold wallet,DEMO-TX-002

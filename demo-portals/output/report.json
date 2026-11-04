@@ -1,0 +1,171 @@
+{
+  "result": "passed",
+  "scope": "LOCAL DEMO ONLY \u2014 no Google Sheets or Drive write",
+  "fixture_period": "2027-02",
+  "source_files": [
+    {
+      "id": "harbour",
+      "canonical_provider": "Harbour Bank",
+      "display_brand": "Harbour a Dollar",
+      "account_id": "ACC-EVD",
+      "label": "Everyday account",
+      "file": "core/harbour-2027-02.csv",
+      "sha256": "b8ad615fa6c8d066adbece80e2cd0a01a306c001a072996aa137720d296b402e",
+      "rows": 5,
+      "opening_minor": 200000,
+      "closing_minor": 476365,
+      "scope": "core-adapter-tested",
+      "format_note": "Separate debit and credit; running balance",
+      "preview": [
+        {
+          "date": "01/02/2027",
+          "description": "SALARY NORTHWIND LOGISTICS",
+          "amount_minor": 400000
+        },
+        {
+          "date": "02/02/2027",
+          "description": "TRANSFER TO EMERGENCY SAVER REF DEMO-X1",
+          "amount_minor": -60000
+        },
+        {
+          "date": "03/02/2027",
+          "description": "SOUTHERN CARD PAYMENT REF DEMO-X2",
+          "amount_minor": -50000
+        },
+        {
+          "date": "04/02/2027",
+          "description": "GUMLEAF GROCER COBURG",
+          "amount_minor": -8640
+        },
+        {
+          "date": "05/02/2027",
+          "description": "MYSTERY MERCHANT 047",
+          "amount_minor": -4995
+        }
+      ],
+      "statement_file": "core/harbour-statement-2027-02.html",
+      "statement_sha256": "6b2e1cd9332cbdeb72f140411f465b263b2ae4ef12adff1179fc234aad33f0b4",
+      "verified_sha256": "b8ad615fa6c8d066adbece80e2cd0a01a306c001a072996aa137720d296b402e"
+    },
+    {
+      "id": "southern",
+      "canonical_provider": "Southern Card",
+      "display_brand": "Southern X-press",
+      "account_id": "ACC-CC",
+      "label": "Credit card",
+      "file": "core/southern-2027-02.csv",
+      "sha256": "1e0d3d82695e7e1bd87a66a7abfbb2a86c0e53f3861ca66c3fd2da3c23e35bfd",
+      "rows": 6,
+      "opening_minor": -30000,
+      "closing_minor": 10656,
+      "scope": "core-adapter-tested",
+      "format_note": "Charges positive; payments and refunds negative",
+      "preview": [
+        {
+          "date": "03/02/2027",
+          "description": "PAYMENT FROM EVERYDAY REF DEMO-X2",
+          "amount_minor": 50000
+        },
+        {
+          "date": "04/02/2027",
+          "description": "GUMLEAF GROCER COBURG",
+          "amount_minor": -4595
+        },
+        {
+          "date": "06/02/2027",
+          "description": "STREAMING PLATYPUS MONTHLY",
+          "amount_minor": -2899
+        },
+        {
+          "date": "08/02/2027",
+          "description": "FLAT WHITE & FAIR DINKUM",
+          "amount_minor": -1850
+        },
+        {
+          "date": "08/02/2027",
+          "description": "FLAT WHITE & FAIR DINKUM",
+          "amount_minor": -1850
+        },
+        {
+          "date": "09/02/2027",
+          "description": "FLAT WHITE & FAIR DINKUM REFUND",
+          "amount_minor": 1850
+        }
+      ],
+      "statement_file": "core/southern-statement-2027-02.html",
+      "statement_sha256": "7f13ac94ee9a1f49cffd4abc1dc997a6a26bf4bfd2973979c6eef8bdbd6526d0",
+      "verified_sha256": "1e0d3d82695e7e1bd87a66a7abfbb2a86c0e53f3861ca66c3fd2da3c23e35bfd"
+    },
+    {
+      "id": "wattle",
+      "canonical_provider": "Wattle Credit Union",
+      "display_brand": "Wattle You Save",
+      "account_id": "ACC-SAV",
+      "label": "Emergency saver",
+      "file": "core/wattle-2027-02.csv",
+      "sha256": "955261a73a16311658aec094f743280add053b9b2eef7cbaf08058ce02fb8b51",
+      "rows": 2,
+      "opening_minor": 1000000,
+      "closing_minor": 1060525,
+      "scope": "core-adapter-tested",
+      "format_note": "Negative debit column; running balance",
+      "preview": [
+        {
+          "date": "02/02/2027",
+          "description": "TRANSFER FROM EVERYDAY REF DEMO-X1",
+          "amount_minor": 60000
+        },
+        {
+          "date": "28/02/2027",
+          "description": "INTEREST CREDIT",
+          "amount_minor": 525
+        }
+      ],
+      "statement_file": "core/wattle-statement-2027-02.html",
+      "statement_sha256": "234398f01a3defb55125f1e5db80bbbde3a108f40417ef6bb70f720f1cf357ba",
+      "verified_sha256": "955261a73a16311658aec094f743280add053b9b2eef7cbaf08058ce02fb8b51"
+    }
+  ],
+  "initial_unresolved": 1,
+  "unreviewed_append_blocked": true,
+  "committed_local_rows": 13,
+  "readback_equal": true,
+  "ledger_sha256": "6c02aad38ced0ce99f2837988cdf424279b47415705114710462a4503de60702",
+  "repeat_import_new_rows": 0,
+  "duplicate_batch_rows": 13,
+  "duplicate_file_extra_rows": 0,
+  "repeated_charge_rows_preserved": 2,
+  "balances": {
+    "ACC-EVD": {
+      "opening_minor": 200000,
+      "closing_minor": 476365
+    },
+    "ACC-CC": {
+      "opening_minor": -30000,
+      "closing_minor": 10656
+    },
+    "ACC-SAV": {
+      "opening_minor": 1000000,
+      "closing_minor": 1060525
+    }
+  },
+  "flows": {
+    "income_minor": 400525,
+    "expense_minor": 22979,
+    "transfer_minor": 0
+  },
+  "experimental_evidence_files": 8,
+  "external_provider_verification": "not_run",
+  "sheet_columns": [
+    "Txn ID",
+    "Date",
+    "Account ID",
+    "Bank description",
+    "Merchant",
+    "Amount",
+    "Category ID",
+    "Person",
+    "Receipt held",
+    "Note"
+  ]
+}

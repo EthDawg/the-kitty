@@ -1,0 +1,154 @@
+{
+  "notice": "Shape examples only. Hash, storage reference and oracle are intentionally illustrative, not evidence of a real file or reconciled account.",
+  "evidence": {
+    "schemaVersion": "1.0",
+    "sourceId": "SRC-HARBOUR-202610",
+    "householdId": "DAVIES-DEMO",
+    "ownerIds": [
+      "JORDAN",
+      "MIA"
+    ],
+    "providerId": "HARBOUR",
+    "kind": "bank-export",
+    "contentSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fileName": "illustrative-export.csv",
+    "mimeType": "text/csv",
+    "capturedAt": "2026-11-04T09:00:00Z",
+    "period": {
+      "start": "2026-10-01",
+      "end": "2026-10-31"
+    },
+    "storageRef": "example-only:no-file",
+    "synthetic": true
+  },
+  "transaction": {
+    "schemaVersion": "1.0",
+    "recordId": "TX-EXAMPLE-1",
+    "householdId": "DAVIES-DEMO",
+    "ownerIds": [
+      "JORDAN",
+      "MIA"
+    ],
+    "accountId": "ACC-EVD",
+    "providerRecordId": null,
+    "descriptionRaw": "GROCER 0198 MELBOURNE",
+    "merchant": "Grocer",
+    "categoryId": "FOOD",
+    "amount": {
+      "minor": "-8640",
+      "currency": "AUD",
+      "scale": 2
+    },
+    "postingDate": "2026-10-31",
+    "executionDate": null,
+    "status": "posted",
+    "flow": "expense",
+    "transferPairId": null,
+    "refundOfId": null,
+    "provenance": {
+      "sourceIds": [
+        "SRC-HARBOUR-202610"
+      ],
+      "sourceLocator": "csv row 2",
+      "importBatchId": "BATCH-20261104",
+      "adapterVersion": "harbour:1.0",
+      "reviewStatus": "accepted",
+      "reviewedBy": "USER-JORDAN",
+      "reviewedAt": "2026-11-04T10:00:00Z"
+    }
+  },
+  "accountBalance": {
+    "schemaVersion": "1.0",
+    "accountId": "ACC-EVD",
+    "householdId": "DAVIES-DEMO",
+    "ownerIds": [
+      "JORDAN",
+      "MIA"
+    ],
+    "asOf": "2026-11-04T09:00:00Z",
+    "balanceKind": "statement-close",
+    "current": {
+      "minor": "597106",
+      "currency": "AUD",
+      "scale": 2
+    },
+    "available": null,
+    "creditLimit": null,
+    "provenance": {
+      "sourceIds": [
+        "SRC-HARBOUR-202610"
+      ],
+      "sourceLocator": "csv row 2",
+      "importBatchId": "BATCH-20261104",
+      "adapterVersion": "harbour:1.0",
+      "reviewStatus": "accepted",
+      "reviewedBy": "USER-JORDAN",
+      "reviewedAt": "2026-11-04T10:00:00Z"
+    }
+  },
+  "moneyMetric": {
+    "schemaVersion": "1.0",
+    "metricId": "cash.current",
+    "domain": "everyday",
+    "label": "Statement balance",
+    "state": "ready",
+    "value": {
+      "minor": "597106",
+      "currency": "AUD",
+      "scale": 2
+    },
+    "basis": "fact",
+    "asOf": "2026-11-04T09:00:00Z",
+    "sourceIds": [
+      "SRC-HARBOUR-202610"
+    ],
+    "authority": {
+      "kind": "fixture",
+      "ref": "example-only:no-oracle"
+    },
+    "message": null,
+    "missingInputs": [],
+    "errorCode": null,
+    "methodRef": null
+  },
+  "quantity": {
+    "decimal": "0.000000000000000001",
+    "unit": "ETH"
+  },
+  "widget": {
+    "schemaVersion": "1.0",
+    "widgetId": "cash",
+    "domain": "everyday",
+    "title": "Cash",
+    "release": "foundation",
+    "metricIds": [
+      "cash.current"
+    ],
+    "sizes": [
+      "compact",
+      "wide"
+    ],
+    "states": [
+      "loading",
+      "empty",
+      "ready",
+      "partial",
+      "stale",
+      "error"
+    ],
+    "actions": [
+      "drill",
+      "ask",
+      "move",
+      "resize",
+      "hide"
+    ],
+    "dataRequired": [
+      "accountId",
+      "ownerIds",
+      "asOf",
+      "sourceIds"
+    ],
+    "emptyAction": "Import an account"
+  }
+}

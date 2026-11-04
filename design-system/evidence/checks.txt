@@ -1,0 +1,424 @@
+
+RUN node --test test.js design-system/tests/boundary.test.mjs design-system/tests/components.test.mjs design-system/tests/motion.test.mjs design-system/tests/readback.test.mjs design-system/contracts/contract.test.mjs
+TAP version 13
+# Subtest: exact minor units are strings and do not lose values above JS safe integer
+ok 1 - exact minor units are strings and do not lose values above JS safe integer
+  ---
+  duration_ms: 1.443083
+  type: 'test'
+  ...
+# Subtest: reject ambiguous, fractional and noncanonical cents
+ok 2 - reject ambiguous, fractional and noncanonical cents
+  ---
+  duration_ms: 0.173166
+  type: 'test'
+  ...
+# Subtest: AUD precision and currency required
+ok 3 - AUD precision and currency required
+  ---
+  duration_ms: 0.048625
+  type: 'test'
+  ...
+# Subtest: evidence requires checksum, owner and valid period
+ok 4 - evidence requires checksum, owner and valid period
+  ---
+  duration_ms: 3.676959
+  type: 'test'
+  ...
+# Subtest: strict boundary rejects unknown fields and unsupported schema versions
+ok 5 - strict boundary rejects unknown fields and unsupported schema versions
+  ---
+  duration_ms: 0.290291
+  type: 'test'
+  ...
+# Subtest: posted transaction is valid with unmodified source narrative
+ok 6 - posted transaction is valid with unmodified source narrative
+  ---
+  duration_ms: 0.073459
+  type: 'test'
+  ...
+# Subtest: pending is not posted and cannot claim posting date
+ok 7 - pending is not posted and cannot claim posting date
+  ---
+  duration_ms: 0.114208
+  type: 'test'
+  ...
+# Subtest: transfer classification requires relationship evidence
+ok 8 - transfer classification requires relationship evidence
+  ---
+  duration_ms: 0.194708
+  type: 'test'
+  ...
+# Subtest: review acceptance needs actor and timestamp
+ok 9 - review acceptance needs actor and timestamp
+  ---
+  duration_ms: 0.265875
+  type: 'test'
+  ...
+# Subtest: available balance is not inferred from current
+ok 10 - available balance is not inferred from current
+  ---
+  duration_ms: 0.397458
+  type: 'test'
+  ...
+# Subtest: currency mismatches cannot hide in account balances
+ok 11 - currency mismatches cannot hide in account balances
+  ---
+  duration_ms: 0.105792
+  type: 'test'
+  ...
+# Subtest: ready metric requires authoritative source, date and value
+ok 12 - ready metric requires authoritative source, date and value
+  ---
+  duration_ms: 0.125875
+  type: 'test'
+  ...
+# Subtest: zero is a fact, empty is not zero
+ok 13 - zero is a fact, empty is not zero
+  ---
+  duration_ms: 0.082417
+  type: 'test'
+  ...
+# Subtest: partial and stale values explain their limits
+ok 14 - partial and stale values explain their limits
+  ---
+  duration_ms: 0.080333
+  type: 'test'
+  ...
+# Subtest: error cannot advertise an old value as current
+ok 15 - error cannot advertise an old value as current
+  ---
+  duration_ms: 0.02625
+  type: 'test'
+  ...
+# Subtest: estimate requires a method reference
+ok 16 - estimate requires a method reference
+  ---
+  duration_ms: 0.032334
+  type: 'test'
+  ...
+# Subtest: crypto quantities retain fractional units separate from currency
+ok 17 - crypto quantities retain fractional units separate from currency
+  ---
+  duration_ms: 0.051667
+  type: 'test'
+  ...
+# Subtest: unknown or cross-household evidence is rejected
+ok 18 - unknown or cross-household evidence is rejected
+  ---
+  duration_ms: 0.128333
+  type: 'test'
+  ...
+# Subtest: duplicate record IDs fail, genuine same-value transactions with different IDs remain
+ok 19 - duplicate record IDs fail, genuine same-value transactions with different IDs remain
+  ---
+  duration_ms: 0.09175
+  type: 'test'
+  ...
+# Subtest: detection only offers add after validated, reconciled evidence
+ok 20 - detection only offers add after validated, reconciled evidence
+  ---
+  duration_ms: 0.070667
+  type: 'test'
+  ...
+# Subtest: experimental activation requires explicit acknowledged add and hide reverses it
+ok 21 - experimental activation requires explicit acknowledged add and hide reverses it
+  ---
+  duration_ms: 0.034417
+  type: 'test'
+  ...
+# Subtest: widget includes six states and cannot initiate payment
+ok 22 - widget includes six states and cannot initiate payment
+  ---
+  duration_ms: 0.095
+  type: 'test'
+  ...
+# Subtest: module registry has unique IDs and all requested domains default off beyond everyday
+ok 23 - module registry has unique IDs and all requested domains default off beyond everyday
+  ---
+  duration_ms: 0.480042
+  type: 'test'
+  ...
+# Subtest: malformed batches return errors rather than throw
+ok 24 - malformed batches return errors rather than throw
+  ---
+  duration_ms: 0.059917
+  type: 'test'
+  ...
+# Subtest: timestamps do not normalise an impossible 24-hour time
+ok 25 - timestamps do not normalise an impossible 24-hour time
+  ---
+  duration_ms: 0.031167
+  type: 'test'
+  ...
+# Subtest: published examples satisfy their contracts (shape only)
+ok 26 - published examples satisfy their contracts (shape only)
+  ---
+  duration_ms: 0.327167
+  type: 'test'
+  ...
+# Subtest: exact boundary converts only supported safe values
+ok 27 - exact boundary converts only supported safe values
+  ---
+  duration_ms: 22.842625
+  type: 'test'
+  ...
+# Subtest: zero renders, missing/loading does not masquerade as zero
+ok 28 - zero renders, missing/loading does not masquerade as zero
+  ---
+  duration_ms: 2.029541
+  type: 'test'
+  ...
+# Subtest: display range failures cannot round an exact source value
+ok 29 - display range failures cannot round an exact source value
+  ---
+  duration_ms: 0.096875
+  type: 'test'
+  ...
+# Subtest: stale dates and source references survive the bridge with escaped text
+ok 30 - stale dates and source references survive the bridge with escaped text
+  ---
+  duration_ms: 0.177667
+  type: 'test'
+  ...
+# Subtest: generic state copy uses supplied provenance, never fixture-specific dates or accounts
+ok 31 - generic state copy uses supplied provenance, never fixture-specific dates or accounts
+  ---
+  duration_ms: 0.176125
+  type: 'test'
+  ...
+# Subtest: money preserves signs, exact cent formatting and distinguishes unavailable from zero
+ok 32 - money preserves signs, exact cent formatting and distinguishes unavailable from zero
+  ---
+  duration_ms: 22.151917
+  type: 'test'
+  ...
+# Subtest: untrusted source text, attributes and currency cannot introduce markup
+ok 33 - untrusted source text, attributes and currency cannot introduce markup
+  ---
+  duration_ms: 0.338125
+  type: 'test'
+  ...
+# Subtest: missing metric never becomes a zero
+ok 34 - missing metric never becomes a zero
+  ---
+  duration_ms: 0.102334
+  type: 'test'
+  ...
+# Subtest: progress invalid and over-target semantics
+ok 35 - progress invalid and over-target semantics
+  ---
+  duration_ms: 0.592125
+  type: 'test'
+  ...
+# Subtest: status does not conflate pending with posted or refund with income
+ok 36 - status does not conflate pending with posted or refund with income
+  ---
+  duration_ms: 0.342083
+  type: 'test'
+  ...
+# Subtest: layout normalisation removes corrupt, repeated and injected records without losing known widgets
+ok 37 - layout normalisation removes corrupt, repeated and injected records without losing known widgets
+  ---
+  duration_ms: 0.109667
+  type: 'test'
+  ...
+# Subtest: keyboard and drag ordering preserve same card identities and constrained boundaries
+ok 38 - keyboard and drag ordering preserve same card identities and constrained boundaries
+  ---
+  duration_ms: 0.187458
+  type: 'test'
+  ...
+# Subtest: partial coverage excludes unavailable-source rows before UI filters
+ok 39 - partial coverage excludes unavailable-source rows before UI filters
+  ---
+  duration_ms: 0.047666
+  type: 'test'
+  ...
+# Subtest: large safe-integer minor amounts retain their last cent without binary rounding
+ok 40 - large safe-integer minor amounts retain their last cent without binary rounding
+  ---
+  duration_ms: 0.220542
+  type: 'test'
+  ...
+# Subtest: signed sub-unit values preserve negative zero whole parts and positive signs
+ok 41 - signed sub-unit values preserve negative zero whole parts and positive signs
+  ---
+  duration_ms: 0.343833
+  type: 'test'
+  ...
+# Subtest: zero-decimal currencies use whole minor units and correct signs at boundaries
+ok 42 - zero-decimal currencies use whole minor units and correct signs at boundaries
+  ---
+  duration_ms: 0.177333
+  type: 'test'
+  ...
+# Subtest: success is impossible until readback matches
+ok 43 - success is impossible until readback matches
+  ---
+  duration_ms: 1.819125
+  type: 'test'
+  ...
+# Subtest: truthy permission is not explicit permission
+ok 44 - truthy permission is not explicit permission
+  ---
+  duration_ms: 0.202167
+  type: 'test'
+  ...
+# Subtest: unknown write outcome never auto-retries
+ok 45 - unknown write outcome never auto-retries
+  ---
+  duration_ms: 0.19425
+  type: 'test'
+  ...
+# Subtest: readback failure and mismatched value stay distinct
+ok 46 - readback failure and mismatched value stay distinct
+  ---
+  duration_ms: 0.160542
+  type: 'test'
+  ...
+# Subtest: async matcher is awaited and must return literal true
+ok 47 - async matcher is awaited and must return literal true
+  ---
+  duration_ms: 0.248333
+  type: 'test'
+  ...
+# Subtest: permission and matcher errors never report success
+ok 48 - permission and matcher errors never report success
+  ---
+  duration_ms: 0.17275
+  type: 'test'
+  ...
+# Subtest: observer failure does not reinterpret confirmed result
+ok 49 - observer failure does not reinterpret confirmed result
+  ---
+  duration_ms: 0.101833
+  type: 'test'
+  ...
+# Subtest: only confirmed data can trigger celebration
+ok 50 - only confirmed data can trigger celebration
+  ---
+  duration_ms: 0.071792
+  type: 'test'
+  ...
+# Subtest: display accepts exactly the bytes checked by the local verifier
+ok 51 - display accepts exactly the bytes checked by the local verifier
+  ---
+  duration_ms: 0.824375
+  type: 'test'
+  ...
+# Subtest: same row count with changed cents or category invalidates readback
+ok 52 - same row count with changed cents or category invalidates readback
+  ---
+  duration_ms: 0.176834
+  type: 'test'
+  ...
+# Subtest: legacy report without bound ledger hash cannot claim verified
+ok 53 - legacy report without bound ledger hash cannot claim verified
+  ---
+  duration_ms: 0.21025
+  type: 'test'
+  ...
+# Subtest: invariants on the fixture 2026-11 (as of 2026-11-30): transactions add up to the Cash Flow tab, accounts to the Cash metric, IDs unique
+ok 54 - invariants on the fixture 2026-11 (as of 2026-11-30): transactions add up to the Cash Flow tab, accounts to the Cash metric, IDs unique
+  ---
+  duration_ms: 16.585917
+  type: 'test'
+  ...
+# Subtest: invariants on the live snapshot (as of 2027-01-31): transactions add up to the Cash Flow tab, accounts to the Cash metric, IDs unique
+ok 55 - invariants on the live snapshot (as of 2027-01-31): transactions add up to the Cash Flow tab, accounts to the Cash metric, IDs unique
+  ---
+  duration_ms: 1.355875
+  type: 'test'
+  ...
+# Subtest: parsers read connector display strings and typed values alike
+ok 56 - parsers read connector display strings and typed values alike
+  ---
+  duration_ms: 0.083333
+  type: 'test'
+  ...
+# Subtest: model: the household, its clock and its rows
+ok 57 - model: the household, its clock and its rows
+  ---
+  duration_ms: 0.506667
+  type: 'test'
+  ...
+# Subtest: oracle: movers rank Shopping first with the sheet's growth figure
+ok 58 - oracle: movers rank Shopping first with the sheet's growth figure
+  ---
+  duration_ms: 0.306333
+  type: 'test'
+  ...
+# Subtest: verdict: the planted findings make it 'Worth a look.' with warnings first
+ok 59 - verdict: the planted findings make it 'Worth a look.' with warnings first
+  ---
+  duration_ms: 0.267625
+  type: 'test'
+  ...
+# Subtest: upcoming: next charges roll forward from the last charge; pay day from the last payslip
+ok 60 - upcoming: next charges roll forward from the last charge; pay day from the last payslip
+  ---
+  duration_ms: 0.157916
+  type: 'test'
+  ...
+# Subtest: goals: eta at current pace, and with extra
+ok 61 - goals: eta at current pace, and with extra
+  ---
+  duration_ms: 0.06975
+  type: 'test'
+  ...
+# Subtest: leaks and safety net
+ok 62 - leaks and safety net
+  ---
+  duration_ms: 0.200292
+  type: 'test'
+  ...
+# Subtest: search understands people, months, amounts and categories
+ok 63 - search understands people, months, amounts and categories
+  ---
+  duration_ms: 0.901709
+  type: 'test'
+  ...
+# Subtest: connector grids (display strings) produce the same model as the snapshot
+ok 64 - connector grids (display strings) produce the same model as the snapshot
+  ---
+  duration_ms: 16.917333
+  type: 'test'
+  ...
+# Subtest: csv escapes commas and quotes
+ok 65 - csv escapes commas and quotes
+  ---
+  duration_ms: 0.111125
+  type: 'test'
+  ...
+# Subtest: connector path: every tab rebuilt as a display-string grid reads back the same
+ok 66 - connector path: every tab rebuilt as a display-string grid reads back the same
+  ---
+  duration_ms: 27.256625
+  type: 'test'
+  ...
+1..66
+# tests 66
+# suites 0
+# pass 66
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 157.053708
+
+RUN python3 demo-portals/verify.py
+PASS: 13 rows; review gate; balances; local readback; repeat import 0 new; repeated charges preserved.
+Evidence: <repository>/demo-portals/output/report.json
+Google Sheets/Drive delivery: not run. Optional-domain imports: not implemented.
+
+RUN python3 design-system/assets/integration/validate.py
+PASS: 40 SVG icons; existing symbol compatibility; 30 contrast pairs.
+
+RUN python3 build.py
+536 KB page; snapshot bundled
+
+RUN python3 design-system/build-preview.py
+<repository>/dist/kitty-calm-local.html (581,919 bytes); source unchanged, bundled fictional demo only
+
+PASS: all local checks. Provider writes, real-bank compatibility and device acceptance are not covered.

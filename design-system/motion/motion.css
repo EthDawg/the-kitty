@@ -1,0 +1,31 @@
+/* Kitty motion v2. Motion describes a real state change; it never creates one. */
+:root {
+  --kitty-motion-fast:120ms;
+  --kitty-motion-normal:180ms;
+  --kitty-motion-enter:240ms;
+  --kitty-motion-celebrate:420ms;
+  --kitty-motion-ease:cubic-bezier(.2,.75,.25,1);
+}
+.k-motion-enter {animation:kitty-enter var(--kitty-motion-enter) var(--kitty-motion-ease) both}
+.k-motion-change {animation:kitty-change var(--kitty-motion-normal) ease-out both}
+.k-motion-confirmed .k-check {stroke-dasharray:32;animation:kitty-check 240ms ease-out both}
+.k-motion-confirmed .k-spark {transform-box:fill-box;transform-origin:center;animation:kitty-spark 420ms var(--kitty-motion-ease) both}
+.k-motion-welcome .k-eyes {transform-box:fill-box;transform-origin:center;animation:kitty-blink 420ms ease-out 300ms 1}
+.k-motion-review .k-head {transform-box:fill-box;transform-origin:50% 85%;animation:kitty-look 420ms ease-out 1}
+.k-skeleton {background:var(--surface2,#e5ebe5);border-radius:8px;min-height:1em}
+/* Loading is static by default. It must have real status text; no fake percentages. */
+.k-motion-press {transition:background-color 120ms,box-shadow 120ms}
+.k-motion-press:active {box-shadow:inset 0 0 0 2px currentColor}
+@keyframes kitty-enter {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes kitty-change {from{background-color:#f2b68d55}to{background-color:transparent}}
+@keyframes kitty-check {from{stroke-dashoffset:32}to{stroke-dashoffset:0}}
+@keyframes kitty-spark {0%{opacity:0;transform:scale(.7)}55%{opacity:1;transform:scale(1)}100%{opacity:1;transform:scale(1)}}
+@keyframes kitty-blink {0%,35%,100%{transform:scaleY(1)}18%{transform:scaleY(.12)}}
+@keyframes kitty-look {0%,100%{transform:rotate(0)}45%{transform:rotate(-4deg)}}
+[data-motion="off"] .k-motion-enter,[data-motion="off"] .k-motion-change,
+[data-motion="off"] .k-motion-confirmed *,[data-motion="off"] .k-motion-welcome *,
+[data-motion="off"] .k-motion-review * {animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){
+ .k-motion-enter,.k-motion-change,.k-motion-confirmed *,.k-motion-welcome *,
+ .k-motion-review *,.k-motion-press {animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
