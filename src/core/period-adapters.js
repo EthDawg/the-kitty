@@ -142,27 +142,35 @@
     body.forEach((r, i) => {
       const line = firstLine + i;
       if (!r.length || !r.some((c) => strip(c))) return;
+      // A blank cell can't establish an amount, and an explicit 0.00 can. Debit and credit shapes need one of the pair. Runs after the shape's
+      // own column and date checks, so a row that is wrong in a more specific way still says so.
+      const hasAmount = (...cs) => { if (!cs.some((c) => strip(T.str(r[c])))) throw new ImportFault("bad_amount", path, `row ${line} has no amount`, "a truncated download; download again", line); };
       if (shape === "Harbour Bank") {
         columns(r, 8, path, line, "a comma inside an unquoted narrative, or a truncated download; download again");
         const date = A.parseDate(r[1], order, path, line);
+        hasAmount(3, 4);
         const amount = cents(money(r[4], line) - money(r[3], line), r[4] || r[3], path, line);
         out.push({ date, description: strip(r[2]), amount, balance: money(r[5], line), line, account_number: strip(r[0]) });
       } else if (shape === "Southern Card") {
         columns(r, 5, path, line, TRUNCATED);
         const date = A.parseDate(r[0], order, path, line);
+        hasAmount(4);
         out.push({ date, description: strip(r[1]), amount: cents(-money(r[4], line), r[4], path, line), balance: null, line });
       } else if (shape === "Wattle Credit Union") {
         columns(r, 5, path, line, TRUNCATED);
         const date = A.parseDate(r[0], order, path, line);
+        hasAmount(2, 3);
         const amount = cents(money(r[2], line) + money(r[3], line), r[2] || r[3], path, line);
         out.push({ date, description: strip(r[1]), amount, balance: money(r[4], line), line });
       } else if (shape === "Bark Bank") {
         if (r.length !== 4 || !BARK_DATE.test(strip(r[0]))) throw new ImportFault("bad_columns", path, `not a CommBank line: ${repr(r.slice(0, 4))}`, "the headerless shape is Date, Amount, Description, Balance; download again", line);
         const date = A.parseDate(r[0], order, path, line);
+        hasAmount(1);
         const amount = cents(money(r[1], line), r[1], path, line);
         out.push({ date, description: strip(r[2]), amount, balance: money(r[3], line), line });
       } else if (shape === "Owner statement") {
         columns(r, 6, path, line, "a truncated download; download again");
+        hasAmount(3, 4);
         const amount = cents(money(r[3], line) - money(r[4], line), r[3] || r[4], path, line);
         out.push({ date: A.parseDate(r[0], order, path, line), description: strip(r[1]), amount, balance: null, line, schedule_line: strip(r[2]), handled_by: strip(r[5]) });
       } else {

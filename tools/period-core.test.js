@@ -284,3 +284,11 @@ test("a leading apostrophe survives the write, and the same file replays to noth
   assert.ok(W.same("''=X", "'=X")); assert.ok(W.same("'=X", "=X")); assert.ok(!W.same("''=X", "=X"));
   assert.equal(W.escape("'=X"), "''=X"); assert.equal(W.escape("=X"), "'=X"); assert.equal(W.escape("plain"), "plain");
 });
+
+test("a blank amount stops, and an explicit zero is still a row", () => {
+  stop([f("ACC-CC/2027-03-01/a.csv", CARD + card(2, "MYKI", ""))], "bad_amount");
+  stop([f("ACC-CC/2027-03-01/a.csv", CARD + card(2, "MYKI", "   "))], "bad_amount");
+  stop([f("ACC-SAV/2027-03-01/t.csv", BANK + "02/02/2027,TRANSFER FROM EVERYDAY,,,106.00\n")], "bad_amount");
+  const zero = plan([f("ACC-CC/2027-03-01/a.csv", CARD + card(2, "MYKI", "0.00"))]);
+  assert.equal(zero.status, "ready"); assert.equal(zero.proposed.transactions[0].amount_cents, 0);
+});

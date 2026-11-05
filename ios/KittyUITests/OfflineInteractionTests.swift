@@ -11,6 +11,22 @@ final class OfflineInteractionTests: XCTestCase {
         app.terminate()
     }
 
+    func testTapAskAndOpenAGroceryReceipt() {
+        continueAfterFailure = false
+        executionTimeAllowance = 90
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
+        app.launch()
+        XCTAssertTrue(page.waitForExistence(timeout: 15))
+        tap(app.buttons["Ask the Kitty"])
+        tap(app.buttons["Groceries last month"])
+        XCTAssertTrue(text(containing: "$1,429.05 spent").waitForExistence(timeout: 5))
+        let receipts = page.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "See the entries")).firstMatch
+        tap(receipts)
+        let woolworths = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "24 Dec", "Woolworths")).firstMatch
+        tap(woolworths)
+        XCTAssertTrue(text(containing: "T0866").waitForExistence(timeout: 5), "The tap opens the actual December 24 ledger entry.")
+    }
+
     func testOfflinePhoneNavigation() {
         continueAfterFailure = false
         executionTimeAllowance = 120
@@ -98,9 +114,8 @@ final class OfflineInteractionTests: XCTestCase {
         capture("CSV — cancelled, no saved confirmation")
 
         tap(app.buttons["Setup"])
-        XCTAssertTrue(text(containing: "fictional copy, with no Google or AI connection active")
-            .waitForExistence(timeout: 4))
         let review = app.buttons["Open Review"]
+        XCTAssertTrue(review.waitForExistence(timeout: 12), "Setup must offer access to Review.")
         revealByScrollingDown(review)
         tap(review)
         XCTAssertTrue(text(containing: "the demo sheet is never written")
@@ -127,7 +142,7 @@ final class OfflineInteractionTests: XCTestCase {
         executionTimeAllowance = 120
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
-        XCTAssertTrue(page.waitForExistence(timeout: 10))
+        openHome()
         tap(app.buttons["Activity"])
         tap(app.buttons["Search transactions"])
         let search = searchField("Search entries")
@@ -254,24 +269,12 @@ final class OfflineInteractionTests: XCTestCase {
     }
 
     private func cancelExportPicker(navigation: XCUIElement) {
-        // iOS 26 opens at the previous location. Its underlying Other("Cancel") is
-        // covered by Files' More button, so never tap that stale accessibility node.
-        for _ in 0..<2 {
-            let cancel = app.buttons.matching(identifier: "Cancel").firstMatch
-            if cancel.exists && cancel.isHittable {
-                tap(cancel)
-                return
-            }
-            let browse = navigation.buttons["BackButton"]
-            guard browse.exists && browse.isHittable && browse.label == "Browse" else { break }
-            tap(browse)
-        }
-
-        // The observed picker is a sheet with a top edge immediately above its nav bar.
-        // Dismiss it with the same downward drag a person can use, without pressing Save.
-        XCTAssertTrue(navigation.exists && navigation.isHittable)
-        let topEdge = navigation.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0))
-            .withOffset(CGVector(dx: 0, dy: -8))
+        // The iOS 26.2 Files sheet animates between Locations and Browse. Its
+        // "Cancel" accessibility node can disappear between two queries while the
+        // visible X stays on screen. Dismiss the presented sheet in place, as a
+        // person can, without navigating elsewhere or ever tapping Save.
+        XCTAssertTrue(navigation.waitForExistence(timeout: 8))
+        let topEdge = navigation.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))
         let lowerScreen = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
         topEdge.press(forDuration: 0.15, thenDragTo: lowerScreen)
     }

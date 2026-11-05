@@ -61,6 +61,72 @@ final class OfflinePageTests: XCTestCase {
         add(attachment)
     }
 
+    func testAskAnswersFromEntriesAndPreservesTheFollowUpScope() async throws {
+        let suite = "KittyAskTests-" + UUID().uuidString
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let host = KittyViewController(preferences: preferences, websiteDataStore: .nonPersistent())
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        host.loadViewIfNeeded()
+        let page = try XCTUnwrap(host.webView)
+        try await wait(page, for: "window.KittyNative?.ready && !document.querySelector('#askbtn').hidden")
+        try await wait(page, for: "getComputedStyle(document.querySelector('#toast')).opacity === '0' && !document.querySelector('canvas[data-generated-confetti]')")
+        _ = try await js(page, "document.querySelector('#askbtn').click(); return true")
+        _ = try await js(page,"const i=document.querySelector('[data-ask-input]'); i.value='Where do we stand financially?'; i.form.requestSubmit(); return true")
+        try await wait(page, for: "document.querySelectorAll('[data-ask-option]').length===2")
+        let scope = try await js(page,"return document.querySelector('[data-ask-scope]').innerText") as? String ?? ""
+        XCTAssertTrue(scope.contains("Cash and offset") && scope.contains("Net worth") && scope.contains("99,388"), scope)
+        _ = try await js(page, "document.querySelector('[data-ask-option]').click(); const i=document.querySelector('[data-ask-input]'); i.value='If we cancelled the unused subscriptions, how much sooner would the Emergency fund be reached?'; i.form.requestSubmit(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-clarify]') && Array.from(document.querySelectorAll('[data-ask-example]')).map(b=>b.textContent).join('|')==='Review only|All unused'")
+        _ = try await js(page, "document.querySelector('[data-ask-example]').click(); return true")
+
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('37.49')")
+        let scenario = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
+        XCTAssertTrue(scenario.contains("June 2027") && scenario.contains("31 Dec 2026") && scenario.contains("3,097.16"),scenario)
+        XCTAssertTrue(scenario.contains("Left out: Anytime Fitness (marked Keep)"),"Name the Keep decision excluded from this scenario.")
+        _ = try await js(page, "document.querySelector('[data-ask-example*=cancelled]').click(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('102.44')")
+        let all = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
+        XCTAssertTrue(all.contains("1 month sooner") && all.contains("May 2027") && all.contains("Nothing is cancelled."),all)
+        _ = try await js(page, "const input=document.querySelector('[data-ask-input]'); input.value='Could our unused subscriptions help fund Emergency fund?'; input.form.requestSubmit(); return true")
+
+        try await capture(page, "Ask – subscription choices and emergency savings goal")
+        _ = try await js(page, "const input=document.querySelector('[data-ask-input]'); input.value='How much did we spend on groceries last month?'; input.form.requestSubmit(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('1,429.05')")
+        let first = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
+        XCTAssertTrue(first.contains("December 2026") && first.contains("Groceries") && first.contains("4 expense entries"), first)
+        _ = try await js(page, "document.querySelector('[data-ask-evidence] summary').click(); return true")
+        let rows = try await js(page, "return Array.from(document.querySelectorAll('[data-ask-go]'), x=>x.dataset.askGo)") as? [String] ?? []
+        XCTAssertEqual(rows.count,4)
+        try await capture(page, "Ask – December groceries and four fictional ledger entries")
+        _ = try await js(page, "document.querySelector('[data-ask-go]').click(); return true")
+        try await wait(page, for: "!document.querySelector('[data-native-ask]') && document.querySelector('#drawer.on').innerText.includes('" + (rows.first?.replacingOccurrences(of: "entry:", with: "") ?? "missing") + "')")
+        _ = try await js(page, "document.querySelector('#dclose').click(); document.querySelector('#askbtn').click(); document.querySelector('[data-ask-example*=Compare]').click(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('November 2026')")
+        _ = try await js(page, "document.querySelector('[data-ask-period]').click(); document.querySelector('[data-ask-share]').click(); return true")
+        let preview = try await js(page, "return document.querySelector('.ask-preview').textContent") as? String ?? ""
+        XCTAssertTrue(preview.contains("December 2026") && preview.contains("1,429.05"),preview)
+        XCTAssertFalse(preview.contains("https:") || preview.contains("T0761"))
+        XCTAssertNil(host.presentedViewController, "Previewing never sends data.")
+        _ = try await js(page, "document.querySelector('[data-ask-system-share]').click(); return true")
+        for _ in 0..<30 where host.presentedViewController == nil { try await Task.sleep(for: .milliseconds(100)) }
+        XCTAssertTrue(host.presentedViewController is UIActivityViewController)
+        host.presentedViewController?.dismiss(animated:false)
+        let stale = try await js(page,"return await webkit.messageHandlers.kitty.postMessage({method:'ask.share',params:{text:'fictional',session:'wrong'}})") as? [String:Any]
+        XCTAssertEqual(stale?["ok"] as? Bool,false)
+
+        _ = try await js(page, "document.querySelector('#dclose').click(); window.KittyNative.openRoute('review'); return true")
+        try await wait(page, for: "document.querySelector('#reviewcard [data-cookie]')")
+        _ = try await js(page, "document.querySelector('#reviewcard [data-cookie]').click(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-choose]')")
+        _ = try await js(page, "document.querySelector('[data-ask-choose]').click(); return true")
+        try await wait(page, for: "document.querySelector('#catpick [data-pickcat]')")
+    }
+
     func testOfflineJourneysAndHostCapabilities() async throws {
         let suite = "KittyTests-" + UUID().uuidString
         let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -120,7 +186,7 @@ final class OfflinePageTests: XCTestCase {
         try await capture(page, "Review — demo decisions only")
         let reviewActions = try await js(page, """
             return document.querySelector('#reviewcard [data-ract="cat"]') !== null &&
-              !document.querySelector('#reviewcard [data-cookie]') &&
+              document.querySelector('#reviewcard [data-cookie][aria-label*="past entries"]') !== null &&
               !document.querySelector('#reviewcard').innerText.includes('Open this page in Claude');
             """)
         XCTAssertEqual(reviewActions as? Bool, true, "Offline Review must offer a usable category action.")
@@ -147,6 +213,16 @@ final class OfflinePageTests: XCTestCase {
         XCTAssertTrue(setup.localizedCaseInsensitiveContains("demo"))
         XCTAssertFalse(setup.contains("Safari"))
         XCTAssertFalse(setup.contains("sheet_version 1"))
+        try await wait(page, for: "document.querySelector('[data-icon-choice=cat][aria-pressed]') && document.querySelector('[data-icon-choice=dog][aria-pressed]')")
+        let icons = try await js(page, """
+            const native = await KittyNative.icon.status();
+            return [...document.querySelectorAll('[data-icon-choice]')].every(button =>
+                button.disabled === !native.supported &&
+                button.getAttribute('aria-pressed') === String((button.dataset.iconChoice !== KITTY_ART.set) === native.alternate));
+            """)
+        XCTAssertEqual(icons as? Bool, true, "The actual Home Screen setting is shown on this device.")
+        let info = try XCTUnwrap(Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any])
+        XCTAssertNotNil((info["CFBundleAlternateIcons"] as? [String: Any])?["KittyAlternate"])
         let appearance = try await js(page, """
             const root = document.querySelector('#v-setup');
             root.querySelector('[data-theme-pick=dark]').click();

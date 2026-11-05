@@ -19,8 +19,8 @@
   "test_nul_byte": {"bug": "PY-8", "input": "a NUL byte in a CSV", "python": "below 3.11 crashes: _csv.Error; 3.11 and later keeps the NUL in the description", "js": "csv_unreadable stop on every version"},
   "test_reversed_month_range": {"bug": "PY-9", "input": "2027-02..2027-01", "python": "silently imports 2027-02 alone", "js": "PeriodInputError, a host bug and no plan"},
   "test_amount_zero": {"bug": "PY-10", "input": "card Amount 0.00", "python": "-0.0 reaches the review line as (-0.00); the sheet value is the same", "js": "(+0.00): integer cents have no negative zero"},
-  "test_amount_blank": {"bug": "PY-10", "input": "card Amount blank", "python": "as above", "js": "as above"},
-  "test_amount_space": {"bug": "PY-10", "input": "card Amount spaces", "python": "as above", "js": "as above"},
+  "test_amount_blank": {"bug": "PY-12", "input": "card Amount blank", "python": "money() reads a blank as 0.0, so a truncated file plans a 0.00 row, exit 0", "js": "bad_amount stop: a blank cell cannot establish an amount; an explicit 0.00 stays valid"},
+  "test_amount_space": {"bug": "PY-12", "input": "card Amount spaces", "python": "money() reads a blank as 0.0, so a truncated file plans a 0.00 row, exit 0", "js": "bad_amount stop: a blank cell cannot establish an amount; an explicit 0.00 stays valid"},
   "test_leading_apostrophe_formula": {"bug": "PY-11", "input": "card description '=LITERAL", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
   "test_leading_apostrophe_word": {"bug": "PY-11", "input": "card description 'PLAIN WORD", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
   "test_formula_like_text": {"bug": "PY-11", "input": "card description 'QUOTED", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
@@ -29,7 +29,6 @@
  },
  "notes": {
   "matched, worth a decision": [
-   "A blank Amount on a card row imports a 0.00 row in both importers. money('') is 0.0 by design for the debit/credit columns, and a card row reuses it. Silent on a truncated card file. Python decides first.",
    "A closing balance from a file exported mid-day holds a run when a later file brings more rows for that day: the ledger counts the whole day. Fails safe, in both."
   ],
   "not compared by the harness": [

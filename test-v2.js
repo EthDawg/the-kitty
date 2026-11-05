@@ -9,6 +9,34 @@ const load = (p) => JSON.parse(fs.readFileSync(path.join(__dirname, p), "utf8"))
 const live = load("data/snapshot-v2.json"), everyday = load("fixtures/everyday-only.json"), property = load("fixtures/everyday+property.json");
 const near = (a, b, tol = 0.01) => assert.ok(a != null && b != null && Math.abs(a - b) < tol, `${a} vs ${b}`);
 
+test("a real decision uses the Sheet's day across UTC midnight, independently of the fictional as-of date", () => {
+  const instant = new Date("2026-11-04T16:30:00Z");
+  assert.equal(E.auditDay(instant,"Australia/Melbourne"),"2026-11-05");
+  assert.equal(E.auditDay(instant,"America/Los_Angeles"),"2026-11-04");
+});
+
+test("a trimmed Sheets page never moves a later entry to an earlier write address", () => {
+  const entries = E.joinGridPages([
+    { first: 1, last: 1, rows: [["Entry ID", "Category ID"]] },
+    { first: 2, last: 2501, rows: [["T0001", "FOOD"]] },
+    { first: 2502, last: 5001, rows: [] },
+    { first: 5002, last: 5010, rows: [[], ["T0002", "UNCAT"]] },
+  ]);
+  assert.equal(entries.findIndex(row => row?.[0] === "T0002") + 1, 5003);
+  assert.equal(entries.length, 5003);
+  const decisions = [["Decision ID", "Ref ID"], [], ["D0001", "T0002"]];
+  const model = E.fromConnector({ entries, decisions });
+  assert.deepEqual(model.entries.map(e => e.entry_id), ["T0001", "T0002"]);
+  assert.deepEqual(model.decisions.map(d => d.ref_id), ["T0002"]);
+  assert.throws(() => E.joinGridPages([{ first: 1, last: 1, rows: [["A"], ["B"]] }]));
+});
+
+test("an incomplete Entries or Decisions row cannot silently disappear", () => {
+  assert.throws(() => E.fromConnector({ entries: [["Entry ID", "Amount"], ["", 0]] }), /Entry ID.*row 2/);
+  assert.throws(() => E.fromConnector({ decisions: [["Decision ID", "Ref ID"], [], ["", "T0002"]] }), /Decision ID.*row 3/);
+  assert.throws(() => E.fromConnector({ entries: [["Entry ID"], ["T0001"], [], ["T0001"]] }), /Repeated Entry ID.*row 4/);
+});
+
 for (const [name, sn] of [["live v2 snapshot", live], ["fixture everyday-only", everyday], ["fixture everyday+property", property]]) {
   const m = E.model(sn);
   test(`${name}: the sheet is the oracle for every account, at the as-of date and at every month end on the Balances tab`, () => {

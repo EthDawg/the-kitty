@@ -192,9 +192,12 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
     symbols = sprite[sprite.index('<symbol'):sprite.rindex('</symbol>') + len('</symbol>')]
     merchants = {'merchants': json.loads(read(root, 'merchants', 'merchants.json')),
                  'categories': json.loads(read(root, 'merchants', 'categories.json'))}
-    art = {'cookie': read(brand, 'motion', 'fortune-cookie.svg'),
-           'allReviewed': read(brand, 'illustrations', 'cat-all-reviewed.svg'),
-           'emptyActivity': read(brand, 'illustrations', 'cat-empty-activity.svg')}
+    mascot = json.loads(read(brand, 'tokens.json'))['mascot']
+    if mascot not in ('cat', 'dog'):
+        raise BuildError('Unknown brand mascot')
+    art = {'set': mascot, 'cookie': read(brand, 'motion', 'fortune-cookie.svg' if mascot == 'cat' else 'biscuit.svg'),
+           'allReviewed': read(brand, 'illustrations', mascot + '-all-reviewed.svg'),
+           'emptyActivity': read(brand, 'illustrations', mascot + '-empty-activity.svg')}
     logos = {}
     logo_dir = root / 'logos'
     if not native and logo_dir.is_dir():
@@ -210,7 +213,7 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
     sprite_start = shell.index('<svg width="0" height="0"')
     sprite_end = shell.index('</svg>', sprite_start) + len('</svg>')
     shell = shell[:sprite_start] + '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' + symbols + '</defs></svg>' + shell[sprite_end:]
-    styles = read(src, 'vendor', 'gridstack-14.0.0.min.css') + '\n' + read(src, 'style.css') + '\n' + read(brand, 'motion', 'motion.css')
+    styles = read(src, 'vendor', 'gridstack-14.0.0.min.css') + '\n' + read(src, 'tokens.css') + '\n' + read(src, 'style.css') + '\n' + read(brand, 'motion', 'motion.css')
     if native:
         styles = font_css + '\n' + styles + '\n' + host_css
     page = (shell
