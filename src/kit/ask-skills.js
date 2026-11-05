@@ -133,6 +133,7 @@
       detail="This averages the annual costs of unused subscriptions marked Review. Anything marked Keep is excluded.";
       if(costed.length<unused.length)detail+=" An item without a confirmed annual cost was left out.";
       if(left>0&&monthly&&possible.date){detail=(baseline.date===possible.date?"Even with the extra savings, the estimated funding month stays "+E.fmtMonth(possible.date)+".":"Redirecting that amount would put the estimated funding month at "+E.fmtMonth(possible.date)+(baseline.date?", compared with "+E.fmtMonth(baseline.date)+" at today’s pace.":"."))+" "+detail;}
+      if(left>0&&goal.date&&goal.date<m.asOf)detail+=" Its target date was "+E.fmtDay(goal.date,{year:true})+".";
       facts.push({label:"Still to save",value:money(left)},...costed.slice(0,6).map(s=>({label:s.service,value:money(s.annual)+" / year"})));
       links.push({go:"goal:"+goal.name,label:"See goal and saving pace"},{go:"subs",label:"See subscription decisions"});
     }else if(p.kind==="goal"){
@@ -140,6 +141,7 @@
       const eta=E.goalEta(g,0,m.asOf);
       title=eta.reached?"Already funded":eta.date?"At this pace: "+E.fmtMonth(eta.date):"No reliable date yet";basis=g.name;source="Goals · "+m.asOf;
       detail="Current savings "+money(g.balance)+" of "+money(g.target)+". "+(eta.reached?"The balance has reached the target.":eta.date?"The estimate assumes the recorded saving pace continues.":"Kitty needs a positive saving pace to estimate a date.");
+      if(!eta.reached&&g.date&&g.date<m.asOf)detail+=" Its target date was "+E.fmtDay(g.date,{year:true})+".";
       facts.push({label:"Balance",value:money(g.balance)},{label:"Target",value:money(g.target)});links.push({go:"goals",label:"See goal and assumptions"});
     }else if(p.kind==="upcoming"){
       const events=E.upcoming(m,35).filter(e=>!p.filter||e.kind==="bill");title=events.length+(p.filter?" upcoming bills":" upcoming items");basis="Next 35 days";source=(p.filter?"Scheduled bills":"Scheduled bills, repayments, pay and goals")+" · as of "+m.asOf;

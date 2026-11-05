@@ -6,7 +6,7 @@ Tap the sparkle on Home, type a question, or try a suggested one. Each answer na
 | --- | --- |
 | How much did we spend on groceries last month? | December 2026, $1,429.05, four entries. Open one, or compare with the month before without typing the category again. |
 | What changed in our spending this month? | Two dated totals and the biggest category change. Open either period to see the supporting expenses. In an unfinished month, compare equivalent days. |
-| Could our unused subscriptions help fund Emergency fund? | Dropbox Plus and YouTube Premium average $37.49/month. The gym is marked Keep. There is $3,097.16 left; the estimated funding month remains June 2027 even if the savings go into the goal. |
+| Could our unused subscriptions help fund Emergency fund? | Dropbox Plus and YouTube Premium average $37.49/month. The gym is marked Keep. There is $3,097.16 left; the estimated funding month remains June 2027 even if the savings go into the goal. The original 31 December 2026 target is shown separately. |
 | When will the Japan trip be funded? | The Sheet already shows $12,090.25 against a $12,000 target. |
 | What bills are due next? | Scheduled bills with dates. Paydays are a separate kind of event; refunded charges are not forecast as recurring income. |
 | In Review: check past entries | Reads earlier categorised entries with the same normalised description on the same account. Shows evidence or says there is none. The category picker is a separate action. A guess cannot create a rule. |

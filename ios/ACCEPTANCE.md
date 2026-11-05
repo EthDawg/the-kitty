@@ -94,3 +94,10 @@ the first Mac probe, declined two more and returned one service error; three
 additional safety cases were correctly refused. A repeat probe declined those
 same three safety cases but the model service failed on all eight other prompts,
 and an independent one-word control also failed. Core answers need no model.
+
+A read-only check on the published Davies v2 Sheet found exactly four December
+2026 grocery entries (T0834, T0844, T0853, T0866), totalling $1,429.05. The
+two subscription decisions eligible for the emergency-fund scenario total
+$449.88 a year, or $37.49/month. Goals showed $26,902.84 of $30,000, a target
+date of 31 December 2026, and a recorded pace of about $700.05/month. The June
+2027 estimate and the original deadline are displayed separately.

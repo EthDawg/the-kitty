@@ -79,7 +79,7 @@ final class OfflinePageTests: XCTestCase {
         _ = try await js(page, "document.querySelector('[data-ask-example*=subscriptions][data-ask-example*=fund]').click(); return true")
         try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('37.49')")
         let scenario = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
-        XCTAssertTrue(scenario.contains("June 2027") && scenario.contains("3,097.16"),scenario)
+        XCTAssertTrue(scenario.contains("June 2027") && scenario.contains("31 Dec 2026") && scenario.contains("3,097.16"),scenario)
         XCTAssertFalse(scenario.contains("Anytime Fitness"),"The household marked the gym Keep.")
         try await capture(page, "Ask – subscription choices and emergency savings goal")
         _ = try await js(page, "const input=document.querySelector('[data-ask-input]'); input.value='How much did we spend on groceries last month?'; input.form.requestSubmit(); return true")
