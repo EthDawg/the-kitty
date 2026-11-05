@@ -15,9 +15,12 @@ struct GoogleSheetSelection {
         var timeZone: TimeZone = TimeZone(secondsFromGMT:0)!
         var canImportBankFiles = false
         var isPracticeCopy = false
+        var bankImportHint: String?
         var summary: [String: Any] {
-            ["sheetID": selection.sheetID, "title": title, "sheetVersion": 2, "canEdit": canEdit,
-             "canImportBankFiles": canImportBankFiles, "isPracticeCopy": isPracticeCopy]
+            var result: [String:Any] = ["sheetID": selection.sheetID, "title": title, "sheetVersion": 2, "canEdit": canEdit,
+                                         "canImportBankFiles": canImportBankFiles, "isPracticeCopy": isPracticeCopy]
+            if let bankImportHint { result["bankImportHint"] = bankImportHint }
+            return result
         }
         var preferenceID: String {
             let bytes = Data((selection.permissionID + "\u{0}" + selection.sheetID).utf8)
@@ -95,8 +98,13 @@ struct GoogleSheetSelection {
         let practice = owned && properties?["kittyPractice"] == "davies-v2" &&
             properties?["kittyPracticeOperation"].flatMap(UUID.init(uuidString:)) != nil
         let feedIsPrivate = (try? GoogleBankStore.checkFeed(values)) != nil
+        let hint: String?
+        if selection.sheetID == Self.demoFileID { hint = "Try a file here, or make a private practice Sheet to save the reviewed entries." }
+        else if !owned { hint = "To save a bank import, open a Sheet you own whose Drive sharing is restricted to named people." }
+        else if !feedIsPrivate { hint = "Set public_feed to no on the Kitty tab, then refresh this Sheet before importing." }
+        else { hint = nil }
         return Verified(selection: selection, title: String(name.prefix(250)), canEdit: canEdit,
-                        timeZone:zone, canImportBankFiles:owned && feedIsPrivate, isPracticeCopy:practice)
+                        timeZone:zone, canImportBankFiles:owned && feedIsPrivate, isPracticeCopy:practice, bankImportHint:hint)
     }
 
     #if DEBUG

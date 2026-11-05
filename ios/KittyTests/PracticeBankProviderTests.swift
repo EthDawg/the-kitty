@@ -138,7 +138,8 @@ final class PracticeBankProviderTests: XCTestCase {
                 guard let association = body["binding"] as? Object, try json(association) == json(binding),
                       body["kind"] as? String == (kind == "manifest" ? "reviewed" : "dispatch") else { throw Fail.archiveMismatch }
                 if kind == "manifest" {
-                    guard body["originalName"] as? String == "Kitty-2027-01-proof-" + run + ".csv",
+                    let filename = (ProcessInfo.processInfo.environment["KITTY_PRACTICE_FILE"] ?? "Kitty-2027-01-proof-" + run) + ".csv"
+                    guard body["originalName"] as? String == filename,
                           let plan = body["plan"] as? Object, let writes = plan["writes"] as? [Object], writes.count == 1,
                           writes[0]["tab"] as? String == "Entries", writes[0]["op"] as? String == "append",
                           let values = writes[0]["values"] as? [[Any]], values.count == 2 else { throw Fail.archiveMismatch }
@@ -160,3 +161,100 @@ final class PracticeBankProviderTests: XCTestCase {
                        "archivedBytes":bytes.count,"archivedSHA256":sha,"verifiedReceipts":1,"durableSheetMarkers":1,"sharedHoldReleased":true,"boundPrivateDriveFiles":4,"totalEntries":rows.count-1])
     }
 }
+
+#if targetEnvironment(simulator)
+import WebKit
+
+extension PracticeBankProviderTests {
+    /// Only this simulator test replaces Google. The preceding UI phase must export and select the original in Apple's Files UI.
+    private final class SimulatedSheet: GoogleHTTPTransport {
+        var ids: [String]
+        var cells = [[Object]](), marker: Object?, batchCount = 0
+        let fileID: String, header: [String]
+        init(_ fileID: String, _ ids: [String], _ header: [String]) { self.fileID = fileID; self.ids = ids; self.header = header }
+        func send(_ request: URLRequest, maximumBytes: Int) async throws -> GoogleHTTPResponse {
+            let url = try XCTUnwrap(request.url), path = url.path
+            guard url.host == "sheets.googleapis.com", path.hasPrefix("/v4/spreadsheets/" + fileID) else { throw Fail.unexpectedResponse }
+            let result: Object
+            if path.hasSuffix(":batchUpdate") {
+                guard marker == nil else { throw Fail.unexpectedResponse }
+                let payload = try XCTUnwrap(try JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody)) as? Object)
+                let requests = try XCTUnwrap(payload["requests"] as? [Object])
+                let write = try XCTUnwrap(requests.compactMap { $0["updateCells"] as? Object }.first)
+                let range = try XCTUnwrap(write["range"] as? [String:Int]); guard range["startRowIndex"] == ids.count, range["endColumnIndex"] == 20 else { throw Fail.differentLedger }
+                let written = try XCTUnwrap(write["rows"] as? [Object]).map { try XCTUnwrap($0["values"] as? [Object]) }
+                var typed = written
+                for style in requests.compactMap({ $0["repeatCell"] as? Object }) {
+                    let col = try XCTUnwrap((style["range"] as? [String:Int])?["startColumnIndex"])
+                    for row in typed.indices { typed[row][col]["userEnteredFormat"] = (style["cell"] as? Object)?["userEnteredFormat"] }
+                }
+                let add = try XCTUnwrap(requests.compactMap { $0["createDeveloperMetadata"] as? Object }.first)
+                marker = try XCTUnwrap(add["developerMetadata"] as? Object); cells = typed; batchCount += 1
+                ids += try typed.map { try XCTUnwrap(($0[0]["userEnteredValue"] as? Object)?["stringValue"] as? String) }; result = ["spreadsheetId":fileID]
+            } else if path.hasSuffix(":search") {
+                result = ["matchedDeveloperMetadata":marker.map { [["developerMetadata":$0]] } ?? []]
+            } else if path.contains("/values/") {
+                let range = String(path.components(separatedBy:"/values/").last ?? "")
+                let rows: [[Any]], returned: String
+                switch range {
+                case "Kitty!A1:B": rows = [["sheet_version",2]]; returned = range + "100"
+                case "Entries!A1:T1": rows = [header]; returned = range
+                case "Entries!A1:A": rows = ids.map { [$0] }; returned = range + "5000"
+                default: throw Fail.unexpectedResponse
+                }
+                result = ["range":returned,"majorDimension":"ROWS","values":rows]
+            } else {
+                result = ["spreadsheetId":fileID,"sheets":[["properties":["sheetId":123,"title":"Entries","gridProperties":["rowCount":5000,"columnCount":21]],
+                           "data":[["startRow":1083,"rowData":cells.map { ["values":$0] }]]]]]
+            }
+            return .init(statusCode:200, data:try JSONSerialization.data(withJSONObject:result))
+        }
+    }
+    func testSimulatedCommitAndReplanUsingTheOriginalSelectedInFiles() async throws {
+        guard envSim, UUID(uuidString:run) != nil else { throw XCTSkip("Paired isolated simulator Files run only.") }
+        let bytes = try ImportOriginals().load(id:sha,scope:"native-demo"), name = (ProcessInfo.processInfo.environment["KITTY_PRACTICE_FILE"] ?? "Kitty-2027-01-proof-" + run) + ".csv"
+        XCTAssertEqual(bytes.count,229); XCTAssertEqual(hash(bytes),sha)
+        let original = SourceDocument(name:name,mimeType:"text/csv",bytes:bytes)
+        let host = KittyViewController(preferences:try XCTUnwrap(UserDefaults(suiteName:"PracticeTest-"+run)), websiteDataStore:.nonPersistent())
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene), window = UIWindow(windowScene:scene)
+        window.rootViewController = host; window.makeKeyAndVisible(); defer { window.isHidden = true }
+        host.loadViewIfNeeded(); let page = try XCTUnwrap(host.webView)
+        let until = Date().addingTimeInterval(40)
+        while Date() < until {
+            if (try? await page.evaluateJavaScript("Boolean(window.KittyNative?.ready && window.KittyBank)")) as? Bool == true { break }
+            try await Task.sleep(nanoseconds:100_000_000)
+        }
+        let fileID = "fictional_simulated_sheet_000001", selected = GoogleConnection.Selection(permissionID:"simulated",sheetID:fileID,sessionID:UUID())
+        let owner = GoogleSheetSelection.Verified(selection:selected,title:"Simulated fixture",canEdit:true,canImportBankFiles:true)
+        let source = try original.payload()
+        func plan(_ added: [[Object]] = []) async throws -> Object {
+            let body = """
+                const keys='entry_id kind settled_at account_id raw_text description amount category_id person receipt_held note status created_at transfer_id transfer_account foreign_amount foreign_currency units unit_price source'.split(' ');
+                const extra=added.map(row=>Object.fromEntries(keys.map((key,i)=>{const c=row[i]?.userEnteredValue||{};let v=c.stringValue??c.numberValue??'';if((i===2||i===12)&&typeof v==='number')v=new Date((v-25569)*86400000).toISOString().slice(0,10);return [key,v]})));
+                const sheet={...KITTY_SNAPSHOT,entries:KITTY_SNAPSHOT.entries.concat(extra)};
+                const result=KittyBank.prepare(sheet,source,{sourceID:source.id,name:source.name,byteLength:source.byteLength,mimeType:source.mimeType,account:'ACC-CC',month:'2027-01',downloadDay:'2027-01-31',sheetID:fileID});
+                return {plan:result.plan,summary:result.summary,ids:['Entry ID',...sheet.entries.map(e=>e.entry_id)]};
+                """
+            let result = try await page.callAsyncJavaScript(body, arguments:["source":source,"fileID":fileID,"added":added], in:nil, contentWorld:.page)
+            return try XCTUnwrap(result as? Object)
+        }
+        let first = try await plan(), proposed = try XCTUnwrap(first["plan"] as? Object), summary = try XCTUnwrap(first["summary"] as? Object)
+        XCTAssertEqual(summary["duplicateCount"] as? Int,1); XCTAssertEqual(summary["proposedCount"] as? Int,2)
+        let sheet = SimulatedSheet(fileID,try XCTUnwrap(first["ids"] as? [String]),columns), store = GooglePeriodBankJournalTests.Memory()
+        let api = GoogleSheetTools(http:sheet,selected:selected,current:{selected},token:{ _ in "simulated" })
+        let batch = try PeriodBankAppend(plan:proposed,sheetID:fileID,account:"ACC-CC",original:original,originalSHA256:sha)
+        let journal = GooglePeriodBankJournal(api:api,store:store,original:original,plan:proposed,month:"2027-01",downloadDay:"2027-01-31",replan:{ source,account,_,_ in
+            let refreshed = try await plan(sheet.cells); return try PeriodBankAppend(plan:try XCTUnwrap(refreshed["plan"] as? Object),sheetID:fileID,account:account,original:source,originalSHA256:source.id)
+        })
+        let verified = try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal)
+        XCTAssertEqual(verified,batch.digest); XCTAssertEqual(sheet.batchCount,1); XCTAssertEqual(Array(sheet.ids.suffix(2)),["T0926","T0927"])
+        let binding = try XCTUnwrap(store.all.first); XCTAssertEqual(store.blobs[binding.sourceID],bytes); XCTAssertNil(store.held)
+        XCTAssertEqual(try obj(XCTUnwrap(store.blobs[binding.receiptID]))["kind"] as? String,"verified")
+        let replay = try await plan(sheet.cells), again = try XCTUnwrap(replay["summary"] as? Object)
+        XCTAssertEqual(again["duplicateCount"] as? Int,3); XCTAssertEqual(again["proposedCount"] as? Int,0)
+        let second = try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal); XCTAssertEqual(second,verified); XCTAssertEqual(sheet.batchCount,1)
+        try attachment("Simulator — Files original, simulated Google save and replay", ["provider":"simulated","sourceSHA256":sha,"firstDuplicates":1,"newIDs":["T0926","T0927"],"replayDuplicates":3,"writeBatches":sheet.batchCount,"privateBlobs":store.blobs.count])
+    }
+    private var envSim: Bool { ProcessInfo.processInfo.environment["KITTY_PRACTICE_ACCEPTANCE"] == "simulator-files" }
+}
+#endif

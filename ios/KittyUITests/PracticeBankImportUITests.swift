@@ -8,8 +8,10 @@ final class PracticeBankImportUITests: XCTestCase {
     private let env = ProcessInfo.processInfo.environment
     private var page: XCUIElement { app.webViews.firstMatch }
     private var navigation: XCUIElement { app.navigationBars["FullDocumentManagerViewControllerNavigationBar"] }
-    private var fileBase: String { "Kitty-2027-01-proof-" + (env["KITTY_PRACTICE_RUN"] ?? "") }
+    private var desiredFileBase: String { "Kitty-2027-01-proof-" + (env["KITTY_PRACTICE_RUN"] ?? "") }
+    private var fileBase: String { env["KITTY_PRACTICE_FILE"] ?? desiredFileBase }
     private var fixtureBase: String { "Kitty-2027-01-card-proof" }
+    private var runFolder: String { "Kitty practice " + String((env["KITTY_PRACTICE_RUN"] ?? "").prefix(8)) }
     private var privateTitle: String { env["KITTY_PRACTICE_TITLE"] ?? "" }
     private func require(_ mode: String) throws {
         guard env["KITTY_PRACTICE_ACCEPTANCE"] == mode, UUID(uuidString: env["KITTY_PRACTICE_RUN"] ?? "") != nil else {
@@ -73,19 +75,55 @@ final class PracticeBankImportUITests: XCTestCase {
         }
         XCTAssertTrue(root.waitForExistence(timeout: 15), "Files must enter the named, on-device location.")
     }
-    private func saveSample() {
+    private func folderCell() -> XCUIElement {
+        app.cells.matching(NSPredicate(format:"label BEGINSWITH[c] %@", runFolder + ",")).firstMatch
+    }
+    private func createOrEnterRunFolder() {
+        let existing = folderCell()
+        if existing.exists && existing.isHittable { tap(existing) }
+        else {
+            tap(navigation.buttons["More"])
+            let make = app.descendants(matching:.any).matching(NSPredicate(format:"label ==[c] %@", "New Folder")).firstMatch
+            tap(make)
+            let name = app.textFields.firstMatch
+            tap(name)
+            if let old = name.value as? String, !old.isEmpty {
+                name.press(forDuration:0.8)
+                let all = app.menuItems["Select All"]
+                if all.exists && all.isHittable { all.tap() } else { name.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:old.count+4)) }
+            }
+            name.typeText(runFolder)
+            let create = app.buttons.matching(NSPredicate(format:"label IN %@", ["Create","Done"])).firstMatch
+            if create.exists && create.isHittable { tap(create) } else { name.typeText("\n") }
+            if !navigation.staticTexts[runFolder].waitForExistence(timeout:3) { tap(folderCell()) }
+        }
+        XCTAssertTrue(navigation.staticTexts[runFolder].waitForExistence(timeout:10))
+    }
+    @discardableResult private func saveSample() -> String {
         tap(button("Save a sample CSV"), scroll: true)
         localRoot(destination: true)
         let name = app.textFields["DOCPicker.filenameTextField"]
-        XCTAssertTrue(name.waitForExistence(timeout: 8), "Need an editable filename to avoid replacing existing files.")
-        let old = name.value as? String ?? ""
-        XCTAssertTrue(old.hasPrefix(fixtureBase), "Expected the canonical fictional sample, not another export.")
-        tap(name); name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count + 8))
-        XCTAssertEqual(name.value as? String, "")
-        name.typeText(fileBase); XCTAssertEqual(name.value as? String, fileBase)
+        let used: String
+        if name.waitForExistence(timeout: 5) {
+            let old = name.value as? String ?? ""
+            XCTAssertTrue(old.hasPrefix(fixtureBase), "Expected the canonical fictional sample, not another export.")
+            tap(name); name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count + 8))
+            XCTAssertEqual(name.value as? String, "")
+            name.typeText(desiredFileBase); XCTAssertEqual(name.value as? String, desiredFileBase)
+            used = desiredFileBase
+        } else {
+            // Some Files configurations expose only a destination picker. Keep the supplied filename in
+            // a new run-specific folder instead of replacing any existing file in the user's local storage.
+            createOrEnterRunFolder()
+            let collision = app.cells.matching(NSPredicate(format:"label BEGINSWITH[c] %@",fixtureBase + ",")).firstMatch
+            XCTAssertFalse(collision.exists, "The test will not replace a file already in the selected folder.")
+            used = fixtureBase
+        }
         tap(navigation.buttons["Save"])
         let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: navigation)
-        XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 12), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 20), .completed)
+        print("KITTY_PRACTICE_FILE=" + used)
+        return used
     }
     func testCreatePrivatePracticeAndSaveSampleThroughFiles() throws {
         #if targetEnvironment(simulator)
@@ -112,6 +150,7 @@ final class PracticeBankImportUITests: XCTestCase {
         tap(button("Import a bank file"), scroll: true)
         tap(app.buttons["Choose from Files"])
         localRoot(destination: false)
+        if base == fixtureBase { tap(folderCell()); XCTAssertTrue(navigation.staticTexts[runFolder].waitForExistence(timeout:10)) }
         let item = app.descendants(matching: .cell).matching(NSPredicate(format: "label BEGINSWITH[c] %@", base)).firstMatch
         let named = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@ OR label == %@", base, base + ".csv")).firstMatch
         if item.waitForExistence(timeout: 14) && item.isHittable { item.tap() }
@@ -175,7 +214,7 @@ final class PracticeBankImportUITests: XCTestCase {
     func testSimulatorFilesPreviewForSameSignedOriginal() throws {
         #if targetEnvironment(simulator)
         try require("simulator-files")
-        setup(); saveSample(); openPickerAndSelect(fileBase); assertFirstPreview()
+        setup(); let saved = saveSample(); openPickerAndSelect(saved); assertFirstPreview()
         XCTAssertFalse(button("Confirm import").exists, "The offline demo remains a preview.")
         capture("Simulator — real Files selection and original two-row preview")
         #else

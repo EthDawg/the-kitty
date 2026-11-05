@@ -93,6 +93,11 @@
         if(!label || !host.preview || !host.commit || typeof response.ticket!=="string" || !response.ticket ||
             (response.mode==="confirm" && (s.status!=="ready" || !s.proposedCount || !s.writes.length || s.deferred.length)) ||
             (response.mode==="stale" && !host.cancel))return;
+        if(response.mode==="confirm" || response.mode==="resume"){
+          const destination=document.createElement("p");
+          destination.textContent="Your private Google Drive will keep the full original CSV, including duplicates, other columns and rows outside this month, and its import record. The reviewed entries will go into “"+host.title+"”, where anyone with access to that Sheet can read them.";
+          result.append(destination);
+        }
         const button=document.createElement("button");button.type="button";button.className="btn";button.textContent=label;result.append(button);
         button.onclick=async()=>{
           if(busy||!mounted()||revision!==turn||JSON.stringify(details())!==JSON.stringify(request))return;

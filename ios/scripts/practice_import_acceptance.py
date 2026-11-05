@@ -42,7 +42,7 @@ def run(mode, udid, base, dest, resume=False):
         new = state_path.with_suffix('.tmp'); new.write_text(json.dumps(state, indent=2) + '\n'); new.replace(state_path)
     save_state()
     run_id = state['run']; title = state['title']
-    phases = [('sim-files', UI + 'testSimulatorFilesPreviewForSameSignedOriginal')] if mode == 'sim' else [
+    phases = [('sim-files', UI + 'testSimulatorFilesPreviewForSameSignedOriginal'), ('sim-commit-replay', CORE + 'testSimulatedCommitAndReplanUsingTheOriginalSelectedInFiles')] if mode == 'sim' else [
         ('prepare', UI + 'testCreatePrivatePracticeAndSaveSampleThroughFiles'),
         ('baseline', CORE + 'testCaptureUntouchedPracticeCopyBaseline'),
         ('import', UI + 'testConfirmOriginalFromFilesOnPrivateCopy'),
@@ -67,6 +67,7 @@ def run(mode, udid, base, dest, resume=False):
         assert targets
         for t in targets:
             env = t.setdefault('EnvironmentVariables', {})
+            if 'file' in state: env['KITTY_PRACTICE_FILE'] = state['file']
             env.update(KITTY_PRACTICE_ACCEPTANCE='simulator-files' if mode == 'sim' else 'private-google', KITTY_PRACTICE_RUN=run_id, KITTY_PRACTICE_TITLE=title)
         # __TESTROOT__ in xctestrun paths is relative to the .xctestrun's own directory.
         local = base.parent / ('kitty-practice-' + run_id + '-' + suffix + '.xctestrun')
@@ -87,6 +88,11 @@ def run(mode, udid, base, dest, resume=False):
         summary = json.loads(subprocess.check_output(['xcrun','xcresulttool','get','test-results','summary','--path',str(result)]))
         if summary.get('passedTests') != 1 or summary.get('failedTests') != 0 or summary.get('skippedTests') != 0:
             raise RuntimeError(f'{name} did not run and pass its one required test.')
+        if name in ('prepare','sim-files'):
+            names = re.findall(r'^KITTY_PRACTICE_FILE=(Kitty-2027-01-[A-Za-z0-9-]+)\s*$', log.read_text(), re.M)
+            if len(names) != 1 or names[0] not in ('Kitty-2027-01-card-proof', 'Kitty-2027-01-proof-' + run_id):
+                raise RuntimeError('The user-visible Files save did not return one verified test filename.')
+            state['file'] = names[0]
         if name == 'baseline':
             found = re.findall(r'^KITTY_PRACTICE_TITLE=(Davies practice · [A-Fa-f0-9]{8})\s*$', log.read_text(), re.M)
             if len(found) != 1:

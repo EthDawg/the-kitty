@@ -95,6 +95,7 @@ test("normal file review sends metadata only and confirms with only the opaque n
   assert.match(box.innerHTML,/1 already in this Sheet/);assert.match(box.innerHTML,/-17\.45 AUD/);assert.match(box.innerHTML,/\+6\.25 AUD/);
   assert.deepEqual(Object.keys(ui.calls.preview[0]).sort(),["account","byteLength","downloadDay","mimeType","month","name","sourceID"]);
   const action=box.children.at(-1);assert.equal(action.textContent,"Confirm import to Private practice");
+  assert.match(box.children.at(-2).textContent,/private Google Drive.*full original CSV.*duplicates.*outside this month.*import record.*Private practice.*access to that Sheet/);
   await action.onclick();assert.deepEqual(ui.calls.commit,["one-use-ticket"]);assert.match(box.innerHTML,/Verified import/);
 });
 test("duplicates after a lost response can verify or recover the matching receipt, but ordinary previews cannot write",async()=>{
