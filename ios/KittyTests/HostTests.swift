@@ -75,6 +75,10 @@ final class OfflinePageTests: XCTestCase {
         let page = try XCTUnwrap(host.webView)
         page.configuration.userContentController.addUserScript(WKUserScript(source: """
             window.__testErrors = [];
+            addEventListener('securitypolicyviolation', e => {
+              if (/worker/.test(e.effectiveDirective) || String(e.blockedURI).startsWith('blob'))
+                window.__testErrors.push('Blocked celebration worker: ' + e.effectiveDirective);
+            });
             addEventListener('error', e => window.__testErrors.push(String(e.message)));
             addEventListener('unhandledrejection', e => window.__testErrors.push(String(e.reason)));
             """, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -114,6 +118,13 @@ final class OfflinePageTests: XCTestCase {
         host.openDeepLink(try XCTUnwrap(URL(string: "kitty://review")))
         try await wait(page, for: "document.querySelector('#v-activity.on #reviewcard .rcard')")
         try await capture(page, "Review — demo decisions only")
+        let reviewActions = try await js(page, """
+            return document.querySelector('#reviewcard [data-ract="cat"]') !== null &&
+              !document.querySelector('#reviewcard [data-cookie]') &&
+              !document.querySelector('#reviewcard').innerText.includes('Open this page in Claude');
+            """)
+        XCTAssertEqual(reviewActions as? Bool, true, "Offline Review must offer a usable category action.")
+
 
         _ = try await js(page, "document.querySelector('[data-tab=insights]').click(); return true")
         try await wait(page, for: "document.querySelector('#v-insights.on .jar circle') && document.querySelector('#nwchart svg path')")
@@ -123,11 +134,29 @@ final class OfflinePageTests: XCTestCase {
         _ = try await js(page, "document.querySelector('[data-tab=goals]').click(); return true")
         try await wait(page, for: "document.querySelector('#v-goals.on .ring svg')")
         try await capture(page, "Goals — shared goal view")
+        _ = try await js(page, """
+            document.querySelector('#v-goals [data-open="goal:Japan trip, April 2027"]').click();
+            return true;
+            """)
+        try await wait(page, for: "document.querySelector('#drawer.on[aria-modal=true]')")
+        _ = try await js(page, "document.querySelector('#dclose').click(); return true")
+        try await wait(page, for: "document.querySelector('#drawer[inert][aria-hidden=true]:not([aria-modal])')")
+
         _ = try await js(page, "document.querySelector('[data-tab=setup]').click(); return true")
         let setup = try await js(page, "return document.querySelector('#v-setup').innerText") as? String ?? ""
         XCTAssertTrue(setup.localizedCaseInsensitiveContains("demo"))
         XCTAssertFalse(setup.contains("Safari"))
         XCTAssertFalse(setup.contains("sheet_version 1"))
+        let appearance = try await js(page, """
+            const root = document.querySelector('#v-setup');
+            root.querySelector('[data-theme-pick=dark]').click();
+            const changed = document.documentElement.dataset.theme === 'dark' &&
+              root.querySelector('[data-theme-pick=dark]').getAttribute('aria-pressed') === 'true';
+            root.querySelector('[data-theme-pick=system]').click();
+            return changed && !document.documentElement.hasAttribute('data-theme');
+            """)
+        XCTAssertEqual(appearance as? Bool, true)
+
 
         _ = try await js(page, """
             window.KittyNative.openRoute('home');

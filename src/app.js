@@ -48,7 +48,7 @@
   let CTX = null, REVIEW = null;
   const setModel = (m) => { S.m = m; CTX = null; REVIEW = null; return m; };
   const review = () => REVIEW || (REVIEW = E.review(S.m));
-  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, cookie: ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
+  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, cookie: NATIVE && !S.sample ? "" : ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
   // the demo and a read-only sheet keep this visit's judgments in memory only: the sheet is never written and nothing is remembered
   const demoModel = () => { if (!SNAP) return null; const snap = Object.assign({}, SNAP, { decisions: (SNAP.decisions || []).concat(S.sessionDecisions), entries: Object.keys(S.sessionCats).length ? (SNAP.entries || []).map((e) => (S.sessionCats[e.entry_id] ? Object.assign({}, e, { category_id: S.sessionCats[e.entry_id] }) : e)) : SNAP.entries }); return applyLocalGoals(E.model(snap)); };
   const sheetId = () => (S.prefs.sheet || DEMO_SHEET).trim();
@@ -882,6 +882,15 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <path class="dg-edge write" d="M910 220 V345 H535 V322" marker-end="url(#arr)"/><text class="dg-lab" x="722" y="360" text-anchor="middle">onboarding writes, each to its owning tab: Kitty · Goals · Settings</text>
       </g></svg>`;
   }
+  function appearanceCard(m) {
+    return `<div class="card" style="--i:4.5" id="lookcard"><div class="cardhead"><span class="q">Appearance</span><span class="sub">remembered with your other choices</span></div>
+        <div class="cardtools"><span class="seg" role="group" aria-label="Theme">${[["system", "Match my device"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button data-theme-pick="${k}" aria-pressed="${(S.prefs.theme || "system") === k}">${l}</button>`).join("")}</span><span class="swatches">${[["violet", "#5B3DF5"], ["coral", "#F0533D"], ["teal", "#0E8F8E"], ["lime", "#7DB91D"]].map(([n, c]) => `<button class="swatch" data-accent-pick="${n}" aria-pressed="${(pref("accent", m.kitty.accent) || "violet") === n}" aria-label="${n}" style="background:${c};width:34px;height:34px"></button>`).join("")}</span></div>
+      </div>`;
+  }
+  function bindAppearance(v) {
+    $$("[data-theme-pick]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ theme: b.dataset.themePick }); applyTheme(); renderSetup(); buzz(); }));
+    $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
+  }
   function renderNativeSetup() {
     const m = S.m, v = $("#v-setup");
     v.innerHTML = `
@@ -890,6 +899,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <p>The numbers belong in a Google Sheet you can open and keep. This preview uses a fictional copy, with no Google or AI connection active.</p></div>
         <div class="chips"><button class="btn sm" data-go="review">Open Review</button><button class="btn sm ghost" data-go="goals">Explore Goals</button></div>
       </div>
+      ${appearanceCard(m)}
       <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
         <div class="prose"><p>Display preferences and demo goal edits stay on this device. Review decisions last for this visit. None of them changes the Google Sheet.</p>
         <p>${S.downloads ? "Activity can export its filtered rows as a CSV through the iOS file picker. A save is confirmed only after the picker finishes." : "Native file export is unavailable in this view."}</p>
@@ -900,6 +910,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <p>The household's Google Sheet remains the owner of its numbers. These links open online and need a connection:</p></div>
         <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}</div>
       </div>`;
+    bindAppearance(v);
     bindCommon(v);
   }
   function renderSetup() {
@@ -958,9 +969,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="sheetform"><input id="sheetinput" type="text" inputmode="text" placeholder="Paste your sheet ID or its URL" value="${esc(S.prefs.sheet || "")}" aria-label="Your Google Sheet ID"><button class="btn sm" id="sheetgo">${S.mcp ? "Read it live" : "Save for when connectors are available"}</button>${S.prefs.sheet ? `<button class="btn sm ghost" id="sheetdemo">Back to the demo</button>` : ""}</div>
         <p class="sub" style="margin-top:8px">${S.mode === "live" ? `Reading <a href="${sheetLink}" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> live.` : S.mcp ? (S.liveErr ? `Last live read failed: ${errText(S.liveErr)}` : isDemoSheet() ? "Showing the bundled demo. The owner's view reads the demo sheet live; paste your own ID to read yours." : "") : "Connectors aren't available in this view, so the page shows the bundled demo household."} <button class="linkbtn" id="rerunonb">Run the setup again</button></p>
       </div>
-      <div class="card" style="--i:4.5" id="lookcard"><div class="cardhead"><span class="q">Appearance</span><span class="sub">remembered with your other choices</span></div>
-        <div class="cardtools"><span class="seg" role="group" aria-label="Theme">${[["system", "Match my device"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button data-theme-pick="${k}" aria-pressed="${(S.prefs.theme || "system") === k}">${l}</button>`).join("")}</span><span class="swatches">${[["violet", "#5B3DF5"], ["coral", "#F0533D"], ["teal", "#0E8F8E"], ["lime", "#7DB91D"]].map(([n, c]) => `<button class="swatch" data-accent-pick="${n}" aria-pressed="${(pref("accent", m.kitty.accent) || "violet") === n}" aria-label="${n}" style="background:${c};width:34px;height:34px"></button>`).join("")}</span></div>
-      </div>
+      ${appearanceCard(m)}
       <div class="card" style="--i:5" id="phonecard"><div class="cardhead"><span class="q">On your phone</span><span class="sub">it installs like an app</span></div>
         <div class="qr">${qrHTML() ? `<div>${qrHTML()}</div>` : ""}<div>${installStepsHTML()}<p class="sub" style="margin-top:10px">Claude publishes every artifact with a web-app manifest, so the home-screen icon, the full-screen window and the name “${esc(document.title)}” come for free. Your connector sign-in travels with your Claude session, so the phone copy is live too.</p></div></div>
       </div>
@@ -986,8 +995,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       <p class="sub" style="--i:8;padding:0 6px">The Kitty ${VERSION} · fictional household · <button class="linkbtn" data-open="trust">Where the numbers come from</button> · <a href="${sheetLink}" target="_blank" rel="noopener">open the sheet</a> · <a href="${REPO}" target="_blank" rel="noopener">source on GitHub</a> · <a href="${REPO}/issues/new" target="_blank" rel="noopener">report a problem</a></p>`;
     $$("[data-cc]", v).forEach((b) => b.addEventListener("click", () => { S.setupCountry = b.dataset.cc; renderSetup(); }));
-    $$("[data-theme-pick]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ theme: b.dataset.themePick }); applyTheme(); renderSetup(); buzz(); }));
-    $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
+    bindAppearance(v);
     const go = $("#sheetgo"); if (go) go.addEventListener("click", async () => { const raw = $("#sheetinput").value.trim(); const mt = raw.match(/\/d\/([A-Za-z0-9_-]{20,})/); const id = mt ? mt[1] : raw; if (!id) { toast("Paste a sheet ID first"); return; } savePrefs({ sheet: id === DEMO_SHEET ? "" : id }); S.canWrite = S.isOwner || !!S.prefs.sheet; if (S.mcp) { const ok = await loadLive(true); toast(ok ? "Reading your sheet live" : "Couldn't read that sheet: " + errText(S.liveErr || {}, "it")); if (!ok && SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); } else { toast("Saved. It will read live where connectors are available."); renderSetup(); } });
     const sd = $("#sheetdemo"); if (sd) sd.addEventListener("click", () => { savePrefs({ sheet: "" }); S.canWrite = S.isOwner; if (SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); toast("Back to the demo household"); });
     const ro = $("#rerunonb"); if (ro) ro.addEventListener("click", () => startOnboarding(true));
@@ -998,7 +1006,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   let lastFocus = null;
   function openDrawer(html) {
     if (!$("#drawer").classList.contains("on")) lastFocus = document.activeElement;
-    const d = $("#drawer"); d.innerHTML = `<div class="grab" id="grab"></div><button class="close" id="dclose" aria-label="Close">${ico("i-x")}</button>${html}`;
+    const d = $("#drawer"); d.inert = false; d.removeAttribute("aria-hidden"); d.setAttribute("aria-modal", "true"); d.innerHTML = `<div class="grab" id="grab"></div><button class="close" id="dclose" aria-label="Close">${ico("i-x")}</button>${html}`;
     d.classList.add("on"); $("#scrim").classList.add("on"); d.scrollTop = 0;
     $("#dclose").addEventListener("click", closeDrawer); bindCommon(d); bindTables(d);
     const g = $("#grab"); let y0 = null;
@@ -1007,11 +1015,12 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const end = (e) => { if (y0 == null) return; const dy = e.clientY - y0; y0 = null; d.classList.remove("dragging"); d.style.transform = ""; if (dy > 110) closeDrawer(); };
     g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
     $("#app").setAttribute("aria-hidden", "true"); $("header.top").setAttribute("aria-hidden", "true");
-    const first = d.querySelector("input, select, button:not(.close)"); setTimeout(() => (first || $("#dclose")).focus({ preventScroll: true }), 60);
+    const first = d.querySelector("input, select, button:not(.close)"); setTimeout(() => { if (d.classList.contains("on")) (first || $("#dclose")).focus({ preventScroll: true }); }, 60);
     buzz(5);
   }
   function closeDrawer() {
-    const was = $("#drawer").classList.contains("on");
+    const d = $("#drawer"); const was = d.classList.contains("on");
+    d.removeAttribute("aria-modal"); d.inert = true; d.setAttribute("aria-hidden", "true");
     $("#drawer").classList.remove("on"); $("#scrim").classList.remove("on"); $("#app").removeAttribute("aria-hidden"); $("header.top").removeAttribute("aria-hidden");
     if (was && lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) { /* gone */ } }
   }
@@ -1325,7 +1334,9 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
       }
     } else { savePrefs({ onboarded: true }); endOnboarding(); }
   }
-  function celebrate() { if (reduced() || !window.confetti) return; try { const colors = ["#5B3DF5", "#FF5CC8", "#D9F94B", "#0E9F9E"]; confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, zIndex: 90, disableForReducedMotion: true }); setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors, zIndex: 90 }), 200); setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors, zIndex: 90 }), 350); } catch (e) { /* ignore */ } }
+  // The local page forbids blob workers. Draw with the same library on its main canvas.
+  let nativeCelebration;
+  function celebrate() { if (reduced() || !window.confetti) return; try { const fire = NATIVE ? (nativeCelebration || (nativeCelebration = window.confetti.create(null, { resize: true, useWorker: false }))) : window.confetti; const colors = ["#5B3DF5", "#FF5CC8", "#D9F94B", "#0E9F9E"]; fire({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, zIndex: 90, disableForReducedMotion: true }); setTimeout(() => fire({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors, zIndex: 90 }), 200); setTimeout(() => fire({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors, zIndex: 90 }), 350); } catch (e) { /* ignore */ } }
 
   // ---------- wiring ----------
   // Native deep links may select a public section, never an arbitrary drawer,

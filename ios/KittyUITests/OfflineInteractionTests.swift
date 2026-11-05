@@ -148,7 +148,7 @@ final class OfflineInteractionTests: XCTestCase {
         let navigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
         XCTAssertTrue(filename.waitForExistence(timeout: 6))
         XCTAssertTrue(navigation.exists)
-        try selectVerifiedLocalExportDestination(navigation: navigation)
+        let pickedLocal = try selectVerifiedLocalExportDestination(navigation: navigation)
 
         let current = try XCTUnwrap(filename.value as? String)
         XCTAssertTrue(current.hasPrefix("kitty-entries-") && current.count < 200)
@@ -176,8 +176,7 @@ final class OfflineInteractionTests: XCTestCase {
         capture("CSV — unique local filename before Save")
 
         // Recheck the actual provider immediately before Save; no cloud or overwrite fallback.
-        XCTAssertTrue(localExportRoot.exists)
-        XCTAssertTrue(navigation.staticTexts["On My iPhone"].exists)
+        XCTAssertTrue(isLocalExportRoot(navigation, selectedFromBrowse: pickedLocal))
         let save = navigation.buttons["Save"]
         XCTAssertTrue(save.isEnabled)
         tap(save)
@@ -205,7 +204,8 @@ final class OfflineInteractionTests: XCTestCase {
     }
 
     private func tap(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
-        waitUntil("Control must be visible and tappable: \(element.label)", timeout: 4,
+        // Reading label on a missing node throws before the wait can observe the next AX tree.
+        waitUntil("The requested control must become visible and tappable.", timeout: 8,
                   file: file, line: line) { element.exists && element.isHittable }
         element.tap()
     }
@@ -260,23 +260,38 @@ final class OfflineInteractionTests: XCTestCase {
             "DOC.browsingRoot Source: com.apple.FileProvider.LocalStorage, Title: On My iPhone"]
     }
 
-    private func selectVerifiedLocalExportDestination(navigation: XCUIElement) throws {
-        for _ in 0..<3 {
-            if localExportRoot.exists && navigation.staticTexts["On My iPhone"].exists { return }
-            // Use only the known local destination label when Files actually presents it.
-            if let local = app.staticTexts.matching(identifier: "On My iPhone")
-                .allElementsBoundByIndex.first(where: { $0.isHittable }) {
-                tap(local)
-                XCTAssertTrue(localExportRoot.waitForExistence(timeout: 3))
-                XCTAssertTrue(navigation.staticTexts["On My iPhone"].exists)
-                return
-            }
-            let browse = navigation.buttons["BackButton"]
-            guard browse.exists && browse.isHittable && browse.label == "Browse" else { break }
-            tap(browse)
+    private func isLocalExportRoot(_ navigation: XCUIElement, selectedFromBrowse: Bool) -> Bool {
+        guard navigation.staticTexts["On My iPhone"].exists else { return false }
+        if localExportRoot.exists || selectedFromBrowse { return true }
+        // On a fresh simulator, Files can expose its empty state before the
+        // browsingRoot accessibility container. A nested folder is not enough.
+        let back = navigation.buttons["BackButton"]
+        return back.exists && back.label == "Browse" &&
+            app.descendants(matching: .any).matching(identifier: "On My iPhone is Empty").firstMatch.exists
+    }
+
+    private func selectVerifiedLocalExportDestination(navigation: XCUIElement) throws -> Bool {
+        if isLocalExportRoot(navigation, selectedFromBrowse: false) { return false }
+        // Never tap "On My iPhone" in the navigation title. Only select a
+        // location from Browse; still require the destination title after the tap.
+        let browse = navigation.buttons["BackButton"]
+        if browse.exists && browse.label == "Browse" { tap(browse) }
+        let browseTitle = navigation.staticTexts["Browse"]
+        guard browseTitle.waitForExistence(timeout: 3) else {
+            if isLocalExportRoot(navigation, selectedFromBrowse: false) { return false }
+            capture("CSV save skipped — no Browse location selector")
+            throw XCTSkip("Files did not expose a verifiable local destination; no file was saved.")
         }
-        capture("CSV save skipped — no verified local Files destination")
-        throw XCTSkip("This simulator has no selectable, verified On My iPhone destination; no file was saved.")
+        let local = app.staticTexts.matching(identifier: "On My iPhone").firstMatch
+        guard local.waitForExistence(timeout: 3) else {
+            capture("CSV save skipped — no local Files provider")
+            throw XCTSkip("This simulator has no On My iPhone provider; no file was saved.")
+        }
+        tap(local)
+        waitUntil("Files must enter the selected On My iPhone location.", timeout: 5) {
+            self.isLocalExportRoot(navigation, selectedFromBrowse: true) && !browseTitle.exists
+        }
+        return true
     }
 
     private func waitUntil(_ message: String, timeout: TimeInterval,

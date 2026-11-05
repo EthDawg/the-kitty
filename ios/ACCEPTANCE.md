@@ -1,31 +1,33 @@
 # Native host acceptance
 
-Milestone 2 is an offline container preview with verified physical-device runtime.
-`build.py --host native` bundles the shared v2 engine, views, fictional Davies
-snapshot, fonts and pinned libraries. The native host supplies local preferences,
-demo identity and Files export; Google and AI capabilities are explicitly unavailable.
+The offline iOS app renders the shared v2 engine, views, fictional Davies data,
+fonts and brand. Home, Activity, Review, Insights and Goals work without Google
+or AI access. The phone uses the same Appearance controls as the artifact;
+offline Review offers manual categorisation and hides the unavailable AI cookie.
 
-Verified locally on 5 November 2026: shared engine/shim (58 tests), build/shape
-(34 tests), existing importer (41 tests), and all seven iPhone simulator tests.
-WebKit checks cover Home, Activity, Review, Insights and Goals, bundled fonts,
-blocked network fetches, route restrictions, reduced motion and largest Dynamic
-Type. Touch tests cover search/keyboard, a demo category decision and Files save
-and cancellation. The saved Woolworths CSV was read back: 38 records, 4,604 bytes,
-matching the shared engine's export byte for byte (SHA-256
+On 5 November 2026 the original bundle passed all four runtime tests on an
+iPhone 16 Pro Max and a narrow iPhone SE simulator in dark mode. Ethan tried
+the app, liked the clean Setup and pop-ups, and identified the misleading
+“open this page in Claude” instruction. This was a brief trial, not exhaustive
+physical touch validation. Continue with the shared container.
+
+After integrating the canvas changes, 59 Node, 34 build/shape, 41 importer
+and all seven iPhone 17 Pro simulator tests pass. Checks cover five views,
+largest text, reduced motion, fonts, blocked network fetch, demo review,
+keyboard, accessible drawer dismissal, theme and real Files save/cancel.
+Simulator Files readback: 38 fictional Woolworths rows, 4,604 bytes; the CSV
+matches the engine byte for byte (SHA-256
 `e2f949dceb1e838544f34e793fcf943a284385e79336680fa985b57b0b7f46c9`).
-Body text follows the preferred size; compact navigation and headline amounts
-are capped at 140% to preserve access to every tab.
+Body text follows the device; compact navigation and headline amounts cap at
+140%. iPhone uses portrait; iPad retains all orientations.
 
-All four runtime tests also pass on Ethan's iPhone 16 Pro Max and on the narrow
-iPhone SE simulator in dark mode. The generated page is byte-identical in both
-device bundles. Physical touch-only follow-up was cancelled when the phone locked;
-touch automation is proven on the simulator. Ethan's personal phone-feel verdict,
-live Google selection/writes, import parity and end-to-end proof remain unverified.
-The shared container continues on the technical evidence. No TestFlight or App
-Store submission has been made.
+Reproduce with `python3 ios/scripts/generate_project.py`, then
+`python3 ios/scripts/prepare_resources.py` and the test command in
+`.github/workflows/ios.yml`. Full-resolution evidence stays in ignored
+`ios/build/` and CI's `ios-build-evidence` artifact.
 
-Reproduce: `python3 ios/scripts/generate_project.py`, then
-`python3 ios/scripts/prepare_resources.py`, then the test command in
-`.github/workflows/ios.yml`. Full-resolution screenshots, logs and `.xcresult`
-bundles stay in ignored `ios/build/` locally and CI's `ios-build-evidence`
-artifact; they are not committed. The public artifact is unchanged.
+This PR does not publish an artifact. Its shared source also avoids a
+snapshot-startup gate flash, stops count-up when reduced motion turns on,
+and removes a closed drawer from the accessibility tree. Live selection and
+writes, import parity, AI handoff and release acceptance require later proof.
+No TestFlight upload or App Store submission has been made.
