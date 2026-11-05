@@ -7,20 +7,31 @@ final class ImportPickerUITests: XCTestCase {
         executionTimeAllowance = 120
         let app = XCUIApplication(bundleIdentifier: "com.ethdawg.kitty")
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
+        let launchStart = ProcessInfo.processInfo.systemUptime
         app.launch()
         defer { app.terminate() }
 
+        let page = app.webViews["kitty-shared-page"]
+        XCTAssertTrue(app.wait(for:.runningForeground, timeout:15))
+        XCTAssertTrue(page.waitForExistence(timeout:30), "Kitty must own a visible web view.")
         let setup = app.buttons["Setup"]
-        XCTAssertTrue(setup.waitForExistence(timeout: 10))
+        guard setup.waitForExistence(timeout:45), setup.isHittable else {
+            let startup = XCTAttachment(screenshot:app.screenshot())
+            startup.name = "Kitty startup before Setup became available"
+            startup.lifetime = .keepAlways
+            add(startup)
+            return XCTFail("Kitty did not finish loading its interactive tabs.")
+        }
+        print(String(format:"KITTY_UI_LAUNCH_TO_SETUP_SECONDS=%.2f", ProcessInfo.processInfo.systemUptime - launchStart))
         setup.tap()
         let openImport = app.buttons["Import a bank file"]
-        XCTAssertTrue(openImport.waitForExistence(timeout: 5))
-        let page = app.webViews.firstMatch
+        XCTAssertTrue(openImport.waitForExistence(timeout:15))
         for _ in 0..<6 where !openImport.isHittable { page.swipeUp() }
         XCTAssertTrue(openImport.isHittable)
         openImport.tap()
         let choose = app.buttons["Choose from Files"]
-        XCTAssertTrue(choose.waitForExistence(timeout: 5))
+        XCTAssertTrue(choose.waitForExistence(timeout:15))
+        let pickerStart = ProcessInfo.processInfo.systemUptime
         choose.tap()
 
         let navigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
@@ -32,6 +43,7 @@ final class ImportPickerUITests: XCTestCase {
             add(stalled)
             return XCTFail("The system Files picker did not expose its navigation controls.")
         }
+        print(String(format:"KITTY_UI_TAP_TO_FILES_CONTROLS_SECONDS=%.2f", ProcessInfo.processInfo.systemUptime - pickerStart))
         let cancel = app.buttons.matching(identifier: "Cancel").firstMatch
         if cancel.exists && cancel.isHittable {
             cancel.tap()

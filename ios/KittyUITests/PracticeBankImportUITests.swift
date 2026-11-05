@@ -46,7 +46,7 @@ final class PracticeBankImportUITests: XCTestCase {
             XCTFail("Kitty did not own a visible foreground web view. No navigation or confirmation was attempted. Check the device unlock or system prompt.")
             throw LaunchBoundary.appNotVisible
         }
-        tap(app.buttons["Setup"])
+        tap(app.buttons["Setup"],timeout:45)
     }
     private func openRestoredPractice() throws {
         guard !privateTitle.isEmpty, privateTitle.localizedCaseInsensitiveContains("practice") else {

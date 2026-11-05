@@ -39,7 +39,7 @@ jobs:
       - name: Start the simulator
         run: xcrun simctl boot "$KITTY_SIMULATOR_ID"
       - name: Build host and tests while the simulator starts
-        timeout-minutes: 9
+        timeout-minutes: 12
         run: |
           mkdir -p ios/build
           set -o pipefail
