@@ -11,6 +11,11 @@
     <key>CFBundleVersion</key><string>1</string>
     <key>LSRequiresIPhoneOS</key><true/>
     <key>UILaunchScreen</key><dict/>
+    <key>WKAppBoundDomains</key><array/>
+    <key>CFBundleURLTypes</key><array><dict>
+        <key>CFBundleURLName</key><string>com.ethdawg.kitty</string>
+        <key>CFBundleURLSchemes</key><array><string>kitty</string></array>
+    </dict></array>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>

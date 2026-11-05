@@ -11,11 +11,12 @@
   const DEMO_SHEET = window.KITTY_SHEET || "1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM";   // the sheet the bundled snapshot came from; `build.py --v2` points it at the v2 sheet
   const PAGE_URL = window.KITTY_PAGE_URL || "";
   const VERSION = "2.0 (phase B)"; const REPO = "https://github.com/EthDawg/the-kitty";
+  const NATIVE = window.KITTY_HOST === "native";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (n, o) => E.fmt(n, o), fmt0 = (n) => E.fmt0(n), fmtS = (n) => E.fmtS(n);
-  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduced = () => !!(NATIVE && window.KittyNative && window.KittyNative.environment.reduceMotion) || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const phone = () => window.innerWidth < 820;
   const ico = (id, cls) => `<svg class="${cls || "ic"}" aria-hidden="true"><use href="#${id}"/></svg>`;
 
@@ -40,8 +41,9 @@
   if (FLAGS.get("theme")) S.prefs.theme = FLAGS.get("theme");   // local checks only: ?theme=dark
   const LOCAL_HOST = location.protocol === "file:" || location.hostname === "127.0.0.1" || location.hostname === "localhost";   // ?open=trust opens the trust drawer on load, for screenshots of a local build
   // entrance animations only while the page is visible: a hidden tab pauses CSS animations at their first frame
-  const setAnim = () => document.documentElement.classList.toggle("anim", document.visibilityState === "visible" && !FLAGS.has("noanim") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const setAnim = () => document.documentElement.classList.toggle("anim", document.visibilityState === "visible" && !FLAGS.has("noanim") && !reduced());
   setAnim(); document.addEventListener("visibilitychange", setAnim);
+  if (NATIVE) document.addEventListener("kitty:native-environment", setAnim);
   // every model goes through here so the per-render caches (merchant context, review queue) reset with it
   let CTX = null, REVIEW = null;
   const setModel = (m) => { S.m = m; CTX = null; REVIEW = null; return m; };
@@ -51,7 +53,7 @@
   const demoModel = () => { if (!SNAP) return null; const snap = Object.assign({}, SNAP, { decisions: (SNAP.decisions || []).concat(S.sessionDecisions), entries: Object.keys(S.sessionCats).length ? (SNAP.entries || []).map((e) => (S.sessionCats[e.entry_id] ? Object.assign({}, e, { category_id: S.sessionCats[e.entry_id] }) : e)) : SNAP.entries }); return applyLocalGoals(E.model(snap)); };
   const sheetId = () => (S.prefs.sheet || DEMO_SHEET).trim();
   const isDemoSheet = () => sheetId() === DEMO_SHEET;
-  const savePrefs = (patch) => { const at = Date.now(); Object.assign(S.prefs, patch); store.set("prefs", S.prefs); store.set("prefsSavedAt", at); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: at }).catch(() => {}); };
+  const savePrefs = (patch) => { const at = Date.now(); Object.assign(S.prefs, patch); store.set("prefs", S.prefs); store.set("prefsSavedAt", at); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: at }).catch(() => { if (NATIVE) toast("Preferences could not be confirmed saved on this device."); }); };
   const pref = (k, fallback) => { const v = S.prefs[k]; return v == null || v === "" ? fallback : v; };
   const today = () => (S.m ? S.m.asOf : new Date().toISOString().slice(0, 10));
   const greeting = () => pref("greeting", S.m && S.m.kitty.greeting_name ? S.m.kitty.greeting_name : "") || (S.m && S.m.people.length ? S.m.people.join(" and ") : S.m ? S.m.householdName.replace(/^The /, "") : "there");
@@ -199,7 +201,7 @@
     if (counted.has(key) || reduced() || to == null) { el.textContent = f(to); counted.add(key); return; }
     counted.add(key);
     const t0 = performance.now(), dur = 1100;
-    const step = (t) => { const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 4); el.textContent = f(to * e); if (p < 1) requestAnimationFrame(step); else el.textContent = f(to); };
+    const step = (t) => { if (reduced()) { el.textContent = f(to); return; } const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 4); el.textContent = f(to * e); if (p < 1) requestAnimationFrame(step); else el.textContent = f(to); };
     requestAnimationFrame(step);
   }
   function tableToggle(id, html) { return `<button class="tbtn" data-tt="${id}">Show as table</button><div class="tablewrap" id="${id}" hidden>${html}</div>`; }
@@ -664,7 +666,7 @@
   // the fortune cookie: Ask proposes a merchant and a category from the raw descriptor; the person decides. One open at a time, never on load.
   async function crackCookie(card, btn) {
     if (!Motion) return;
-    if (!S.sample) { toast("Claude isn't available in this view, so the cookie stays closed. Open the page in Claude."); return; }
+    if (!S.sample) { toast(NATIVE ? "Ask Claude and ChatGPT are not available in this offline preview." : "Claude isn't available in this view, so the cookie stays closed. Open the page in Claude."); return; }
     if (S.cookie && S.cookie !== btn) { S.cookie.classList.remove("open"); const sv = S.cookie.querySelector("svg"); if (sv) sv.classList.remove("open"); const old = S.cookie.closest(".rcard"); const os = old && $(".rslip", old); if (os) os.hidden = true; }
     S.cookie = btn; const id = card.dataset.rid; const m = S.m, e = m.entryById[id]; if (!e) return;
     const slip = $(".rslip", card); slip.hidden = false; slip.innerHTML = `<span class="sub">Asking the Kitty… the first time, claude.ai asks you to allow “Use Claude” for this page.</span>`;
@@ -880,7 +882,28 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <path class="dg-edge write" d="M910 220 V345 H535 V322" marker-end="url(#arr)"/><text class="dg-lab" x="722" y="360" text-anchor="middle">onboarding writes, each to its owning tab: Kitty · Goals · Settings</text>
       </g></svg>`;
   }
+  function renderNativeSetup() {
+    const m = S.m, v = $("#v-setup");
+    v.innerHTML = `
+      <div class="card"><div class="cardhead"><span class="q">The Kitty on your phone</span><span class="sub">Offline demo</span></div>
+        <div class="prose"><p>Explore Home, Activity, Review, Insights and Goals using <b>${esc(m.householdName)}</b>, a fictional household. The bundled Sheet snapshot covers ${E.fmtDay(m.asOf, { year: true })}. It opens without a network connection.</p>
+        <p>The numbers belong in a Google Sheet you can open and keep. This preview uses a fictional copy, with no Google or AI connection active.</p></div>
+        <div class="chips"><button class="btn sm" data-go="review">Open Review</button><button class="btn sm ghost" data-go="goals">Explore Goals</button></div>
+      </div>
+      <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
+        <div class="prose"><p>Display preferences and demo goal edits stay on this device. Review decisions last for this visit. None of them changes the Google Sheet.</p>
+        <p>${S.downloads ? "Activity can export its filtered rows as a CSV through the iOS file picker. A save is confirmed only after the picker finishes." : "Native file export is unavailable in this view."}</p>
+        <p>Text size and reduced motion follow your device settings.</p></div>
+      </div>
+      <div class="card"><div class="cardhead"><span class="q">Not connected yet</span></div>
+        <div class="prose"><p>Google sign-in, imports, document scanning and Ask Claude or ChatGPT are not available in this preview. No financial data is being sent to an AI.</p>
+        <p>The household's Google Sheet remains the owner of its numbers. These links open online and need a connection:</p></div>
+        <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}</div>
+      </div>`;
+    bindCommon(v);
+  }
   function renderSetup() {
+    if (NATIVE) { renderNativeSetup(); return; }
     const m = S.m, v = $("#v-setup"); const cc = S.setupCountry || pref("country", m.kitty.country || "AU");
     const country = SOURCES.countries.find((c) => c.code === cc) || SOURCES.countries[0];
     const sheetLink = `https://docs.google.com/spreadsheets/d/${sheetId()}/edit`;
@@ -1093,7 +1116,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       <h3>Cash and offset, account by account</h3><div class="tablewrap"><table class="t"><thead><tr><th>Account</th><th>Bank</th><th class="n">Balance</th></tr></thead><tbody>${liquid.map((a) => `<tr><td>${esc(a.name)}</td><td class="muted">${esc(a.bank)}</td><td class="n">${fmt(a.balance)}</td></tr>`).join("")}<tr><td><b>Together</b></td><td></td><td class="n"><b>${fmt(liquid.reduce((s, a) => s + a.balance, 0))}</b></td></tr></tbody></table></div>
       <h3>Does the page agree with the sheet?</h3><p class="sub">${rec.filter((r) => r.account).length ? `${rec.filter((r) => r.account && r.ok).length} of ${rec.filter((r) => r.account).length} accounts reconcile to the sheet at ${E.fmtDay(m.asOf, { year: true })}${m.sheetVersion >= 2 ? "; the ledger's own invariants follow" : ""}.` : ""}</p>${rec.map((r) => `<div class="row" style="cursor:default"><span class="tick" style="${r.ok ? "" : "background:var(--warn)"}">${ico(r.ok ? "i-check" : "i-x")}</span><span class="mid"><span class="t" style="white-space:normal">${esc(r.what)}</span><span class="s">${r.count ? `${r.a} found` : `${fmt(r.a)} here · ${fmt(r.b)} in the sheet`}</span></span></div>`).join("")}
       <h3>What was read</h3><div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th class="n">Rows</th><th>Feeds</th></tr></thead><tbody>${tabs.map(([k, name, n, err]) => `<tr><td>${esc(name)}</td><td class="n">${err ? (OPTIONAL.has(k) ? `<span class="tag">not in this sheet</span>` : `<span class="tag warn">error</span>`) : esc(String(n))}</td><td class="muted">${esc({ settings: "as-of date, targets", accounts: "every store of value", category_list: "names, groups, budgets", goals: "Goals, Home", subscriptions: "bills, leaks, upcoming", loans: "loan card, upcoming", assets: "the rental", metrics: "hero facts, tax", compliance: "what needs you", networth: "net worth chart", cashflow: "12-month bars, kept", budget: "budget pace", savings: "ways to save", mortgage: "rate scenarios", tax: "tax card", transactions: "activity, jar, flow, search", payslips: "pay day", kitty: "your settings", entries: "the ledger: balances, transfers", balances: "balance by month, the oracle", contracts: "subscriptions, leases, loan terms", decisions: "your judgments: review, worth it", rules: "descriptor to merchant and category; the cookie adds rows here", snapshot: "everything" }[k] || "")}</td></tr>`).join("")}</tbody></table></div>
-      <p class="sub" style="margin-top:12px">Nothing is cached in the sheet and nothing is stored by this page except your own preferences${S.dbDoc ? " (on this device and in your Claude account)" : " (on this device)"}.</p>`);
+      <p class="sub" style="margin-top:12px">Nothing is cached in the sheet and nothing is stored by this page except your own preferences${S.dbDoc && !NATIVE ? " (on this device and in your Claude account)" : " (on this device)"}.</p>`);
     const rb = $("#refreshbtn"); if (rb) rb.addEventListener("click", async () => { rb.disabled = true; const ok = await loadLive(true); toast(ok ? "Fresh read done" : "Couldn't read live: " + errText(S.liveErr || {})); if (ok) openTrust(); else rb.disabled = false; });
     const db = $("#demobtn"); if (db) db.addEventListener("click", () => { setModel(demoModel()); S.mode = "demo"; renderAll(); openTrust(); });
   }
@@ -1185,6 +1208,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     return `<div class="msg kit">${esc(c.text)}</div>`;
   }
   function openAsk() {
+    if (NATIVE && !S.sample) { openDrawer(`${h2("Ask the Kitty", "Ask Claude and ChatGPT are not available in this offline preview.")}<p class="sub">You can explore the fictional household's numbers in Activity and Insights. No financial data has been sent to an AI.</p>`); return; }
     openDrawer(`${h2("Ask the Kitty", `Claude answers from the numbers on this page, with your consent, and keeps nothing between questions. Today is ${E.fmtDay(S.m.asOf, { year: true })} for the household.`)}
       <div class="ask" style="margin-top:12px"><div class="msgs" id="msgs">${S.chat.map((c, i) => msgHTML(c, i === S.chat.length - 1)).join("") || `<div class="sugg">${SUGGEST.map((s) => `<button class="chip" data-sugg="${esc(s)}">${esc(s)}</button>`).join("")}</div>`}</div>
       <div class="askrow"><div class="searchbox">${ico("i-spark")}<input id="askq" type="text" placeholder="Ask about the money…" autocomplete="off" aria-label="Your question"></div><button class="btn" id="asksend" ${S.asking ? "disabled" : ""}>Ask</button></div>
@@ -1253,6 +1277,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   // ---------- onboarding ----------
   const OB = { step: 0, dir: 1, greeting: "", country: "", lead: "", safety: null, accent: "", goalEdits: {} };
   function startOnboarding(again) {
+    if (NATIVE) { go("setup"); return; }
     const m = S.m; if (!m) return;
     OB.step = 0; OB.greeting = greeting() === m.householdName.replace(/^The /, "") ? "" : greeting(); OB.country = pref("country", m.kitty.country || "AU"); OB.lead = (leadGoal() || {}).name || ""; OB.safety = E.safety(m).target; OB.accent = pref("accent", m.kitty.accent) || "violet"; OB.again = !!again;
     $("#onb").hidden = false; document.body.style.overflow = "hidden"; renderOnb();
@@ -1303,6 +1328,13 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   function celebrate() { if (reduced() || !window.confetti) return; try { const colors = ["#5B3DF5", "#FF5CC8", "#D9F94B", "#0E9F9E"]; confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, zIndex: 90, disableForReducedMotion: true }); setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors, zIndex: 90 }), 200); setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors, zIndex: 90 }), 350); } catch (e) { /* ignore */ } }
 
   // ---------- wiring ----------
+  // Native deep links may select a public section, never an arbitrary drawer,
+  // command or URL. Review deliberately uses the existing review queue journey.
+  if (NATIVE) document.addEventListener("kitty:native-route", (event) => {
+    const route = event.detail && event.detail.route;
+    if (!S.settled || !S.m || typeof route !== "string" || !["home", "activity", "review", "insights", "goals", "setup"].includes(route)) return;
+    closeDrawer(); go(route);
+  });
   function go(target) {
     const [kind, ...rest] = String(target).split(":"); const key = rest.join(":");
     switch (kind) {
@@ -1361,7 +1393,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     const saved = window.__KIT_GALLERY__ ? "home" : store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
     if (SNAP) { setModel(demoModel()); renderAll(); }
     if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);
-    else gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
+    else if (!SNAP) gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
     $$("nav.tabs button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
     $("#brandbtn").addEventListener("click", () => switchTab("home"));
     $("#trustpill").addEventListener("click", () => S.m && openTrust());
@@ -1382,15 +1414,17 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     S.sample = sample; S.downloads = downloads; S.user = user;
     if (user) { try { S.isOwner = await user.isOwner(); } catch (e) { S.isOwner = false; } try { const me = await user.me(); S.userName = (me && me.name) || ""; } catch (e) { S.userName = ""; } }
     if (db && user) { try { const id = await user.id(); if (id) { S.dbDoc = db.doc(`data/users/${id}/kitty`); const snap = await S.dbDoc.get(); if (snap.exists) { const d = snap.data() || {}; if ((d.savedAt || 0) > (store.get("prefsSavedAt", 0))) { Object.assign(S.prefs, d); store.set("prefs", S.prefs); } } } } catch (e) { S.dbDoc = null; } }
+    if (NATIVE && SNAP) setModel(demoModel()); // Native preference storage may be newer than WebKit's local cache.
     S.canWrite = S.isOwner || !!S.prefs.sheet;
     if (S.m) renderAll();
     if (window.__KIT_GALLERY__ && S.m) { switchTab("home", true); return; }
     if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); if (ok) ensureWorthKey(); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     S.settled = true; if (S.m) renderHome();
-    if (S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);
+    if (!NATIVE && S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);
     if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true);
     if (FLAGS.has("onb")) startOnboarding(true);
+    if (NATIVE && S.m) document.dispatchEvent(new CustomEvent("kitty:app-ready"));
   }
   boot();
 })();
