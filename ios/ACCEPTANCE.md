@@ -87,7 +87,7 @@ compared the previous month, previewed the exact answer and opened the system
 share sheet without sending. The merchant check opened the ordinary category
 picker. Full-resolution screenshots accompany the XCTest result. A signed update
 installed on the paired physical iPhone; its lock prevented an automated launch.
-That installation establishes neither physical Ask usability nor local model inference.
+That installation does not establish physical Ask usability.
 
 The local Apple model classified five ordinary fictional questions correctly on
 the first Mac probe, declined two more and returned one service error; three
@@ -108,3 +108,5 @@ subscriptions as an explicitly different scenario. The latter projects May rathe
 than June. A touch-only simulator test tapped the sparkle, chose groceries, expanded
 the source and opened T0866. The verified public Sheet and both bundled v2 fixtures
 now show the investment loan on 28 February, separately from the home loan on 1 February.
+
+In the final bounded Apple-model experiment, all three requests completed and all three proposals were out of scope. The production app omits inference; its labelled local choices remain usable immediately.

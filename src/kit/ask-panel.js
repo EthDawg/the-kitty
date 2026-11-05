@@ -4,7 +4,6 @@
   "use strict";
   const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const btn=(label,attr)=>'<button type="button" class="chip" '+attr+'>'+esc(label)+'</button>';
-  const nouns={spending:"Spending",subscriptions:"All subscriptions and bills",goal:"Goal progress",cash:"Cash and offset",netWorth:"Net worth",upcoming:"All upcoming scheduled items",review:"Entries needing review"};
   let memory=null;
   root.KittyAskPanel={
     reset(){memory=null;},
@@ -19,11 +18,10 @@
       openDrawer(base+'<section class="ask native-ask" data-native-ask><form class="askrow" data-ask-form><label class="searchbox"><input type="text" maxlength="800" autocomplete="off" enterkeyhint="go" aria-label="Your question" placeholder="Ask about your money…" data-ask-input></label><button class="btn" type="submit">Ask</button></form><section data-ask-output aria-live="polite" aria-atomic="true"></section><div data-ask-examples></div><div class="plan-foot" data-ask-footer>Kitty calculates on this device. Your questions stay here.</div></section>',false);
       const host=drawer().querySelector("[data-native-ask]"), input=host.querySelector("[data-ask-input]"), content=host.querySelector("[data-ask-output]"), choices=host.querySelector("[data-ask-examples]");
       const current=()=>state.m===model()&&source===origin()&&host.isConnected&&drawer().classList.contains("on");
-      let serial=0, previous=state.last?.plan||null;
+      let previous=state.last?.plan||null;
       const links=x=>x.map(l=>'<button type="button" class="pp" data-ask-go="'+esc(l.go)+'"><span class="txt">'+esc(l.label)+'</span><span aria-hidden="true">›</span></button>').join("");
       const deeper=artifact?'<p><a class="btn sm ghost" href="'+esc(artifact)+'" target="_blank" rel="noopener">Explore the Davies demo in Claude ↗</a></p>':'';
       const showChoices=(rows)=>{choices.innerHTML='<div class="sugg">'+rows.map(([name,q])=>btn(name,'data-ask-example="'+esc(q)+'"')).join("")+'</div>';};
-      const scopeLabel=p=>[nouns[p.kind],p.category&&m.catById[p.category].name,p.person,p.goal,p.time&&K.context(m).times.find(t=>t.id===p.time)?.label].filter(Boolean).join(" · ");
       function answer(q,a){
         if(!current())return;
         if(!a.ok){clarify(a.reason);return;}
@@ -48,43 +46,19 @@
         button.onclick=async()=>{if(!current()||button.disabled)return;button.disabled=true;try{await native.share(body);if(current())answer(q,a);}catch(_){if(current()){button.disabled=false;content.querySelector("[role=status]").textContent="Sharing isn’t available right now. Your answer is still here.";}}};
       }
       function clarify(why,options){drawer().querySelector("#local-ask-title").textContent="Ask the Kitty";content.innerHTML='<div class="plan" data-ask-clarify><h3>Let’s narrow that down</h3><p>'+esc(why||"Try a category and a month, a savings goal, or an upcoming bill.")+'</p>'+deeper+'</div>';showChoices(options||examples);}
-      async function ask(q){
+      function ask(q){
         q=String(q).trim();if(!q||q.length>800||!current())return;
-        const request=++serial;input.value="";input.blur();
-        const p=K.plan(q,m,previous);
-        if(p.kind!=="unsupported"){answer(q,K.run(E,m,p));return;}
-        if(p.choices){clarify(p.reason,p.choices);return;}
-        content.innerHTML='<p class="sub" role="status">Looking for a matching calculation…</p>';
-        let offered=false;
-        try{
-          const routing=root.KittyAskRouting, prepared=routing.prepare(q,K.context(m));
-          if(prepared.status!=="prepared"){clarify(p.reason);return;}
-          const local=routing.local(prepared);
-          if(local?.status==="classified"){const {status,...fields}=local;answer(q,K.run(E,m,fields));return;}
-          const options=routing.alternatives(prepared).map(p=>({p,a:K.run(E,m,p)})).filter(v=>v.a.ok);
-          if(options.length){
-            offered=true;
-            content.innerHTML='<div class="plan" data-ask-scope><h3>Which figure do you mean?</h3><p class="sub">Cash is what the Sheet records as cash and offset. Net worth also includes other assets and debts.</p><div class="plan-facts">'+options.map(({p,a},i)=>'<button type="button" class="pf" data-ask-option="'+i+'"><b>'+esc(a.title)+'</b><span>'+esc(a.basis)+'</span><small></small></button>').join("")+'</div></div>';
-            content.querySelectorAll("[data-ask-option]").forEach(b=>b.onclick=()=>{if(current()){++serial;answer(q,options[Number(b.dataset.askOption)].a);}});
-            showChoices(examples.slice(0,2));
-          }
-          const status=await native.status();if(!current()||request!==serial)return;
-          if(status.available){
-            let timer;let proposal;
-            try {proposal=await Promise.race([native.classify(prepared.maskedQuestion),new Promise(resolve=>{timer=setTimeout(()=>resolve({status:"unavailable"}),5000);})]);}
-            finally {clearTimeout(timer);}
-            if(!current()||request!==serial)return;
-            const result=routing.validate(prepared,proposal);
-            const {status:rstatus,reason,...picked}=result;
-            const candidate=rstatus==="classified"&&K.scope(picked,m);
-            if(candidate&&offered){
-              const idx=options.findIndex(o=>o.p.kind===candidate.kind), b=content.querySelector('[data-ask-option="'+idx+'"] small');
-              if(b)b.textContent="Suggested for your wording";return;
-            }
-            if(candidate){content.innerHTML='<div class="plan" data-ask-confirm><h3>Is this what you meant?</h3><p>'+esc(scopeLabel(candidate))+'</p><button type="button" class="btn sm" data-ask-use>Show this calculation</button></div>';content.querySelector("[data-ask-use]").onclick=()=>{if(current()&&request===serial)answer(q,K.run(E,m,candidate));};showChoices(examples);return;}
-          }
-        }catch(_){/* Core questions work without Apple Intelligence. */}
-        if(current()&&request===serial&&!offered)clarify(p.reason);
+        input.value="";input.blur();
+        const primary=K.plan(q,m,previous);
+        if(primary.kind!=="unsupported"){answer(q,K.run(E,m,primary));return;}
+        if(primary.choices){clarify(primary.reason,primary.choices);return;}
+        const routing=root.KittyAskRouting, prepared=routing.prepare(q,K.context(m)),local=routing.local(prepared);
+        if(local){const {status,...fields}=local;answer(q,K.run(E,m,fields));return;}
+        const options=routing.alternatives(prepared).map(p=>K.run(E,m,p)).filter(a=>a.ok);
+        if(!options.length){clarify(primary.reason);return;}
+        content.innerHTML='<div class="plan" data-ask-scope><h3>Which figure do you mean?</h3><p class="sub">Cash is the Sheet’s cash and offset. Net worth also includes other assets and debts.</p><div class="plan-facts">'+options.map((a,i)=>'<button type="button" class="pf" data-ask-option="'+i+'"><b>'+esc(a.title)+'</b><span>'+esc(a.basis)+'</span></button>').join("")+'</div></div>';
+        content.querySelectorAll("[data-ask-option]").forEach(b=>b.onclick=()=>{if(current())answer(q,options[Number(b.dataset.askOption)]);});
+        showChoices(examples.slice(0,2));
       }
       host.querySelector("form").onsubmit=ev=>{ev.preventDefault();ask(input.value);};
       choices.onclick=ev=>{const b=ev.target.closest("[data-ask-example]");if(b)ask(b.dataset.askExample);};

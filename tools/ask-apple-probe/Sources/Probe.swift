@@ -1,4 +1,3 @@
-// swiftc -parse-as-library ios/Kitty/AskLocalModel.swift tools/ask-local-probe.swift -o /tmp/kitty-ask-probe && /tmp/kitty-ask-probe
 // Fictional prompts only. This opt-in probe reports the result from the Mac's actual local model.
 import Foundation
 #if canImport(FoundationModels)
@@ -19,7 +18,7 @@ import FoundationModels
             return
         }
         #endif
-        // ask-routing.test.js checks that these three fictional inputs reach the inference-only route.
+        // ask-routing.test.js verifies the household views offered for these three fictional inputs.
         let cases = [
             ("what funds can our household access right now", ["cash"]),
             ("where do we stand after what we owe", ["netWorth"]),

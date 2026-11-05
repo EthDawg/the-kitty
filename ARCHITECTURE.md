@@ -21,11 +21,9 @@ retry. A serial queue in one app does not prove a cross-device transaction lock.
 Shared JavaScript will own import, review, close and calculation logic. Python
 remains the import oracle until source-by-source plan equality is demonstrated.
 On iOS, Ask runs read-only skills against the household currently visible. The
-shared engine supplies amounts, dates, source entries and goal projections. On
-eligible devices Apple’s on-device model can suggest a view for bounded, ambiguous
-wording; the person can choose between labelled figures before inference finishes.
-Question masking, scope and validation live in shared JavaScript; Swift only runs
-inference. Clear paraphrases do not call a model. Core questions
+shared engine supplies amounts, dates, source entries and goal projections. The shared router resolves known paraphrases. For a bounded question whose meaning
+is ambiguous, the app shows the labelled alternatives immediately. Apple model inference
+is a developer experiment outside the app target. Core questions
 and follow-ups work without the model or a network connection. Sharing is optional:
 preview the exact answer, then choose an app in the iOS share sheet. The public
 Claude link is explicitly the fictional demo, never a private household session.

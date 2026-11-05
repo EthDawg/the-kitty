@@ -1,5 +1,5 @@
 import XCTest
-@testable import Kitty
+@testable import AskAppleProbe
 
 final class AskLocalModelTests: XCTestCase {
     func testProposalCarriesOnlyClosedKindAndCoverage() async {
