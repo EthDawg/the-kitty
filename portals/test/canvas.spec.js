@@ -186,3 +186,29 @@ test.describe("a phone on its side", () => {
     const a = await cell(page, "property").boundingBox(), b = await cell(page, "super").boundingBox(); expect(b.y).toBeGreaterThan(a.y + a.height - 1);
   });
 });
+
+test("Escape and a resize in mid-drag cost nothing, and leaving the arrange view on the narrowest phone keeps focus", async ({ page }) => {
+  const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await cell(page, "contracts").scrollIntoViewIfNeeded(); const box = await cell(page, "contracts").boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 80); await page.mouse.down(); await page.mouse.move(box.x + 120, box.y + 40, { steps: 6 });
+  await page.keyboard.press("Escape"); await page.setViewportSize({ width: 1270, height: 860 }); await page.waitForTimeout(250);
+  await page.mouse.up(); await mounted(page); expect(errors).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 640 }); await open(page);
+  await page.getByRole("button", { name: "Arrange this page" }).click(); await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("button", { name: "Arrange this page" })).toBeFocused();
+});
+
+test("a blocked GridStack offers no handle it cannot honour", async ({ page }) => {
+  await page.route(/gridstack/, (r) => r.abort()); await open(page);
+  await page.locator("#arrangebtn").click(); await expect(page.locator(".whandle").first()).toBeHidden();
+  await page.getByRole("button", { name: "Move What needs you up" }).click();
+  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "review"]);
+});
+
+test("a card that already draws full width says so when it is widened", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Review narrower" }).click(); await page.waitForTimeout(100);
+  await page.getByRole("button", { name: "Make Review wider" }).click();
+  await expect(page.locator("#toast")).toContainText("stays full width");
+});

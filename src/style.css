@@ -501,7 +501,9 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .anim .view.on .canvas>.wcell{animation:rise .55s var(--ease) both;animation-delay:calc(var(--i,0) * 60ms)}
 .canvas .grid-stack-placeholder>.placeholder-content{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:var(--r)}
 .canvas.arranging .wbox>:not(.wtools){pointer-events:none}
-.canvas.arranging .wbox{outline:2px dashed color-mix(in srgb,var(--accent) 40%,var(--line));outline-offset:2px;border-radius:var(--r);cursor:grab}
+.canvas.arranging .wbox{outline:2px dashed color-mix(in srgb,var(--accent) 40%,var(--line));outline-offset:2px;border-radius:var(--r)}
+.canvas.arranging.grid-stack .wbox{cursor:grab}
+.canvas.arranging:not(.grid-stack):not(.phone) .whandle{display:none}
 .wtools{display:flex;align-items:center;gap:6px;padding:0 4px 8px;font-size:13px;color:var(--ink2)}
 .wtools .wname{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .whandle{display:inline-flex;touch-action:none;cursor:grab;padding:6px;color:var(--muted)}.whandle svg{width:18px;height:18px}

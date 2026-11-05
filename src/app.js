@@ -401,7 +401,14 @@
       });
     } catch (e) { console.error("canvas", e); S.grid = null; el.classList.remove("grid-stack"); }
   }
-  function setArrange(on) { S.arrange = on; const b = $("#arrangebtn"); if (b) b.setAttribute("aria-pressed", String(on)); renderHome(); const d = on ? $(".arrangebar .btn") : b; if (d && !d.hidden) d.focus({ preventScroll: true }); }
+  const hasCanvas = () => !!(S.m && S.m.tx.length) && !fixedLayout() && !window.__KIT_GALLERY__;
+  const showArrange = () => { const b = $("#arrangebtn"); if (b) b.hidden = S.tab !== "home" || !hasCanvas(); };
+  const moving = () => !!$(".ui-draggable-dragging, .ui-resizable-resizing");   // GridStack cannot be torn down under its own pointer
+  function setArrange(on) {
+    if (!hasCanvas()) return;
+    S.arrange = on; const b = $("#arrangebtn"); b.setAttribute("aria-pressed", String(on)); renderHome();
+    const d = !on && b.offsetParent ? b : $(".arrangebar [data-arrange]"); if (d) d.focus({ preventScroll: true });   // the header button is not there on the narrowest phones
+  }
   // the reading order, for the phone's handle and for the arrows
   const currentItems = () => Kit.order(Kit.layout(WID(S.m), savedLayout()).items);
   function applyOrder(items) { saveLayout(Kit.pack(items)); renderHome(); }
@@ -409,7 +416,11 @@
     $$("[data-arrange]", v).forEach((b) => b.addEventListener("click", () => setArrange(!S.arrange)));
     $$("[data-wreset]", v).forEach((b) => b.addEventListener("click", () => { const ws = WID(S.m); savePrefs({ layout: { items: Kit.layout(ws, null).items, hidden: [], seen: ws.filter((w) => !w.core).map((w) => w.id) } }); renderHome(); toast("Back to the default page"); }));
     $$("[data-wmove]", v).forEach((b) => b.addEventListener("click", () => { const [id, d] = b.dataset.wmove.split(":"); applyOrder(Kit.reorder(currentItems(), id, +d)); toast(`${Kit.widget(id).title} moved ${+d < 0 ? "up" : "down"}`, 1400); const n = $(`[data-wmove="${id}:${d}"]`); if (n && !n.disabled) n.focus(); }));
-    $$("[data-wsize]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wsize, w = Kit.widget(id); applyOrder(currentItems().map((i) => (i.id === id ? { ...i, w: Kit.nextSize(w, i.w) } : i))); const c = $(`.wcell[data-wid="${id}"]`), n = $(`[data-wsize="${id}"]`); if (n) n.focus(); if (c && +c.getAttribute("gs-w") !== currentItems().find((i) => i.id === id).w) toast(`${w.title} fills its row until a neighbour joins it`, 2600); }));
+    $$("[data-wsize]", v).forEach((b) => b.addEventListener("click", () => {
+      const id = b.dataset.wsize, w = Kit.widget(id), drawn = () => +$(`.wcell[data-wid="${id}"]`).getAttribute("gs-w"), was = drawn(), it = currentItems().find((i) => i.id === id), to = Kit.nextSize(w, it.w);
+      applyOrder(currentItems().map((i) => (i.id === id ? { ...i, w: to } : i))); const n = $(`[data-wsize="${id}"]`); if (n) n.focus();
+      if (drawn() === was) toast(to > it.w ? `${w.title} stays full width now` : `${w.title} fills its row until a neighbour joins it`, 2600);
+    }));
     $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; writeLayout({ items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] }); renderHome(); const d = $(".arrangebar .btn"); if (d) d.focus(); }));
     $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); writeLayout({ items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] }); renderHome(); const d = $(`[data-whide="${id}"]`); if (d) d.focus(); }));
     // the phone reorders by a handle: drag it past a neighbour and the cells swap, keeping the reading order as the only state
@@ -424,7 +435,7 @@
   function renderHome() {
     if (window.__KIT_GALLERY__) return renderGallery();   // a resize re-renders; the gallery stays the gallery
     const m = S.m, v = $("#v-home");
-    unmountCanvas();
+    unmountCanvas(); showArrange();
     if (!m.tx.length) { v.innerHTML = `<div class="card hero"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">Your sheet is set up. It just has no transactions yet.</h1><p class="vs">Bring in the last three months from each account (Setup → Getting your data in), run the importer, append the rows, move the As-of date. The page fills in as the sheet does.</p><div class="heronum"><button class="btn lime" data-go="setup">How to bring data in</button></div></div>`; bindCommon(v); return; }
     const nd = E.needs(m); const last = m.cashflow[m.cashflow.length - 1];
     const nw = m.metrics["networth.total"], sr = m.metrics["cashflow.savings_rate.3m"], cash = m.metrics["networth.cash"], sav = m.metrics["savings.recurring_per_year"];
@@ -1335,7 +1346,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     const was = S.tab; S.tab = t;
     $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
     $$("section.view").forEach((s) => s.classList.toggle("on", s.id === `v-${t}`));
-    moveGlow(); closeDrawer(); const ab = $("#arrangebtn"); if (ab) ab.hidden = t !== "home" || fixedLayout() || !!window.__KIT_GALLERY__;
+    moveGlow(); closeDrawer(); showArrange();
     if (t === "home" && was !== "home" && S.m) { mountCanvas(); const lead = leadGoal(); if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name)) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 400); } }
     if (!quiet) { window.scrollTo({ top: 0, behavior: "auto" }); if (was !== t) buzz(); }
     store.set("tab", t);
@@ -1358,10 +1369,10 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $("#topsearch").addEventListener("click", openSearch);
     $("#scrim").addEventListener("click", closeDrawer);
     window.addEventListener("scroll", () => $("header.top").classList.toggle("scrolled", window.scrollY > 6), { passive: true });
-    window.addEventListener("resize", () => { moveGlow(); if (S.grid) { clearTimeout(S.resizeTm); S.resizeTm = setTimeout(renderHome, 150); } });   // heights changed: remount on the new geometry
+    window.addEventListener("resize", () => { moveGlow(); if (S.grid && !moving()) { clearTimeout(S.resizeTm); S.resizeTm = setTimeout(renderHome, 150); } });   // heights changed: remount on the new geometry
     $("#arrangebtn").addEventListener("click", () => setArrange(!S.arrange));
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") { if (!$("#onb").hidden) return; if (S.arrange && !$("#drawer").classList.contains("on")) setArrange(false); closeDrawer(); }
+      if (e.key === "Escape") { if (!$("#onb").hidden) return; if (moving()) return; if (S.arrange && !$("#drawer").classList.contains("on")) setArrange(false); closeDrawer(); }
       if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
       if (e.key === "Tab" && $("#drawer").classList.contains("on")) { const f = $$("#drawer a[href], #drawer button:not([disabled]), #drawer input, #drawer select, #drawer [tabindex='0']").filter((x) => x.offsetParent !== null); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
     });
