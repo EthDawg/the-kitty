@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -72,7 +73,9 @@ class BrandDrill(unittest.TestCase):
             components = launch["colors"][0]["color"]["components"]
             self.assertEqual([round(float(components[c]) * 255) for c in ("red","green","blue")], [18,52,86])
             for name, kind in (("AppIcon", data["mascot"]), ("KittyAlternate", "cat" if data["mascot"] == "dog" else "dog")):
-                self.assertEqual((catalog / f"{name}.appiconset/app-icon.png").read_bytes(),
-                                 (root / f"brand/{kind}/app-icon-1024.png").read_bytes())
+                png = (catalog / f"{name}.appiconset/app-icon.png").read_bytes()
+                self.assertEqual(png, (root / f"brand/{kind}/app-icon-1024.png").read_bytes())
+                # PNG IHDR width, height, bit depth and colour type: 8-bit RGB has no alpha channel.
+                self.assertEqual(struct.unpack(">IIBB", png[16:26]), (1024, 1024, 8, 2))
             self.assertEqual(js_ui, (root / "src/app.js").read_bytes())
             self.assertEqual(css_ui, (root / "src/style.css").read_bytes())

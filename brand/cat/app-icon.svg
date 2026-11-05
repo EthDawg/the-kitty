@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="The Kitty app icon">
 <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5B3DF5"/><stop offset=".48" stop-color="#8E45FF"/><stop offset="1" stop-color="#FF5CC8"/></linearGradient><clipPath id="ic"><circle cx="512" cy="540" r="270"/></clipPath></defs>
-<rect width="1024" height="1024" rx="224" fill="url(#g)"/>
+<rect width="1024" height="1024" fill="url(#g)"/>
 <path fill="#F0533D" d="M296 420L270 170q0-26 26-13l170 142z"/><path fill="#FFB8A8" d="M322 380l-12-130 108 92z"/>
 <path fill="#FBF4E6" d="M728 420l26-250q0-26-26-13L558 299z"/><path fill="#FFB8A8" d="M702 380l12-130-108 92z"/>
 <circle fill="#FBF4E6" cx="512" cy="540" r="270"/>
