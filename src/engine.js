@@ -492,6 +492,23 @@
     return out;
   };
 
+  /* Add rows under a table in the sheet. The page's cached grid can be 30 minutes old and another device may have written since, so the row
+     comes from a forced read of the whole table, and anything it cannot trust stops with no write: the wrong tab, a moved or missing header,
+     or a session that changed during the read. A row counts as taken if any cell in it is filled, so a row with no ID is never overwritten.
+     host: { sheet, call(tool, input, opts), current() }. rows(grid) builds the rows, so IDs follow the fresh read. */
+  E.appendRows = async (host, { tab, last, header, rows }) => {
+    const res = await host.call("get_values", { spreadsheetId: host.sheet, range: `${tab}!A1:${last}` }, { cache: { staleTime: 0, gcTime: 0, refresh: true } });
+    if (!host.current()) throw { code: "stale_session" };
+    let p = res && res.payload; if (typeof p === "string") { try { p = JSON.parse(p); } catch (e) { p = null; } }
+    const grid = p && p.values, at = p && typeof p.range === "string" ? p.range.replace(/'/g, "").split("!") : [];
+    if (at[0] !== tab || !/^A1(:|$)/.test(at[1] || "") || !Array.isArray(grid) || grid.some((r) => !Array.isArray(r))) throw { code: "invalid_response" };
+    if (!header.every((h, i) => String((grid[0] || [])[i] == null ? "" : grid[0][i]).trim() === h)) throw { code: "invalid_ledger", message: `The ${tab} header is not where it should be, so nothing was saved.` };
+    let used = 0; grid.forEach((r, i) => { if (r.some((c) => c !== "" && c != null)) used = i + 1; });
+    const out = rows(grid), row = used + 1;
+    await host.call("update_values", { spreadsheetId: host.sheet, range: `${tab}!A${row}:${last}${row + out.length - 1}`, values: out });
+    return { row, rows: out };
+  };
+
   // ---------- merchants: normalise a bank descriptor, then resolve it (Rules, then the dictionary, then a flagged fallback) ----------
   // The dictionary is a repo asset (merchants/merchants.json + categories.json); the page bundles it, node tests load it.
   const DICT = { merchants: [], byId: {}, byName: {}, categories: {}, groups: {}, kinds: {}, compiled: [] };
