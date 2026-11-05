@@ -1088,7 +1088,8 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       <div class="card"><div class="cardhead"><span class="q">About this preview</span></div>
         <div class="prose"><p>Ask the Kitty can explain spending, savings goals and upcoming bills on this device. Tap the sparkle at the top. To share an answer, you choose its destination after previewing the text.</p>
         <p>The household's Google Sheet remains the owner of its numbers. These links open online and need a connection:</p></div>
-        <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}</div>
+        <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}
+          <a class="btn sm ghost" href="${REPO}/blob/main/docs/ios-support.md" target="_blank" rel="noopener">Get help</a></div>
       </div>`;
     $("#nativepick", v).addEventListener("click", () => chooseDemoSheet());
     $("#nativelock", v)?.addEventListener("click", changePrivacy);
