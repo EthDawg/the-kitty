@@ -940,12 +940,12 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   function appearanceCard(m) {
     return `<div class="card" style="--i:4.5" id="lookcard"><div class="cardhead"><span class="q">Appearance</span><span class="sub">remembered with your other choices</span></div>
         <div class="cardtools"><span class="seg" role="group" aria-label="Theme">${[["system", "Match my device"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button data-theme-pick="${k}" aria-pressed="${(S.prefs.theme || "system") === k}">${l}</button>`).join("")}</span><span class="swatches">${["violet", "coral", "teal", "lime"].map((n) => `<button class="swatch" data-accent-pick="${n}" aria-pressed="${(pref("accent", m.kitty.accent) || "violet") === n}" aria-label="${n}" style="background:var(--swatch-${n});width:34px;height:34px"></button>`).join("")}</span></div>
-        ${NATIVE ? '<div class="cardtools"><span>Home Screen icon</span><span class="seg" role="group" aria-label="Home Screen icon"><button disabled data-icon-choice="cat">Cat</button><button disabled data-icon-choice="dog">Dog</button></span></div>' : ""}
+        ${NATIVE && window.KittyNative?.icon ? '<div class="cardtools"><span>Home Screen icon</span><span class="seg" role="group" aria-label="Home Screen icon"><button disabled data-icon-choice="cat">Cat</button><button disabled data-icon-choice="dog">Dog</button></span></div>' : ""}
       </div>`;
   }
   function bindAppearance(v) {
     const icons = $$("[data-icon-choice]", v);
-    if (NATIVE && icons.length) {
+    if (NATIVE && window.KittyNative?.icon && icons.length) {
       const paint = r => icons.forEach(b => {
         b.disabled = !r.supported;
         b.setAttribute("aria-pressed", String((b.dataset.iconChoice !== (ART.set || "cat")) === r.alternate));
