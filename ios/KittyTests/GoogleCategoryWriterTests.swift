@@ -9,17 +9,25 @@ final class GoogleCategoryWriterTests: XCTestCase {
                        ["T01","transaction","2026-09-03","A1","FICTIONAL SHOP","Shop","-12","UNCAT"]]
         var audit = [["Decision ID","Ref kind","Ref ID","Decision","Value","By","At","Note"]]
         var dateValue: Any = "", brokenHelpers = false, wrongDateType = false
-        var puts = 0, posts = 0, losePut = false, losePost = false, acceptPost = true
+        var guards = [Int:[String:Any]](), attempts = [(Int,[String:Any],[String])]()
+        var puts = 0, posts = 0, losePut = false, acceptPut = true, losePost = false, acceptPost = true
+        @discardableResult func deliver(_ attempt: Int) -> Bool {
+            let (id,metadata,row) = attempts[attempt]
+            guard guards[id] == nil else { return false } // Google rejects the entire batch for a duplicate metadata ID.
+            guards[id] = metadata; audit.append(Array(row.dropLast())); return true
+        }
         func send(_ request: URLRequest, maximumBytes: Int) async throws -> GoogleHTTPResponse {
             let url = try XCTUnwrap(request.url), path = url.path.components(separatedBy:"/values/").last!
             let query = URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems ?? []
             var result = [String:Any]()
             if request.httpMethod == "PUT" || request.httpMethod == "POST" {
                 let body = try XCTUnwrap(try JSONSerialization.jsonObject(with:try XCTUnwrap(request.httpBody)) as? [String:Any])
-                if request.httpMethod == "PUT" {
+                if path.hasSuffix("/developerMetadata:search") {
+                    result = ["matchedDeveloperMetadata":guards.values.map { ["developerMetadata":$0] }]
+                } else if request.httpMethod == "PUT" {
                     XCTAssertTrue(query.contains(URLQueryItem(name:"valueInputOption",value:"RAW")))
                     let values = try XCTUnwrap(body["values"] as? [[String]])
-                    XCTAssertEqual(path,"Entries!H2"); puts += 1; entries[1][7] = values[0][0]
+                    XCTAssertEqual(path,"Entries!H2"); puts += 1; if acceptPut { entries[1][7] = values[0][0] }
                     if losePut { throw URLError(.networkConnectionLost) }
                 } else {
                     XCTAssertTrue(path.hasSuffix(":batchUpdate")); posts += 1
@@ -33,7 +41,11 @@ final class GoogleCategoryWriterTests: XCTestCase {
                     XCTAssertEqual(requests[2]["repeatCell"]?["fields"] as? String,"userEnteredFormat.numberFormat")
                     dateValue = try XCTUnwrap(cells[6]["userEnteredValue"]?["numberValue"])
                     let values = cells.enumerated().map { n,c in n == 6 ? String(describing:dateValue) : (c["userEnteredValue"]?["stringValue"] as? String ?? "") }
-                    if acceptPost { audit.append(Array(values.dropLast())) } // Sheets trims empty trailing cells
+                    let marker = try XCTUnwrap(requests[3]["createDeveloperMetadata"]?["developerMetadata"] as? [String:Any])
+                    let mid = try XCTUnwrap(marker["metadataId"] as? Int)
+                    XCTAssertEqual(marker["visibility"] as? String,"PROJECT")
+                    attempts.append((mid,marker,values))
+                    if acceptPost { _ = deliver(attempts.count-1) }
                     if losePost { throw URLError(.timedOut) }
                 }
             } else if path == "Decisions!A2:J2" {
@@ -82,17 +94,36 @@ final class GoogleCategoryWriterTests: XCTestCase {
         XCTAssertNil(try reopened.pending(owner))
         do { _ = try await reopened.prepare(owner,api:api,id:"T01",old:"SHOPPING",category:"SHOPPING"); XCTFail("Duplicate review accepted") } catch {}
     }
-    func testUnobservedAppendRemainsPendingAndIsNeverDispatchedTwice() async throws {
+    func testExplicitRecheckAfterAnUnobservedAppendAllowsProgressAndALateRequestCannotDuplicateIt() async throws {
         let (writer,dir,owner,api,sheet) = fixture(); defer { try? FileManager.default.removeItem(at:dir) }
         let intent = try await writer.prepare(owner,api:api,id:"T01",old:"UNCAT",category:"SHOPPING")
         let (cell,audit) = inputs(intent,owner.selection.sheetID)
         _ = try await writer.run("update_values",input:cell,owner:owner,api:api)
         sheet.losePost = true; sheet.acceptPost = false
-        for _ in 0..<2 {
-            do { _ = try await writer.run("append_values",input:audit,owner:owner,api:api); XCTFail("Unknown append reported saved") }
-            catch let failure as GoogleSheetTools.Failure { XCTAssertEqual(failure.code,"write_pending") }
-        }
-        XCTAssertEqual(sheet.posts,1); XCTAssertNotNil(try writer.pending(owner))
+        do { _ = try await writer.run("append_values",input:audit,owner:owner,api:api); XCTFail("Unknown append reported saved") }
+        catch let failure as GoogleSheetTools.Failure { XCTAssertEqual(failure.code,"write_pending") }
+        XCTAssertNotNil(try writer.pending(owner)); sheet.acceptPost = true
+        _ = try await writer.run("append_values",input:audit,owner:owner,api:api)
+        XCTAssertEqual(sheet.posts,2); XCTAssertEqual(sheet.attempts[0].0,sheet.attempts[1].0)
+        XCTAssertFalse(sheet.deliver(0)); XCTAssertEqual(sheet.audit.count,2); XCTAssertNil(try writer.pending(owner))
+    }
+    func testCancelledBeforeDispatchClearsUnsentIntentAndDroppedPutRecovers() async throws {
+        let (writer,dir,owner,api,sheet) = fixture(); defer { try? FileManager.default.removeItem(at:dir) }
+        let intent = try await writer.prepare(owner,api:api,id:"T01",old:"UNCAT",category:"SHOPPING")
+        let (cell,_) = inputs(intent,owner.selection.sheetID)
+        var active: GoogleConnection.Selection? = owner.selection, tokens = 0
+        let stopped = GoogleSheetTools(http:sheet,selected:owner.selection,current:{active},token:{ _ in
+            tokens += 1; if tokens == 2 { active = nil }; return "fixture"
+        })
+        do { _ = try await writer.run("update_values",input:cell,owner:owner,api:stopped); XCTFail("Stale session wrote") } catch {}
+        XCTAssertEqual(sheet.puts,0); XCTAssertNil(try writer.pending(owner))
+        let second = try await writer.prepare(owner,api:api,id:"T01",old:"UNCAT",category:"SHOPPING")
+        let (retry,_) = inputs(second,owner.selection.sheetID)
+        sheet.acceptPut = false; sheet.losePut = true
+        do { _ = try await writer.run("update_values",input:retry,owner:owner,api:api); XCTFail("Unobserved value reported as saved") } catch {}
+        sheet.acceptPut = true
+        _ = try await writer.run("update_values",input:retry,owner:owner,api:api)
+        XCTAssertEqual(sheet.entries[1][7],"SHOPPING"); XCTAssertEqual(sheet.puts,2)
     }
     func testMovedEntryWrongPayloadFormulaAndViewerCannotWrite() async throws {
         let (writer,dir,owner,api,sheet) = fixture(); defer { try? FileManager.default.removeItem(at:dir) }
@@ -107,6 +138,7 @@ final class GoogleCategoryWriterTests: XCTestCase {
         sheet.entries[1][0] = "T02"
         do { _ = try await writer.run("update_values",input:cell,owner:owner,api:api); XCTFail("Different entry changed") } catch {}
         XCTAssertEqual(sheet.puts,0); XCTAssertEqual(sheet.posts,0)
+        XCTAssertNil(try writer.pending(owner))
     }
     func testNumericDateAndSheetCalculatedHelpersAreRequiredBeforeClearingAnIntent() async throws {
         let (writer,dir,owner,api,sheet) = fixture(); defer { try? FileManager.default.removeItem(at:dir) }

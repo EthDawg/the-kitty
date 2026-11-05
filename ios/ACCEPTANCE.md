@@ -61,3 +61,14 @@ read. These checks do not enable native ledger writes.
 Opening a v2 Sheet now leaves its settings untouched; the existing “Worth it?”
 default of 40 still applies when no threshold is set. A missing ledger tab or
 moved category/decision column prevents a Live result.
+
+The iPhone's ordinary category picker saved the fictional $38.50 Market Lane
+entry (T0761) as Dining. The first write used a text date; the Sheet's own
+Latest formula rejected it despite the dashboard dropping from five to four
+reviews. At 16:28 Sydney the corrected signed build changed only that record's
+date, then passed a fresh physical test: Entries!H762 = DINING, Decisions row 21
+contains the same unique decision, G21 is numeric 46331, I21 = TRUE, and J21 =
+T0761|categorise. Prior row 20 is intact. The iPhone showed four reviews,
+1,082 entries and $99,388; the [published artifact check](https://github.com/EthDawg/the-kitty/pull/16#issuecomment-6650396347)
+also found four and $99,388. A biometric or passcode lock is optional. Simulated
+unlock outcomes are tested; a physical Face ID acceptance was not recorded.

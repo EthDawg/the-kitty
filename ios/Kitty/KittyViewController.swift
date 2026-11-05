@@ -257,6 +257,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                         throw GoogleSheetTools.Failure(code:"device_locked",message:"Unlock and reopen the live Sheet.")
                     }
                     verifiedSheet = verified; liveSheet = verified; liveSession = UUID()
+                    preferences.set(verified.preferenceID,forKey:"kitty.native.last-preference-scope")
                     reply(HostPolicy.reply(verified.descriptor.merging(["session":liveSession.uuidString]) { _, v in v }), nil)
                 } catch { reply(googleFailure(error), nil) }
             }
@@ -315,6 +316,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                                                      token: { try await self.google.accessToken(for: $0) })
                     let verified = try await probe.verify(selection)
                     verifiedSheet = verified
+                    preferences.set(verified.preferenceID,forKey:"kitty.native.last-preference-scope")
                     #if DEBUG
                     GoogleSheetSelection.recordDemoCheck(verified, pageURL: pageURL)
                     #endif
@@ -331,12 +333,18 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 reply(HostPolicy.failure("busy", "Finish the current Google action."), nil); return
             }
             choosingSheet = true
+            let scope = liveSheet?.preferenceID ?? verifiedSheet?.preferenceID ?? preferences.string(forKey:"kitty.native.last-preference-scope")
+            if let scope, scope.range(of:"^native-[0-9a-f]{64}$",options:.regularExpression) != nil {
+                preferences.removeObject(forKey:"kitty.\(scope).preferences")
+                categoryWriter.disconnect(preferenceID:scope)
+            }
+            preferences.removeObject(forKey:"kitty.native.last-preference-scope")
             verifiedSheet = nil
             liveSheet = nil
             privacy.lock()
             Task { @MainActor in
                 defer { choosingSheet = false; notifyGoogleStatus() }
-                do { try await google.disconnect(); reply(HostPolicy.reply(), nil) }
+                do { try await google.disconnect(); reply(HostPolicy.reply(["clearedPreferenceID":scope ?? ""]), nil) }
                 catch {
                     let detail = (error as? GoogleConnection.ConnectionError)?.errorDescription ?? "Google disconnect could not be verified."
                     reply(HostPolicy.failure("disconnect_incomplete", detail), nil)

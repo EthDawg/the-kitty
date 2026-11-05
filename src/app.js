@@ -1006,12 +1006,17 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   }
   async function chooseDemoSheet(disconnect = false) {
     if (googlePicker.busy) return;
+    const clearDisplayPrefs = id => {
+      if (!/^native-[0-9a-f]{64}$/.test(id || "")) return;
+      try { const prefix = "kitty:" + id + ":"; for (const k of Object.keys(localStorage)) if (k.startsWith(prefix)) localStorage.removeItem(k); } catch (_) {}
+    };
+    if (disconnect) clearDisplayPrefs(S.nativeSheet?.preferenceID);
     googlePicker.revision++; googlePicker.busy = disconnect ? "disconnect" : "choose"; googlePicker.message = ""; googlePicker.verified = null;
     leaveNativeSheet();
     googlePicker.attempted = true; renderNativeSetup();
     try {
       if (disconnect) {
-        await window.KittyNative.google.disconnect();
+        const cleared = await window.KittyNative.google.disconnect(); clearDisplayPrefs(cleared?.clearedPreferenceID);
         googlePicker.message = "Disconnected from Google."; googlePicker.attempted = false; googlePicker.canResume = false;
       } else {
         const result = await window.KittyNative.google.select(DEMO_SHEET);

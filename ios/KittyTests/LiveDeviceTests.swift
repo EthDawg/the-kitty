@@ -7,6 +7,54 @@ import WebKit
 /// named opt-in can make precisely one predetermined category choice on the public fixture.
 @MainActor
 final class LiveDeviceTests: XCTestCase {
+    /// Exercise Google's actual all-or-nothing duplicate-ID rule without adding, moving or
+    /// changing any ledger cells. Both temporary markers are removed and checked at the end.
+    func testProviderRejectsLateDuplicateGuardAtomically() async throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Physical provider test.")
+        #else
+        guard ProcessInfo.processInfo.environment["KITTY_DEVICE_ACCEPTANCE"] == "davies-guard-proof" else { throw XCTSkip("Explicit provider proof only.") }
+        let google = GoogleConnection(defaults:.standard)
+        guard let selected = try await google.restore(), selected.sheetID == GoogleSheetSelection.demoFileID else { throw NSError(domain:"WrongFixture",code:1) }
+        let probe = GoogleSheetSelection(http:GoogleHTTP(),current:{google.selection},token:{try await google.accessToken(for:$0)})
+        let owner = try await probe.verify(selected); guard owner.canEdit else { throw GoogleSheetSelection.Failure.noAccess }
+        let api = GoogleSheetTools(http:GoogleHTTP(),selected:selected,current:{google.selection},token:{try await google.accessToken(for:$0)})
+        let meta = try await api.request(query:["fields":"spreadsheetId,sheets(properties(sheetId,title))"])
+        let tabs = (meta["sheets"] as? [[String:Any]])?.compactMap { $0["properties"] as? [String:Any] }.filter { $0["title"] as? String == "Decisions" }
+        guard meta["spreadsheetId"] as? String == selected.sheetID, tabs?.count == 1, let sheet = tabs?.first?["sheetId"] as? Int else { throw api.invalid }
+        let label = "QA-" + UUID().uuidString, other = label + "-rollback"
+        let id = try await api.appendGuard(for:label,preferred:nil,sheet:sheet,existing:[]).id
+        let id2 = try await api.appendGuard(for:other,preferred:nil,sheet:sheet,existing:[]).id
+        guard id != id2 else { throw api.invalid }
+        func item(_ i:Int,_ val:String) -> [String:Any] {
+            ["metadataId":i,"metadataKey":"kitty.review.v1","metadataValue":val,"visibility":"PROJECT"]
+        }
+        let a = item(id,label), b = item(id2,other)
+        func create(_ obj:[String:Any]) -> [String:Any] {
+            ["createDeveloperMetadata":["developerMetadata":obj.merging(["location":["sheetId":sheet]]) { _,v in v }]]
+        }
+        func search(_ obj:[String:Any]) async throws -> Int {
+            let r = try await api.request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[["developerMetadataLookup":obj]]])
+            return (r["matchedDeveloperMetadata"] as? [[String:Any]])?.count ?? 0
+        }
+        var problem: Error?
+        do {
+            _ = try await api.request(path:":batchUpdate",method:"POST",body:["requests":[create(a)]])
+            do { _ = try await api.request(path:":batchUpdate",method:"POST",body:["requests":[create(b),create(a)]]); throw api.invalid }
+            catch let e as GoogleSheetTools.Failure where e.code == "tool_error" { /* expected provider rejection */ }
+            let kept = try await search(a), rolledBack = try await search(b)
+            guard kept == 1, rolledBack == 0 else { throw api.invalid }
+        } catch { problem = error }
+        for marker in [a,b] where try await search(marker) > 0 {
+            _ = try await api.request(path:":batchUpdate",method:"POST",body:["requests":[["deleteDeveloperMetadata":["dataFilter":["developerMetadataLookup":marker]]]]])
+        }
+        let leftA = try await search(a), leftB = try await search(b)
+        guard leftA == 0, leftB == 0 else { throw api.invalid }
+        if let problem { throw problem }
+        let receipt = XCTAttachment(string:"Google rejected a duplicate guard and rolled back its sibling. Both temporary markers were removed. No ledger cells written.")
+        receipt.name = "Physical iPhone — Google atomic retry guard"; receipt.lifetime = .keepAlways; add(receipt)
+        #endif
+    }
     func testSelectedDaviesSheetDrivesTheDashboard() async throws {
         #if targetEnvironment(simulator)
         throw XCTSkip("This proof requires the physical iPhone.")

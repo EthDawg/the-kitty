@@ -92,10 +92,10 @@ struct GoogleSheetTools {
     var invalid: Failure { Failure(code: "invalid_response", message: "Google returned an unexpected Sheet range or layout.") }
 
     /// Only a verified writer can call these. The bridge does not expose an arbitrary Google URL or range.
-    func updateValue(_ range: String, to value: String) async throws -> [String: Any] {
+    func updateValue(_ range: String, to value: String, beforeSend: (() throws -> Void)? = nil) async throws -> [String: Any] {
         guard let r = Rect(range), r.tab == "Entries", r.firstCol == 8, r.lastCol == 8, r.lastRow == r.firstRow else { throw invalid }
         return try await request(path: "/values/" + range, query: ["valueInputOption":"RAW"], method: "PUT",
-                                 body: ["range":range, "majorDimension":"ROWS", "values":[[value]]])
+                                 body: ["range":range, "majorDimension":"ROWS", "values":[[value]]], beforeSend:beforeSend)
     }
 
     func decisionSlot(_ range: String, at next: Int) async throws -> [String:Int] {
@@ -113,7 +113,42 @@ struct GoogleSheetTools {
         return ["sheetId":id,"startRowIndex":next-1,"endRowIndex":next,"startColumnIndex":0,"endColumnIndex":8]
     }
 
-    func appendDecision(_ slot: [String:Int], row: [String]) async throws -> [String: Any] {
+    struct AppendGuard { let id: Int, retire: [[String:Any]] }
+    private static let guardKey = "kitty.review.v1"
+    func appendGuard(for decision: String, preferred: Int?, sheet: Int, existing: [[String]]) async throws -> AppendGuard {
+        let id = preferred ?? Int.random(in:1...Int(Int32.max))
+        let search = try await request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[
+            ["developerMetadataLookup":["metadataId":id]],
+            ["developerMetadataLookup":["metadataKey":Self.guardKey,"visibility":"PROJECT","metadataLocation":["sheetId":sheet]]]
+        ]])
+        let matches = (search["matchedDeveloperMetadata"] as? [[String:Any]]) ?? []
+        let records = matches.compactMap { $0["developerMetadata"] as? [String:Any] }
+        guard records.count == matches.count else { throw invalid }
+        let used = Set(records.compactMap { $0["metadataId"] as? Int }); var next = id
+        if let owner = records.first(where:{ $0["metadataId"] as? Int == id }) {
+            if owner["metadataKey"] as? String == Self.guardKey && (owner["metadataValue"] as? String)?.split(separator:"|").first.map(String.init) == decision {
+                throw Failure(code:"write_pending",message:"Google already received this save. Check its decision row before submitting anything else.")
+            }
+            repeat { next = Int.random(in:1...Int(Int32.max)) } while used.contains(next)
+        }
+        // Only retire our own guards when the matching durable decision is present and at least
+        // two days old, well beyond Google's request lifetime. Avoid an ever-growing metadata log.
+        let cutoff = Int(Date().timeIntervalSince1970 / 86400) + 25569 - 2
+        let archived = Set(existing.compactMap { r -> String? in
+            guard r.count >= 7, r[0].hasPrefix("D-"), r[1] == "entry", r[3] == "categorise", r[5] == "The Kitty on iPhone",
+                  let day = Int(r[6]), day < cutoff else { return nil }; return r[0]
+        })
+        let retire: [[String:Any]] = records.compactMap { r in
+            guard r["metadataKey"] as? String == Self.guardKey, r["visibility"] as? String == "PROJECT",
+                  let loc = r["location"] as? [String:Any], loc["sheetId"] as? Int == sheet,
+                  let value = r["metadataValue"] as? String, let mid = r["metadataId"] as? Int else { return nil }
+            let parts = value.split(separator:"|"); guard parts.count == 2, parts[0] != Substring(decision), archived.contains(String(parts[0])),
+                  let sentDay = Int(parts[1]), sentDay + 25569 < cutoff else { return nil }
+            return ["deleteDeveloperMetadata":["dataFilter":["developerMetadataLookup":["metadataId":mid,"metadataKey":Self.guardKey,"metadataValue":value,"visibility":"PROJECT"]]]]
+        }
+        return AppendGuard(id:next,retire:Array(retire.prefix(20)))
+    }
+    func appendDecision(_ slot: [String:Int], row: [String], guardKey: AppendGuard, beforeSend: (() throws -> Void)? = nil) async throws -> [String: Any] {
         guard row.count == 8, slot["startColumnIndex"] == 0, slot["endColumnIndex"] == 8,
               let n = slot["startRowIndex"], n > 0, slot["endRowIndex"] == n+1 else { throw invalid }
         // values.append infers a table and can land after helper columns. Insert only A:H at the
@@ -123,15 +158,18 @@ struct GoogleSheetTools {
         var cells: [[String:Any]] = row.map { ["userEnteredValue":["stringValue":$0]] }
         cells[6] = dayCell
         var daySlot = slot; daySlot["startColumnIndex"] = 6; daySlot["endColumnIndex"] = 7
+        guard let sheet = slot["sheetId"] else { throw invalid }
         let requests: [[String:Any]] = [
             ["insertRange":["range":slot,"shiftDimension":"ROWS"]],
             ["updateCells":["range":slot,"fields":"userEnteredValue","rows":[["values":cells]]]],
-            ["repeatCell":["range":daySlot,"fields":"userEnteredFormat.numberFormat","cell":["userEnteredFormat":["numberFormat":GoogleSheetDay.numberFormat]]]]
-        ]
-        return try await request(path:":batchUpdate",method:"POST",body:["requests":requests])
+            ["repeatCell":["range":daySlot,"fields":"userEnteredFormat.numberFormat","cell":["userEnteredFormat":["numberFormat":GoogleSheetDay.numberFormat]]]],
+            ["createDeveloperMetadata":["developerMetadata":["metadataId":guardKey.id,"metadataKey":Self.guardKey,
+                "metadataValue":row[0] + "|" + String(Int(Date().timeIntervalSince1970 / 86400)),"location":["sheetId":sheet],"visibility":"PROJECT"]]]
+        ] + guardKey.retire
+        return try await request(path:":batchUpdate",method:"POST",body:["requests":requests],beforeSend:beforeSend)
     }
 
-    func request(path: String = "", query: [String: String] = [:], method: String = "GET", body: [String: Any]? = nil) async throws -> [String: Any] {
+    func request(path: String = "", query: [String: String] = [:], method: String = "GET", body: [String: Any]? = nil, beforeSend: (() throws -> Void)? = nil) async throws -> [String: Any] {
         try check()
         let access = try await token(selected)
         try check()
@@ -146,6 +184,7 @@ struct GoogleSheetTools {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
+        try check(); try beforeSend?()
         let response = try await http.send(request, maximumBytes: 12 * 1024 * 1024)
         try check()
         switch response.statusCode {

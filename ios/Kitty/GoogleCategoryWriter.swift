@@ -11,6 +11,7 @@ final class GoogleCategoryWriter {
         let entry: String, old: String, category: String, row: Int, identity: String
         let decision: [String], header: Int
         var stage: Stage
+        var markerID: Int?
         var cell: String { "Entries!H\(row)" }
         var table: String { "Decisions!A\(header):H" }
         var instructions: [String: Any] {
@@ -26,6 +27,18 @@ final class GoogleCategoryWriter {
     private func conflict(_ text: String) -> Failure { Failure(code:"write_conflict", message:text) }
     private var pendingError: Failure { Failure(code:"write_pending", message:"A category save still needs checking. Recheck it in Setup before making another change.") }
     private func file(_ owner: GoogleSheetSelection.Verified) -> URL { directory.appendingPathComponent(owner.preferenceID + ".json") }
+    func discardUnsent(_ owner: GoogleSheetSelection.Verified) throws {
+        if try pending(owner)?.stage == .prepared { try FileManager.default.removeItem(at:file(owner)) }
+    }
+    func disconnect(preferenceID: String) {
+        guard preferenceID.range(of:"^native-[0-9a-f]{64}$",options:.regularExpression) != nil else { return }
+        let url = directory.appendingPathComponent(preferenceID + ".json")
+        // An unsent plan can be forgotten. A dispatched change needs its account-bound protected
+        // recovery record, including through revocation; another account cannot read or replay it.
+        if let bytes = try? Data(contentsOf:url), let intent = try? JSONDecoder().decode(Intent.self,from:bytes), intent.stage == .prepared {
+            try? FileManager.default.removeItem(at:url)
+        }
+    }
     func pending(_ owner: GoogleSheetSelection.Verified) throws -> Intent? {
         let url = file(owner)
         do { return try JSONDecoder().decode(Intent.self, from: Data(contentsOf: url)) }
@@ -88,8 +101,9 @@ final class GoogleCategoryWriter {
     func prepare(_ owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, id: String, old: String, category: String) async throws -> Intent {
         try enter(owner,api); defer { busy = false }
         if let prior = try pending(owner) {
-            guard prior.entry == id, prior.category == category else { throw pendingError }
-            return prior
+            if prior.entry == id, prior.category == category { return prior }
+            guard prior.stage == .prepared else { throw pendingError }
+            try discardUnsent(owner)
         }
         guard !id.isEmpty, id.utf8.count <= 128, !category.isEmpty, category.utf8.count <= 128, category != "UNCAT" else { throw api.invalid }
         let rows = try await grid(api,"Entries!A1:H"), ledger = try table(rows,entryHeader)
@@ -118,14 +132,21 @@ final class GoogleCategoryWriter {
         switch tool {
         case "update_values":
             guard range == i.cell, rows == [[i.category]] else { throw api.invalid }
-            let was = try await entry(i,api)
-            if i.stage == .prepared {
-                guard was == i.old else { throw conflict("The original category changed before saving.") }
-                if i.old != i.category {
-                    i.stage = .updating; try save(i,for:owner)
-                    // A missing HTTP response is reconciled by a fresh read; a write is never retried here.
-                    do { _ = try await api.updateValue(i.cell,to:i.category) } catch { try api.check() }
+            do {
+                let was = try await entry(i,api)
+                if i.stage == .prepared || i.stage == .updating {
+                    guard was == i.old || (i.stage == .updating && was == i.category) else { throw conflict("The original category changed before saving.") }
+                    if was != i.category {
+                        // Only an explicit recheck can repeat this idempotent PUT, after verifying
+                        // the same transaction fingerprint and unchanged original category.
+                        do { _ = try await api.updateValue(i.cell,to:i.category,beforeSend:{
+                            i.stage = .updating; try self.save(i,for:owner)
+                        }) } catch { try api.check(); if i.stage == .prepared { throw error } }
+                    }
                 }
+            } catch {
+                if i.stage == .prepared { try discardUnsent(owner) }
+                throw error
             }
             guard try await entry(i,api) == i.category else { throw pendingError }
             if i.stage != .appending { i.stage = .updated; try save(i,for:owner) }
@@ -136,12 +157,17 @@ final class GoogleCategoryWriter {
             var audit = try await decisions(api)
             guard audit.header == i.header else { throw conflict("The Decisions header moved. The app stopped.") }
             if audit.ids[i.decision[0]] == nil {
-                guard i.stage != .appending else { throw pendingError }
+                // An older development build didn't use server idempotency. Never replay an
+                // already-dispatched legacy append with no guard. Its existing row is still verifiable.
+                if i.stage == .appending && i.markerID == nil { throw pendingError }
                 // A different device may have reviewed this entry between prepare and append.
                 guard !audit.rows.dropFirst(audit.header).contains(where: { $0.count >= 4 && $0[1] == "entry" && $0[2] == i.entry && ["categorise","confirm","merge_duplicate","match_transfer","split"].contains($0[3]) }) else { throw conflict("Another review appeared. Check the Sheet.") }
                 let slot = try await api.decisionSlot(i.table,at:audit.rows.count+1)
-                i.stage = .appending; try save(i,for:owner)
-                do { _ = try await api.appendDecision(slot,row:i.decision) } catch { try api.check() }
+                guard let sheet = slot["sheetId"] else { throw api.invalid }
+                let guardKey = try await api.appendGuard(for:i.decision[0],preferred:i.markerID,sheet:sheet,existing:audit.rows)
+                do { _ = try await api.appendDecision(slot,row:i.decision,guardKey:guardKey,beforeSend:{
+                    i.markerID = guardKey.id; i.stage = .appending; try self.save(i,for:owner)
+                }) } catch { try api.check(); if i.stage != .appending { throw error } }
                 audit = try await decisions(api)
             }
             guard let n = audit.ids[i.decision[0]],
