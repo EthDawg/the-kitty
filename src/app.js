@@ -120,7 +120,7 @@
   }
   // open-ended rows so a tab resized smaller never turns a read into a grid error
   const RANGES = {
-    settings: "Settings!A1:C", accounts: "Accounts!A1:I", category_list: "Categories!A1:H", goals: "Goals!A1:J", subscriptions: "Subscriptions!A1:Q", loans: "Loans!A1:K", assets: "Assets!A1:D",
+    settings: "Settings!A1:C", accounts: "Accounts!A1:P", category_list: "Categories!A1:H", goals: "Goals!A1:J", subscriptions: "Subscriptions!A1:Q", loans: "Loans!A1:K", assets: "Assets!A1:D",
     metrics: "Metrics!A1:H", compliance: "'Compliance Checks'!A1:G", networth: "'Net Worth'!A1:I", cashflow: "'Cash Flow'!A1:T", budget: "Budget!A1:I", savings: "'Savings Finder'!A1:G",
     mortgage: "'Mortgage Scenarios'!A1:H", tax: "'Tax Forecast'!A1:F", transactions: "Transactions!A1:J", payslips: "Payslips!A1:G", kitty: "Kitty!A1:C",
     // sheet_version 2: the ledger tabs. A 1.1 sheet has none of them and the page carries on without.

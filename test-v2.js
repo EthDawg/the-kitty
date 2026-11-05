@@ -256,3 +256,12 @@ test("widgets: saving keeps what a lost signal took off the page, and never what
   assert.deepEqual(kept[1], prior[1]);
   assert.deepEqual(W.keepAbsent(kept, undefined, []).map((i) => i.id), ["hero", "property"]);
 });
+
+test("the live read covers every column the ledger tabs carry, so live and bundled models agree", () => {
+  const src = fs.readFileSync(path.join(__dirname, "src", "app.js"), "utf8"); const snap = require("./data/snapshot-v2.json");
+  const width = (c) => [...c].reduce((n, x) => n * 26 + x.charCodeAt(0) - 64, 0);
+  for (const key of ["accounts", "entries", "balances", "contracts", "decisions", "rules"]) {
+    const m = src.match(new RegExp(`${key}: "[^!]+!A1:([A-Z]+)"`)); assert.ok(m, key);
+    assert.ok(width(m[1]) >= Object.keys(snap[key][0]).length, `${key} reads to column ${m[1]} but the tab has ${Object.keys(snap[key][0]).length} columns`);
+  }
+});
