@@ -5,21 +5,30 @@ import XCTest
 final class PeriodBankAppendTests: XCTestCase {
     typealias Object = [String: Any]
     let sheetID = "fictional_existing_sheet_000001"
-    let source = String(repeating: "a", count: 64)
     let ledger = ["Entry ID", "T0001", "V0001"]
     let selection = GoogleConnection.Selection(permissionID: "fictional", sheetID: "fictional_existing_sheet_000001", sessionID: UUID())
 
-    func fixture(_ description: String = "'=MYSTERY PASTA") -> Object {
+    func cardCSV(_ description: String = "=MYSTERY PASTA", amount: String = "12.34") -> SourceDocument {
+        let escaped = description.replacingOccurrences(of: "\"", with: "\"\"")
+        return source("\u{feff}Date,Description,Card Member,Account #,Amount\r\n02/02/2027,\"\(escaped)\",Joint,1234,\(amount)\r\n")
+    }
+
+    func source(_ csv: String) -> SourceDocument {
+        SourceDocument(name: "fictional.csv", mimeType: "text/csv", bytes: Data(csv.utf8))
+    }
+
+    func fixture(_ description: String = "'=MYSTERY PASTA", amount: Double = -12.34) -> Object {
         let date = "2027-02-02"
-        let row: [Any] = ["T0002", "transaction", date, "ACC-CC", description, "Mystery Pasta", -12.34, "UNCAT", "Joint", "", "", "settled", date, "", "", "", "", "", "", "bank export"]
+        let row: [Any] = ["T0002", "transaction", date, "ACC-CC", description, "Mystery Pasta", amount, "UNCAT", "Joint", "", "", "settled", date, "", "", "", "", "", "", "bank export"]
         return ["schema": "kitty-write-plan/1", "status": "ready", "sheet": ["version": 2, "id": sheetID], "deferred": [],
                 "assumes": ["entries_rows": 2, "last_entry_row": 3, "last_entry_id": "V0001", "last_ids": ["T": "T0001"]],
                 "preconditions": [["range": "Entries!A3:A4", "expect": [["V0001"], []]]],
                 "writes": [["id": "entries-1", "tab": "Entries", "op": "append", "range": "Entries!A4:T4", "rows": 1,
                             "columns": PeriodBankAppend.columns, "values": [row]]]]
     }
-    func compile(_ plan: Object) throws -> PeriodBankAppend {
-        try .init(plan: plan, sheetID: sheetID, account: "ACC-CC", originalSHA256: source)
+    func compile(_ plan: Object, original: SourceDocument? = nil, approvedSHA256: String? = nil) throws -> PeriodBankAppend {
+        let retained = original ?? cardCSV()
+        return try .init(plan: plan, sheetID: sheetID, account: "ACC-CC", original: retained, originalSHA256: approvedSHA256 ?? retained.id)
     }
     func observation(_ p: PeriodBankAppend, _ ids: [String]? = nil, _ cells: [[Object]] = [], _ marker: Object? = nil) -> PeriodBankAppend.Observation {
         .init(sheetID: sheetID, entriesTabID: 8, headers: PeriodBankAppend.columns, ids: ids ?? ledger,
@@ -46,7 +55,7 @@ final class PeriodBankAppendTests: XCTestCase {
     func testBankTextIsLiteralWithNumericAmountsAndRealDatesOnlyInsideTheRawLedger() throws {
         let p = try compile(fixture()), req = try requests(p)
         XCTAssertEqual(req.count, 5)
-        XCTAssertEqual(p.originalSHA256, source)
+        XCTAssertEqual(p.originalSHA256, cardCSV().id)
         XCTAssertEqual(p.account, "ACC-CC")
         let insert = try XCTUnwrap((req[1]["insertRange"] as? Object)?["range"] as? [String: Int])
         XCTAssertEqual(insert, ["sheetId": 8, "startRowIndex": 3, "endRowIndex": 4, "startColumnIndex": 0, "endColumnIndex": 20])
@@ -58,6 +67,41 @@ final class PeriodBankAppendTests: XCTestCase {
         XCTAssertEqual(cells[12]["userEnteredFormat"] as? [String: [String: String]], ["numberFormat": GoogleSheetDay.numberFormat])
         XCTAssertTrue(cells[9].isEmpty)
         XCTAssertEqual(p.digest, try compile(fixture()).digest)
+    }
+
+    func testRetainedLiteralApostropheCannotBeMistakenForAPlannerEscape() throws {
+        for sign in ["=", "+", "-", "@"] {
+            let text = sign + "LITERAL, \"card\"\nsecond line", planned = "'" + text
+            let plan = fixture(planned)
+            XCTAssertThrowsError(try compile(plan, original: cardCSV("  " + planned))) {
+                XCTAssertEqual($0 as? PeriodBankAppend.Failure, .ambiguousSourceText)
+            }
+            let batch = try compile(plan, original: cardCSV(text)), (marker, cells) = try receipt(batch)
+            XCTAssertEqual(cells[4]["userEnteredValue"] as? [String: String], ["stringValue": text])
+            guard case .verified = try batch.next(observation(batch, ledger + ["T0002"], [cells], marker), stage: .dispatched) else {
+                return XCTFail("A repeated check must recognise the literal row and its existing receipt")
+            }
+        }
+        XCTAssertThrowsError(try compile(fixture(), original: cardCSV(), approvedSHA256: cardCSV("changed").id)) {
+            XCTAssertEqual($0 as? PeriodBankAppend.Failure, .invalidSource)
+        }
+        XCTAssertNoThrow(try compile(fixture("O'BRIEN CAFE"), original: cardCSV("O'BRIEN CAFE")))
+    }
+
+    func testMissingSignedAmountRefusesAZeroPlanButExplicitZeroAndSplitColumnsWork() throws {
+        let zeroPlan = fixture("COFFEE", amount: 0)
+        for blank in ["", " \t "] {
+            XCTAssertThrowsError(try compile(zeroPlan, original: cardCSV("COFFEE", amount: blank))) {
+                XCTAssertEqual($0 as? PeriodBankAppend.Failure, .missingSignedAmount)
+            }
+        }
+        let explicitZero = try compile(zeroPlan, original: cardCSV("COFFEE", amount: "0.00"))
+        let (_, cells) = try receipt(explicitZero)
+        XCTAssertEqual(cells[6]["userEnteredValue"] as? [String: Double], ["numberValue": 0])
+        XCTAssertThrowsError(try compile(zeroPlan, original: source("Date,Description,Card Member,Account #,Amount\n"))) {
+            XCTAssertEqual($0 as? PeriodBankAppend.Failure, .invalidSource)
+        }
+        XCTAssertNoThrow(try compile(fixture("COFFEE"), original: source("Date,Description,Credit,Debit,Balance\n02/02/2027,COFFEE,,-12.34,87.66")))
     }
 
     func testRejectsHeldForeignPartialSparseAndRetargetedPlansAsAWhole() throws {
@@ -77,7 +121,7 @@ final class PeriodBankAppendTests: XCTestCase {
     }
 
     func testSameTailGuardContendsAcrossFilesAndLostReplyNeverResends() throws {
-        let p = try compile(fixture()), competitor = try compile(fixture("DIFFERENT MERCHANT"))
+        let p = try compile(fixture()), competitor = try compile(fixture("DIFFERENT MERCHANT"), original: cardCSV("DIFFERENT MERCHANT"))
         XCTAssertEqual(competitor.markerID, p.markerID)
         XCTAssertNotEqual(competitor.digest, p.digest)
         XCTAssertThrowsError(try p.next(observation(p), stage: .prepared))

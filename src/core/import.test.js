@@ -85,6 +85,22 @@ test('card charges normalize negative; payments and refunds positive',()=>{
   const text='Date,Description,Card Member,Account #,Amount\n03/02/2027,Coffee,JORDAN,-1001,4.50\n04/02/2027,Salary,JORDAN,-1001,-100.00';
   const p=prep([file(text,{mapping:undefined})]);assert.deepEqual(p.rows.map(r=>r.amountMinor),['-450','10000']);
 });
+test('card amount must be present in the original; explicit zero and one-sided bank columns remain valid',()=>{
+  const csv=amount=>'Date,Description,Card Member,Account #,Amount\r\n03/02/2027,Coffee,Joint,1234,'+amount;
+  for(const amount of ['', '  \t ', '"  "']){
+    const p=prep([file(csv(amount),{mapping:undefined})]);
+    assert.equal(p.canCommit,false);assert.equal(p.rows.length,0);assert.ok(codes(p).includes('amount-missing'));
+    assert.throws(()=>I.validateBankOriginal(csv(amount)),error=>error.code==='amount-missing');
+  }
+  const zero=prep([file(csv('0.00'),{mapping:undefined})]);
+  assert.equal(zero.rows[0].amountMinor,'0');assert.equal(zero.canCommit,true);
+  assert.equal(I.validateBankOriginal(csv('0.00')),1);
+  assert.equal(I.validateBankOriginal('Date,Description,Card Member,Account #,Amount\n'),0);
+  assert.equal(I.validateBankOriginal('Pay date,Person,Employer,Gross pay,Tax withheld,Super (employer),Net pay'),null);
+  const split='Date,Description,Credit,Debit,Balance\n03/02/2027,Coffee,,-4.50,95.50\n04/02/2027,Salary,100.00,,195.50';
+  assert.equal(I.validateBankOriginal(split),2);
+  assert.deepEqual(prep([file(split,{mapping:undefined})]).rows.map(row=>row.amountMinor),['-450','10000']);
+});
 test('Wattle negative debit convention is independently checked',()=>{
   const text='Date,Description,Credit,Debit,Balance\n03/02/2027,Coffee,,-4.50,95.50\n04/02/2027,Salary,100.00,,195.50';
   const p=prep([file(text,{mapping:undefined})]);assert.equal(p.canCommit,true);
@@ -190,6 +206,24 @@ test('invalid existing ledger rows prevent committing against a corrupt baseline
 test('source narratives remain literal even if spreadsheet formula-like',()=>{
   const p=prep([one({text:header+'\n03/02/2027,=1+1,-4.50'})],{decisions:{'=1+1':{categoryId:'FOOD'}}});assert.equal(p.rows[0].description,'=1+1');
   // The writer must use RAW or typed stringValue. Import core never evaluates text.
+});
+test('hold literal apostrophe-plus-formula prefixes before a plan can collapse them into other source text',()=>{
+  const csv=description=>'\uFEFFDate,Description,Card Member,Account #,Amount\r\n03/02/2027,"'+description+'",Joint,1234,4.50';
+  for(const sign of ['=','+','-','@']){
+    const text=sign+'LITERAL,\ncard';
+    const ambiguous=csv("  '"+text);
+    assert.throws(()=>I.validateBankOriginal(ambiguous),error=>error.code==='ambiguous-bank-text');
+    const blocked=prep([file(ambiguous,{mapping:undefined})]);
+    assert.equal(blocked.canCommit,false);assert.equal(blocked.rows.length,0);assert.ok(codes(blocked).includes('ambiguous-bank-text'));
+    assert.equal(I.validateBankOriginal(csv(text)),1);
+    const f=file(csv(text),{mapping:undefined});
+    const p=prep([f],{decisions:{[text]:{categoryId:'FOOD'}}});
+    assert.equal(p.canCommit,true);assert.equal(p.rows[0].description,text);
+    assert.equal(prep([f],{existing:p.rows}).rows.length,0);
+  }
+  const bark='03/02/2027,"-4.50","\'=LITERAL","+95.50"';
+  assert.throws(()=>I.validateBankOriginal(bark),error=>error.code==='ambiguous-bank-text');
+  assert.equal(I.validateBankOriginal(bark.replace("'=LITERAL","O'BRIEN CAFE")),1);
 });
 test('realistic synthetic portal fixtures account for every row and exact movement',()=>{
   const root=path.join(__dirname,'../../sources'), day='2027-02-02';

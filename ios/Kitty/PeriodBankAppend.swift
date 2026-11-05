@@ -1,13 +1,14 @@
 import Foundation
 import CoreFoundation
 import CryptoKit
+import JavaScriptCore
 
 /// Binds the ordinary single-account bank CSV preview to the actual v2 Entries layout.
 /// The shared period planner owns categorisation, duplicate detection and month logic.
 /// An import with related updates, other tabs or deferred work must keep its entire plan.
 struct PeriodBankAppend {
     typealias Object = [String: Any]
-    enum Failure: String, Error { case unsupportedPlan, invalidPlan, staleLedger, ambiguousWrite, unverifiedRows }
+    enum Failure: String, Error { case unsupportedPlan, invalidPlan, invalidSource, ambiguousSourceText, missingSignedAmount, staleLedger, ambiguousWrite, unverifiedRows }
     enum Stage { case prepared, dispatched }
     enum Next { case batch([Object]), waitingForReadback, verified }
     static let columns = ["Entry ID", "Kind", "Settled at", "Account ID", "Raw text", "Description", "Amount", "Category ID", "Person", "Receipt held", "Note", "Status", "Created at", "Transfer ID", "Transfer account", "Foreign amount", "Foreign currency", "Units", "Unit price", "Source"]
@@ -53,13 +54,13 @@ struct PeriodBankAppend {
         }
     }
 
-    /// `originalSHA256` is the digest of the retained original chosen in Files, verified by the host.
-    init(plan: Object, sheetID: String, account: String, originalSHA256: String) throws {
+    /// Validate the exact selected bytes before a compiled batch can be handed to the journal or writer.
+    init(plan: Object, sheetID: String, account: String, original: SourceDocument, originalSHA256: String) throws {
+        try Self.validate(original: original, approvedSHA256: originalSHA256)
         guard plan["schema"] as? String == "kitty-write-plan/1", plan["status"] as? String == "ready",
               let sheet = plan["sheet"] as? Object, sheet["id"] as? String == sheetID, !sheetID.isEmpty,
               Self.number(sheet["version"]) == 2, let deferred = plan["deferred"] as? [Any], deferred.isEmpty,
               let writes = plan["writes"] as? [Object], !writes.isEmpty, writes.count <= 8,
-              originalSHA256.utf8.count == 64, originalSHA256.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
               !account.isEmpty else { throw Failure.unsupportedPlan }
         guard let assumptions = plan["assumes"] as? Object, let last = Self.integer(assumptions["last_entry_row"]),
               (1...1_000_000).contains(last), Self.integer(assumptions["entries_rows"]) == last - 1,
@@ -99,7 +100,7 @@ struct PeriodBankAppend {
                         return .number(amount)
                     }
                     guard var text = item as? String, text.utf8.count <= 50_000 else { throw Failure.invalidPlan }
-                    // The shared plan added an apostrophe for USER_ENTERED. Explicit stringValue is always literal.
+                    // After source validation, the planner's USER_ENTERED escape can be removed for typed stringValue.
                     if text.first == "'", let next = text.dropFirst().first, "=+-@".contains(next) { text.removeFirst() }
                     return text.isEmpty ? .blank : .text(text)
                 }
@@ -123,6 +124,25 @@ struct PeriodBankAppend {
         // A collision with any other metadata fails closed. Never allocate a substitute ID after a collision.
         let token = SHA256.hash(data: Data("\(Self.guardKey)\u{0}\(sheetID)\u{0}\(built[0].id)".utf8)).prefix(4)
         markerID = max(1, token.reduce(0) { ($0 << 8) | Int($1) } & 0x7fff_ffff)
+    }
+
+    private static func validate(original: SourceDocument, approvedSHA256: String) throws {
+        guard original.mimeType == "text/csv", (1...SourceDocumentCapture.maximumBytes).contains(original.byteLength),
+              original.id == approvedSHA256, original.isIntact, let text = String(data: original.bytes, encoding: .utf8),
+              let url = Bundle.main.url(forResource: "import", withExtension: "js"),
+              let script = try? String(contentsOf: url, encoding: .utf8), let context = JSContext() else { throw Failure.invalidSource }
+        // Only the bundled, pure parser is executable. The source bytes are passed as a string argument.
+        context.evaluateScript(script)
+        guard context.exception == nil, let core = context.objectForKeyedSubscript("KittyImport") else { throw Failure.invalidSource }
+        let valid = core.invokeMethod("validateBankOriginal", withArguments: [text])
+        if let error = context.exception {
+            switch error.forProperty("code")?.toString() {
+            case "ambiguous-bank-text": throw Failure.ambiguousSourceText
+            case "amount-missing": throw Failure.missingSignedAmount
+            default: throw Failure.invalidSource
+            }
+        }
+        guard valid?.isNumber == true, let sourceRows = valid?.toInt32(), sourceRows > 0 else { throw Failure.invalidSource }
     }
 
     static func number(_ raw: Any?) -> Double? {

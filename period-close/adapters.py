@@ -279,6 +279,8 @@ def read_rows(path, shape, download_day=None, opening_date=None, as_of=None, fir
         elif shape == 'Southern Card':
             if len(r) != 5:
                 raise ImportFault(path, f'{len(r)} columns, expected 5', 'a truncated or hand-edited download; download again', line)
+            if not r[4].strip():
+                raise ImportFault(path, 'missing signed card amount', 'check the original bank export; a zero transaction must contain an explicit amount', line)
             out.append({'date': parse_date(r[0], order, path, line), 'description': r[1].strip(), 'amount': round(-money(r[4], path, line), 2), 'balance': None, 'line': line})
         elif shape == 'Wattle Credit Union':
             if len(r) != 5:
@@ -300,6 +302,9 @@ def read_rows(path, shape, download_day=None, opening_date=None, as_of=None, fir
             out.append({'date': parse_date(r[0], order, path, line), 'person': r[1].strip(), 'employer': r[2].strip(), 'gross': round(money(r[3], path, line), 2),
                         'tax': round(money(r[4], path, line), 2), 'super': round(money(r[5], path, line), 2), 'net': round(money(r[6], path, line), 2),
                         'description': f'{r[1].strip()} {r[2].strip()}', 'amount': round(money(r[6], path, line), 2), 'balance': None, 'line': line})
+        if shape in BANK_SHAPES and re.match(r"^'[=+@-]", out[-1]['description']):
+            raise ImportFault(path, 'bank description starts with a literal apostrophe and formula sign',
+                              'keep the original for manual review; the write plan cannot preserve this prefix unambiguously', line)
     check_window(path, out, download_day, opening_date, as_of, first_day)
     check_sequence(path, out, sequence)
     return out

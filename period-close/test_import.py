@@ -176,6 +176,22 @@ class FailLoud(Base):
         self.file('ACC-CC', '2027-03-01', ['When', 'What', 'How much'], [['2/2/2027', 'x', '1']])
         self.assertIn('unrecognised shape', self.stop())
 
+    def test_signed_card_amount_cannot_be_blank_or_whitespace_but_explicit_zero_is_a_transaction(self):
+        for amount in ['', ' \t ']:
+            with self.subTest(amount=amount):
+                self.file('ACC-CC', '2027-03-01', CARD, [card(2, amount=amount)])
+                self.assertIn('missing signed card amount', self.stop())
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2, amount='0.00')])
+        _, rows, _, plan = self.run_import(expect=(0,))
+        self.assertEqual([row[5] for row in rows], [0])
+        self.assertEqual(plan['totals']['rows_written'], 1)
+
+    def test_literal_apostrophe_before_formula_sign_stops_the_whole_bank_plan(self):
+        for sign in '=+-@':
+            with self.subTest(sign=sign):
+                self.file('ACC-CC', '2027-03-01', CARD, [card(1), card(2, "  '" + sign + 'LITERAL,\nCARD')], bom=True)
+                self.assertIn('literal apostrophe', self.stop())
+
     def test_a_header_mismatch_names_the_missing_column(self):
         self.file('ACC-CC', '2027-03-01', ['Date', 'Description', 'Card Member', 'Amount'], [['02/02/2027', 'MYKI', 'J', '60.00']])
         text = self.stop()
@@ -426,6 +442,12 @@ class Plan(Base):
         raw = [v[4] for v in plan['writes'][0]['values']]
         self.assertEqual(raw, ["'=SUM(A1) SHOP", "'+PLUS SHOP"])
         self.assertTrue(W.same(raw[0], '=SUM(A1) SHOP'))
+        for row, entered_text in zip(rows, raw):
+            self.sheet_tx.append({**LAST, 'txn_id': row[0], 'date': row[1], 'account_id': row[2],
+                                  'bank_description': W.plain(entered_text), 'amount': row[5]})
+        _, repeated, _, replay = self.run_import(out='replay', expect=(0,))
+        self.assertEqual(repeated, [])
+        self.assertEqual(replay['writes'], [])
 
     def test_runs_are_kept_and_dry_run_writes_nothing(self):
         self.file('ACC-CC', '2027-03-01', CARD, [card(2)])

@@ -52,11 +52,11 @@ for name in ("Kitty", "KittyTests", "KittyUITests"):
     paths = sorted((ROOT / name).rglob("*.swift"))
     if is_app:
         # Declared even before generation: a missing build input must fail the build.
-        paths += [ROOT / "Kitty/Resources/kitty-native.html", ROOT / "Kitty/Assets.xcassets",
+        paths += [ROOT / "Kitty/Resources/kitty-native.html", ROOT / "../src/core/import.js", ROOT / "Kitty/Assets.xcassets",
                   ROOT / "Kitty/PrivacyInfo.xcprivacy"]
     for path in paths:
         relative = path.relative_to(ROOT).as_posix()
-        file_type = {".swift": "sourcecode.swift", ".html": "text.html",
+        file_type = {".swift": "sourcecode.swift", ".html": "text.html", ".js": "sourcecode.javascript",
                      ".xcassets": "folder.assetcatalog", ".xcprivacy": "text.xml"}[path.suffix]
         reference = obj(relative, "PBXFileReference", lastKnownFileType=quote(file_type),
                         path=quote(relative), sourceTree=quote("SOURCE_ROOT"))

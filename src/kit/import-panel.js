@@ -72,6 +72,7 @@
       if(file.state==="failed" || file.state==="partial" || file.state==="cancelled") { result.textContent=file.messages?.length ? file.messages.join(" ") : "This source needs review. Try a shorter export."; return; }
       try {
         if (!periodPlanner) { previewFallback(); return; }
+        if (file.mimeType==="text/csv") root.KittyImport.validateBankOriginal(file.text);
         const f={name:file.name,account:account.value,download_day:date.value,...(file.mimeType==="text/csv"?{text:file.text}:{pdf_text:file.pdf_text})};
         const input={months:month.value,sheet:starting,files:[f],inputs:[],options:{as_of:date.value,...(host.sheetID?{sheet_id:host.sheetID}:{})}};
         const prepared=periodPlanner.plan(input), writes=prepared.plan?.writes || [], tx=prepared.proposed?.transactions || [];

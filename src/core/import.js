@@ -34,7 +34,7 @@
     if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}';
     return JSON.stringify(value===undefined?null:value);
   }
-  function parseCSV(text,options) {
+  function csvRecords(text) {
     if (typeof text!=='string') fail('file-unreadable','The file could not be read as text. Export a UTF-8 CSV.');
     if (text.length>10000000) fail('file-too-large','This file is larger than the 10 MB import limit. Export a shorter period.');
     text=text.replace(/^\uFEFF/,'');
@@ -56,6 +56,10 @@
     if(quoted)fail('csv-quote','The CSV has an unclosed quoted field. Download the file again.');
     if(cell!==''||cells.length||afterQuote)record();
     if(!records.length)fail('file-empty','The CSV is empty. Select an export containing transactions.');
+    return records;
+  }
+  function parseCSV(text,options) {
+    const records=csvRecords(text);
     const headers=records.shift().values.map(v=>v.trim());
     if(headers.length<2)fail('csv-delimiter','This file is not a comma-separated CSV. Export as CSV or convert it before importing.');
     if(headers.some(v=>!v))fail('csv-header','Every column needs a header. Check the original export.');
@@ -68,6 +72,32 @@
     const headers=Array.isArray(input)?input:parseCSV(input).headers;
     for(const id of Object.keys(HEADERS))if(JSON.stringify(headers)===JSON.stringify(HEADERS[id]))return Object.assign({},FORMATS[id]);
     return null;
+  }
+  function checkDescription(value) {
+    if(/^'[=+@-]/.test(value.trim()))fail('ambiguous-bank-text','The bank description starts with a literal apostrophe followed by a spreadsheet formula sign. Keep this original for manual review.');
+  }
+  // Re-read the retained ordinary bank export before compiling the period planner's escaped cells.
+  // Its USER_ENTERED plan cannot distinguish a source apostrophe from an escape it supplied itself.
+  // A recognised, header-only file has zero rows. Other formats belong to their own adapters.
+  function validateBankOriginal(text) {
+    const records=csvRecords(text);
+    const first=records[0].values.map(value=>value.trim());
+    const mapping=detectFormat(first);
+    const headerless=!mapping && first.length===4 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(first[0]);
+    if(!mapping&&!headerless)return null;
+    const description=headerless?2:first.indexOf(mapping.description);
+    const amount=headerless?1:first.indexOf(mapping.amount);
+    const body=headerless?records:records.slice(1);
+    for(const record of body){
+      if(record.values.length!==first.length)fail('csv-columns','The bank export has a row with an unexpected number of columns.');
+      try {
+        checkDescription(record.values[description]);
+        if(amount>=0)money(record.values[amount],false);
+      } catch(error) {
+        fail(error.code,'Line '+record.line+': '+error.message);
+      }
+    }
+    return body.length;
   }
   function money(value,blankZero){
     let s=str(value).trim();
@@ -185,6 +215,7 @@
             const date=strictDate(get(rec,'date'),mapping.dateOrder);
             if(openingDate && date<=openingDate)fail('transaction-before-opening','The transaction is on or before the opening balance date '+openingDate+'. Export transactions from the following day; earlier activity is already represented by the opening balance.');
             const description=get(rec,'description');if(!description)fail('description-missing','The original bank description is missing.');
+            checkDescription(description);
             if(expectedSuffix&&mapping.account&&!get(rec,'account').replace(/\W/g,'').endsWith(expectedSuffix))fail('account-mismatch','The file’s account number does not match the selected account.');
             if(mapping.account&&get(rec,'account'))sourceAccounts.add(get(rec,'account'));
             let n;
@@ -346,5 +377,5 @@
     result.canCommit=result.counts.errors===0&&result.counts.review===0&&result.rows.length>0;
     return result;
   }
-  return {version:VERSION,parseCSV,detectFormat,money,minor,decimalAmount,strictDate,prepare};
+  return {version:VERSION,parseCSV,detectFormat,validateBankOriginal,money,minor,decimalAmount,strictDate,prepare};
 });
