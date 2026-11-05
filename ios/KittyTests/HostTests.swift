@@ -80,7 +80,9 @@ final class OfflinePageTests: XCTestCase {
         try await wait(page, for: "document.querySelectorAll('[data-ask-option]').length===2")
         let scope = try await js(page,"return document.querySelector('[data-ask-scope]').innerText") as? String ?? ""
         XCTAssertTrue(scope.contains("Cash and offset") && scope.contains("Net worth") && scope.contains("99,388"), scope)
-        _ = try await js(page, "document.querySelector('[data-ask-option]').click(); const i=document.querySelector('[data-ask-input]'); i.value='Could our unused subscriptions help fund Emergency fund?'; i.form.requestSubmit(); return true")
+        _ = try await js(page, "document.querySelector('[data-ask-option]').click(); const i=document.querySelector('[data-ask-input]'); i.value='If we cancelled the unused subscriptions, how much sooner would the Emergency fund be reached?'; i.form.requestSubmit(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-clarify]') && Array.from(document.querySelectorAll('[data-ask-example]')).map(b=>b.textContent).join('|')==='Review only|All unused'")
+        _ = try await js(page, "document.querySelector('[data-ask-example]').click(); return true")
 
         try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('37.49')")
         let scenario = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""

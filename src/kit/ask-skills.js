@@ -25,7 +25,7 @@
     return {s:s.slice(0,-alias.length).trim().replace(/\b(in|for|during)\s*$/,"").trim(),time};
   }
   function plan(question,m,prior){
-    const s=fold(question), c=context(m);
+    const s=fold(question).replace(/\b(?:subscriptions?|subs) (?:that )?we (?:dont|do not|never) use\b/g,"unused subscriptions"), c=context(m);
     if(!s || s.length>800)return unsupported();
     if(["spending","comparison"].includes(prior?.kind) && /^(and |what about |how about )?(the )?(month before( that)?|previous month)$/.test(s)){
       const ym=monthID(prior.time,m);return {...prior,time:shift(ym,-1)};
@@ -39,9 +39,10 @@
     if(/^(what bills are (coming up|due)( next)?|upcoming bills)$/.test(s))return {kind:"upcoming",filter:"bills"};
     // Interpret receipt questions as a question about recorded evidence, never as generic spending.
     if(/\breceipts?\b/.test(s)){
-      let phrase=s.replace(/^(?:please )?(?:show|list|find)(?: me)? (?:the |our )?/,"");
-      const t=period(phrase,c);phrase=t.s;let time=t.time;
-      if(time==="current-month"&&t.s===s.replace(/^(?:please )?(?:show|list|find)(?: me)? (?:the |our )?/,"")){
+      const asking=s.replace(/^(?:which|what) (.+?receipts?) (?:do we have|have we got|are on file|have we kept)$/,"$1")
+        .replace(/^(?:please )?(?:show|list|find)(?: me)? (?:the |our )?/,"");
+      const t=period(asking,c);let time=t.time,phrase=t.s;
+      if(time==="current-month"&&t.s===asking){
         const prefixes=c.times.flatMap(t=>t.aliases.map(a=>[a,t.id])).filter(([a])=>phrase.startsWith(a+" ")).sort((a,b)=>b[0].length-a[0].length);
         if(prefixes.length){time=prefixes[0][1];phrase=phrase.slice(prefixes[0][0].length+1);}
       }
@@ -52,13 +53,19 @@
     if(/\b(cancel(?:led|ed|ling|ing)?|cut|drop|pause)\b/.test(s)&&/\bunused (?:subscriptions?|subs)\b/.test(s)){
       // A hypothetical can include a Keep decision. Require a single known goal and no other condition.
       const terms=c.goals.flatMap(g=>g.aliases.map(a=>({id:g.id,words:a}))).filter(v=>(" "+s+" ").includes(" "+v.words+" ")).sort((a,b)=>b.words.length-a.words.length);
-      const ids=new Set(terms.map(t=>t.id)), words=new Set("if what how do did does would will could can i we our the all every those three marked for review only by cancel cancelled canceled cancelling canceling cut drop pause unused subscription subscriptions subs put putting savings money them it that toward towards into on use redirect redirecting from these reach hit meet meet the goal target fund funded make faster sooner earlier many much more months month help bring forward happen happens to and be were are a an get long take until when fully full fill filled up change changes date estimated redirected cutting saved of as well".split(" "));
-      if(ids.size===1 && /^(?:what if|if |how |could |would |when )/.test(s)&&s.replace(terms[0].words,"").trim().split(/ +/).every(w=>words.has(w)))return {kind:"goalScenario",goal:terms[0].id,...(!/marked (for )?review|review only/.test(s)?{filter:"allUnused"}:{})};
+      const ids=new Set(terms.map(t=>t.id)), words=new Set("if what how do did does would will could can i we our the all every those three marked for review only by cancel cancelled canceled cancelling canceling cut drop pause unused subscription subscriptions subs put putting savings money them it that toward towards into on use redirect redirecting from these reach hit meet meet the goal target fund funded make faster sooner earlier many much more months month help bring forward happen happens to and be were are a an get reached met be hit long take until when fully full fill filled up change changes date estimated redirected cutting saved of as well".split(" "));
+      if(ids.size===1 && /^(?:what if|if |how |could |would |when )/.test(s)&&s.replace(terms[0].words,"").trim().split(/ +/).every(w=>words.has(w))){
+        const goal=terms[0].id,sc={kind:"goalScenario",goal};
+        if(/marked (for )?review|review only/.test(s))return sc;
+        if(/\b(?:all|every)\b/.test(s))return {...sc,filter:"allUnused"};
+        return {...unsupported("Which savings should I model? Review only respects your Keep decisions. All unused includes them too."),
+          choices:[["Review only","Could our unused subscriptions help fund "+goal+"?"],["All unused","If we cancelled all unused subscriptions, how much sooner could we reach our "+goal+"?"]]};
+      }
       return unsupported("I can model the change without cancelling anything. Try “If we cancelled all unused subscriptions, how much sooner could we reach our Emergency fund?”");
     }
-    const scenario=/^(?:what if (?:i|we) (?:put|redirect) unused subscriptions? (?:toward|towards|into)|could (?:our )?unused subscriptions? help (?:fund|with)) (?:the |our )?(.+)$/.exec(s);
+    const scenario=/^(?:what if (?:i|we) (?:put|redirect) unused subscriptions? (?:toward|towards|into)|could (?:our )?unused subscriptions? (?:help (?:fund|with)|speed up|bring forward)) (?:the |our )?(.+)$/.exec(s);
     if(scenario){const gs=matches(c.goals,scenario[1]);if(gs.length===1)return {kind:"goalScenario",goal:gs[0].id};return unsupported("Which goal in your Sheet should I model?");}
-    let gmatch=/^(?:when (?:will|is)|how (?:is|close is)|show(?: me)?) (?:the |our )?(.+?)(?: be funded| funded| going| goal)?$/.exec(s);
+    let gmatch=/^(?:when (?:will|is)|how (?:is|close is)|show(?: me)?) (?:the |our )?(.+?)(?: be (?:fully )?(?:funded|reached|met)| funded| going| goal)?$/.exec(s);
     if(gmatch){const g=matches(c.goals,gmatch[1]);if(g.length===1)return {kind:"goal",goal:g[0].id};}
     const p=period(s,c);
     if(prior?.kind==="spending" && /^(what about|how about|and) /.test(s)){
@@ -114,7 +121,7 @@
         basis=[E.fmtMonth(w.from),subject,p.person||"Household"].join(" · ");source="Entries · receipt held · "+w.from+" to "+w.to;
         detail=rows.length+" expense "+(rows.length===1?"entry":"entries")+" total "+money(sp.out)+". "+(rows.length-held.length-missing.length)+" without a recorded receipt status. The Sheet flag is not a copy of the receipt.";
         facts.push({label:"Net spending",value:money(sp.out)},{label:"Marked held",value:String(held.length)},{label:"Marked missing",value:String(missing.length)});
-        for(const r of [...rows].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4))links.push({go:"entry:"+r.id,label:E.fmtDay(r.date)+" · "+(r.mer?.name||r.merchant||r.desc)+" · "+money(r.amount)});
+        for(const r of [...rows].sort((a,b)=>Number(held.includes(b))-Number(held.includes(a))||b.date.localeCompare(a.date)).slice(0,4))links.push({go:"entry:"+r.id,label:E.fmtDay(r.date)+" · "+(r.mer?.name||r.merchant||r.desc)+" · "+money(r.amount)+" · "+(held.includes(r)?"marked held":missing.includes(r)?"marked missing":"status unrecorded")});
         return {ok:true,plan:p,title,basis,detail,source,facts,links,rowCount:rows.length};
       }
       if(p.kind==="comparison"){

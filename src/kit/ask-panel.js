@@ -45,7 +45,7 @@
         const button=content.querySelector("[data-ask-system-share]");
         button.onclick=async()=>{if(!current()||button.disabled)return;button.disabled=true;try{await native.share(body);if(current())answer(q,a);}catch(_){if(current()){button.disabled=false;content.querySelector("[role=status]").textContent="Sharing isn’t available right now. Your answer is still here.";}}};
       }
-      function clarify(why,options){drawer().querySelector("#local-ask-title").textContent="Ask the Kitty";content.innerHTML='<div class="plan" data-ask-clarify><h3>Let’s narrow that down</h3><p>'+esc(why||"Try a category and a month, a savings goal, or an upcoming bill.")+'</p>'+deeper+'</div>';showChoices(options||examples);}
+      function clarify(why,options){drawer().querySelector("#local-ask-title").textContent="Ask the Kitty";content.innerHTML='<div class="plan" data-ask-clarify><h3>Let’s narrow that down</h3><p>'+esc(why||"Try a category and a month, a savings goal, or an upcoming bill.")+'</p>'+(options?'':deeper)+'</div>';showChoices(options||examples);}
       function ask(q){
         q=String(q).trim();if(!q||q.length>800||!current())return;
         input.value="";input.blur();

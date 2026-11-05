@@ -386,3 +386,13 @@ test('an undated v2 loan is explicitly unknown, not scheduled by a fallback', ()
   assert.ok(!Engine.upcoming(copy,35).some(e=>e.ref.type==='loan'&&e.ref.key===c.acct));
   assert.match(Ask.run(Engine,copy,{kind:'upcoming'}).detail,/1 loan schedule has no confirmed future date/);
 });
+test('unqualified cancellation scenarios offer two complete choices without requiring a retyped question', () => {
+  for(const q of ['If we cancelled the unused subscriptions, how much sooner would the Emergency fund be reached?', 'What if we cancel the subscriptions we don’t use, Emergency fund?']){
+    const a=Ask.plan(q,model); assert.equal(a.kind,'unsupported'); assert.deepEqual(a.choices.map(c=>c[0]),['Review only','All unused']);
+    assert.match(answer(a.choices[0][1]).title,/37\.49/); assert.match(answer(a.choices[1][1]).title,/102\.44/);
+  }
+  assert.equal(answer('Could our unused subscriptions speed up the Emergency fund?').plan.kind,'goalScenario');
+  assert.equal(answer('When will the Offset buffer be reached?').title,'No reliable date yet');
+  assert.match(answer('Which December grocery receipts do we have?').title,/No receipts marked held/);
+  assert.equal(Ask.plan('Which December grocery receipts over $300 do we have?',model).kind,'unsupported');
+});
