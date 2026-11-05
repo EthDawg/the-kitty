@@ -541,14 +541,11 @@
   function renderActivity() {
     const t0 = performance.now();
     const m = S.m, v = $("#v-activity"); const f = S.feed; const c = ctx(); const rv = review();
-    const rows = feedRows(); const shown = rows.slice(0, f.limit);
-    const sumOut = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Expense" ? a - e.amount : a), 0), sumIn = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Income" ? a + e.amount : a), 0);
     const everyday = (t) => t.group !== "Housing" && t.group !== "Property";
     const mo = E.spend(m.tx, E.window("month", m.asOf), everyday);
     const topMerchant = mo.byMerchant[0], biggest = m.tx.filter((t) => E.inWin(t, E.window("month", m.asOf)) && t.flow === "Expense" && everyday(t)).sort((a, b) => a.amount - b.amount)[0];
     const freq = new Map(); for (const t of m.tx) if (E.inWin(t, E.window("quarter", m.asOf)) && t.flow === "Expense" && everyday(t)) freq.set(t.merchant, (freq.get(t.merchant) || 0) + 1); const most = [...freq.entries()].sort((a, b) => b[1] - a[1])[0];
     const w = feedPeriod(); const wc = E.worthCandidates(m); const canJudge = canWriteSheet() || S.mode !== "live";
-    const quiet = !f.q && !f.person && !f.flow && !w;
     const pk = S.feed.period; const atEnd = (pk.anchor || m.asOf) >= m.asOf;
     v.innerHTML = `
       ${rv.items.length ? `<div class="card" id="reviewcard" style="--i:0">
@@ -563,34 +560,63 @@
         <p class="wnote">Not a budget, a memory check. The research on money and happiness (Dunn, Gilbert and Wilson, 2011) says experiences outlast things, many small pleasures beat a few large ones, and paying now to enjoy later feels better than the reverse. Five rows a week, one tap each, no score. Each answer is a Decisions row; once five are in, Goals shows the spend that earned a yes.</p>
       </div>` : ""}
       <div class="card" style="--i:1">
-        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries">${f.q ? `<button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button>` : ""}</div>
+        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries"><button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button></div>
         <div class="chips scroll" style="margin-top:12px" role="group" aria-label="Filters">
           ${[["", "Everyone"]].concat(m.people.map((p) => [p, p])).concat([["Joint", "Joint"]]).map(([k, l]) => `<button class="chip" data-fp="${esc(k)}" aria-pressed="${f.person === k}">${esc(l)}</button>`).join("")}
           <span style="width:1px;background:var(--line);margin:4px 2px"></span>
           ${[["", "Spending & income"], ["out", "Spending"], ["in", "Income"], ["move", "Transfers"]].concat(m.sheetVersion >= 2 && m.entries.some((e) => e.kind !== "transaction") ? [["bal", "Balances & trades"]] : []).map(([k, l]) => `<button class="chip" data-ff="${k}" aria-pressed="${f.flow === k}">${l}</button>`).join("")}
         </div>
         <div class="periodbar" id="feedperiod" style="margin-top:10px"><span class="seg mini" role="group" aria-label="Window">${[["all", "All time"], ["month", "Month"], ["quarter", "3 months"], ["year", "12 months"], ["fy", "This FY"]].map(([k, l]) => `<button data-fpk="${k}" aria-pressed="${pk.kind === k}">${l}</button>`).join("")}</span>${pk.kind !== "all" ? `<span class="nav"><button data-fpn="-1" aria-label="Earlier">${ico("i-back")}</button><button data-fpn="1" aria-label="Later" ${atEnd ? "disabled" : ""}>${ico("i-chev")}</button></span><span class="label" style="font-size:16px">${esc(w.label)}</span>` : ""}</div>
-        <div class="sumbar"><span><b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}</span><span>${f.flow !== "bal" ? `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
+        <div class="sumbar"><span id="feedcount"></span><span><span id="feedsums"></span>${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
       </div>
-      ${quiet ? `<div class="grid" style="--i:2">
+      ${!f.person && !f.flow && !w ? `<div class="grid" id="feedhighlights" style="--i:2">
         ${biggest ? `<button class="card span-4 erow" data-entry="${esc(biggest.id)}" style="align-items:center">${avatar(biggest, "lg")}<span class="mid"><span class="s">Biggest everyday buy this month</span><span class="t">${esc(biggest.merchant)}</span><span class="s">${esc(biggest.catName)} · ${E.fmtDay(biggest.date)}</span></span><span class="amt num">${fmt0(-biggest.amount)}</span></button>` : ""}
         ${topMerchant ? `<button class="card span-4 erow" data-merchant="${esc(topMerchant[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === topMerchant[0]), "lg")}<span class="mid"><span class="s">Most spent with, outside the home</span><span class="t">${esc(topMerchant[0])}</span><span class="s">${E.fmtMonth(m.asOf)}</span></span><span class="amt num">${fmt0(topMerchant[1])}</span></button>` : ""}
         ${most ? `<button class="card span-4 erow" data-merchant="${esc(most[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === most[0]), "lg")}<span class="mid"><span class="s">Most often, last 3 months</span><span class="t">${esc(most[0])}</span><span class="s">${most[1]} visits</span></span></button>` : ""}
       </div>` : ""}
-      <div class="card" style="--i:3">
-        <div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
-        ${rows.length > shown.length ? `<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="feedmore">Show ${Math.min(120, rows.length - shown.length)} more of ${rows.length - shown.length}</button></div>` : ""}
-      </div>`;
-    const q = $("#feedq"); let tm;
-    q.addEventListener("input", () => { clearTimeout(tm); tm = setTimeout(() => { S.feed.q = q.value.trim(); S.feed.limit = 80; renderActivity(); const nq = $("#feedq"); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length); }, 220); });
-    const fc = $("#feedclear"); if (fc) fc.addEventListener("click", () => { S.feed.q = ""; renderActivity(); });
+      <div class="card" id="feedresults" style="--i:3"></div>`;
+    const q = $("#feedq", v), clear = $("#feedclear", v), highlights = $("#feedhighlights", v), results = $("#feedresults", v);
+    let timer, observer;
+    // Keep the actual editing control connected. Replacing it interrupts slow typing, marked text and selections in WebKit.
+    function refreshResults() {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+      if (!q.isConnected) return;
+      const rows = feedRows(), shown = rows.slice(0, f.limit), quiet = !f.q && !f.person && !f.flow && !w;
+      const sumOut = rows.reduce((a, e) => e.kind === "transaction" && e.flow === "Expense" ? a - e.amount : a, 0);
+      const sumIn = rows.reduce((a, e) => e.kind === "transaction" && e.flow === "Income" ? a + e.amount : a, 0);
+      $("#feedcount", v).innerHTML = `<b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}`;
+      $("#feedsums", v).innerHTML = f.flow === "bal" ? "" : `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}`;
+      clear.style.display = q.value ? "" : "none";
+      if (highlights) highlights.style.display = quiet ? "" : "none";
+      results.innerHTML = `<div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
+        ${rows.length > shown.length ? `<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="feedmore">Show ${Math.min(120, rows.length - shown.length)} more of ${rows.length - shown.length}</button></div>` : ""}`;
+      bindCommon(results);
+      const more = $("#feedmore", results);
+      if (more) {
+        more.addEventListener("click", () => {
+          if (!more.isConnected) return;
+          const top = more.getBoundingClientRect().top + window.scrollY;
+          f.limit += 120; refreshResults(); window.scrollTo({ top: top - 400 });
+        });
+        if ("IntersectionObserver" in window) {
+          observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) more.click(); }, { rootMargin: "600px" });
+          observer.observe(more);
+        }
+      }
+    }
+    q.addEventListener("input", () => {
+      f.q = q.value.trim(); f.limit = 80;
+      clearTimeout(timer); timer = setTimeout(refreshResults, 220);
+    });
+    clear.addEventListener("click", () => { q.value = ""; f.q = ""; f.limit = 80; q.focus(); refreshResults(); });
     $$("[data-fp]", v).forEach((b) => b.addEventListener("click", () => { S.feed.person = b.dataset.fp; buzz(); renderActivity(); }));
     $$("[data-ff]", v).forEach((b) => b.addEventListener("click", () => { S.feed.flow = b.dataset.ff; S.feed.limit = 80; buzz(); renderActivity(); }));
     $$("[data-fpk]", v).forEach((b) => b.addEventListener("click", () => { S.feed.period = { kind: b.dataset.fpk, anchor: null }; S.feed.limit = 80; buzz(); renderActivity(); }));
     $$("[data-fpn]", v).forEach((b) => b.addEventListener("click", () => { const step = { month: 1, quarter: 3, year: 12, fy: 12 }[S.feed.period.kind] || 1; const a = E.addMonths(E.monthStart(S.feed.period.anchor || m.asOf), +b.dataset.fpn * step); S.feed.period.anchor = a >= m.asOf.slice(0, 7) + "-01" ? m.asOf : E.monthEnd(a); renderActivity(); }));
-    const more = $("#feedmore"); if (more) { more.addEventListener("click", () => { S.feed.limit += 120; renderActivity(); window.scrollTo({ top: more.getBoundingClientRect().top + window.scrollY - 400 }); }); if ("IntersectionObserver" in window) { const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); more.click(); } }, { rootMargin: "600px" }); io.observe(more); } }
-    const csv = $("#csvbtn"); if (csv) csv.addEventListener("click", () => exportCSV(rows));
+    const csv = $("#csvbtn", v); if (csv) csv.addEventListener("click", () => exportCSV(feedRows()));
     bindReview(v); bindWorth(v); bindCommon(v);
+    refreshResults();
     S.perf.activity = performance.now() - t0;
   }
   async function exportCSV(rows) {

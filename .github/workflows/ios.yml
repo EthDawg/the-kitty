@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-15
     # Cold runners sometimes spend five minutes compiling Apple's SDK modules alone.
     # Keep a separate allowance for the actual device tests and their evidence.
-    timeout-minutes: 21
+    timeout-minutes: 30
     env:
       # Pin a supported SDK/runtime pair; iOS 18.5 has WebKit bug 293831.
       # https://bugs.webkit.org/show_bug.cgi?id=293831
@@ -51,7 +51,9 @@ jobs:
         timeout-minutes: 3
         run: xcrun simctl bootstatus "$KITTY_SIMULATOR_ID" -b
       - name: Run offline host and Files tests
-        timeout-minutes: 10
+        # A cold hosted XCTest session can spend almost six minutes connecting its
+        # runner before the first test starts. Preserve the per-test limits below.
+        timeout-minutes: 16
         run: |
           mkdir -p ios/build
           set -o pipefail

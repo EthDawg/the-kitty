@@ -61,6 +61,54 @@ final class OfflinePageTests: XCTestCase {
         add(attachment)
     }
 
+    func testSlowActivitySearchKeepsItsEditingNodeSelectionAndFilteredRows() async throws {
+        let suite = "KittyActivitySearchTests-" + UUID().uuidString
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let host = KittyViewController(preferences: preferences, websiteDataStore: .nonPersistent())
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        let page = try XCTUnwrap(host.webView)
+        try await wait(page, for: "window.KittyNative?.ready")
+        _ = try await js(page, """
+            document.querySelector('[data-tab=activity]').click();
+            const input = window.activityTestInput = document.querySelector('#feedq');
+            input.focus(); input.value='wo'; input.setSelectionRange(0,1);
+            input.dispatchEvent(new Event('input',{bubbles:true})); return true;
+            """)
+        // Wait for the actual first result refresh before sending the rest to the original editing node.
+        try await wait(page, for: "document.querySelector('#v-activity .sumbar').textContent.includes('transactions for “wo”')")
+        let keptSelection = try await js(page, """
+            const input=window.activityTestInput;
+            return input===document.querySelector('#feedq') && input===document.activeElement
+              && input.selectionStart===0 && input.selectionEnd===1;
+            """)
+        XCTAssertEqual(keptSelection as? Bool, true, "Updating results must preserve focus, selection and the original input.")
+        _ = try await js(page, """
+            const input=window.activityTestInput;
+            input.setRangeText('olworths',2,2,'end');
+            input.dispatchEvent(new Event('input',{bubbles:true})); return true;
+            """)
+        try await wait(page, for: "document.querySelector('#v-activity .sumbar').textContent.includes('38 transactions for “woolworths”')")
+        let result = try await js(page, """
+            const input=window.activityTestInput, items=[...document.querySelectorAll('#feedlist [data-entry]')];
+            return {editing:input===document.activeElement && input===document.querySelector('#feedq'),
+              query:input.value, selection:[input.selectionStart,input.selectionEnd], ids:items.map(row=>row.dataset.entry),
+              matched:items.every(row=>row.textContent.toLowerCase().includes('woolworths'))};
+            """) as? [String: Any]
+        XCTAssertEqual(result?["editing"] as? Bool, true)
+        XCTAssertEqual(result?["query"] as? String, "woolworths")
+        XCTAssertEqual(result?["selection"] as? [Int], [10,10])
+        let ids = try XCTUnwrap(result?["ids"] as? [String])
+        XCTAssertEqual(Set(ids).count, 38)
+        XCTAssertEqual(ids.first, "T0919")
+        XCTAssertEqual(ids.last, "T0009")
+        XCTAssertEqual(result?["matched"] as? Bool, true)
+    }
+
     func testAskAnswersFromEntriesAndPreservesTheFollowUpScope() async throws {
         let suite = "KittyAskTests-" + UUID().uuidString
         let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
