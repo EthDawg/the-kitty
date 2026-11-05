@@ -9,6 +9,10 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
+      - name: one app, two hosts (repository shape)
+        run: |
+          python3 -m unittest discover -s tools -p 'test_check_shape.py' -v
+          python3 tools/check_shape.py
       - run: node --test test.js test-v2.js
       - name: the importer's promises (identity, fail loud, shapes, plan, verify)
         run: python3 -m unittest discover -s period-close -v

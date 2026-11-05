@@ -1,0 +1,3 @@
+// Local signing settings are optional for unsigned simulator builds.
+DEVELOPMENT_TEAM =
+#include? "Config.local.xcconfig"

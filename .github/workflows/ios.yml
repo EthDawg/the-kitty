@@ -1,0 +1,32 @@
+name: iOS host
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deterministic project
+        run: |
+          python3 ios/scripts/generate_project.py
+          git diff --exit-code -- ios/Kitty.xcodeproj
+      - name: Build unsigned simulator host
+        timeout-minutes: 10
+        run: |
+          mkdir -p ios/build
+          set -o pipefail
+          xcodebuild -project ios/Kitty.xcodeproj -scheme Kitty \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ios/build/DerivedData \
+            -resultBundlePath ios/build/build.xcresult \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ios/build/build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build-evidence
+          path: |
+            ios/build/build.log
+            ios/build/build.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
