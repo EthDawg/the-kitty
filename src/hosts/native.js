@@ -159,7 +159,13 @@
   function route(routeName) {
     doc.dispatchEvent(new root.CustomEvent("kitty:native-route", { detail: { route: routeName } }));
   }
+  async function askRPC(method, params = {}) {
+    const session=activeGoogle?.session, value=await rpc(method, {...params, ...(session?{session}:{})});
+    if(session!==activeGoogle?.session) throw failure("stale_session","The selected Sheet changed.");
+    return value;
+  }
   root.KittyNative = Object.freeze({
+    ask: Object.freeze({status:()=>askRPC("ask.status"), classify:(question,context)=>askRPC("ask.classify",{question,context}), share:text=>askRPC("ask.share",{text})}),
     icon: Object.freeze({status: () => rpc("icon.status", {}), select: alternate => rpc("icon.set", {alternate})}),
     privacy: Object.freeze({setEnabled:enabled => rpc("privacy.set",{enabled:enabled === true})}),
     google: Object.freeze({

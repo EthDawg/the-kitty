@@ -22,6 +22,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     private let categoryWriter = GoogleCategoryWriter()
     private lazy var privacy = DevicePrivacyLock(defaults:preferences)
     private var openingLive = false, shield: UIView?, shieldNavigation: WKNavigation?
+    private var classifyingQuestion = false
     private var choosingSheet = false
 
     init(pageURL: URL? = Bundle.main.url(forResource: "kitty-native", withExtension: "html"),
@@ -208,6 +209,43 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             return
         }
         switch method {
+        case "ask.status", "ask.classify", "ask.share":
+            let session = liveSession
+            let isDemo = liveSheet == nil
+            guard !openingLive, !choosingSheet, shield == nil,
+                  isDemo ? params["session"] == nil : params["session"] as? String == session.uuidString else {
+                reply(HostPolicy.failure("stale_session", "Reopen Ask in your current household view."), nil); return
+            }
+            if method == "ask.status" { reply(HostPolicy.reply(AskLocalModel.availability()), nil); return }
+            if method == "ask.share" {
+                guard let text = params["text"] as? String, !text.isEmpty, text.utf8.count <= 8192,
+                      viewIfLoaded?.window != nil, presentedViewController == nil else {
+                    reply(HostPolicy.failure("unavailable", "The share sheet isn't available."), nil); return
+                }
+                let share = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+                share.popoverPresentationController?.sourceView = view
+                share.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
+                share.completionWithItemsHandler = { _, completed, _, error in
+                    if error != nil { reply(HostPolicy.failure("unavailable", "Sharing wasn't confirmed."), nil) }
+                    else { reply(HostPolicy.reply(["status": completed ? "completed" : "cancelled"]), nil) }
+                }
+                present(share, animated: true); return
+            }
+            guard let question = params["question"] as? String, (1...800).contains(question.count),
+                  let context = params["context"] as? [String:Any], JSONSerialization.isValidJSONObject(context),
+                  let encoded = try? JSONSerialization.data(withJSONObject: context), encoded.count <= 65536 else {
+                reply(HostPolicy.failure("invalid_request", "Choose a shorter question."), nil); return
+            }
+            guard !classifyingQuestion else { reply(HostPolicy.reply(["status":"unavailable"]), nil); return }
+            classifyingQuestion = true
+            Task { @MainActor in
+                defer { classifyingQuestion = false }
+                let result = await AskLocalModel.classify(question: question, context: context)
+                guard session == liveSession, isDemo == (liveSheet == nil), shield == nil else {
+                    reply(HostPolicy.failure("stale_session", "The selected Sheet changed."), nil); return
+                }
+                reply(HostPolicy.reply(result), nil)
+            }
         case "preferences.get", "preferences.set":
             let userID = liveSheet?.preferenceID ?? "native-demo"
             guard params["path"] as? String == "data/users/\(userID)/kitty",

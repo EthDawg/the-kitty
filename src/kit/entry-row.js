@@ -128,7 +128,7 @@
       ${K.EntryRow(e, ctx, { date: true, raw: true, badges: false })}
       <p class="rwhy">${ico("review")}<span>${esc(E.cap(item.why))}${dup ? ` · ${esc(E.fmtDay(dup.date))}, row ${esc(dup.id)}` : ""}</span></p>
       <div class="racts">${chips.join("")}<span class="rbtns">${acts.join("")}</span></div>
-      ${noRule && ctx.cookie ? `<div class="rcookie"><button type="button" class="k-fortune" data-cookie="${esc(e.id)}" aria-label="Crack the cookie: the Kitty proposes a merchant and a rule for this descriptor">${ctx.cookie}</button><span class="cookiehint">${ctx.sampleOn ? "No rule knows this one. Crack the cookie and the Kitty proposes a merchant and a rule; you decide." : "No rule knows this one. Open this page in Claude to let the Kitty propose a rule."}</span></div><div class="rslip" hidden></div>` : ""}
+      ${noRule && ctx.cookie ? `<div class="rcookie"><button type="button" class="k-fortune" data-cookie="${esc(e.id)}" aria-label="${ctx.nativeAsk ? "Check past entries for this merchant" : "Crack the cookie: the Kitty proposes a merchant and a rule for this descriptor"}">${ctx.cookie}</button><span class="cookiehint">${ctx.nativeAsk ? "Check how this household categorised matching entries." : ctx.sampleOn ? "No rule knows this one. Crack the cookie and the Kitty proposes a merchant and a rule; you decide." : "No rule knows this one. Open this page in Claude to let the Kitty propose a rule."}</span></div><div class="rslip" hidden></div>` : ""}
     </article>`;
   };
 

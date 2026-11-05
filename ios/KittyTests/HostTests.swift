@@ -61,6 +61,59 @@ final class OfflinePageTests: XCTestCase {
         add(attachment)
     }
 
+    func testAskAnswersFromEntriesAndPreservesTheFollowUpScope() async throws {
+        let suite = "KittyAskTests-" + UUID().uuidString
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let host = KittyViewController(preferences: preferences, websiteDataStore: .nonPersistent())
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        host.loadViewIfNeeded()
+        let page = try XCTUnwrap(host.webView)
+        try await wait(page, for: "window.KittyNative?.ready && !document.querySelector('#askbtn').hidden")
+        try await wait(page, for: "getComputedStyle(document.querySelector('#toast')).opacity === '0' && !document.querySelector('canvas[data-generated-confetti]')")
+        _ = try await js(page, "document.querySelector('#askbtn').click(); return true")
+        _ = try await js(page, "document.querySelector('[data-ask-example*=subscriptions][data-ask-example*=fund]').click(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('37.49')")
+        let scenario = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
+        XCTAssertTrue(scenario.contains("June 2027") && scenario.contains("3,097.16"),scenario)
+        XCTAssertFalse(scenario.contains("Anytime Fitness"),"The household marked the gym Keep.")
+        try await capture(page, "Ask – subscription choices and emergency savings goal")
+        _ = try await js(page, "const input=document.querySelector('[data-ask-input]'); input.value='How much did we spend on groceries last month?'; input.form.requestSubmit(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('1,429.05')")
+        let first = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
+        XCTAssertTrue(first.contains("December 2026") && first.contains("Groceries") && first.contains("4 expense entries"), first)
+        _ = try await js(page, "document.querySelector('[data-ask-evidence] summary').click(); return true")
+        let rows = try await js(page, "return Array.from(document.querySelectorAll('[data-ask-go]'), x=>x.dataset.askGo)") as? [String] ?? []
+        XCTAssertEqual(rows.count,4)
+        try await capture(page, "Ask – December groceries and four fictional ledger entries")
+        _ = try await js(page, "document.querySelector('[data-ask-go]').click(); return true")
+        try await wait(page, for: "!document.querySelector('[data-native-ask]') && document.querySelector('#drawer.on').innerText.includes('" + (rows.first?.replacingOccurrences(of: "entry:", with: "") ?? "missing") + "')")
+        _ = try await js(page, "document.querySelector('#dclose').click(); document.querySelector('#askbtn').click(); document.querySelector('[data-ask-example*=Compare]').click(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('November 2026')")
+        _ = try await js(page, "document.querySelector('[data-ask-period]').click(); document.querySelector('[data-ask-share]').click(); return true")
+        let preview = try await js(page, "return document.querySelector('.ask-preview').textContent") as? String ?? ""
+        XCTAssertTrue(preview.contains("December 2026") && preview.contains("1,429.05"),preview)
+        XCTAssertFalse(preview.contains("https:") || preview.contains("T0761"))
+        XCTAssertNil(host.presentedViewController, "Previewing never sends data.")
+        _ = try await js(page, "document.querySelector('[data-ask-system-share]').click(); return true")
+        for _ in 0..<30 where host.presentedViewController == nil { try await Task.sleep(for: .milliseconds(100)) }
+        XCTAssertTrue(host.presentedViewController is UIActivityViewController)
+        host.presentedViewController?.dismiss(animated:false)
+        let stale = try await js(page,"return await webkit.messageHandlers.kitty.postMessage({method:'ask.share',params:{text:'fictional',session:'wrong'}})") as? [String:Any]
+        XCTAssertEqual(stale?["ok"] as? Bool,false)
+
+        _ = try await js(page, "document.querySelector('#dclose').click(); window.KittyNative.openRoute('review'); return true")
+        try await wait(page, for: "document.querySelector('#reviewcard [data-cookie]')")
+        _ = try await js(page, "document.querySelector('#reviewcard [data-cookie]').click(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-choose]')")
+        _ = try await js(page, "document.querySelector('[data-ask-choose]').click(); return true")
+        try await wait(page, for: "document.querySelector('#catpick [data-pickcat]')")
+    }
+
     func testOfflineJourneysAndHostCapabilities() async throws {
         let suite = "KittyTests-" + UUID().uuidString
         let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -120,7 +173,7 @@ final class OfflinePageTests: XCTestCase {
         try await capture(page, "Review — demo decisions only")
         let reviewActions = try await js(page, """
             return document.querySelector('#reviewcard [data-ract="cat"]') !== null &&
-              !document.querySelector('#reviewcard [data-cookie]') &&
+              document.querySelector('#reviewcard [data-cookie][aria-label*="past entries"]') !== null &&
               !document.querySelector('#reviewcard').innerText.includes('Open this page in Claude');
             """)
         XCTAssertEqual(reviewActions as? Bool, true, "Offline Review must offer a usable category action.")
