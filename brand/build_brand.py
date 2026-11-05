@@ -2,7 +2,7 @@
 """Builds The Kitty's brand kit: mascots (cat default, dog alternate), app icons, the semantic icon set,
 empty-state illustrations, motion pieces and a contact sheet. Run: python3 brand/build_brand.py
 Everything is hand-drawn SVG on a 24 grid (icons) or a 160 grid (mascots). No fonts are embedded."""
-import json, os, re, shutil, subprocess, sys
+import json, os, re, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
@@ -202,7 +202,7 @@ def app_icon(kind):
         clip = '<clipPath id="ic"><circle cx="512" cy="540" r="270"/></clipPath>'
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="The Kitty app icon">
 <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5B3DF5"/><stop offset=".48" stop-color="#8E45FF"/><stop offset="1" stop-color="#FF5CC8"/></linearGradient>{clip}</defs>
-<rect width="1024" height="1024" rx="224" fill="url(#g)"/>
+<rect width="1024" height="1024" fill="url(#g)"/>
 {head}
 </svg>
 '''
@@ -344,9 +344,14 @@ def pngs():
     if not os.path.exists(CHROME): print("Chrome not found; PNG app icons skipped"); return
     for kind in ["cat", "dog"]:
         html = os.path.join(HERE, f"{kind}/_icon.html")
-        w(f"{kind}/_icon.html", f'<!doctype html><meta charset="utf-8"><style>html,body{{margin:0;background:transparent}}</style><img src="app-icon.svg" width="1024" height="1024" style="display:block">')
+        w(f"{kind}/_icon.html", f'<!doctype html><meta charset="utf-8"><style>html,body{{margin:0}}</style><img src="app-icon.svg" width="1024" height="1024" style="display:block">')
         out = os.path.join(HERE, f"{kind}/app-icon-1024.png")
-        subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--default-background-color=00000000", f"--screenshot={out}", "--window-size=1024,1024", f"file://{html}"], capture_output=True, timeout=60)
+        # The operating system masks the full-bleed, opaque artwork for each device.
+        with tempfile.TemporaryDirectory(prefix="kitty-brand-chrome-") as profile:
+            subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+                            f"--user-data-dir={profile}", f"--screenshot={out}",
+                            "--window-size=1024,1024", f"file://{html}"],
+                           check=True, capture_output=True, timeout=60)
         os.remove(html)
         if os.path.exists(out):
             for s in [512, 256, 192, 180, 128, 64, 48, 32, 16]:
