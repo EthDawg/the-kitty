@@ -585,26 +585,22 @@
   const nextId = (grid, prefix, width) => { let mx = 0; for (const r of grid || []) { const mm = /^([A-Z])(\d+)$/.exec(String(r && r[0] || "").trim()); if (mm && mm[1] === prefix) mx = Math.max(mx, +mm[2]); } return prefix + String(mx + 1).padStart(width, "0"); };
   const lastRow = (grid) => { let n = 0; (grid || []).forEach((r, i) => { if (r && r[0] !== "" && r[0] != null) n = i + 1; }); return n; };
   function entryRowNumber(id) { const g = S.grids && S.grids.entries; if (!g) return null; const i = g.findIndex((r) => r && String(r[0]).trim() === id); return i < 0 ? null : i + 1; }
-  // The page's grids can be 30 minutes old and another device may have written since, so a new row is placed from a forced read of the tab.
-  async function freshColumn(tab) {
-    const res = await S.mcp.callTool(GS, "get_values", { spreadsheetId: sheetId(), range: `${tab}!A1:A` }, { cache: { staleTime: 0, gcTime: 0, refresh: true } });
-    let p = res && res.payload; if (typeof p === "string") { try { p = JSON.parse(p); } catch (e) { /* checked below */ } }
-    if (!p || typeof p !== "object" || !(Array.isArray(p.values) || typeof p.range === "string")) throw { code: "invalid_response" };
-    return p.values || [];
+  // A row is placed by E.appendRows from a forced read, on the connector and sheet captured here; the local grid follows only if they still hold.
+  async function appendToSheet(key, tab, last, header, rows) {
+    const mcp = S.mcp, id = sheetId(), current = () => S.mcp === mcp && sheetId() === id && S.mode === "live";
+    const placed = await E.appendRows({ sheet: id, current, call: (t, i, o) => mcp.callTool(GS, t, i, o) }, { tab, last, header, rows });
+    try { await mcp.invalidate(GS, "get_values"); } catch (e) { /* older shell */ }
+    if (current()) { const g = S.grids[key]; g.length = Math.min(g.length, placed.row - 1); while (g.length < placed.row - 1) g.push([]); for (const r of placed.rows) g.push(r.slice()); }
+    return placed.rows;
   }
+  const DECISION_HEAD = ["Decision ID", "Ref kind", "Ref ID", "Decision", "Value", "By", "At", "Note"], RULE_HEAD = ["Rule ID", "Pattern", "Match", "Merchant", "Category ID", "Person", "Tax label", "Property", "Source", "Note"];
   // decision rows: [ref_kind, ref_id, decision, value, note]; writes Decisions!A{n}:H{m} by explicit range and mirrors the grid
   async function writeDecisions(specs) {
     if (!specs.length) return [];
-    const fresh = canWriteSheet() ? await freshColumn("Decisions") : null;
-    const rows = []; let id = nextId(fresh || (S.grids ? S.grids.decisions : (S.m.decisions.map((d) => [d.id])).concat(S.sessionDecisions.map((d) => [d.decision_id]))), "D", 4);
-    for (const sp of specs) { rows.push([id, sp[0], sp[1], sp[2], sp[3] == null ? "" : String(sp[3]), byName(), nowDate(), sp[4] || ""]); id = "D" + String(+id.slice(1) + 1).padStart(4, "0"); }
-    if (canWriteSheet()) {
-      const g = S.grids.decisions; const n = lastRow(fresh) + 1;
-      await writeCells(`Decisions!A${n}:H${n + rows.length - 1}`, rows);
-      while (g.length < n - 1) g.push([]); for (const r of rows) g.push(r.slice());
-    } else {
-      for (const r of rows) S.sessionDecisions.push({ decision_id: r[0], ref_kind: r[1], ref_id: r[2], decision: r[3], value: r[4], by: r[5], at: r[6], note: r[7] });
-    }
+    const build = (grid) => { const rows = []; let id = nextId(grid, "D", 4); for (const sp of specs) { rows.push([id, sp[0], sp[1], sp[2], sp[3] == null ? "" : String(sp[3]), byName(), nowDate(), sp[4] || ""]); id = "D" + String(+id.slice(1) + 1).padStart(4, "0"); } return rows; };
+    if (canWriteSheet()) return appendToSheet("decisions", "Decisions", "H", DECISION_HEAD, build);
+    const rows = build(S.grids ? S.grids.decisions : (S.m.decisions.map((d) => [d.id])).concat(S.sessionDecisions.map((d) => [d.decision_id])));
+    for (const r of rows) S.sessionDecisions.push({ decision_id: r[0], ref_kind: r[1], ref_id: r[2], decision: r[3], value: r[4], by: r[5], at: r[6], note: r[7] });
     return rows;
   }
   async function writeCategory(id, cat) {
@@ -630,7 +626,7 @@
     const pattern = E.normalise(e.raw) || String(e.raw || "").toUpperCase(); const others = E.rowsForPattern(m, pattern, id);
     const ok = await act(async () => {
       const ruleRow = [nextId(S.grids ? S.grids.rules : m.rules.map((r) => [r.id]), "R", 4), pattern, "normalised", proposal.merchant, proposal.category_id, e.person || "", "", "", `cookie ${nowDate()}`, String(proposal.why || "").slice(0, 200)];
-      if (canWriteSheet()) { const g = S.grids.rules, col = await freshColumn("Rules"), n = lastRow(col) + 1; ruleRow[0] = nextId(col, "R", 4); await writeCells(`Rules!A${n}:J${n}`, [ruleRow]); while (g.length < n - 1) g.push([]); g[n - 1] = ruleRow.slice(); }
+      if (canWriteSheet()) await appendToSheet("rules", "Rules", "J", RULE_HEAD, (grid) => { ruleRow[0] = nextId(grid, "R", 4); return [ruleRow]; });
       else { S.sessionRules = (S.sessionRules || []).concat([ruleRow]); }
       await writeCategory(id, proposal.category_id); for (const o of others) await writeCategory(o.id, proposal.category_id);
       await writeDecisions([["entry", id, "categorise", proposal.category_id, `rule ${ruleRow[0]}`]].concat(others.map((o) => ["entry", o.id, "categorise", proposal.category_id, `rule ${ruleRow[0]}`])));
