@@ -40,6 +40,12 @@ permission, without changing rows or labelling snapshot numbers Live. Eighteen
 injected-response tests cover OAuth, secure storage, bounded HTTP, stale accounts,
 wrong files and ambiguous versions. They do not prove live Google consent.
 
+On 5 November at 15:26 Sydney time, the signed build on Ethan's iPhone verified
+the existing **Digital Davies v2** Sheet as an editor. Its protected device
+receipt matched the expected file and the installed page (SHA-256 `100cea52…f7418`).
+The probe read Drive metadata, tab names and the version marker; it wrote no cells.
+This establishes selection, not a Live dashboard or a verified category write.
+
 The shared ledger reader preserves physical row numbers across empty Sheets
 pages. A fictional regression places an entry on row 5,003 and finds it at that
 exact address; a populated Entries or Decisions row without its ID fails the

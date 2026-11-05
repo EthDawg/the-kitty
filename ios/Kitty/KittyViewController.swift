@@ -204,7 +204,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             choosingSheet = true
             verifiedSheet = nil
             Task { @MainActor in
-                defer { choosingSheet = false }
+                defer { choosingSheet = false; notifyGoogleStatus() }
                 do {
                     let selection = try await google.authorize(fileID: id)
                     let probe = GoogleSheetSelection(http: GoogleHTTP(), current: { self.google.selection },
@@ -229,7 +229,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             choosingSheet = true
             verifiedSheet = nil
             Task { @MainActor in
-                defer { choosingSheet = false }
+                defer { choosingSheet = false; notifyGoogleStatus() }
                 do { try await google.disconnect(); reply(HostPolicy.reply(), nil) }
                 catch {
                     let detail = (error as? GoogleConnection.ConnectionError)?.errorDescription ?? "Google disconnect could not be verified."
@@ -239,6 +239,12 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
         case "downloads.save": export(params, reply: reply)
         default: reply(HostPolicy.failure("not_available", "This capability is not available in the demo."), nil)
         }
+    }
+
+    private func notifyGoogleStatus() {
+        guard pageReady else { return }
+        webView.callAsyncJavaScript("document.dispatchEvent(new Event('kitty:google-status'))",
+                                    arguments: [:], in: nil, in: .page, completionHandler: nil)
     }
 
     private func export(_ params: [String: Any], reply: @escaping (Any?, String?) -> Void) {

@@ -907,10 +907,29 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $$("[data-theme-pick]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ theme: b.dataset.themePick }); applyTheme(); renderSetup(); buzz(); }));
     $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
   }
-  const googlePicker = { busy: false, verified: null, message: "", attempted: false };
+  const googlePicker = { busy: "", verified: null, message: "", attempted: false, checked: false, revision: 0 };
+  const verifiedDemo = v => v?.sheetID === DEMO_SHEET && v.sheetVersion === 2 &&
+    typeof v.title === "string" && v.title.trim() !== "" && typeof v.canEdit === "boolean";
+  async function syncGoogleStatus() {
+    if (!NATIVE || !S.m || googlePicker.busy) return;
+    googlePicker.checked = true;
+    const revision = ++googlePicker.revision;
+    try {
+      // Swift owns the result, so a WebKit page recreated during Google's return can recover it.
+      // This call reads only native in-memory state. It neither signs in nor opens a Sheet.
+      const status = await window.KittyNative.google.status();
+      if (revision !== googlePicker.revision || googlePicker.busy) return;
+      const checked = verifiedDemo(status?.verified) ? status.verified : null;
+      if (!checked && !googlePicker.verified) return;
+      googlePicker.verified = checked;
+      if (checked) { googlePicker.attempted = true; googlePicker.message = ""; }
+      renderNativeSetup();
+    } catch (_) { /* A missing status reply is never verification. */ }
+  }
+  if (NATIVE) document.addEventListener("kitty:google-status", syncGoogleStatus);
   async function chooseDemoSheet(disconnect = false) {
     if (googlePicker.busy) return;
-    googlePicker.busy = true; googlePicker.message = ""; googlePicker.verified = null;
+    googlePicker.revision++; googlePicker.busy = disconnect ? "disconnect" : "choose"; googlePicker.message = ""; googlePicker.verified = null;
     googlePicker.attempted = true; renderNativeSetup();
     try {
       if (disconnect) {
@@ -918,26 +937,26 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         googlePicker.message = "Disconnected from Google."; googlePicker.attempted = false;
       } else {
         const result = await window.KittyNative.google.select(DEMO_SHEET);
-        if (result?.sheetID !== DEMO_SHEET || result.sheetVersion !== 2 || typeof result.title !== "string")
+        if (!verifiedDemo(result))
           throw new Error("Google did not confirm the selected v2 Sheet.");
         googlePicker.verified = result;
       }
     } catch (error) { googlePicker.message = error.message || "Google Sheet selection was not confirmed."; }
-    finally { googlePicker.busy = false; renderNativeSetup(); }
+    finally { googlePicker.busy = ""; renderNativeSetup(); }
   }
   function renderNativeSetup() {
     const m = S.m, v = $("#v-setup");
     v.innerHTML = `
+      <div class="card" id="nativeconnection"><div class="cardhead"><span class="q">Your Google Sheet</span></div>
+        <p>Choose your Google account, then select <b>Digital Davies v2</b>. Return here to see whether Kitty could read it. This check changes no rows.</p>
+        <div class="chips"><button class="btn sm" id="nativepick" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "choose" ? "Waiting for Google…" : "Choose demo Sheet"}</button>
+          ${googlePicker.attempted ? `<button class="btn sm ghost" id="nativedisconnect" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "disconnect" ? "Disconnecting…" : "Disconnect Google"}</button>` : ""}</div>
+        <p role="status" aria-live="polite">${googlePicker.verified ? `<b>Verified in Google:</b> ${esc(googlePicker.verified.title)} · Kitty v2 · ${googlePicker.verified.canEdit ? "editor" : "viewer"}. No rows were changed.` : esc(googlePicker.message || (googlePicker.busy === "choose" ? "Finish choosing the Sheet in Google." : googlePicker.busy ? "Disconnecting from Google." : "Sheet not verified yet."))}</p>
+      </div>
       <div class="card"><div class="cardhead"><span class="q">The Kitty on your phone</span><span class="sub">Offline demo</span></div>
         <div class="prose"><p>Explore Home, Activity, Review, Insights and Goals using <b>${esc(m.householdName)}</b>, a fictional household. The bundled Sheet snapshot covers ${E.fmtDay(m.asOf, { year: true })}. It opens without a network connection.</p>
-        <p>The numbers belong in a Google Sheet you can open and keep. This preview uses a fictional copy. Choosing the Sheet below checks access without changing any rows.</p></div>
+        <p>The dashboard uses the bundled demo, even after the connection check. Your numbers belong in a Google Sheet you can open and keep.</p></div>
         <div class="chips"><button class="btn sm" data-go="review">Open Review</button><button class="btn sm ghost" data-go="goals">Explore Goals</button></div>
-      </div>
-      <div class="card"><div class="cardhead"><span class="q">Your Google Sheet</span></div>
-        <p>Choose the existing Digital Davies v2 Sheet in Google’s picker. The Kitty checks the file and its version. The dashboard above still uses the bundled demo.</p>
-        <div class="chips"><button class="btn sm" id="nativepick" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy ? "Waiting for Google…" : "Choose demo Sheet"}</button>
-          ${googlePicker.attempted ? `<button class="btn sm ghost" id="nativedisconnect" ${googlePicker.busy ? "disabled" : ""}>Disconnect Google</button>` : ""}</div>
-        <p class="sub" role="status" aria-live="polite">${googlePicker.verified ? `Verified in Google: <b>${esc(googlePicker.verified.title)}</b> · Kitty v2 · ${googlePicker.verified.canEdit ? "editor" : "viewer"}. No rows were changed.` : esc(googlePicker.message)}</p>
       </div>
       ${appearanceCard(m)}
       <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
@@ -954,6 +973,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $("#nativedisconnect", v)?.addEventListener("click", () => chooseDemoSheet(true));
     bindAppearance(v);
     bindCommon(v);
+    if (!googlePicker.checked) void syncGoogleStatus();
   }
   function renderSetup() {
     if (NATIVE) { renderNativeSetup(); return; }

@@ -43,3 +43,29 @@ for (const broken of [false, true]) {
     expect(calls.filter(tool => !["get_values", "get_spreadsheet"].includes(tool))).toEqual([]);
   });
 }
+
+test("the Setup card restores only the native host's verified result and clears it on disconnect", async ({ page }) => {
+  await page.route(/^https?:\/\//, route => route.abort());
+  await page.addInitScript(() => {
+    window.KITTY_HOST = "native";
+    let wrongFile = true, disconnected = false;
+    window.fixtureRecognisesDemo = () => { wrongFile = false; document.dispatchEvent(new Event("kitty:google-status")); };
+    window.KittyNative = { environment: {}, google: {
+      status: async () => ({ configured: true, verified: disconnected ? null : {
+        sheetID: wrongFile ? "a-different-fixture" : window.KITTY_SHEET,
+        title: "Fictional connection check", sheetVersion: 2, canEdit: false
+      } }),
+      disconnect: async () => { disconnected = true; }
+    } };
+  });
+  await page.goto(url + "?noonb&noanim&tab=setup");
+  const status = page.locator("#nativeconnection [role=status]");
+  await expect(status).toHaveText("Sheet not verified yet.");
+  await page.evaluate(() => window.fixtureRecognisesDemo());
+  await expect(status).toContainText("Verified in Google: Fictional connection check · Kitty v2 · viewer");
+  await expect(page.locator("#trustpill")).not.toContainText("Live");
+  await page.getByRole("button", { name: "Disconnect Google" }).click();
+  await expect(status).toHaveText("Disconnected from Google.");
+  await page.evaluate(() => document.dispatchEvent(new Event("kitty:google-status")));
+  await expect(status).not.toContainText("Verified in Google");
+});
