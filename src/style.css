@@ -497,12 +497,11 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .canvas>.wcell>.grid-stack-item-content{height:100%}
 .wbox{height:100%;display:flex;flex-direction:column;min-width:0}.wbox>.card{flex:1}
 .canvas.grid-stack{display:block;margin:-8px}
-.canvas.grid-stack .wbox{height:auto}
 .canvas.grid-stack>.grid-stack-item>.grid-stack-item-content{overflow:visible}
 .anim .view.on .canvas>.wcell{animation:rise .55s var(--ease) both;animation-delay:calc(var(--i,0) * 60ms)}
 .canvas .grid-stack-placeholder>.placeholder-content{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:var(--r)}
 .canvas.arranging .wbox>:not(.wtools){pointer-events:none}
-.canvas.arranging .wbox{outline:2px dashed var(--line);outline-offset:2px;border-radius:var(--r);cursor:grab}
+.canvas.arranging .wbox{outline:2px dashed color-mix(in srgb,var(--accent) 40%,var(--line));outline-offset:2px;border-radius:var(--r);cursor:grab}
 .wtools{display:flex;align-items:center;gap:6px;padding:0 4px 8px;font-size:13px;color:var(--ink2)}
 .wtools .wname{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .whandle{display:inline-flex;touch-action:none;cursor:grab;padding:6px;color:var(--muted)}.whandle svg{width:18px;height:18px}
@@ -512,7 +511,12 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 .canvas.phone.arranging .wbox>:not(.wtools){max-height:92px;overflow:hidden}
 .canvas .ui-resizable-e{width:14px;right:-2px;top:12px;bottom:12px;cursor:ew-resize;border-radius:7px;background:color-mix(in srgb,var(--accent) 30%,transparent)}
 .arrangebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end;padding:12px 6px 4px}
+.canvas.arranging~.arrangebar{position:sticky;bottom:calc(var(--tabbar) + 10px);z-index:20;width:fit-content;max-width:100%;margin:12px 0 0 auto;padding:8px 10px;background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+@media (min-width:820px){.canvas.arranging~.arrangebar{bottom:16px}}
+@media (max-width:819px){.wbtn{min-width:44px;min-height:44px}.whandle{min-width:44px;min-height:44px;align-items:center;justify-content:center}}
 .wlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+@media (min-width:820px){.wlist.two{display:grid;grid-template-columns:1fr 1fr;gap:8px 32px}}
+#arrangebtn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
 .whrow{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
 .whrow .mid{display:flex;flex-direction:column;min-width:0}.whrow .t{font-weight:600}.whrow .s{font-size:12.5px;color:var(--muted)}
 .tray{display:flex;flex-wrap:wrap;gap:8px}

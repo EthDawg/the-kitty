@@ -51,7 +51,7 @@
   const demoModel = () => { if (!SNAP) return null; const snap = Object.assign({}, SNAP, { decisions: (SNAP.decisions || []).concat(S.sessionDecisions), entries: Object.keys(S.sessionCats).length ? (SNAP.entries || []).map((e) => (S.sessionCats[e.entry_id] ? Object.assign({}, e, { category_id: S.sessionCats[e.entry_id] }) : e)) : SNAP.entries }); return applyLocalGoals(E.model(snap)); };
   const sheetId = () => (S.prefs.sheet || DEMO_SHEET).trim();
   const isDemoSheet = () => sheetId() === DEMO_SHEET;
-  const savePrefs = (patch) => { Object.assign(S.prefs, patch); store.set("prefs", S.prefs); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: Date.now() }).catch(() => {}); };
+  const savePrefs = (patch) => { const at = Date.now(); Object.assign(S.prefs, patch); store.set("prefs", S.prefs); store.set("prefsSavedAt", at); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: at }).catch(() => {}); };
   const pref = (k, fallback) => { const v = S.prefs[k]; return v == null || v === "" ? fallback : v; };
   const today = () => (S.m ? S.m.asOf : new Date().toISOString().slice(0, 10));
   const greeting = () => pref("greeting", S.m && S.m.kitty.greeting_name ? S.m.kitty.greeting_name : "") || (S.m && S.m.people.length ? S.m.people.join(" and ") : S.m ? S.m.householdName.replace(/^The /, "") : "there");
@@ -354,8 +354,8 @@
     ].join("")}</div>`;
     $$("header.top, nav.tabs").forEach((x) => { x.style.display = "none"; });
   }
-  // ----- Home is the canvas: widgets from the kit, laid out per person. The page is a plain CSS grid until GridStack mounts on it, so a
-  // blocked script costs dragging, not the page. Heights follow the content; a width snaps to a size the manifest declares. -----
+  // ----- Home is the canvas: widgets from the kit, laid out per person. The page is always a plain CSS grid, so spacing never depends on
+  // measuring. GridStack mounts only while arranging, on the grid's own geometry; a blocked script costs dragging, not the page. -----
   const isPhone = () => window.matchMedia("(max-width:819px)").matches;
   const fixedLayout = () => FLAGS.get("layout") === "default";   // ?layout=default for screenshots: no saved layout, nothing written
   const WID = (m) => Kit.eligible(m, E.signals(m));
@@ -376,39 +376,41 @@
   function canvasHTML(lay) {
     const m = S.m; const a = !!S.arrange, phone = isPhone();
     const cell = (it, i, n) => {
-      const w = Kit.widget(it.id), variant = Kit.variant(w, it.w);
+      const w = Kit.widget(it.id), variant = Kit.variant(w, it.w), sized = !phone && w.sizes.length > 1 ? Kit.nextSize(w, it.w) : null;
       const body = w.core ? w.render(w.data(m), variant) : `<div class="card">${w.render(w.data(m), variant)}</div>`;
-      const tools = a ? `<div class="wtools"><span class="whandle" aria-hidden="true">⠿</span><span class="wname">${esc(w.title)}</span><button class="wbtn" data-wmove="${esc(it.id)}:-1" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(w.title)} up">↑</button><button class="wbtn" data-wmove="${esc(it.id)}:1" ${i === n - 1 ? "disabled" : ""} aria-label="Move ${esc(w.title)} down">↓</button><button class="wbtn" data-whide="${esc(it.id)}" aria-label="Hide ${esc(w.title)}">Hide</button></div>` : "";
-      return `<div class="wcell grid-stack-item" data-wid="${esc(it.id)}" gs-id="${esc(it.id)}" gs-x="${it.x}" gs-y="${it.y}" gs-w="${it.w}" gs-h="1" gs-min-w="${Math.min(...w.sizes.map((s) => s.w))}" gs-size-to-content="true" style="--ww:${it.w};--i:${Math.min(i, 5)}"><div class="grid-stack-item-content"><div class="wbox">${tools}${body}</div></div></div>`;
+      const tools = a ? `<div class="wtools"><span class="whandle" aria-hidden="true">⠿</span><span class="wname">${esc(w.title)}</span><button class="wbtn" data-wmove="${esc(it.id)}:-1" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(w.title)} up">↑</button><button class="wbtn" data-wmove="${esc(it.id)}:1" ${i === n - 1 ? "disabled" : ""} aria-label="Move ${esc(w.title)} down">↓</button>${sized ? `<button class="wbtn" data-wsize="${esc(it.id)}" aria-label="Make ${esc(w.title)} ${sized > it.w ? "wider" : "narrower"}">${sized > it.w ? "Wider" : "Narrower"}</button>` : ""}<button class="wbtn" data-whide="${esc(it.id)}" aria-label="Hide ${esc(w.title)}">Hide</button></div>` : "";
+      return `<div class="wcell grid-stack-item" data-wid="${esc(it.id)}" gs-id="${esc(it.id)}" gs-x="${it.x}" gs-y="${it.y}" gs-w="${it.w}" gs-h="1" gs-min-w="${Math.min(...w.sizes.map((s) => s.w))}" style="--ww:${it.w};--i:${Math.min(i, 5)}"><div class="grid-stack-item-content"><div class="wbox">${tools}${body}</div></div></div>`;
     };
     const bar = `<div class="arrangebar">${a ? `${lay.hiddenOn.length ? `<span class="sub">Hidden:</span>${Kit.Tray(lay.hiddenOn.map((id) => ({ id, title: Kit.widget(id).title })))}` : ""}<button class="linkbtn" data-wreset>Back to the default</button><button class="btn sm" data-arrange>Done</button>` : `<button class="linkbtn" data-arrange>Arrange this page</button>`}</div>`;
-    return `<div class="canvas${a ? " arranging" : ""}${phone ? " phone" : ""}" id="canvas">${lay.items.map((it, i) => cell(it, i, lay.items.length)).join("")}</div>${fixedLayout() ? "" : bar}`;
+    return `<div class="canvas${a ? " arranging" : ""}${phone ? " phone" : ""}" id="canvas">${Kit.flow(lay.items).map((it, i, all) => cell(it, i, all.length)).join("")}</div>${fixedLayout() ? "" : bar}`;
   }
   function unmountCanvas() { if (S.grid) { try { S.grid.destroy(false); } catch (e) { /* the DOM is about to go */ } S.grid = null; } }
-  // GridStack measures, so it mounts only on a visible Home: renderAll also runs behind other tabs.
+  // GridStack takes over the grid's geometry exactly, so arranging moves nothing until a card is moved. A drop saves the reading order and
+  // redraws, so the page closes up: there are no holes to leave. Never destroy the grid inside its own event.
   function mountCanvas() {
-    const el = $("#canvas"); if (!el || S.grid || S.tab !== "home" || isPhone() || !window.GridStack) return;
+    const el = $("#canvas"); if (!el || S.grid || S.tab !== "home" || !S.arrange || isPhone() || !window.GridStack) return;
+    const CELL = 4, top = el.getBoundingClientRect().top;
+    $$(".wcell", el).forEach((c) => { const r = c.getBoundingClientRect(); c.setAttribute("gs-y", Math.round((r.top - top) / CELL)); c.setAttribute("gs-h", Math.ceil((r.height + 16) / CELL)); });
     el.classList.add("grid-stack");
     try {
-      S.grid = window.GridStack.init({ column: 12, cellHeight: 8, margin: 8, float: false, sizeToContent: true, animate: false, staticGrid: !S.arrange, resizable: { handles: "e" }, alwaysShowResizeHandle: true, cancel: ".wbtn" }, el);
-      S.grid.on("dragstop resizestop", (ev, item) => {
-        const w = Kit.widget(item.getAttribute("gs-id")); const node = item.gridstackNode;
-        if (ev.type === "resizestop") { const size = Kit.snapWidth(w, node.w); if (size.w !== node.w) S.grid.update(item, { w: size.w }); }
-        saveLayout(S.grid.engine.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w: n.w })).sort((a, b) => a.y - b.y || a.x - b.x));
-        if (ev.type === "resizestop") setTimeout(renderHome);   // a new width can mean a new variant; never destroy the grid inside its own event
+      S.grid = window.GridStack.init({ column: 12, cellHeight: CELL, margin: 8, float: false, animate: false, resizable: { handles: "e" }, alwaysShowResizeHandle: true, cancel: ".wbtn" }, el);
+      S.grid.on("dragstop resizestop", () => {
+        const items = S.grid.engine.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w: Kit.snapWidth(Kit.widget(n.id), n.w).w })).sort((a, b) => a.y - b.y || a.x - b.x);
+        saveLayout(Kit.pack(items)); setTimeout(renderHome);
       });
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S.grid) S.grid.engine.nodes.forEach((n) => S.grid.resizeToContent(n.el)); });
     } catch (e) { console.error("canvas", e); S.grid = null; el.classList.remove("grid-stack"); }
   }
+  function setArrange(on) { S.arrange = on; const b = $("#arrangebtn"); if (b) b.setAttribute("aria-pressed", String(on)); renderHome(); const d = on ? $(".arrangebar .btn") : b; if (d && !d.hidden) d.focus({ preventScroll: true }); }
   // the reading order, for the phone's handle and for the arrows
-  const currentItems = () => Kit.layout(WID(S.m), savedLayout()).items;
+  const currentItems = () => Kit.flow(Kit.layout(WID(S.m), savedLayout()).items);
   function applyOrder(items) { saveLayout(Kit.pack(items)); renderHome(); }
   function bindCanvas(v) {
-    $$("[data-arrange]", v).forEach((b) => b.addEventListener("click", () => { S.arrange = !S.arrange; renderHome(); }));
+    $$("[data-arrange]", v).forEach((b) => b.addEventListener("click", () => setArrange(!S.arrange)));
     $$("[data-wreset]", v).forEach((b) => b.addEventListener("click", () => { const ws = WID(S.m); savePrefs({ layout: { items: Kit.layout(ws, null).items, hidden: [], seen: ws.filter((w) => !w.core).map((w) => w.id) } }); renderHome(); toast("Back to the default page"); }));
-    $$("[data-wmove]", v).forEach((b) => b.addEventListener("click", () => { const [id, d] = b.dataset.wmove.split(":"); applyOrder(Kit.reorder(currentItems(), id, +d)); const n = $(`[data-wmove="${id}:${d}"]`); if (n && !n.disabled) n.focus(); }));
-    $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; writeLayout({ items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] }); renderHome(); }));
-    $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); writeLayout({ items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] }); renderHome(); }));
+    $$("[data-wmove]", v).forEach((b) => b.addEventListener("click", () => { const [id, d] = b.dataset.wmove.split(":"); applyOrder(Kit.reorder(currentItems(), id, +d)); toast(`${Kit.widget(id).title} moved ${+d < 0 ? "up" : "down"}`, 1400); const n = $(`[data-wmove="${id}:${d}"]`); if (n && !n.disabled) n.focus(); }));
+    $$("[data-wsize]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wsize, w = Kit.widget(id); applyOrder(currentItems().map((i) => (i.id === id ? { ...i, w: Kit.nextSize(w, i.w) } : i))); const n = $(`[data-wsize="${id}"]`); if (n) n.focus(); }));
+    $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; writeLayout({ items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] }); renderHome(); const d = $(".arrangebar .btn"); if (d) d.focus(); }));
+    $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); writeLayout({ items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] }); renderHome(); const d = $(`[data-whide="${id}"]`); if (d) d.focus(); }));
     // the phone reorders by a handle: drag it past a neighbour and the cells swap, keeping the reading order as the only state
     const c = $("#canvas"); if (!c || !c.classList.contains("phone") || !S.arrange) return;
     $$(".whandle", c).forEach((h) => h.addEventListener("pointerdown", (ev) => {
@@ -1332,7 +1334,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     const was = S.tab; S.tab = t;
     $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
     $$("section.view").forEach((s) => s.classList.toggle("on", s.id === `v-${t}`));
-    moveGlow(); closeDrawer();
+    moveGlow(); closeDrawer(); const ab = $("#arrangebtn"); if (ab) ab.hidden = t !== "home" || fixedLayout() || !!window.__KIT_GALLERY__;
     if (t === "home" && was !== "home" && S.m) { mountCanvas(); const lead = leadGoal(); if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name)) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 400); } }
     if (!quiet) { window.scrollTo({ top: 0, behavior: "auto" }); if (was !== t) buzz(); }
     store.set("tab", t);
@@ -1355,9 +1357,10 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $("#topsearch").addEventListener("click", openSearch);
     $("#scrim").addEventListener("click", closeDrawer);
     window.addEventListener("scroll", () => $("header.top").classList.toggle("scrolled", window.scrollY > 6), { passive: true });
-    window.addEventListener("resize", () => { moveGlow(); });
+    window.addEventListener("resize", () => { moveGlow(); if (S.grid) { clearTimeout(S.resizeTm); S.resizeTm = setTimeout(renderHome, 150); } });   // heights changed: remount on the new geometry
+    $("#arrangebtn").addEventListener("click", () => setArrange(!S.arrange));
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") { if (!$("#onb").hidden) return; closeDrawer(); }
+      if (e.key === "Escape") { if (!$("#onb").hidden) return; if (S.arrange && !$("#drawer").classList.contains("on")) setArrange(false); closeDrawer(); }
       if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
       if (e.key === "Tab" && $("#drawer").classList.contains("on")) { const f = $$("#drawer a[href], #drawer button:not([disabled]), #drawer input, #drawer select, #drawer [tabindex='0']").filter((x) => x.offsetParent !== null); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
     });

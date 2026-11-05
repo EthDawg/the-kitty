@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0 canvas quality
+- Home is a plain grid at all times: gaps are exactly 16px and a row always fills. GridStack mounts only while arranging, and a drop closes the page up, so no card overlaps and no hole is left.
+- Arrange has a Home button in the header, a Done bar that stays on screen, Escape to leave, and a Wider button so width needs no dragging. Phone controls are 44px.
+- Preferences now record when they were saved, so a newer local layout is no longer replaced by an older cloud copy.
+
 ## 2.0 cutover
 - Live reads now reach every Accounts column. The short range hid valuation method and status, so a live page reconciled 7 of 18 accounts and treated beta accounts as active. Bundled data was never affected.
 - The published page moves to the v2 ledger sheet. `staging_url` is gone; the page's QR code and "Copy the sheet" follow the v2 sheet, which must be shared as anyone-with-link Viewer before publishing.

@@ -10,7 +10,7 @@ const ids = (page) => page.locator(".wcell").evaluateAll((els) => els.map((e) =>
 
 test("desktop: signals add widgets once with an undo; drag and resize survive a reload; hide, show and reset work", async ({ page }) => {
   const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
-  await open(page); await mounted(page);
+  await open(page);
   await expect(page.locator("#toast")).toContainText("Property");
   expect((await prefs(page)).layout.seen).toContain("property");
   // heights follow the content: nothing clipped, nothing overlapping
@@ -26,6 +26,7 @@ test("desktop: signals add widgets once with an undo; drag and resize survive a 
   await page.mouse.up(); await page.waitForTimeout(200);
   let saved = (await prefs(page)).layout.items; const movedY = saved.find((i) => i.id === "property").y;
   expect(movedY).toBeLessThan(saved.find((i) => i.id === "goals").y);
+  await mounted(page);
   // resize Super from half to wide: the width snaps to a declared size
   await cell(page, "super").scrollIntoViewIfNeeded();
   const sb = await cell(page, "super").locator(".ui-resizable-e").boundingBox(); expect(sb.width).toBeGreaterThan(4);
@@ -33,7 +34,7 @@ test("desktop: signals add widgets once with an undo; drag and resize survive a 
   saved = (await prefs(page)).layout.items; const widths = Object.fromEntries(saved.map((i) => [i.id, i.w]));
   expect([6, 12]).toContain(widths.super);
   // reload keeps it, and no second toast
-  await open(page); await mounted(page);
+  await open(page);
   await expect(page.locator("#toast")).not.toHaveClass(/on/);
   expect((await prefs(page)).layout.items.find((i) => i.id === "property").y).toBe(movedY);
   // hide, then show again
@@ -96,4 +97,49 @@ test("the undo cannot be clicked once the toast has gone", async ({ page }) => {
   await open(page); await expect(page.locator("#toast")).toHaveClass(/on/);
   await expect(page.locator("#toast")).not.toHaveClass(/on/, { timeout: 9000 });
   await expect(page.locator("#toast button")).toHaveCount(0);
+});
+
+// card edges by row: every gap between rows is the grid's own, and a row runs edge to edge
+const rows = (page) => page.locator(".wcell").evaluateAll((els) => {
+  const by = new Map(); for (const e of els) { const r = (e.querySelector(".card") || e).getBoundingClientRect(); const k = Math.round(r.top); by.set(k, (by.get(k) || []).concat({ l: r.left, r: r.right, b: r.bottom })); }
+  return [...by.entries()].sort((a, b) => a[0] - b[0]).map(([top, cs]) => ({ top, bottom: Math.max(...cs.map((c) => c.b)), left: Math.min(...cs.map((c) => c.l)), right: Math.max(...cs.map((c) => c.r)) }));
+});
+const flush = async (page) => {
+  const rs = await rows(page); const left = rs[0].left, right = rs[0].right;
+  for (const r of rs) { expect(Math.abs(r.left - left)).toBeLessThan(1); expect(Math.abs(r.right - right)).toBeLessThan(1); }
+  return rs;
+};
+
+test("spacing: gaps are the grid's own, rows run edge to edge, and nothing needs GridStack", async ({ page }) => {
+  await open(page); await expect(page.locator("#canvas.grid-stack")).toHaveCount(0);
+  const rs = await flush(page);
+  for (let i = 1; i < rs.length; i++) expect(Math.abs(rs[i].top - rs[i - 1].bottom - 16), `row ${i}`).toBeLessThan(1);
+});
+
+test("a drop leaves no hole, and the page matches what the arrange view showed", async ({ page }) => {
+  await open(page);
+  await page.locator("#arrangebtn").click(); await mounted(page);
+  await expect(page.locator(".arrangebar .btn")).toBeFocused();
+  await cell(page, "contracts").scrollIntoViewIfNeeded();
+  const box = await cell(page, "contracts").boundingBox(), to = await cell(page, "shares").boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 80); await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + 120, box.y + 80 + (to.y - box.y - 60) * i / 12);
+  await page.mouse.up(); await mounted(page);
+  await expect.poll(async () => { const o = await ids(page); return o.indexOf("contracts") < o.indexOf("shares"); }).toBe(true);
+  await page.keyboard.press("Escape"); await expect(page.locator("#canvas.grid-stack")).toHaveCount(0);
+  await flush(page);
+});
+
+test("width changes without dragging, and a newer local layout beats an older cloud copy", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Super wider" }).click();
+  await expect(page.getByRole("button", { name: "Make Super narrower" })).toBeFocused();
+  expect((await prefs(page)).layout.items.find((i) => i.id === "super").w).toBe(12);
+  expect(await page.evaluate(() => Number(localStorage.getItem("kitty:prefsSavedAt")))).toBeGreaterThan(0);
+});
+
+test("every icon the shell asks for exists in the brand sprite", async ({ page }) => {
+  await open(page);
+  const missing = await page.locator("use").evaluateAll((us) => us.map((u) => u.getAttribute("href")).filter((h) => h && h.startsWith("#") && !document.querySelector(h)));
+  expect(missing).toEqual([]);
 });
