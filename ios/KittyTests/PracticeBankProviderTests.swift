@@ -101,7 +101,7 @@ final class PracticeBankProviderTests: XCTestCase {
         try assertDuplicate(rows)
         // Verify the fresh practice fixture, avoiding any record in a household the app did not create for this exercise.
         guard rows.count == 1083, newRows.allSatisfy({ pair in !rows.contains { $0[0] as? String == pair.0 || $0[4] as? String == pair.1 } }),
-              try await receiptFiles(api).isEmpty else { throw Fail.wrongFixture }
+              try await receiptFiles(api).isEmpty, try await GoogleBankStore(api:api).issuedTransactionNumber() == 0 else { throw Fail.wrongFixture }
         let record: Object = ["run":run,"operation":operation,"sheetID":api.selected.sheetID,"owner":api.selected.permissionID,"title":title,
                               "rowCount":rows.count - 1,"ledgerSHA256":hash(try json(rows))]
         try json(record).write(to: baseline, options: [.atomic,.completeFileProtection])
@@ -137,9 +137,14 @@ final class PracticeBankProviderTests: XCTestCase {
               receiptTags["kittyBankDigest"] == digest, let manifestID = binding["manifestID"] as? String,
               let actionID = binding["actionID"] as? String, receiptTags["kittyBankIntent"] == manifestID,
               Set([sourceID,manifestID,actionID,receiptID]).count == 4 else { throw Fail.archiveMismatch }
-        guard let version = number(binding["version"]).flatMap(Int.init(exactly:)), [1,2].contains(version) else { throw Fail.archiveMismatch }
+        guard let version = number(binding["version"]).flatMap(Int.init(exactly:)), [1,2,3].contains(version) else { throw Fail.archiveMismatch }
         let expectedMarker = number(binding["receiptMarkerID"]).flatMap(Int.init(exactly:))
         guard version == 1 ? expectedMarker == nil : (expectedMarker.map { (1...Int(Int32.max)).contains($0) && $0 != 2017113179 } == true) else { throw Fail.archiveMismatch }
+        if version >= 3 {
+            let sheetClaim = hash(Data((api.selected.sheetID + "\u{0}" + api.selected.permissionID).utf8))
+            guard number(binding["issuedThrough"]) == 927, receiptTags["kittyBankIssuedT"] == "927", receiptTags["kittyBankIssuedSheet"] == sheetClaim,
+                  let expectedMarker, receiptTags["kittyBankIssuedMarker"] == String(expectedMarker) else { throw Fail.archiveMismatch }
+        }
         var archivedPlan: Object?, amountEncoding: Any?, archiveName: String?
         for (id, kind) in [(sourceID,"original"),(manifestID,"manifest"),(actionID,"action")] {
             guard GoogleConnection.validSheetID(id) else { throw Fail.archiveMismatch }
@@ -172,16 +177,27 @@ final class PracticeBankProviderTests: XCTestCase {
         guard bytes.count == 229, hash(bytes) == sha else { throw Fail.archiveMismatch }
         let restored = try PeriodBankAppend.restoredPlan(XCTUnwrap(archivedPlan),amountEncoding:amountEncoding)
         let original = SourceDocument(name:try XCTUnwrap(archiveName),mimeType:"text/csv",bytes:bytes)
-        let rebuilt = try PeriodBankAppend(plan:restored,sheetID:api.selected.sheetID,account:"ACC-CC",original:original,originalSHA256:sha).usingMarkerID(expectedMarker)
+        let rebuilt = try PeriodBankAppend(plan:restored,sheetID:api.selected.sheetID,account:"ACC-CC",original:original,originalSHA256:sha).usingMarkerID(expectedMarker,recordsIssuedIDs:version >= 3)
         guard rebuilt.digest == digest, rebuilt.rows.map(\.id) == newRows.map(\.0) else { throw Fail.archiveMismatch }
         let search = try await api.request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[["developerMetadataLookup":["metadataKey":"kitty.period.bank.v1","metadataValue":digest,"visibility":"DOCUMENT"]]]])
         guard let hits = search["matchedDeveloperMetadata"] as? [Object], hits.count == 1,
               let marker = hits[0]["developerMetadata"] as? Object, number(marker["metadataId"]) == Double(rebuilt.markerID) else { throw Fail.archiveMismatch }
+        var issuedCount = 0
+        if version >= 3 {
+            let issued = try await api.request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[["developerMetadataLookup":["metadataKey":"kitty.period.bank.issuedT.v1","metadataValue":"927|" + digest,"visibility":"DOCUMENT"]]]])
+            guard let issuedHits = issued["matchedDeveloperMetadata"] as? [Object], issuedHits.count == 1,
+                  let recorded = issuedHits[0]["developerMetadata"] as? Object,
+                  recorded["metadataKey"] as? String == "kitty.period.bank.issuedT.v1", recorded["metadataValue"] as? String == "927|" + digest,
+                  recorded["visibility"] as? String == "DOCUMENT", (recorded["location"] as? [String:Bool]) == ["spreadsheet":true],
+                  let googleID = number(recorded["metadataId"]).flatMap(Int.init(exactly:)), googleID > 0, googleID != rebuilt.markerID else { throw Fail.archiveMismatch }
+            guard try await GoogleBankStore(api:api).issuedTransactionNumber() == 927 else { throw Fail.archiveMismatch }
+            issuedCount = issuedHits.count
+        }
         let gate = try await api.request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[["developerMetadataLookup":["metadataId":2017113179,"metadataKey":"kitty.period.bank.hold.v1","visibility":"DOCUMENT"]]]])
         guard gate["matchedDeveloperMetadata"] == nil || (gate["matchedDeveloperMetadata"] as? [Object])?.isEmpty == true else { throw Fail.archiveMismatch }
         try attachment("Independent provider read after Files replay", ["run":run, "privateOwnerOnly":true,"publicFeed":"no","originalEntries":oldCount,"allOriginalRowsIntact":true,
                        "newIDs":newRows.map(\.0),"signedSourceCents":sourceCents,"manifestAmountEncoding":amountEncoding ?? "legacy-decimal","account":"ACC-CC","existingDuplicate":"T0880","duplicateOccurrences":1,
-                       "archivedBytes":bytes.count,"archivedSHA256":sha,"verifiedReceipts":1,"durableSheetMarkers":1,"sharedHoldReleased":true,"boundPrivateDriveFiles":4,"totalEntries":rows.count-1])
+                       "archivedBytes":bytes.count,"archivedSHA256":sha,"verifiedReceipts":1,"durableReceiptMarkers":1,"issuedTMarkers":issuedCount,"bindingVersion":version,"sharedHoldReleased":true,"boundPrivateDriveFiles":4,"totalEntries":rows.count-1])
     }
 }
 
@@ -192,11 +208,39 @@ extension PracticeBankProviderTests {
     /// Only this simulator test replaces Google. The preceding UI phase must export and select the original in Apple's Files UI.
     private final class SimulatedSheet: GoogleHTTPTransport {
         var ids: [String]
-        var cells = [[Object]](), marker: Object?, batchCount = 0
+        var cells = [[Object]](), marker: Object?, issuedMarker: Object?, batchCount = 0
         let fileID: String, header: [String]
         init(_ fileID: String, _ ids: [String], _ header: [String]) { self.fileID = fileID; self.ids = ids; self.header = header }
+        var terminal: (() -> (BankBinding, Data)?)?
+        private func drive(_ request: URLRequest, _ url: URL) throws -> GoogleHTTPResponse {
+            guard request.httpMethod == "GET" else { throw Fail.unexpectedResponse }
+            let args = URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems ?? []
+            let query: (String) -> String? = { key in args.first { $0.name == key }?.value }
+            let claim = SourceDocument.sha256(Data((fileID + "\u{0}simulated").utf8))
+            let existing = terminal?()
+            func detail(_ b: BankBinding, _ bytes: Data) throws -> Object {
+                guard let maxT = b.issuedThrough, let mid = b.receiptMarkerID else { throw Fail.archiveMismatch }
+                let tags: [String:String] = ["kittyBankKind":"receipt","kittyBankTerminal":"verified","kittyBankScope":try b.scope,"kittyBankIntent":b.manifestID,
+                   "kittyBankDigest":b.digest,"kittyBankIssuedSheet":claim,"kittyBankIssuedT":String(maxT),"kittyBankIssuedMarker":String(mid)]
+                return ["id":b.receiptID,"appProperties":tags,"mimeType":"application/json","size":String(bytes.count),"trashed":false,"ownedByMe":true,
+                        "owners":[["permissionId":"simulated"]],"permissions":[["id":"simulated","type":"user","role":"owner","deleted":false]]]
+            }
+            let result: Object
+            if url.path == "/drive/v3/files" {
+                guard query("q") == "trashed = false and 'me' in owners and appProperties has { key='kittyBankIssuedSheet' and value='" + claim + "' }", query("pageSize") == "1000",query("pageToken") == nil else { throw Fail.unexpectedResponse }
+                let records: [Object]
+                if let (b,bytes) = existing { records = [try detail(b,bytes)] } else { records = [] }
+                result = ["files":records,"incompleteSearch":false]
+            } else {
+                guard let (b,bytes) = existing, url.path == "/drive/v3/files/" + b.receiptID else { throw Fail.unexpectedResponse }
+                if query("alt") == "media" { return .init(statusCode:200,data:bytes) }
+                result = try detail(b,bytes)
+            }
+            return .init(statusCode:200,data:try JSONSerialization.data(withJSONObject:result))
+        }
         func send(_ request: URLRequest, maximumBytes: Int) async throws -> GoogleHTTPResponse {
             let url = try XCTUnwrap(request.url), path = url.path
+            if url.host == "www.googleapis.com" { return try drive(request,url) }
             guard url.host == "sheets.googleapis.com", path.hasPrefix("/v4/spreadsheets/" + fileID) else { throw Fail.unexpectedResponse }
             let result: Object
             if path.hasSuffix(":batchUpdate") {
@@ -211,11 +255,36 @@ extension PracticeBankProviderTests {
                     let col = try XCTUnwrap((style["range"] as? [String:Int])?["startColumnIndex"])
                     for row in typed.indices { typed[row][col]["userEnteredFormat"] = (style["cell"] as? Object)?["userEnteredFormat"] }
                 }
-                let add = try XCTUnwrap(requests.compactMap { $0["createDeveloperMetadata"] as? Object }.first)
-                marker = try XCTUnwrap(add["developerMetadata"] as? Object); cells = typed; batchCount += 1
+                let adds = requests.compactMap { ($0["createDeveloperMetadata"] as? Object)?["developerMetadata"] as? Object }
+                guard adds.count == 2, let receipt = adds.first(where:{ $0["metadataKey"] as? String == "kitty.period.bank.v1" }),
+                      let receiptID = receipt["metadataId"] as? Int, let digest = receipt["metadataValue"] as? String,
+                      receipt["visibility"] as? String == "DOCUMENT", receipt["location"] as? [String:Int] == ["sheetId":123],
+                      var issued = adds.last, issued["metadataKey"] as? String == "kitty.period.bank.issuedT.v1",
+                      Set(issued.keys) == ["metadataKey","metadataValue","visibility","location"],
+                      issued["visibility"] as? String == "DOCUMENT", issued["location"] as? [String:Bool] == ["spreadsheet":true],
+                      let finalID = ((typed.last?.first?["userEnteredValue"] as? Object)?["stringValue"]) as? String,
+                      let maxT = Int(finalID.dropFirst()), finalID.first == "T", issued["metadataValue"] as? String == "\(maxT)|" + digest,
+                      (requests.last?["createDeveloperMetadata"] as? Object) != nil else { throw Fail.archiveMismatch }
+                // Google assigns this ID. A caller-supplied second ID, extra request, wrong scope or unbound digest fails the fake provider.
+                guard requests.count == 6 else { throw Fail.unexpectedResponse }
+                issued["metadataId"] = receiptID == 50000 ? 50001 : 50000
+                marker = receipt; issuedMarker = issued; cells = typed; batchCount += 1
                 ids += try typed.map { try XCTUnwrap(($0[0]["userEnteredValue"] as? Object)?["stringValue"] as? String) }; result = ["spreadsheetId":fileID]
             } else if path.hasSuffix(":search") {
-                result = ["matchedDeveloperMetadata":marker.map { [["developerMetadata":$0]] } ?? []]
+                let body = try XCTUnwrap(try JSONSerialization.jsonObject(with:XCTUnwrap(request.httpBody)) as? Object)
+                let filters = try XCTUnwrap(body["dataFilters"] as? [Object]).map { try XCTUnwrap($0["developerMetadataLookup"] as? Object) }
+                if filters.count == 2 {
+                    guard filters.allSatisfy({ Set($0.keys) == ["metadataKey","visibility"] && $0["visibility"] as? String == "DOCUMENT" }),
+                          Set(filters.compactMap { $0["metadataKey"] as? String }) == ["kitty.period.bank.v1","kitty.period.bank.issuedT.v1"] else { throw Fail.unexpectedResponse }
+                }
+                guard (1...2).contains(filters.count) else { throw Fail.unexpectedResponse }
+                let matches = [marker,issuedMarker].compactMap{$0}.filter { record in filters.contains { q in
+                    for k in ["metadataKey","metadataValue","visibility"] { if let field = q[k] as? String, field != record[k] as? String { return false } }
+                    if let id = q["metadataId"] as? Int, id != record["metadataId"] as? Int { return false }
+                    if let loc = q["metadataLocation"] as? NSDictionary, !loc.isEqual(to:record["location"] as? Object ?? [:]) { return false }
+                    return true
+                } }
+                result = ["matchedDeveloperMetadata":matches.map { ["developerMetadata":$0] }]
             } else if path.contains("/values/") {
                 let range = String(path.components(separatedBy:"/values/").last ?? "")
                 let rows: [[Any]], returned: String
@@ -227,8 +296,15 @@ extension PracticeBankProviderTests {
                 }
                 result = ["range":returned,"majorDimension":"ROWS","values":rows]
             } else {
-                result = ["spreadsheetId":fileID,"sheets":[["properties":["sheetId":123,"title":"Entries","gridProperties":["rowCount":5000,"columnCount":21]],
-                           "data":[["startRow":1083,"rowData":cells.map { ["values":$0] }]]]]]
+                let q = URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems ?? []
+                let ranges = q.first { $0.name == "ranges" }?.value
+                if ranges == "Entries!A1" && q.first(where:{ $0.name == "fields" })?.value == "spreadsheetId,sheets(properties(sheetId,title))" {
+                    result = ["spreadsheetId":fileID,"sheets":[["properties":["sheetId":123,"title":"Entries"]]]]
+                } else {
+                    guard ranges == "Entries!A1084:T1085" else { throw Fail.unexpectedResponse }
+                    result = ["spreadsheetId":fileID,"sheets":[["properties":["sheetId":123,"title":"Entries","gridProperties":["rowCount":5000,"columnCount":21]],
+                              "data":[["startRow":1083,"rowData":cells.map { ["values":$0] }]]]]]
+                }
             }
             return .init(statusCode:200, data:try JSONSerialization.data(withJSONObject:result))
         }
@@ -250,24 +326,28 @@ extension PracticeBankProviderTests {
         let fileID = "fictional_simulated_sheet_000001", selected = GoogleConnection.Selection(permissionID:"simulated",sheetID:fileID,sessionID:UUID())
         let owner = GoogleSheetSelection.Verified(selection:selected,title:"Simulated fixture",canEdit:true,canImportBankFiles:true)
         let source = try original.payload()
-        func plan(_ added: [[Object]] = []) async throws -> Object {
+        func plan(_ added: [[Object]] = [], issuedFloor: Int = 0) async throws -> Object {
             let body = """
                 const keys='entry_id kind settled_at account_id raw_text description amount category_id person receipt_held note status created_at transfer_id transfer_account foreign_amount foreign_currency units unit_price source'.split(' ');
                 const extra=added.map(row=>Object.fromEntries(keys.map((key,i)=>{const c=row[i]?.userEnteredValue||{};let v=c.stringValue??c.numberValue??'';if((i===2||i===12)&&typeof v==='number')v=new Date((v-25569)*86400000).toISOString().slice(0,10);return [key,v]})));
                 const sheet={...KITTY_SNAPSHOT,entries:KITTY_SNAPSHOT.entries.concat(extra)};
-                const result=KittyBank.prepare(sheet,source,{sourceID:source.id,name:source.name,byteLength:source.byteLength,mimeType:source.mimeType,account:'ACC-CC',month:'2027-01',downloadDay:'2027-01-31',sheetID:fileID});
+                const result=KittyBank.prepare(sheet,source,{sourceID:source.id,name:source.name,byteLength:source.byteLength,mimeType:source.mimeType,account:'ACC-CC',month:'2027-01',downloadDay:'2027-01-31',sheetID:fileID,transactionIDFloor:issuedFloor});
                 return {plan:result.plan,summary:result.summary,ids:['Entry ID',...sheet.entries.map(e=>e.entry_id)]};
                 """
-            let result = try await page.callAsyncJavaScript(body, arguments:["source":source,"fileID":fileID,"added":added], in:nil, contentWorld:.page)
+            let result = try await page.callAsyncJavaScript(body, arguments:["source":source,"fileID":fileID,"added":added,"issuedFloor":issuedFloor], in:nil, contentWorld:.page)
             return try XCTUnwrap(result as? Object)
         }
         let first = try await plan(), proposed = try XCTUnwrap(first["plan"] as? Object), summary = try XCTUnwrap(first["summary"] as? Object)
         XCTAssertEqual(summary["duplicateCount"] as? Int,1); XCTAssertEqual(summary["proposedCount"] as? Int,2)
         let sheet = SimulatedSheet(fileID,try XCTUnwrap(first["ids"] as? [String]),columns), store = GooglePeriodBankJournalTests.Memory()
         let api = GoogleSheetTools(http:sheet,selected:selected,current:{selected},token:{ _ in "simulated" })
+        sheet.terminal = { guard let b = store.all.last, let bytes = store.blobs[b.receiptID] else { return nil }; return (b,bytes) }
+        let rawStore = GoogleBankStore(api:api)
+        let previousIssue = try await rawStore.issuedTransactionNumber(); XCTAssertEqual(previousIssue,0)
         let batch = try PeriodBankAppend(plan:proposed,sheetID:fileID,account:"ACC-CC",original:original,originalSHA256:sha)
         let journal = GooglePeriodBankJournal(api:api,store:store,original:original,plan:proposed,month:"2027-01",downloadDay:"2027-01-31",replan:{ source,account,_,_ in
-            let refreshed = try await plan(sheet.cells); return try PeriodBankAppend(plan:try XCTUnwrap(refreshed["plan"] as? Object),sheetID:fileID,account:account,original:source,originalSHA256:source.id)
+            let floor = try await rawStore.issuedTransactionNumber()
+            let refreshed = try await plan(sheet.cells,issuedFloor:floor); return try PeriodBankAppend(plan:try XCTUnwrap(refreshed["plan"] as? Object),sheetID:fileID,account:account,original:source,originalSHA256:source.id)
         })
         let verified = try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal)
         XCTAssertEqual(verified,batch.digest); XCTAssertEqual(sheet.batchCount,1); XCTAssertEqual(Array(sheet.ids.suffix(2)),["T0926","T0927"])
@@ -279,12 +359,14 @@ extension PracticeBankProviderTests {
         XCTAssertEqual(values.compactMap { $0.count == 20 ? signedCents($0[6],encoding:encoding) : nil },[-1745,625])
         XCTAssertNil(signedCents(-17.45,encoding:encoding)); XCTAssertEqual(signedCents(-17.45),-1745)
         let decoded = try PeriodBankAppend.restoredPlan(savedPlan,amountEncoding:encoding)
-        let archived = try PeriodBankAppend(plan:decoded,sheetID:fileID,account:"ACC-CC",original:original,originalSHA256:sha).usingMarkerID(binding.receiptMarkerID)
+        let archived = try PeriodBankAppend(plan:decoded,sheetID:fileID,account:"ACC-CC",original:original,originalSHA256:sha).usingMarkerID(binding.receiptMarkerID,recordsIssuedIDs:binding.version >= 3)
         XCTAssertEqual(archived.digest,batch.digest); XCTAssertEqual(number(sheet.marker?["metadataId"]),Double(archived.markerID))
-        let replay = try await plan(sheet.cells), again = try XCTUnwrap(replay["summary"] as? Object)
+        XCTAssertEqual(binding.version,3); XCTAssertEqual(sheet.issuedMarker?["metadataValue"] as? String,"927|" + archived.digest)
+        let issued = try await rawStore.issuedTransactionNumber(); XCTAssertEqual(issued,927)
+        let replay = try await plan(sheet.cells,issuedFloor:issued), again = try XCTUnwrap(replay["summary"] as? Object)
         XCTAssertEqual(again["duplicateCount"] as? Int,3); XCTAssertEqual(again["proposedCount"] as? Int,0)
         let second = try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal); XCTAssertEqual(second,verified); XCTAssertEqual(sheet.batchCount,1)
-        try attachment("Simulator — Files original, simulated Google save and replay", ["provider":"simulated","sourceSHA256":sha,"firstDuplicates":1,"newIDs":["T0926","T0927"],"replayDuplicates":3,"writeBatches":sheet.batchCount,"privateBlobs":store.blobs.count])
+        try attachment("Simulator — Files original, simulated Google save and replay", ["provider":"simulated","sourceSHA256":sha,"firstDuplicates":1,"newIDs":["T0926","T0927"],"replayDuplicates":3,"writeBatches":sheet.batchCount,"privateBlobs":store.blobs.count,"issuedTransactionNumber":issued,"rawManifestCents":[-1745,625]])
     }
     private var envSim: Bool { ProcessInfo.processInfo.environment["KITTY_PRACTICE_ACCEPTANCE"] == "simulator-files" }
 }
@@ -522,8 +604,12 @@ extension PracticeBankProviderTests {
                   let p = a.batch, let q = b.batch, p.digest == q.digest, try json(a.plan) == json(b.plan),
                   p.rows.map(\.id) == ["T0928"], p.firstRow == priorCount+1,
                   a.summary["duplicateCount"] as? Int == 0, b.summary["duplicateCount"] as? Int == 0 else { throw Fail.differentLedger }
-            let observation = try await PeriodBankReadback.read(p,owner:oa,api:one)
-            guard case .batch(let requests) = try p.next(observation,stage:.prepared,freshlyPlanned:q),
+            let issuedBatch = try p.usingMarkerID(p.markerID,recordsIssuedIDs:true)
+            let observation = try await PeriodBankReadback.read(issuedBatch,owner:oa,api:one)
+            guard case .batch(let requests) = try issuedBatch.next(observation,stage:.prepared,freshlyPlanned:q),
+                  let issued = (requests.last?["createDeveloperMetadata"] as? Object)?["developerMetadata"] as? Object,
+                  issued["metadataKey"] as? String == PeriodBankAppend.issuedKey, issued["metadataValue"] as? String == "928|" + p.digest,
+                  issued["visibility"] as? String == "DOCUMENT", (issued["location"] as? Object)?["spreadsheet"] as? Bool == true,
                   let write = requests.compactMap({$0["updateCells"] as? Object}).first, let row = (write["rows"] as? [Object])?.first,
                   let cells = row["values"] as? [Object], cells.count == 20,
                   (cells[4]["userEnteredValue"] as? [String:String]) == ["stringValue":raw],
@@ -563,6 +649,7 @@ extension PracticeBankProviderTests {
               wire.trace.deliveries >= 1, resumingTrace || wire.trace.deliveries == 1 else { throw Fail.unexpectedResponse }
         wire.allowBankBatch = false
         let financialRequestsAfterRace = wire.trace.deliveries
+        var verifiedBinding: BankBinding?
         for (owner,api) in [(oa,apiA),(ob,apiB)] {
             var status: GooglePeriodBankJournal.Status?
             for wait in [0,1,2,4,8] {
@@ -576,13 +663,16 @@ extension PracticeBankProviderTests {
                   let archived = try await store.blob(.original,binding), archived == bytes, hash(archived) == original.id,
                   let manifest = try await store.blob(.manifest,binding),
                   try await store.gate() == nil else { throw Fail.archiveMismatch }
+            if let prior = verifiedBinding, prior != binding { throw Fail.archiveMismatch }
+            verifiedBinding = binding
             let archivedReview = try obj(manifest)
             guard let encodedPlan = archivedReview["plan"] as? Object else { throw Fail.archiveMismatch }
             let approved = try PeriodBankAppend.restoredPlan(encodedPlan,amountEncoding:archivedReview["amountEncoding"])
             let batch = try PeriodBankAppend(plan:approved,sheetID:selection.sheetID,account:"ACC-CC",original:original,
-                                            originalSHA256:original.id).usingMarkerID(binding.receiptMarkerID)
+                                            originalSHA256:original.id).usingMarkerID(binding.receiptMarkerID,recordsIssuedIDs:binding.version >= 3)
             let read = try await PeriodBankReadback.read(batch,owner:owner,api:api)
             guard batch.digest == digest, case .verified = try batch.next(read,stage:.dispatched) else { throw Fail.archiveMismatch }
+            guard binding.issuedThrough == 928, try await store.issuedTransactionNumber() == 928 else { throw Fail.archiveMismatch }
             let rows = try await readLedger(api)
             guard rows.count == priorCount+1, hash(try json(Array(rows.prefix(priorCount)))) == priorHash,
                   try await racePriorEnteredHash(api,count:priorCount) == priorEntered, let r = rows.last,
@@ -594,6 +684,8 @@ extension PracticeBankProviderTests {
                   replay.summary["proposedCount"] as? Int == 0, (replay.plan["writes"] as? [Object])?.isEmpty == true else { throw Fail.differentLedger }
         }
         guard wire.trace.deliveries == financialRequestsAfterRace else { throw Fail.differentLedger }
+        try attachment("Private Google duplicate-ID premises",try await PracticeProviderCollisionProof.verify(api:one,binding:XCTUnwrap(verifiedBinding),
+                      original:original,run:run,operation:operation,readbackOnly:readbackOnly))
         try attachment("Private Google race and deliberately lost success",["run":run,"twoIndependentSessions":true,
             "confirmedGateReplies":wire.trace.gateReplies,"bankRequests":wire.trace.deliveries,"successfulResponsesDropped":wire.trace.droppedSuccess,
             "successfulGoogleBankBatches":wire.trace.successes,"refusedOutOfScopeRequests":wire.trace.rejected,"quotaLimitedReadsRetried":wire.trace.quotaReadRetries,
