@@ -1,4 +1,4 @@
-# Period core contract (draft 1, stable names; additions only from here)
+# Period core contract (stable names; additions only from here)
 
 Shared JS port of `period-close/`. One call: `KittyPeriod.plan(input)`, then the host writes, then `KittyPeriod.verify(plan, reread, opts)`.
 Pure UMD (`src/core/period-*.js`, entry `period-core.js`): `require` in Node, `window.KittyPeriod` in the page and WKWebView. Load order in a page:
@@ -11,7 +11,8 @@ Same input gives the same bytes. `input.files` order never matters.
   sheet: <doc>,                               // same keys as data/snapshot-v2.json; see below
   files: [ File ] | null,                     // null = no sources folder at all (Stop). [] = nothing to import (ready, empty plan)
   inputs: [ { path, shown?, kind: "overrides"|"valuations"|"payslips", text } ],  // month CSVs, in precedence order; first override per Description wins
-  options: { as_of?: "yyyy-mm-dd", loans?: "defer"|"now", sheet_id?, snapshot_label?, generated_at?, history?: [Transactions rows], allow_v1?: false } }
+  options: { as_of?: "yyyy-mm-dd", loans?: "defer"|"now", sheet_id?, default_sheet_ids?: {v1, v2}, snapshot_label?, sources_label?,
+             generated_at?, history?: [Transactions rows], allow_v1?: false } }
 ```
 `File`, either binding works; both reach one path `account/download_day/name`:
 ```
@@ -23,7 +24,7 @@ Same input gives the same bytes. `input.files` order never matters.
                pdf_lines: string[][] | pdf_text: string | pdf_error: string  // policy PDFs only, below
   is_dir: true                                            // tree hosts only: an empty or misplaced folder, so its fault still fires
 ```
-Folder meanings: account id (bank, loan, property via Accounts `type`), `payslips`, `POL-<property>` for insurance. Dot-names are ignored.
+A path with no account folder is a stop (`file_outside_download_folder`). Folder meanings: account id (bank, loan, property via Accounts `type`), `payslips`, `POL-<property>` for insurance. Dot-names are ignored.
 
 `sheet` needs: `accounts`, `category_list`, `rules`, `contracts`, `payslips`, `assets`, `loans`, `entries` (all rows, in sheet order, with `entry_id, kind, settled_at,
 account_id, raw_text, description, amount, category_id, person, receipt_held, note, transfer_id, transfer_account`), optional `source.sheet`, `fetchedAt`.
@@ -74,4 +75,8 @@ A plan with status other than ready fails, as in Python. `lines` matches verify.
 ## Money and numbers
 `amount_cents` etc. are safe integers and all closing, dedupe and comparison arithmetic is integer. A delivered amount parses as Python's `float()` then rounds half-even on its exact binary
 value, so `1.005` is 1.00 as in Python. Plan values and `amount` are `cents / 100`, the same double Python's `round(x, 2)` gives. JS prints `3090` where Python prints `3090.0`:
-same JSON number, and the parity tool compares them as equal. Text renders as Python's `:,.2f`, `:+.2f` and `repr`. An amount past `Number.MAX_SAFE_INTEGER` cents is a `bad_amount` stop.
+same JSON number, and the parity tool compares them as equal. Text renders as Python's `:,.2f`, `:+.2f` and `repr`. An amount past `Number.MAX_SAFE_INTEGER` cents is a `bad_amount` stop. Dates and amounts take ASCII digits only.
+`-0.0` does not exist here: a zero card row reads `+0.00` in a review line where Python reads `-0.00`.
+
+## Proof
+`python3 tools/period_parity.py` and `node --test tools/period-core.test.js`. Every deliberate difference from Python is listed, with its reason, in `tools/period_parity_allowlist.json`.

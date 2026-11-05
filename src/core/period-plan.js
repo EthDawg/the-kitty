@@ -23,6 +23,7 @@
 
   const nextId = (prefix, last) => `${prefix}${String(last + 1).padStart(4, "0")}`;
   const idNumber = (s, prefix) => { const m = new RegExp(`^${prefix}(\\d+)$`).exec(s === null || s === undefined ? "" : String(s)); return m ? Number(m[1]) : 0; };
+  const highest = (list, f) => list.reduce((m, x) => Math.max(m, f(x)), 0);
   const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   const by = (...keys) => (x, y) => { for (const k of keys) { const c = cmp(k(x), k(y)); if (c) return c; } return 0; };
   const key = (...parts) => JSON.stringify(parts);
@@ -59,9 +60,9 @@
           category: e.category_id || "UNCAT", person: e.person || "Joint", transfer_id: e.transfer_id || "", row: i + 2 });
         else if (kind === "valuation") s.valuations.push({ account: e.account_id, month_end: e.settled_at, value: T.sheetCents(e.amount), row: i + 2 });
       });
-      s.lastT = Math.max(0, ...entries.map((e) => idNumber(e.entry_id, "T")));
-      s.lastV = Math.max(0, ...entries.map((e) => idNumber(e.entry_id, "V")));
-      s.lastX = Math.max(0, ...entries.map((e) => idNumber(e.transfer_id, "X")));
+      s.lastT = highest(entries, (e) => idNumber(e.entry_id, "T"));
+      s.lastV = highest(entries, (e) => idNumber(e.entry_id, "V"));
+      s.lastX = highest(entries, (e) => idNumber(e.transfer_id, "X"));
       s.allIds = new Set(entries.map((e) => e.entry_id));
     } else {
       const tx = doc.transactions || [];
@@ -69,7 +70,7 @@
         category: t.category_id || "UNCAT", person: t.person || "Joint", transfer_id: "", row: i + 2 }));
       s.rows = tx.length;
       s.lastEntryId = tx.length ? tx[tx.length - 1].txn_id : null;
-      s.lastT = Math.max(0, ...tx.map((t) => idNumber(t.txn_id, "T")));
+      s.lastT = highest(tx, (t) => idNumber(t.txn_id, "T"));
       s.lastV = s.lastX = 0;
       s.allIds = new Set(tx.map((t) => t.txn_id));
       s.valuations = doc.valuations === null || doc.valuations === undefined ? null
@@ -682,7 +683,8 @@
         plan.preconditions.push(W.precondition("Transactions", sheet.rows ? sheet.rows + 1 : null, sheet.lastEntryId));
         plan.writes.push(...W.appendWrites("transactions", "Transactions", TXN_COLS, txnRows, sheet.rows + 2));
       }
-      if (valuations.length) {
+      if (valuations.length && sheet.valuations === null) planNotes.push("Valuations are planned only for a sheet with a Valuations tab; this 1.1 snapshot has none, so they are listed above and not written.");
+      else if (valuations.length) {
         const vs = sheet.valuations;
         plan.preconditions.push(W.precondition("Valuations", vs.length ? vs.length + 1 : null, vs.length ? vs[vs.length - 1].month_end : null));
         plan.writes.push(...W.appendWrites("valuations", "Valuations", VALUATION_COLS, valuations.map((v) => [v.month_end, v.acct, money(v.value)]), vs.length + 2));

@@ -28,7 +28,7 @@
   A.parseDate = (s, order, file, row) => {
     const raw = strip(T.str(s));
     const m = /^(\d{1,4})[/\-.](\d{1,2})[/\-.](\d{1,4})$/.exec(raw);
-    if (!m || raw.endsWith("\n")) throw new ImportFault("bad_date", file, `"${raw}" is not a date`, "the column is not what the adapter expects; check the header and the shape", row);
+    if (!m) throw new ImportFault("bad_date", file, `"${raw}" is not a date`, "the column is not what the adapter expects; check the header and the shape", row);
     const [, a, b, c] = m;
     let y, mo, d, readAs;
     if (a.length === 4) { [y, mo, d] = [a, b, c]; readAs = "ymd"; }

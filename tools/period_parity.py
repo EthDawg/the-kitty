@@ -2,7 +2,7 @@
 """Prove src/core plans what period-close/ plans: same inputs through both, canonical JSON compared byte for byte.
 
     python3 tools/period_parity.py                # everything; exit 1 on any unexplained difference
-    python3 tools/period_parity.py --only scenarios,hostile,sweep,replay
+    python3 tools/period_parity.py --only scenarios,hostile,sweep,replay,fuzz
     python3 tools/period_parity.py --mutate       # break one rule at a time in a copy of src/core; each must be caught
 
 Nothing here reaches a sheet, a connector or the network, and no Python logic changes: the fixtures of
@@ -232,7 +232,6 @@ def scenarios(ti):
 def hostile(ti):
     import period_parity_hostile as H
     ti.subprocess.run = wrapped_run('hostile')
-    H.bind(ti, sys.modules[__name__])
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(H.Hostile)
     n = suite.countTestCases()
     res = run_suite('hostile', suite)
@@ -343,6 +342,68 @@ def replay():
     return len(months), planned, held
 
 
+# ---------- fuzz: seeded damage to good files, both importers on the same bytes ----------
+def fuzz_one(item):
+    import random
+    seed, base = item
+    rng = random.Random(seed)
+    root = base / f's{seed}'
+    src = root / 'sources'
+    good = {'ACC-CC/2027-03-01/activity.csv': 'Date,Description,Card Member,Account #,Amount\r\n02/02/2027,MYKI TOP UP,JORDAN DAVIES,-41007,60.00\r\n02/02/2027,MYKI TOP UP,JORDAN DAVIES,-41007,60.00\r\n'
+            '09/02/2027,"ALDI, COBURG",JORDAN DAVIES,-41007,"1,250.55"\r\n20/02/2027,REFUND KMART,JORDAN DAVIES,-41007,-19.95\r\n',
+            'ACC-CC/2027-03-05/statement.csv': 'Date,Description,Card Member,Account #,Amount\n09/02/2027,"ALDI, COBURG",JORDAN DAVIES,-41007,"1,250.55"\n20/02/2027,REFUND KMART,JORDAN DAVIES,-41007,-19.95\n03/03/2027,COLES,JORDAN DAVIES,-41007,5.00\n',
+            'ACC-EVD/2027-03-01/Data.csv': 'Bank Account,Date,Narrative,Debit Amount,Credit Amount,Balance,Categories,Serial\n033,02/02/2027,TRANSFER TO SAVER,500.00,,9500.00,,\n033,05/02/2027,HOME LOAN REPAYMENT,3000.00,,6500.00,,\n',
+            'ACC-SAV/2027-03-01/Transactions.csv': 'Date,Description,Credit,Debit,Balance\n02/02/2027,TRANSFER FROM EVERYDAY,500.00,,601.00\n28/02/2027,INTEREST CREDIT,0.33,,601.33\n',
+            'ACC-OLD/2027-03-02/CSVData.csv': '28/02/2027,"+0.05","CREDIT INTEREST","+996.05"\r\n03/02/2027,"-4.00","MONTHLY ACCOUNT FEE","+996.00"\r\n',
+            'LN-HOME/2027-03-01/Loan.csv': 'Bank Account,Date,Narrative,Debit Amount,Credit Amount,Balance,Categories,Serial\n033,05/02/2027,REPAYMENT RECEIVED,,3000.00,-597000.00,,\n033,28/02/2027,INTEREST CHARGED,2500.00,,-599500.00,,\n',
+            'RENTAL/2027-03-01/Owner.csv': 'Date,Description,Rental schedule line,Money in,Money out,Handled by\n05/02/2027,RENT FEB,Gross rent,2470.00,,PM\n',
+            'payslips/2027-03-02/p.csv': 'Pay date,Person,Employer,Gross pay,Tax withheld,Super (employer),Net pay\n2027-02-18,Mia,Bayview Health,3090.00,632.00,370.80,2458.00\n'}
+    alphabet = ['"', ',', '\n', '\r', ' ', '.', '-', '/', '(', ')', '$', 'A', '0', '9', 'e', '_', '\u00a0', 'É', '\t', '""', '\r\n']
+    hit = set(rng.sample(sorted(good), rng.choice((1, 1, 2))))
+    for rel, text in good.items():
+        for _ in range(rng.choice((1, 1, 2, 3)) if rel in hit else 0):
+            lo = text.find('\n') + 1 if rng.random() < 0.85 else 0  # mostly spare the header, so later stages run too
+            i = rng.randrange(lo, len(text)) if lo < len(text) else 0
+            op = rng.randrange(6)
+            if op == 0:
+                text = text[:i] + rng.choice(alphabet) + text[i:]
+            elif op == 1:
+                text = text[:i] + text[i + rng.randint(1, 6):]
+            elif op == 2:
+                text = text[:i] + rng.choice(alphabet) + text[i + 1:]
+            elif op == 3:
+                ls = text.splitlines(True)
+                a, b = rng.randrange(len(ls)), rng.randrange(len(ls))
+                ls[a], ls[b] = ls[b], ls[a]
+                text = ''.join(ls)
+            elif op == 4:
+                ls = text.splitlines(True)
+                a = rng.randrange(len(ls))
+                ls.insert(rng.randrange(len(ls)), ls[a])
+                text = ''.join(ls)
+            else:
+                text = text[:i]
+            if not text:
+                text = ' '
+        p = src / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(text.encode())
+    accounts = [dict(a) for a in sys.modules['test_import'].ACCOUNTS]
+    t = sys.modules['test_import']
+    doc = {'accounts': accounts, 'category_list': t.CATS, 'payslips': [], 'contracts': t.CONTRACTS, 'rules': t.RULES, 'entries': [t.entry(t.LAST)]}
+    (root / 'sheet.json').write_text(json.dumps(doc))
+    out = root / 'out'
+    return run_pair('fuzz', f'fuzz.seed{seed}', ['2027-02', '--sheet', str(root / 'sheet.json'), '--sources', str(src), '--out', str(out)], out, shuffle=False)
+
+
+def fuzz(n):
+    base = Path(TEMP.name) / 'fuzz'
+    base.mkdir()
+    with cf.ThreadPoolExecutor(8) as ex:
+        list(ex.map(fuzz_one, [(s, base) for s in range(n)]))
+    return n
+
+
 # ---------- the mutation check: a harness that cannot fail proves nothing ----------
 MUTATIONS = [
     ('dedupe takes the sum, not the most copies', 'period-plan.js', 'runCount.set(k, Math.max(runCount.get(k) || 0, list.length))', 'runCount.set(k, (runCount.get(k) || 0) + list.length)'),
@@ -379,7 +440,8 @@ def mutate():
 
 def main():
     p = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    p.add_argument('--only', default='scenarios,hostile,sweep,replay')
+    p.add_argument('--only', default='scenarios,hostile,sweep,replay,fuzz')
+    p.add_argument('--fuzz', type=int, default=400)
     p.add_argument('--mutate', action='store_true')
     p.add_argument('--quiet', action='store_true')
     p.add_argument('--report', default=None)
@@ -403,6 +465,8 @@ def main():
     if 'sweep' in only:
         extra['sweep months'] = len(sweep())
         extra['source files'] = sum(1 for f in (ROOT / 'sources').rglob('*') if f.is_file() and not f.name.startswith('.'))
+    if 'fuzz' in only:
+        extra['fuzz seeds'] = fuzz(a.fuzz)
     if 'replay' in only:
         extra['replay months'], extra['replay rows planned'], extra['replay held'] = replay()
     stats, unexplained, stale = L.verdict()

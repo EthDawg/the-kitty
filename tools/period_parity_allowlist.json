@@ -1,1 +1,37 @@
-{"cases": {}}
+{
+ "about": "Every case where src/core deliberately differs from period-close/. Keyed by test name. Each is a Python behaviour that is wrong by the importer's own promise; none was copied and none was fixed in Python. tools/period_parity.py fails if a listed case stops differing.",
+ "cases": {
+  "test_amount_nan": {"bug": "PY-1", "input": "Southern Card row with Amount nan", "python": "crashes in cents(): ValueError, no review, no fault", "js": "bad_amount stop naming file and row"},
+  "test_amount_inf": {"bug": "PY-1", "input": "Amount inf", "python": "crashes: OverflowError", "js": "bad_amount stop"},
+  "test_amount_neg_inf": {"bug": "PY-1", "input": "Amount -Infinity", "python": "crashes: OverflowError", "js": "bad_amount stop"},
+  "test_amount_huge_exp": {"bug": "PY-1", "input": "Amount 1e400", "python": "crashes: OverflowError", "js": "bad_amount stop"},
+  "test_valuation_comma_value": {"bug": "PY-2", "input": "valuations.csv Value \"771,000\"", "python": "fnum() swallows the ValueError and plans a valuation of 0.00, exit 0", "js": "bad_value stop"},
+  "test_valuation_blank_value": {"bug": "PY-2", "input": "valuations.csv blank Value", "python": "plans a valuation of 0.00, exit 0", "js": "bad_value stop"},
+  "test_payslip_input_comma_amount": {"bug": "PY-2", "input": "payslips.csv Gross pay \"3,090.00\"", "python": "plans gross 0.00, exit 0", "js": "bad_value stop"},
+  "test_valuation_impossible_month_end": {"bug": "PY-3", "input": "valuations.csv Month end 2027-02-30", "python": "the regex passes; in a one-month run the string falls after the month end, so the row is silently dropped, exit 0; in a range such as 2027-01..2027-02 a 2027-01-32 falls inside and the impossible date is planned", "js": "bad_month_end stop"},
+  "test_two_equal_repayments_same_day": {"bug": "PY-4", "input": "two 3000.00 repayments on one day, two matching bank rows", "python": "both loan lines take the same mate: loan-pair-T0002 is written twice, X0001 is overwritten, T0003 is never paired", "js": "each bank row is a mate once"},
+  "seed33": {"bug": "PY-4", "input": "fuzz seed 33: a duplicated repayment line in a loan statement, one bank row", "python": "both lines take the one bank row as mate", "js": "the second is left unpaired for a person"},
+  "test_one_point_one_without_valuations": {"bug": "PY-5", "input": "1.1 snapshot with no valuations key plus a loan statement", "python": "crashes: len(None) at the Valuations append", "js": "plan note, nothing written for valuations. allow_v1 path only"},
+  "test_override_missing_column": {"bug": "PY-6", "input": "overrides.csv without Category ID or Person", "python": "crashes: KeyError", "js": "bad_value stop"},
+  "test_policy_impossible_date": {"bug": "PY-7", "input": "policy PDF with 31 Feb 2027", "python": "crashes: ValueError in long_date, escaping the needs-a-person path", "js": "pdf_needs_person stop"},
+  "test_oversize_field": {"bug": "PY-8", "input": "an unterminated quote swallowing over 131072 characters", "python": "crashes: _csv.Error", "js": "csv_unreadable stop"},
+  "test_nul_byte": {"bug": "PY-8", "input": "a NUL byte in a CSV", "python": "below 3.11 crashes: _csv.Error; 3.11 and later keeps the NUL in the description", "js": "csv_unreadable stop on every version"},
+  "test_reversed_month_range": {"bug": "PY-9", "input": "2027-02..2027-01", "python": "silently imports 2027-02 alone", "js": "PeriodInputError, a host bug and no plan"},
+  "test_amount_zero": {"bug": "PY-10", "input": "card Amount 0.00", "python": "-0.0 reaches the review line as (-0.00); the sheet value is the same", "js": "(+0.00): integer cents have no negative zero"},
+  "test_amount_blank": {"bug": "PY-10", "input": "card Amount blank", "python": "as above", "js": "as above"},
+  "test_amount_space": {"bug": "PY-10", "input": "card Amount spaces", "python": "as above", "js": "as above"},
+  "test_amount_huge": {"bug": "JS-LIMIT", "input": "Amount 1e15", "python": "plans a 1,000,000,000,000,000.00 charge", "js": "bad_amount stop: past safe-integer cents, by contract"},
+  "test_non_ascii_digits": {"bug": "JS-LIMIT", "input": "a date in Arabic-Indic digits", "python": "reads it, as \\d and int() take any Unicode digit", "js": "bad_date stop: ASCII digits only, no shape delivers others"}
+ },
+ "notes": {
+  "matched, worth a decision": [
+   "A blank Amount on a card row imports a 0.00 row in both importers. money('') is 0.0 by design for the debit/credit columns, and a card row reuses it. Silent on a truncated card file. Python decides first.",
+   "A closing balance from a file exported mid-day holds a run when a later file brings more rows for that day: the ledger counts the whole day. Fails safe, in both.",
+   "A description starting with an apostrophe is not escaped, so USER_ENTERED eats it and verify then reports a mismatch. Fails safe, in both."
+  ],
+  "not compared by the harness": [
+   "A stray file beside the account folders is silently ignored by Python, against its 'nothing is skipped silently' promise. The core stops on it (file_outside_download_folder); the parity runner drops such files to match the walk, so this is a unit test, not a parity case.",
+   "A number in a verify.py MISMATCH line prints as a Python float when the planned cell is a number; JSON cannot tell 51 from 51.0 once parsed."
+  ]
+ }
+}
