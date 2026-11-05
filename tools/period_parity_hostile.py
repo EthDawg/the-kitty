@@ -387,6 +387,15 @@ class Hostile(TI.Base):
         self.file('ACC-CC', '2027-03-01', CARD, [card(2, 'HIST SHOP'), card(3, 'TIE'), card(4, 'LOOSE 9999 FEB'), card(5, 'EXACT SHOP'), card(6, 'exact shop'), card(7, 'BLANK NAME'), card(8, 'REFUND NEWCO * ABC123'), card(9, 'OVER')])
         self.go(*self.inputs(overrides='Description,Merchant,Category ID,Person,Receipt held,Note\nOVER,Over Co,SUBS,Mia,Y,"note, with comma"\nOVER,Second,GROCERIES,Joint,,\nHIST SHOP,Overridden,SUBS,Joint\n'))
 
+    def test_history_file(self):
+        hist = self.root / 'data.json'
+        rows = [['Txn ID', 'Date', 'Account ID', 'Bank description', 'Merchant', 'Amount', 'Category ID', 'Person', 'Receipt held', 'Note']]
+        rows += [['H1', '2024-01-01', 'ACC-CC', 'OLD SHOP', 'Old Shop', -1, 'GROCERIES', 'Mia', '', ''], ['H2', '2024-01-02', 'ACC-CC', 'OLD SHOP 1234', 'Older', -1, 'SUBS', 'Joint', '', '']]
+        hist.write_text(json.dumps({'Transactions': rows}))
+        self.sheet_tx = [LAST, {**LAST, 'txn_id': 'T0002', 'date': '2027-01-10', 'account_id': 'ACC-CC', 'bank_description': 'OLD SHOP', 'merchant': 'Sheet Shop', 'amount': -1.0, 'category_id': 'SUBS', 'person': 'Jordan'}]
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2, 'OLD SHOP'), card(3, 'OLD SHOP 9999')])
+        self.go('--history', str(hist))
+
     def test_override_unknown_category(self):
         self.file('ACC-CC', '2027-03-01', CARD, [card(2, 'OVER')])
         self.go(*self.inputs(overrides='Description,Merchant,Category ID,Person\nOVER,Over,NOPE,Joint\nX,Y,ALSO,Joint\n'))
@@ -538,6 +547,10 @@ class Hostile(TI.Base):
     def test_valuation_impossible_month_end(self):
         (self.root / 'sources').mkdir()
         self.go(*self.inputs(valuations='Month end,Item ID,Value\n2027-02-30,RENTAL,771000\n'))
+
+    def test_valuation_impossible_month_end_in_range(self):
+        (self.root / 'sources').mkdir()
+        self.go(*self.inputs(valuations='Month end,Item ID,Value\n2027-01-32,RENTAL,771000\n'), month='2027-01..2027-02')
 
     def test_valuation_comma_value(self):
         (self.root / 'sources').mkdir()

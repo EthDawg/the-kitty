@@ -432,9 +432,9 @@ def mutate():
             continue
         (d / file).write_text(text.replace(old, new))
         env = dict(os.environ, KITTY_CORE=str(d))
-        r = REAL_RUN([sys.executable, __file__, '--only', 'scenarios,hostile', '--quiet'], capture_output=True, text=True, env=env)
-        m = re.search(r'differing (\d+)', r.stdout)
-        results.append((what, 'caught' if r.returncode != 0 and m and int(m.group(1)) > 0 else 'NOT CAUGHT', int(m.group(1)) if m else -1))
+        r = REAL_RUN([sys.executable, __file__, '--only', 'scenarios,hostile', '--quiet'], capture_output=True, text=True, env=env)  # a crash prints no sections: n stays 0, NOT CAUGHT
+        n = sum(int(x) for x in re.findall(r'differing (\d+)', r.stdout))
+        results.append((what, 'caught' if r.returncode != 0 and n > 0 else 'NOT CAUGHT', n))
     return results
 
 
@@ -450,7 +450,7 @@ def main():
         res = mutate()
         for what, verdict, n in res:
             print(f'{verdict:12} {n:4} differing  {what}')
-        ok = all(v == 'caught' for v, _ in [(r[1], 0) for r in res])
+        ok = all(r[1] == 'caught' for r in res)
         print(f'{sum(1 for r in res if r[1] == "caught")}/{len(res)} mutations caught')
         return 0 if ok else 1
     only = a.only.split(',')
