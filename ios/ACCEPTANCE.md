@@ -44,7 +44,14 @@ On 5 November at 15:26 Sydney time, the signed build on Ethan's iPhone verified
 the existing **Digital Davies v2** Sheet as an editor. Its protected device
 receipt matched the expected file and the installed page (SHA-256 `100cea52…f7418`).
 The probe read Drive metadata, tab names and the version marker; it wrote no cells.
-This establishes selection, not a Live dashboard or a verified category write.
+This establishes selection separately from reading the dashboard.
+
+At 16:00 Sydney time the same physical iPhone reopened its saved grant without
+another login. The shared dashboard showed **Live · demo sheet**, **$99,388**
+cash and offset, **1,082 entries** and **5 entries needing review**. The test
+made a second uncached request for the Sheet's `networth.cash` metric and compared
+it against the rendered Home value. They matched. The physical XCTest bundle
+holds the JSON receipt and 1320 × 2868 screenshot. This was read-only.
 
 The shared ledger reader preserves physical row numbers across empty Sheets
 pages. A fictional regression places an entry on row 5,003 and finds it at that
