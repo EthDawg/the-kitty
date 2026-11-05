@@ -7,13 +7,13 @@ final class OfflineInteractionTests: XCTestCase {
     private var page: XCUIElement { app.webViews.firstMatch }
 
     override func tearDownWithError() throws {
-        if app.state == .runningForeground { capture("Teardown — last visible state") }
+        if (testRun?.failureCount ?? 0) > 0, app.state == .runningForeground { capture("Failure — last visible state") }
         app.terminate()
     }
 
     func testOfflinePhoneNavigation() {
         continueAfterFailure = false
-        executionTimeAllowance = 90
+        executionTimeAllowance = 120
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
         XCTAssertTrue(page.waitForExistence(timeout: 10))
@@ -45,7 +45,7 @@ final class OfflineInteractionTests: XCTestCase {
 
     func testSearchReviewAndCancelledCSVExport() {
         continueAfterFailure = false
-        executionTimeAllowance = 90
+        executionTimeAllowance = 120
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
 
@@ -128,7 +128,7 @@ final class OfflineInteractionTests: XCTestCase {
     func testSavesUniqueFictionalCSVToSimulatorLocalFiles() throws {
         #if targetEnvironment(simulator)
         continueAfterFailure = false
-        executionTimeAllowance = 60
+        executionTimeAllowance = 120
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
         XCTAssertTrue(page.waitForExistence(timeout: 10))

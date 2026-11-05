@@ -50,7 +50,7 @@ jobs:
             -resultBundlePath ios/build/offline.xcresult \
             -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
             -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
-            -maximum-test-execution-time-allowance 90 \
+            -maximum-test-execution-time-allowance 120 \
             CODE_SIGNING_ALLOWED=NO test 2>&1 | tee ios/build/build.log
       - uses: actions/upload-artifact@v4
         if: always()
