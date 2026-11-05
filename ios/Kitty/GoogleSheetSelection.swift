@@ -1,4 +1,7 @@
 import Foundation
+#if DEBUG
+import CryptoKit
+#endif
 
 /// Establishes what Google actually returned after Picker consent. No ledger rows or credentials
 /// are persisted by this probe, and a selected file never by itself establishes write authority.
@@ -54,7 +57,7 @@ struct GoogleSheetSelection {
         let version = try await read(selection, host: "sheets.googleapis.com", path: base + "/values/Kitty!A1:B",
                                      query: ["majorDimension": "ROWS", "valueRenderOption": "UNFORMATTED_VALUE"])
         guard let range = version["range"] as? String,
-              range.range(of: #"^'?Kitty'?!A1:B[1-9][0-9]*$"#, options: .regularExpression) != nil,
+              range.range(of: #"^(?:Kitty|'Kitty')!A1:B[1-9][0-9]*$"#, options: .regularExpression) != nil,
               let values = version["values"] as? [[Any]] else { throw Failure.wrongVersion }
         let rows = values.filter { $0.first as? String == "sheet_version" }
         guard rows.count == 1, rows[0].count == 2,
@@ -62,6 +65,27 @@ struct GoogleSheetSelection {
         guard current() == selection else { throw Failure.changed }
         return Verified(selection: selection, title: String(name.prefix(250)), canEdit: canEdit)
     }
+
+    #if DEBUG
+    /// A single development receipt for the public fictional fixture only. It contains
+    /// no title, account identity, token or financial values. It is never backed up.
+    static func recordDemoCheck(_ verified: Verified, pageURL: URL) {
+        let digest = { (data: Data) in SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
+        let idHash = digest(Data(verified.selection.sheetID.utf8))
+        guard idHash == "1a16e89f2bef2519162bdac3f4ecc24bab108569c20d2a1005896d14670a6fce",
+              let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
+              let page = try? Data(contentsOf: pageURL) else { return }
+        let evidence: [String: Any] = ["fixture": "Digital Davies v2", "checkedAt": ISO8601DateFormatter().string(from: Date()),
+            "sheetIDSHA256": idHash, "version": 2, "canEdit": verified.canEdit, "nativePageSHA256": digest(page)]
+        do {
+            var directory = appSupport.appendingPathComponent("KittyQA", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            var flags = URLResourceValues(); flags.isExcludedFromBackup = true; try directory.setResourceValues(flags)
+            let data = try JSONSerialization.data(withJSONObject: evidence, options: [.sortedKeys])
+            try data.write(to: directory.appendingPathComponent("demo-picker.json"), options: [.atomic, .completeFileProtection])
+        } catch { /* Optional test evidence must not change the provider result. */ }
+    }
+    #endif
 
     private func read(_ selection: GoogleConnection.Selection, host: String, path: String,
                       query: [String: String]) async throws -> [String: Any] {

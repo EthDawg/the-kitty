@@ -211,6 +211,9 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                                                      token: { try await self.google.accessToken(for: $0) })
                     let verified = try await probe.verify(selection)
                     verifiedSheet = verified
+                    #if DEBUG
+                    GoogleSheetSelection.recordDemoCheck(verified, pageURL: pageURL)
+                    #endif
                     reply(HostPolicy.reply(verified.summary), nil)
                 } catch {
                     // Never pass token responses, raw URLs or provider bodies to the page.
