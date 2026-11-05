@@ -18,6 +18,9 @@ jobs:
           python3 -m unittest discover -s tools -p 'test_check_shape.py' -v
           python3 tools/check_shape.py
       - run: node --test test.js test-v2.js
+      - run: node --test tools/period-core.test.js
+      - name: the JavaScript period core plans what Python plans
+        run: python3 tools/period_parity.py --quiet
       - name: offline native bundle and capability contract
         run: |
           python3 -m unittest discover -s tools -p 'test_native_build.py' -v
