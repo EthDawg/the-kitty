@@ -30,13 +30,13 @@
         previous=a.plan;state.last=a;state.question=q;drawer().querySelector("#local-ask-title").textContent="Your answer";
         const facts=a.facts.length&&a.plan.kind!=="spending"?'<dl class="ask-facts">'+a.facts.map(f=>'<div><dt>'+esc(f.label)+'</dt><dd>'+esc(f.value)+'</dd></div>').join("")+'</dl>':'';
         content.innerHTML='<p class="ask-prompt">'+esc(q)+'</p><article class="plan" data-ask-answer><div class="plan-top"><span class="eyebrow">'+esc(a.basis)+'</span><h3 class="ask-amount">'+esc(a.title)+'</h3><p class="sub">'+esc(a.detail)+'</p></div>'+facts+
-          (a.links.length?'<details data-ask-evidence><summary>'+esc(a.plan.kind==="spending"?(a.rowCount>a.links.length?"See the latest "+a.links.length+" of "+a.rowCount+" entries":"See the entries"):"See the source")+'</summary><div class="plan-points">'+links(a.links)+'</div></details>':'')+
+          (a.links.length?'<details data-ask-evidence><summary>'+esc(["spending","receipts"].includes(a.plan.kind)?(a.rowCount>a.links.length?"See the latest "+a.links.length+" of "+a.rowCount+" entries":"See the entries"):"See the source")+'</summary><div class="plan-points">'+links(a.links)+'</div></details>':'')+
           (a.periods?'<div class="sugg">'+a.periods.map((p,i)=>btn("See "+p.label,'data-ask-period="'+i+'"')).join("")+'</div>':'')+
           '<div class="plan-foot">'+esc(a.source)+'</div></article><div class="dacts"><button type="button" class="btn sm ghost" data-ask-share>Share this answer…</button></div>';
         content.querySelectorAll("[data-ask-go]").forEach(b=>b.onclick=()=>{if(current())go(b.dataset.askGo);});
         content.querySelectorAll("[data-ask-period]").forEach(b=>b.onclick=()=>{const p=a.periods[Number(b.dataset.askPeriod)];if(current())answer("Spending in "+p.label,K.run(E,m,{...a.plan,kind:"spending",time:p.time}));});
         content.querySelector("[data-ask-share]").onclick=()=>sharePreview(q,a);
-        showChoices(a.plan.kind==="spending"?[["Compare with the month before","Compare that with the previous month"],["The month before","What about the month before?"]]:a.plan.kind==="goalScenario"?[["See unused subscriptions","Which subscriptions haven’t we used?"],["See this goal","When will the "+a.plan.goal+" be funded?"],examples.find(x=>x[0]==="Spending changes")]:examples.filter(x=>x[1]!==q).slice(0,3));
+        showChoices(a.plan.kind==="spending"?[["Compare with the month before","Compare that with the previous month"],["The month before","What about the month before?"]]:a.plan.kind==="goalScenario"?[...(!a.plan.filter?[["What if we cut all unused?","If we cancelled all unused subscriptions, how much sooner could we reach our "+a.plan.goal+"?"]]:[]),["See unused subscriptions","Which subscriptions haven’t we used?"],["See this goal","When will the "+a.plan.goal+" be funded?"],examples.find(x=>x[0]==="Spending changes")]:examples.filter(x=>x[1]!==q).slice(0,3));
       }
       function sharePreview(q,a){
         if(!current())return;
@@ -55,19 +55,36 @@
         if(p.kind!=="unsupported"){answer(q,K.run(E,m,p));return;}
         if(p.choices){clarify(p.reason,p.choices);return;}
         content.innerHTML='<p class="sub" role="status">Looking for a matching calculation…</p>';
+        let offered=false;
         try{
+          const routing=root.KittyAskRouting, prepared=routing.prepare(q,K.context(m));
+          if(prepared.status!=="prepared"){clarify(p.reason);return;}
+          const local=routing.local(prepared);
+          if(local?.status==="classified"){const {status,...fields}=local;answer(q,K.run(E,m,fields));return;}
+          const options=routing.alternatives(prepared).map(p=>({p,a:K.run(E,m,p)})).filter(v=>v.a.ok);
+          if(options.length){
+            offered=true;
+            content.innerHTML='<div class="plan" data-ask-scope><h3>Which figure do you mean?</h3><p class="sub">Cash is what the Sheet records as cash and offset. Net worth also includes other assets and debts.</p><div class="plan-facts">'+options.map(({p,a},i)=>'<button type="button" class="pf" data-ask-option="'+i+'"><b>'+esc(a.title)+'</b><span>'+esc(a.basis)+'</span><small></small></button>').join("")+'</div></div>';
+            content.querySelectorAll("[data-ask-option]").forEach(b=>b.onclick=()=>{if(current()){++serial;answer(q,options[Number(b.dataset.askOption)].a);}});
+            showChoices(examples.slice(0,2));
+          }
           const status=await native.status();if(!current()||request!==serial)return;
           if(status.available){
-            let timer;let result;
-            try {result=await Promise.race([native.classify(q,K.context(m)),new Promise(resolve=>{timer=setTimeout(()=>resolve({status:"unavailable"}),5000);})]);}
+            let timer;let proposal;
+            try {proposal=await Promise.race([native.classify(prepared.maskedQuestion),new Promise(resolve=>{timer=setTimeout(()=>resolve({status:"unavailable"}),5000);})]);}
             finally {clearTimeout(timer);}
             if(!current()||request!==serial)return;
+            const result=routing.validate(prepared,proposal);
             const {status:rstatus,reason,...picked}=result;
             const candidate=rstatus==="classified"&&K.scope(picked,m);
+            if(candidate&&offered){
+              const idx=options.findIndex(o=>o.p.kind===candidate.kind), b=content.querySelector('[data-ask-option="'+idx+'"] small');
+              if(b)b.textContent="Suggested for your wording";return;
+            }
             if(candidate){content.innerHTML='<div class="plan" data-ask-confirm><h3>Is this what you meant?</h3><p>'+esc(scopeLabel(candidate))+'</p><button type="button" class="btn sm" data-ask-use>Show this calculation</button></div>';content.querySelector("[data-ask-use]").onclick=()=>{if(current()&&request===serial)answer(q,K.run(E,m,candidate));};showChoices(examples);return;}
           }
         }catch(_){/* Core questions work without Apple Intelligence. */}
-        if(current()&&request===serial)clarify(p.reason);
+        if(current()&&request===serial&&!offered)clarify(p.reason);
       }
       host.querySelector("form").onsubmit=ev=>{ev.preventDefault();ask(input.value);};
       choices.onclick=ev=>{const b=ev.target.closest("[data-ask-example]");if(b)ask(b.dataset.askExample);};

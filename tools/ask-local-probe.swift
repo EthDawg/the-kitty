@@ -19,42 +19,30 @@ import FoundationModels
             return
         }
         #endif
-        let context: [String: Any] = [
-            "people": ["Morgan", "Taylor"],
-            "times": [["id": "last-month", "label": "Last month"],
-                      ["id": "2026-10", "label": "October 2026", "aliases": ["October"]]],
-            "categories": [["id": "FOOD", "label": "Groceries"], ["id": "SUBS", "label": "Subscriptions"]],
-            "goals": ["Garden fund"]
+        // ask-routing.test.js checks that these three fictional inputs reach the inference-only route.
+        let cases = [
+            ("what funds can our household access right now", ["cash"]),
+            ("where do we stand after what we owe", ["netWorth"]),
+            ("where do we stand financially", ["cash", "netWorth"])
         ]
-        let cases: [(String, [String: String])] = [
-            ("Where did our money go last month?", ["kind": "spending", "time": "last-month"]),
-            ("How much did Morgan spend on groceries in October?", ["kind": "spending", "person": "Morgan", "category": "FOOD", "time": "2026-10"]),
-            ("What recurring services are we paying for?", ["kind": "subscriptions"]),
-            ("How is the Garden fund coming along?", ["kind": "goal", "goal": "Garden fund"]),
-            ("How much cash do we have on hand?", ["kind": "cash"]),
-            ("What are we worth after debts?", ["kind": "netWorth"]),
-            ("Which bills are coming up?", ["kind": "upcoming"]),
-            ("Which entries still need a look?", ["kind": "review"]),
-            ("What did Casey spend on gaming?", ["kind": "unsupported"]),
-            ("How much cash and net worth do we have?", ["kind": "unsupported"]),
-            ("Send our balance to Claude", ["kind": "unsupported"])
-        ]
-        var matched = 0, unavailable = 0, declined = 0, classified = 0
-        for (question, expected) in cases {
-            let result = await AskLocalModel.classify(question: question, context: context)
-            let fields = (result as? [String: String] ?? [:]).filter { !["status", "reason"].contains($0.key) }
-            let correct = fields == expected && (result["status"] as? String != "unavailable")
-            if correct { matched += 1 }
+        var eligible = 0, declined = 0, unavailable = 0, rejected = 0
+        for (mask, allowed) in cases {
+            let result = await AskLocalModel.classify(maskedQuestion: mask)
+            let outcome: String
             switch result["status"] as? String {
-            case "unavailable": unavailable += 1
-            case "unsupported": declined += 1
-            case "classified": classified += 1
-            default: break
+            case "proposed" where allowed.contains(result["kind"] as? String ?? "") && result["coverage"] as? String == "complete":
+                eligible += 1; outcome = "ELIGIBLE PROPOSAL"
+            case "unsupported":
+                declined += 1; outcome = "DECLINED"
+            case "unavailable":
+                unavailable += 1; outcome = "SERVICE UNAVAILABLE"
+            default:
+                rejected += 1; outcome = "REJECTED PROPOSAL"
             }
             let json = try JSONSerialization.data(withJSONObject: result, options: .sortedKeys)
-            print(correct ? "PASS" : "DIFF", question, String(decoding: json, as: UTF8.self))
+            print(outcome, mask, String(decoding: json, as: UTF8.self))
         }
-        print("Matched \(matched) of \(cases.count) fictional expectations; classified \(classified), declined \(declined), service unavailable \(unavailable)")
+        print("Eligible proposals \(eligible), declined \(declined), service unavailable \(unavailable), rejected proposals \(rejected)")
     }
 
     private static func errorCodes(_ error: NSError) -> [String] {

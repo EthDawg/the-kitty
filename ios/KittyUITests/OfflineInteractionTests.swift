@@ -11,6 +11,22 @@ final class OfflineInteractionTests: XCTestCase {
         app.terminate()
     }
 
+    func testTapAskAndOpenAGroceryReceipt() {
+        continueAfterFailure = false
+        executionTimeAllowance = 90
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
+        app.launch()
+        XCTAssertTrue(page.waitForExistence(timeout: 15))
+        tap(app.buttons["Ask the Kitty"])
+        tap(app.buttons["Groceries last month"])
+        XCTAssertTrue(text(containing: "$1,429.05 spent").waitForExistence(timeout: 5))
+        let receipts = page.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "See the entries")).firstMatch
+        tap(receipts)
+        let woolworths = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "24 Dec", "Woolworths")).firstMatch
+        tap(woolworths)
+        XCTAssertTrue(text(containing: "T0866").waitForExistence(timeout: 5), "The tap opens the actual December 24 ledger entry.")
+    }
+
     func testOfflinePhoneNavigation() {
         continueAfterFailure = false
         executionTimeAllowance = 120

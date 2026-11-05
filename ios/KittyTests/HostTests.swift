@@ -76,11 +76,22 @@ final class OfflinePageTests: XCTestCase {
         try await wait(page, for: "window.KittyNative?.ready && !document.querySelector('#askbtn').hidden")
         try await wait(page, for: "getComputedStyle(document.querySelector('#toast')).opacity === '0' && !document.querySelector('canvas[data-generated-confetti]')")
         _ = try await js(page, "document.querySelector('#askbtn').click(); return true")
-        _ = try await js(page, "document.querySelector('[data-ask-example*=subscriptions][data-ask-example*=fund]').click(); return true")
+        _ = try await js(page,"const i=document.querySelector('[data-ask-input]'); i.value='Where do we stand financially?'; i.form.requestSubmit(); return true")
+        try await wait(page, for: "document.querySelectorAll('[data-ask-option]').length===2")
+        let scope = try await js(page,"return document.querySelector('[data-ask-scope]').innerText") as? String ?? ""
+        XCTAssertTrue(scope.contains("Cash and offset") && scope.contains("Net worth") && scope.contains("99,388"), scope)
+        _ = try await js(page, "document.querySelector('[data-ask-option]').click(); const i=document.querySelector('[data-ask-input]'); i.value='Could our unused subscriptions help fund Emergency fund?'; i.form.requestSubmit(); return true")
+
         try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('37.49')")
         let scenario = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
         XCTAssertTrue(scenario.contains("June 2027") && scenario.contains("31 Dec 2026") && scenario.contains("3,097.16"),scenario)
-        XCTAssertFalse(scenario.contains("Anytime Fitness"),"The household marked the gym Keep.")
+        XCTAssertTrue(scenario.contains("Left out: Anytime Fitness (marked Keep)"),"Name the Keep decision excluded from this scenario.")
+        _ = try await js(page, "document.querySelector('[data-ask-example*=cancelled]').click(); return true")
+        try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('102.44')")
+        let all = try await js(page, "return document.querySelector('[data-ask-answer]').innerText") as? String ?? ""
+        XCTAssertTrue(all.contains("1 month sooner") && all.contains("May 2027") && all.contains("Nothing is cancelled."),all)
+        _ = try await js(page, "const input=document.querySelector('[data-ask-input]'); input.value='Could our unused subscriptions help fund Emergency fund?'; input.form.requestSubmit(); return true")
+
         try await capture(page, "Ask – subscription choices and emergency savings goal")
         _ = try await js(page, "const input=document.querySelector('[data-ask-input]'); input.value='How much did we spend on groceries last month?'; input.form.requestSubmit(); return true")
         try await wait(page, for: "document.querySelector('[data-ask-answer]')?.innerText.includes('1,429.05')")

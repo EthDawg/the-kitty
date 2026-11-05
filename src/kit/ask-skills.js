@@ -4,14 +4,14 @@
   "use strict";
   const fold=s=>String(s??"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[’']/g,"").replace(/[^a-z0-9+]+/g," ").trim();
   const months="january february march april may june july august september october november december".split(" ");
-  const kinds=new Set(["spending","comparison","subscriptions","goalScenario","goal","cash","netWorth","upcoming","review"]);
+  const kinds=new Set(["spending","comparison","receipts","subscriptions","goalScenario","goal","cash","netWorth","upcoming","review"]);
   const item=(id,label,aliases=[])=>({id,label,aliases:[...new Set([label,...aliases].map(fold).filter(Boolean))]});
   const shift=(ym,n)=>{const [y,m]=ym.split("-").map(Number);return new Date(Date.UTC(y,m-1+n,1)).toISOString().slice(0,7);};
   function context(m){
     const ym=m.asOf.slice(0,7);
     const times=[item("current-month","This month",["this month","current month"]),item("last-month","Last month",["last month","previous month"])];
     for(let n=0;n<12;n++){const id=shift(ym,-n),[year,mm]=id.split("-"),month=months[+mm-1]; times.push(item(id,month+" "+year,[month,month.slice(0,3),id]));}
-    return {times,people:m.people.map(n=>item(n,n)),categories:m.cats.filter(c=>c.flow==="Expense").map(c=>item(c.id,c.name,[c.id,c.name.split(/ and | & /i)[0]])),
+    return {times,people:m.people.map(n=>item(n,n)),categories:m.cats.filter(c=>c.flow==="Expense").map(c=>item(c.id,c.name,[c.id,c.name.split(/ and | & /i)[0],...(fold(c.name)==="groceries"?["grocery"]:[])])),
       goals:m.goals.map(g=>item(g.name,g.name,[g.name.split(",")[0]]))};
   }
   const same=(a,b)=>fold(a)===fold(b);
@@ -37,6 +37,25 @@
     if(/^(what needs (a look|review)|whats (left )?to review|show (my |our )?review queue)$/.test(s))return {kind:"review"};
     if(/^(whats coming up|what is coming up|show (me )?(our )?schedule)$/.test(s))return {kind:"upcoming"};
     if(/^(what bills are (coming up|due)( next)?|upcoming bills)$/.test(s))return {kind:"upcoming",filter:"bills"};
+    // Interpret receipt questions as a question about recorded evidence, never as generic spending.
+    if(/\breceipts?\b/.test(s)){
+      let phrase=s.replace(/^(?:please )?(?:show|list|find)(?: me)? (?:the |our )?/,"");
+      const t=period(phrase,c);phrase=t.s;let time=t.time;
+      if(time==="current-month"&&t.s===s.replace(/^(?:please )?(?:show|list|find)(?: me)? (?:the |our )?/,"")){
+        const prefixes=c.times.flatMap(t=>t.aliases.map(a=>[a,t.id])).filter(([a])=>phrase.startsWith(a+" ")).sort((a,b)=>b[0].length-a[0].length);
+        if(prefixes.length){time=prefixes[0][1];phrase=phrase.slice(prefixes[0][0].length+1);}
+      }
+      const hit=/^(?:(.+?) )?receipts?$/.exec(phrase);
+      if(hit){const category=hit[1]?matches(c.categories,hit[1]):[];if(!hit[1]||category.length===1)return {kind:"receipts",time,...(category.length?{category:category[0].id}:{})};}
+      return unsupported("I can check which entries have a receipt marked held. Try a category and month, such as “December grocery receipts”.");
+    }
+    if(/\b(cancel(?:led|ed|ling|ing)?|cut|drop|pause)\b/.test(s)&&/\bunused (?:subscriptions?|subs)\b/.test(s)){
+      // A hypothetical can include a Keep decision. Require a single known goal and no other condition.
+      const terms=c.goals.flatMap(g=>g.aliases.map(a=>({id:g.id,words:a}))).filter(v=>(" "+s+" ").includes(" "+v.words+" ")).sort((a,b)=>b.words.length-a.words.length);
+      const ids=new Set(terms.map(t=>t.id)), words=new Set("if what how do did does would will could can i we our the all every those three marked for review only by cancel cancelled canceled cancelling canceling cut drop pause unused subscription subscriptions subs put putting savings money them it that toward towards into on use redirect redirecting from these reach hit meet meet the goal target fund funded make faster sooner earlier many much more months month help bring forward happen happens to and be were are a an get long take until when fully full fill filled up change changes date estimated redirected cutting saved of as well".split(" "));
+      if(ids.size===1 && /^(?:what if|if |how |could |would |when )/.test(s)&&s.replace(terms[0].words,"").trim().split(/ +/).every(w=>words.has(w)))return {kind:"goalScenario",goal:terms[0].id,...(!/marked (for )?review|review only/.test(s)?{filter:"allUnused"}:{})};
+      return unsupported("I can model the change without cancelling anything. Try “If we cancelled all unused subscriptions, how much sooner could we reach our Emergency fund?”");
+    }
     const scenario=/^(?:what if (?:i|we) (?:put|redirect) unused subscriptions? (?:toward|towards|into)|could (?:our )?unused subscriptions? help (?:fund|with)) (?:the |our )?(.+)$/.exec(s);
     if(scenario){const gs=matches(c.goals,scenario[1]);if(gs.length===1)return {kind:"goalScenario",goal:gs[0].id};return unsupported("Which goal in your Sheet should I model?");}
     let gmatch=/^(?:when (?:will|is)|how (?:is|close is)|show(?: me)?) (?:the |our )?(.+?)(?: be funded| funded| going| goal)?$/.exec(s);
@@ -68,12 +87,12 @@
   function monthID(time,m){return !time||time==="current-month"?m.asOf.slice(0,7):time==="last-month"?shift(m.asOf.slice(0,7),-1):time;}
   function scope(plan,m){
     if(!plan||!kinds.has(plan.kind))return null;
-    const c=context(m), allowed={spending:["time","category","person","merchant"],comparison:["time","category","person","merchant"],subscriptions:["filter"],goalScenario:["goal"],goal:["goal"],cash:[],netWorth:[],upcoming:["filter"],review:[]}[plan.kind];
+    const c=context(m), allowed={spending:["time","category","person","merchant"],comparison:["time","category","person","merchant"],receipts:["time","category","person"],subscriptions:["filter"],goalScenario:["goal","filter"],goal:["goal"],cash:[],netWorth:[],upcoming:["filter"],review:[]}[plan.kind];
     if(Object.entries(plan).some(([k,v])=>typeof v!=="string"||!v.trim()||(k!=="kind"&&!allowed.includes(k))))return null;
     for(const [field,opts] of [["person",c.people],["category",c.categories],["goal",c.goals]]) if(plan[field]&&opts.filter(x=>x.id===plan[field]).length!==1)return null;
     if(["goal","goalScenario"].includes(plan.kind)&&!plan.goal)return null;
     if(plan.merchant&&!m.tx.some(t=>(t.mer?.name||t.merchant)===plan.merchant))return null;
-    if(plan.filter&&plan.filter!==(plan.kind==="subscriptions"?"unused":"bills"))return null;
+    if(plan.filter&&plan.filter!==(plan.kind==="subscriptions"?"unused":plan.kind==="goalScenario"?"allUnused":"bills"))return null;
     const ym=monthID(plan.time,m);
     if(plan.time&&(!/^\d{4}-(0[1-9]|1[0-2])$/.test(ym)||ym>m.asOf.slice(0,7)))return null;
     return {...plan};
@@ -82,13 +101,22 @@
     const p=scope(input,m);if(!p)return {ok:false,reason:input?.reason||"I couldn’t verify that interpretation against this household."};
     const money=v=>E.fmt(v,{cents:true}), facts=[], links=[];
     let title="",source="",basis="",detail="";
-    if(p.kind==="spending"||p.kind==="comparison"){
+    if(["spending","comparison","receipts"].includes(p.kind)){
       const ym=monthID(p.time,m),w=E.window("month",ym+"-01");if(w.to>m.asOf)w.to=m.asOf;
       const oldest=m.tx.reduce((a,t)=>!a||t.date<a?t.date:a,"");
       if(!oldest||w.to<oldest)return {ok:false,reason:"That month is outside the transaction history available to Kitty."};
       const predicate=t=>(!p.person||t.person===p.person)&&(!p.category||t.cat===p.category)&&(!p.merchant||(t.mer?.name||t.merchant)===p.merchant);
       const sp=E.spend(m.tx,w,predicate),rows=m.tx.filter(t=>E.inWin(t,w)&&predicate(t)&&t.flow!=="Transfer"&&t.flow!=="Income");
       const subject=p.category?m.catById[p.category].name:p.merchant||"All categories";
+      if(p.kind==="receipts"){
+        const held=rows.filter(r=>/^y(es)?$/i.test(String(r.receipt||""))),missing=rows.filter(r=>/^n(o)?$/i.test(String(r.receipt||"")));
+        title=held.length?held.length+" "+(held.length===1?"receipt":"receipts")+" marked held":"No receipts marked held";
+        basis=[E.fmtMonth(w.from),subject,p.person||"Household"].join(" · ");source="Entries · receipt held · "+w.from+" to "+w.to;
+        detail=rows.length+" expense "+(rows.length===1?"entry":"entries")+" total "+money(sp.out)+". "+(rows.length-held.length-missing.length)+" without a recorded receipt status. The Sheet flag is not a copy of the receipt.";
+        facts.push({label:"Net spending",value:money(sp.out)},{label:"Marked held",value:String(held.length)},{label:"Marked missing",value:String(missing.length)});
+        for(const r of [...rows].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4))links.push({go:"entry:"+r.id,label:E.fmtDay(r.date)+" · "+(r.mer?.name||r.merchant||r.desc)+" · "+money(r.amount)});
+        return {ok:true,plan:p,title,basis,detail,source,facts,links,rowCount:rows.length};
+      }
       if(p.kind==="comparison"){
         const prev=E.window("month",shift(ym,-1)+"-01"),partial=w.to!==E.monthEnd(w.from);
         if(partial)prev.to=[prev.to,prev.from.slice(0,8)+w.to.slice(8)].sort()[0];
@@ -124,15 +152,22 @@
     }else if(p.kind==="goalScenario"){
       const goal=m.goals.find(g=>g.name===p.goal);
       if(!Number.isFinite(goal.balance)||!Number.isFinite(goal.target)||goal.target<=0)return {ok:false,reason:"I need a recorded balance and target for this goal."};
-      const unused=m.subs.filter(s=>String(s.flag).toLowerCase()==="unused"&&String(s.decision).toLowerCase()==="review");
+      const allUnused=m.subs.filter(s=>String(s.flag).toLowerCase()==="unused"&&!/cancel/i.test(s.decision)),kept=allUnused.filter(s=>String(s.decision).toLowerCase()==="keep").map(s=>s.service);
+      const all=p.filter==="allUnused",unused=all?allUnused:allUnused.filter(s=>String(s.decision).toLowerCase()==="review");
       const costed=unused.filter(s=>Number.isFinite(s.annual)&&s.annual>0),monthly=Math.round(costed.reduce((sum,s)=>sum+Math.round(s.annual*100),0)/12)/100;
       const left=Math.max(0,Math.round((goal.target-goal.balance)*100)/100);
       const baseline=E.goalEta(goal,0,m.asOf),possible=E.goalEta(goal,monthly,m.asOf);
       title=left===0?"This goal is already funded":monthly?money(monthly)+" a month":"No confirmed amount to redirect";
-      basis=goal.name+" · What if";source="Subscriptions (Unused + Review) and Goals · "+m.asOf;
-      detail="This averages the annual costs of unused subscriptions marked Review. Anything marked Keep is excluded.";
+      basis=goal.name+" · What if";source=(all?"Subscriptions (all marked Unused)":"Subscriptions (Unused + Review)")+" and Goals · "+m.asOf;
+      detail=all?"This models every recorded unused subscription. Nothing is cancelled.":"This averages unused subscriptions marked Review over 12 months.";
+      if(kept.length)detail+=" "+(all?"This includes ":"Left out: ")+kept.join(", ")+(all?", currently marked Keep.":" (marked Keep).");
       if(costed.length<unused.length)detail+=" An item without a confirmed annual cost was left out.";
-      if(left>0&&monthly&&possible.date){detail=(baseline.date===possible.date?"Even with the extra savings, the estimated funding month stays "+E.fmtMonth(possible.date)+".":"Redirecting that amount would put the estimated funding month at "+E.fmtMonth(possible.date)+(baseline.date?", compared with "+E.fmtMonth(baseline.date)+" at today’s pace.":"."))+" "+detail;}
+      if(left>0){
+        let change="";
+        if(!baseline.date)change="At the recorded saving pace, this goal won’t be reached."+(!possible.date?" The extra savings would still leave no positive pace.":possible.months>120?" Even with this change it would take over "+Math.floor(possible.months/12)+" years.":" With this change, the estimated funding month is "+E.fmtMonth(possible.date)+".");
+        else if(monthly&&possible.date){const gain=baseline.months-possible.months;change=gain===0?"Even with the extra savings, the estimated funding month stays "+E.fmtMonth(possible.date)+".":E.fmtMonth(possible.date)+" instead of "+E.fmtMonth(baseline.date)+" — "+gain+" "+(gain===1?"month":"months")+" sooner.";}
+        if(change)detail=change+" "+detail;
+      }
       if(left>0&&goal.date&&goal.date<m.asOf)detail+=" Its target date was "+E.fmtDay(goal.date,{year:true})+".";
       facts.push({label:"Still to save",value:money(left)},...costed.slice(0,6).map(s=>({label:s.service,value:money(s.annual)+" / year"})));
       links.push({go:"goal:"+goal.name,label:"See goal and saving pace"},{go:"subs",label:"See subscription decisions"});
@@ -146,7 +181,9 @@
     }else if(p.kind==="upcoming"){
       const events=E.upcoming(m,35).filter(e=>!p.filter||e.kind==="bill");title=events.length+(p.filter?" upcoming bills":" upcoming items");basis="Next 35 days";source=(p.filter?"Scheduled bills":"Scheduled bills, repayments, pay and goals")+" · as of "+m.asOf;
       for(const e of events.slice(0,5))facts.push({label:E.fmtDay(e.date)+" · "+e.title,value:e.kind==="bill"&&!(e.amount<0)?"Charge not confirmed":Number.isFinite(e.amount)?money(e.amount):"Scheduled"});
-      detail="Scheduled items are forecasts, not settled entries.";links.push({go:"upcoming",label:"See the schedule"});
+      detail="Scheduled items are forecasts, not settled entries.";
+      if(!p.filter && m.sheetVersion>=2){const undated=m.loans.filter(l=>l.repayment&&m.contracts.filter(c=>c.kind==="loan"&&c.status==="active"&&c.acct===l.id&&c.next>m.asOf).length!==1).length;if(undated)detail+=" "+undated+" loan schedule"+(undated===1?" has":"s have")+" no confirmed future date and "+(undated===1?"is":"are")+" not included.";}
+      links.push({go:"upcoming",label:"See the schedule"});
     }else{
       const items=E.review(m).items;title=items.length+" "+(items.length===1?"entry needs":"entries need")+" a look";basis="Review queue";source="Entries, Rules and Decisions · "+m.asOf;
       for(const i of items.slice(0,3))links.push({go:"entry:"+i.id,label:i.id+" · "+i.why});

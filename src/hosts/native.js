@@ -165,7 +165,7 @@
     return value;
   }
   root.KittyNative = Object.freeze({
-    ask: Object.freeze({status:()=>askRPC("ask.status"), classify:(question,context)=>askRPC("ask.classify",{question,context}), share:text=>askRPC("ask.share",{text})}),
+    ask: Object.freeze({status:()=>askRPC("ask.status"), classify:maskedQuestion=>askRPC("ask.classify",{maskedQuestion}), share:text=>askRPC("ask.share",{text})}),
     icon: Object.freeze({status: () => rpc("icon.status", {}), select: alternate => rpc("icon.set", {alternate})}),
     privacy: Object.freeze({setEnabled:enabled => rpc("privacy.set",{enabled:enabled === true})}),
     google: Object.freeze({

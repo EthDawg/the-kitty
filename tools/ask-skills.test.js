@@ -257,13 +257,30 @@ test('upcoming bills exclude income and reproduce the next recorded contract cha
   assert.equal(cents(pay.amount), cents(payslips.slice(-3).map(row => row.net_pay).sort((a, b) => a - b)[1]));
 });
 
-test('v2 investment loan uses the contractual next date in the detailed schedule behind Ask', () => {
-  const contract = snapshot.contracts.find(row => row.account_id === 'LN-INV' && row.kind === 'loan');
-  assert.equal(contract.next_date, '2027-02-01');
-  const event = Engine.upcoming(model, 35).find(row => row.kind === 'loan' && row.ref.key === contract.account_id);
-  assert.ok(event);
-  assert.equal(event.date, contract.next_date);
-  assert.equal(cents(event.amount), -cents(contract.amount));
+test('fictional loan terms agree with their separate repayment days, and a changed contractual date wins', () => {
+  const scheduled = Engine.upcoming(model, 35);
+  const cases = [
+    ['C0018', 'LN-HOME', 'ACC-EVD', 'HARBOUR BANK HOME LOAN REPAYMENT', '2027-02-01'],
+    ['C0019', 'LN-INV', 'ACC-RNT', 'HARBOUR BANK INVESTMENT LOAN INTEREST', '2027-02-28'],
+  ];
+  for (const [id, loan, payingAccount, descriptor, nextDate] of cases) {
+    const contract = snapshot.contracts.find(row => row.contract_id === id);
+    assert.equal(contract.account_id, loan);
+    const history = snapshot.entries.filter(row => row.kind === 'transaction'
+      && row.account_id === payingAccount && row.raw_text === descriptor);
+    assert.ok(history.length >= 12);
+    assert.deepEqual([...new Set(history.map(row => row.settled_at.slice(8)))], [nextDate.slice(8)]);
+    assert.equal(contract.next_date, nextDate);
+    const event = scheduled.find(row => row.kind === 'loan' && row.ref.key === loan);
+    assert.ok(event);
+    assert.equal(event.date, nextDate);
+    assert.equal(cents(event.amount), -cents(contract.amount));
+  }
+  // The payment history corroborates this fixture. A household can still renegotiate its next due date.
+  const changed = structuredClone(snapshot);
+  changed.contracts.find(row => row.contract_id === 'C0019').next_date = '2027-02-25';
+  const updated = Engine.upcoming(Engine.model(changed), 35);
+  assert.equal(updated.find(row => row.kind === 'loan' && row.ref.key === 'LN-INV').date, '2027-02-25');
 });
 
 test('a subscription refund is never projected as a new recurring income payment', () => {
@@ -338,4 +355,34 @@ test('the merchant suggestion excludes other accounts, later entries, duplicates
   assert.deepEqual(Ask.merchantEvidence(Engine,m,'new'),{matches:['prior'],category:'DINING'});
   m.entries.push(other('disagrees',{cat:'SHOPPING'})); assert.equal(Ask.merchantEvidence(Engine,m,'new').category,null);
   row.raw='PAYPAL'; assert.deepEqual(Ask.merchantEvidence(Engine,m,'new'),{matches:[],category:null});
+});
+
+test('December grocery receipts distinguishes held, missing and unmarked on the four matching entries', () => {
+  const a=answer('December grocery receipts');
+  assert.equal(a.plan.kind,'receipts');assert.equal(a.plan.category,'GROCERIES');
+  assert.match(a.title,/No receipts marked held/);assert.match(a.detail,/4 expense entries total \$1,429\.05/);
+  assert.match(a.detail,/4 without a recorded receipt status/);assert.equal(a.links.length,4);
+  const tagged=structuredClone(model);
+  const groceries=tagged.tx.filter(t=>t.cat==='GROCERIES'&&t.date.startsWith('2026-12'));
+  groceries[0].receipt='Y';groceries[1].receipt='N';const b=Ask.run(Engine,tagged,a.plan);
+  assert.match(b.title,/1 receipt marked held/);assert.match(b.detail,/2 without a recorded receipt status/);
+  assert.equal(b.facts.find(f=>f.label==='Marked missing').value,'1');
+  assert.equal(Ask.plan('December grocery receipts over $300', model).kind,'unsupported');
+  assert.equal(Ask.plan('December unicorn receipts', model).kind,'unsupported');
+});
+test('cancelling all unused is a different what-if from respecting Keep', () => {
+  const a=answer('If we cancelled all unused subscriptions, how much sooner could we reach our Emergency fund?');
+  assert.equal(a.plan.filter,'allUnused');assert.match(a.title,/\$102\.44/);assert.match(a.detail,/May 2027 instead of June 2027.*1 month sooner/);
+  assert.match(a.detail,/Anytime Fitness, currently marked Keep/);assert.match(a.detail,/Nothing is cancelled/);
+  const b=answer('Could our unused subscriptions help fund Emergency fund?');
+  assert.match(b.detail,/Left out: Anytime Fitness \(marked Keep\)/);
+  const c=answer('Could our unused subscriptions help fund Offset buffer?');
+  assert.match(c.detail,/won’t be reached/);assert.match(c.detail,/over 51 years/);
+  assert.equal(Ask.plan('Cancel all unused subscriptions now',model).kind,'unsupported');
+  assert.equal(Ask.plan('If we cancel the unused subscriptions except YouTube, when could we reach our Emergency fund?',model).kind,'unsupported');
+});
+test('an undated v2 loan is explicitly unknown, not scheduled by a fallback', () => {
+  const copy=structuredClone(model),c=copy.contracts.find(c=>c.id==='C0019');c.next=null;
+  assert.ok(!Engine.upcoming(copy,35).some(e=>e.ref.type==='loan'&&e.ref.key===c.acct));
+  assert.match(Ask.run(Engine,copy,{kind:'upcoming'}).detail,/1 loan schedule has no confirmed future date/);
 });

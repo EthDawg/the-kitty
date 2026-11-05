@@ -231,16 +231,15 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 }
                 present(share, animated: true); return
             }
-            guard let question = params["question"] as? String, (1...800).contains(question.count),
-                  let context = params["context"] as? [String:Any], JSONSerialization.isValidJSONObject(context),
-                  let encoded = try? JSONSerialization.data(withJSONObject: context), encoded.count <= 65536 else {
+            guard let maskedQuestion = params["maskedQuestion"] as? String, (1...800).contains(maskedQuestion.count),
+                  Set(params.keys).isSubset(of: ["session","maskedQuestion"]) else {
                 reply(HostPolicy.failure("invalid_request", "Choose a shorter question."), nil); return
             }
             guard !classifyingQuestion else { reply(HostPolicy.reply(["status":"unavailable"]), nil); return }
             classifyingQuestion = true
             Task { @MainActor in
                 defer { classifyingQuestion = false }
-                let result = await AskLocalModel.classify(question: question, context: context)
+                let result = await AskLocalModel.classify(maskedQuestion: maskedQuestion)
                 guard session == liveSession, isDemo == (liveSheet == nil), shield == nil else {
                     reply(HostPolicy.failure("stale_session", "The selected Sheet changed."), nil); return
                 }

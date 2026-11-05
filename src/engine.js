@@ -360,6 +360,7 @@
     for (const l of m.loans) {
       if (!l.repayment) continue;
       const term = onlyTerm(c => c.kind === "loan" && c.acct === l.id);
+      if (m.sheetVersion >= 2 && (!term?.next || term.next <= today)) continue;
       const fallback = l.purpose === "Investment" ? (E.monthEnd(today) <= today ? E.monthEnd(E.addMonths(today,1)) : E.monthEnd(today)) : E.monthStart(E.addMonths(today,1));
       const d = term?.next > today ? term.next : fallback;
       if (d > today && d <= until) items.push({ date:d, kind:"loan", title:`${l.name} ${l.type === "Interest only" ? "interest" : "repayment"}`, sub:`${l.lender} · ${E.fmtPct(l.rate,2)}`, amount:-l.repayment, ref:{type:"loan",key:l.id} });
