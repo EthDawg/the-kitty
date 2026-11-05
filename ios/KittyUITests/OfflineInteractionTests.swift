@@ -16,9 +16,7 @@ final class OfflineInteractionTests: XCTestCase {
         executionTimeAllowance = 120
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
-        XCTAssertTrue(page.waitForExistence(timeout: 10))
-        tap(app.buttons["Home"])
-        XCTAssertTrue(app.buttons["Cash and offset, tap for the accounts behind it"].waitForExistence(timeout: 5))
+        openHome()
         capture("Phone Home — fictional cash and goals")
         page.swipeUp()
         XCTAssertTrue(app.buttons["Activity"].isHittable, "Tabs stay reachable while scrolling.")
@@ -49,10 +47,7 @@ final class OfflineInteractionTests: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
 
-        XCTAssertTrue(page.waitForExistence(timeout: 10), "The bundled page must open.")
-        tap(app.buttons["Home"])
-        XCTAssertTrue(app.buttons["Cash and offset, tap for the accounts behind it"]
-            .waitForExistence(timeout: 5), "Home must finish rendering.")
+        openHome()
 
         // The trust drawer identifies these numbers without relying on the time-based greeting.
         tap(app.buttons.matching(identifier: "Where the numbers come from").firstMatch)
@@ -82,7 +77,7 @@ final class OfflineInteractionTests: XCTestCase {
         tap(csv)
         let filename = app.textFields["DOCPicker.filenameTextField"]
         let pickerNavigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-        XCTAssertTrue(filename.waitForExistence(timeout: 6), "The Files export picker must open.")
+        XCTAssertTrue(filename.waitForExistence(timeout: 20), "Files must finish loading the export picker.")
         XCTAssertTrue(pickerNavigation.exists, "The native Files navigation must be present.")
         XCTAssertTrue((filename.value as? String)?.hasPrefix("kitty-entries-") == true,
                       "The picker must contain this export's filename.")
@@ -146,7 +141,7 @@ final class OfflineInteractionTests: XCTestCase {
 
         let filename = app.textFields["DOCPicker.filenameTextField"]
         let navigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-        XCTAssertTrue(filename.waitForExistence(timeout: 6))
+        XCTAssertTrue(filename.waitForExistence(timeout: 20), "Files must finish loading the export picker.")
         XCTAssertTrue(navigation.exists)
         let pickedLocal = try selectVerifiedLocalExportDestination(navigation: navigation)
 
@@ -194,6 +189,24 @@ final class OfflineInteractionTests: XCTestCase {
         app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", value)).firstMatch
     }
 
+    private func openHome() {
+        XCTAssertTrue(page.waitForExistence(timeout: 15), "The bundled page must open.")
+        let cash = app.buttons["Cash and offset, tap for the accounts behind it"]
+        // Home is already selected on first launch. The nav exists in the static
+        // shell before WebKit has laid it out; this control comes from the model.
+        if !cash.waitForExistence(timeout: 8) { tap(app.buttons["Home"]) }
+        XCTAssertTrue(cash.waitForExistence(timeout: 12), "Home must finish rendering.")
+    }
+
+    private func canTap(_ element: XCUIElement) -> Bool {
+        guard element.exists else { return false }
+        let frame = element.frame
+        // XCTest can raise an issue, rather than return false from isHittable,
+        // for a WebKit accessibility node that has not received a screen frame.
+        guard !frame.isEmpty, !frame.isInfinite, frame.intersects(app.frame) else { return false }
+        return element.isHittable
+    }
+
     private func searchField(_ label: String) -> XCUIElement {
         // WebKit exposes type=search as a search field or text field across OS releases.
         let search = app.searchFields[label]
@@ -206,14 +219,14 @@ final class OfflineInteractionTests: XCTestCase {
     private func tap(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         // Reading label on a missing node throws before the wait can observe the next AX tree.
         waitUntil("The requested control must become visible and tappable.", timeout: 8,
-                  file: file, line: line) { element.exists && element.isHittable }
+                  file: file, line: line) { self.canTap(element) }
         element.tap()
     }
 
     private func revealByScrollingDown(_ element: XCUIElement) {
         // Only nearby controls, never an unbounded search through all review rows.
         for _ in 0..<3 {
-            if element.exists && element.isHittable { return }
+            if canTap(element) { return }
             page.swipeUp()
         }
     }

@@ -34,12 +34,21 @@ jobs:
                        if d['name'] == 'iPhone 17 Pro' and d.get('isAvailable'))
           print('KITTY_SIMULATOR_ID=' + phone['udid'])
           PY
-      - name: Boot simulator before testing
-        timeout-minutes: 3
+      - name: Start the simulator
+        run: xcrun simctl boot "$KITTY_SIMULATOR_ID"
+      - name: Build host and tests while the simulator starts
+        timeout-minutes: 5
         run: |
-          xcrun simctl boot "$KITTY_SIMULATOR_ID"
-          xcrun simctl bootstatus "$KITTY_SIMULATOR_ID" -b
-      - name: Build and test offline host
+          mkdir -p ios/build
+          set -o pipefail
+          xcodebuild -project ios/Kitty.xcodeproj -scheme Kitty \
+            -configuration Debug -destination "platform=iOS Simulator,id=$KITTY_SIMULATOR_ID" \
+            -derivedDataPath ios/build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee ios/build/compile.log
+      - name: Wait for the simulator
+        timeout-minutes: 3
+        run: xcrun simctl bootstatus "$KITTY_SIMULATOR_ID" -b
+      - name: Run offline host and Files tests
         timeout-minutes: 10
         run: |
           mkdir -p ios/build
@@ -51,12 +60,13 @@ jobs:
             -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
             -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
             -maximum-test-execution-time-allowance 120 \
-            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee ios/build/build.log
+            CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee ios/build/build.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ios-build-evidence
           path: |
+            ios/build/compile.log
             ios/build/build.log
             ios/build/offline.xcresult
           if-no-files-found: ignore
