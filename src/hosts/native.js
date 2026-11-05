@@ -184,6 +184,7 @@
       close: () => { activeGoogle = null; return rpc("google.close", {}); },
       disconnect: () => { activeGoogle = null; return rpc("google.disconnect", {}); }
     }),
+    files: Object.freeze({pick: () => rpc("files.open", activeGoogle ? {session:activeGoogle.session} : {})}),
     get ready() { return ready; },
     get environment() { return environment(); },
     receiveEnvironment(value) {

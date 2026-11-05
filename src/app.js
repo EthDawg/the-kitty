@@ -1060,6 +1060,14 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     } catch (e) { googlePicker.privacyMessage = e.message || "The privacy setting did not change."; }
     finally { googlePicker.busy = ""; renderNativeSetup(); }
   }
+  function openFileImport() {
+    const live = S.mode === "live" && S.grids, model = S.m, mcp = S.mcp, id = sheetId();
+    const source = live ? E.fromConnector(S.grids) : window.KITTY_SNAPSHOT;
+    if (!source?.entries) { toast("Choose a version 2 Sheet for import."); return; }
+    window.KittyIntake.open({sheet:source, sheetID:live ? id : null, title:S.nativeSheet?.title || model.householdName,
+      drawer:openDrawer, current:()=>S.m===model && S.mcp===mcp && sheetId()===id,
+      pick:NATIVE && window.KittyNative?.files ? ()=>window.KittyNative.files.pick() : null});
+  }
   function renderNativeSetup() {
     const m = S.m, v = $("#v-setup");
     const live = S.mode === "live" && !!S.nativeSheet;
@@ -1079,6 +1087,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       ${live && googlePicker.pending ? `<div class="card"><b>A category save needs checking</b><p>${esc(googlePicker.pending.entry)} → ${esc(catName(googlePicker.pending.category))}. Kitty checks the original save before sending anything else.</p><button class="btn sm" id="nativecheckpending">Check this save</button></div>` : ""}
       ${window.KittyNative?.privacy ? `<div class="card"><div class="cardhead"><span class="q">Lock your live Sheet</span></div><p>${googlePicker.lockEnabled ? "On. Leaving Kitty locks the live Sheet. Use Face ID, Touch ID or your device passcode to reopen it." : "Require Face ID, Touch ID or your passcode when you return to your live numbers. The fictional offline demo stays available."}</p><button id="nativelock" class="btn sm ghost" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.lockEnabled ? "Turn off Sheet lock" : "Turn on Sheet lock"}</button><p role="status">${esc(googlePicker.privacyMessage)}</p></div>` : ""}
+      <div class="card"><div class="cardhead"><span class="q">Bank imports</span></div><p>Preview the original file and check for duplicates against this household.</p><button class="btn sm" data-import-file>Import a bank file</button></div>
       ${appearanceCard(m)}
       <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
         <div class="prose"><p>Display preferences and demo goal edits stay on this device. ${live && hasCategoryWriter() ? "Only a category you choose in Review writes to the Sheet in this build." : "Demo review decisions last for this visit and do not change the Google Sheet."}</p>
@@ -1095,6 +1104,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $("#nativecheckpending", v)?.addEventListener("click", () => verifiedCategory(googlePicker.pending.entry, googlePicker.pending.category));
     $("#nativelive", v)?.addEventListener("click", openNativeSheet);
     $("#nativedisconnect", v)?.addEventListener("click", () => chooseDemoSheet(true));
+    $("[data-import-file]",v)?.addEventListener("click",openFileImport);
     bindAppearance(v);
     bindCommon(v);
     if (!googlePicker.checked) void syncGoogleStatus();
@@ -1155,6 +1165,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="sheetform"><input id="sheetinput" type="text" inputmode="text" placeholder="Paste your sheet ID or its URL" value="${esc(S.prefs.sheet || "")}" aria-label="Your Google Sheet ID"><button class="btn sm" id="sheetgo">${S.mcp ? "Read it live" : "Save for when connectors are available"}</button>${S.prefs.sheet ? `<button class="btn sm ghost" id="sheetdemo">Back to the demo</button>` : ""}</div>
         <p class="sub" style="margin-top:8px">${S.mode === "live" ? `Reading <a href="${sheetLink}" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> live.` : S.mcp ? (S.liveErr ? `Last live read failed: ${errText(S.liveErr)}` : isDemoSheet() ? "Showing the bundled demo. The owner's view reads the demo sheet live; paste your own ID to read yours." : "") : "Connectors aren't available in this view, so the page shows the bundled demo household."} <button class="linkbtn" id="rerunonb">Run the setup again</button></p>
       </div>
+      <div class="card"><div class="cardhead"><span class="q">Bank imports</span></div><p>Preview the original file and check for duplicates against this household.</p><button class="btn sm" data-import-file>Import a bank file</button></div>
       ${appearanceCard(m)}
       <div class="card" style="--i:5" id="phonecard"><div class="cardhead"><span class="q">On your phone</span><span class="sub">it installs like an app</span></div>
         <div class="qr">${qrHTML() ? `<div>${qrHTML()}</div>` : ""}<div>${installStepsHTML()}<p class="sub" style="margin-top:10px">Claude publishes every artifact with a web-app manifest, so the home-screen icon, the full-screen window and the name “${esc(document.title)}” come for free. Your connector sign-in travels with your Claude session, so the phone copy is live too.</p></div></div>
@@ -1181,6 +1192,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       <p class="sub" style="--i:8;padding:0 6px">The Kitty ${VERSION} · fictional household · <button class="linkbtn" data-open="trust">Where the numbers come from</button> · <a href="${sheetLink}" target="_blank" rel="noopener">open the sheet</a> · <a href="${REPO}" target="_blank" rel="noopener">source on GitHub</a> · <a href="${REPO}/issues/new" target="_blank" rel="noopener">report a problem</a></p>`;
     $$("[data-cc]", v).forEach((b) => b.addEventListener("click", () => { S.setupCountry = b.dataset.cc; renderSetup(); }));
+    $("[data-import-file]",v)?.addEventListener("click",openFileImport);
     bindAppearance(v);
     const go = $("#sheetgo"); if (go) go.addEventListener("click", async () => { const raw = $("#sheetinput").value.trim(); const mt = raw.match(/\/d\/([A-Za-z0-9_-]{20,})/); const id = mt ? mt[1] : raw; if (!id) { toast("Paste a sheet ID first"); return; } savePrefs({ sheet: id === DEMO_SHEET ? "" : id }); S.canWrite = S.isOwner || !!S.prefs.sheet; if (S.mcp) { const ok = await loadLive(true); toast(ok ? "Reading your sheet live" : "Couldn't read that sheet: " + errText(S.liveErr || {}, "it")); if (!ok && SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); } else { toast("Saved. It will read live where connectors are available."); renderSetup(); } });
     const sd = $("#sheetdemo"); if (sd) sd.addEventListener("click", () => { savePrefs({ sheet: "" }); S.canWrite = S.isOwner; if (SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); toast("Back to the demo household"); });

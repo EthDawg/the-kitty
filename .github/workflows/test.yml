@@ -23,7 +23,7 @@ jobs:
           python3 brand/build_brand.py --icons-only
           git diff --exit-code -- brand/icons
           python3 -m unittest discover -s tools -p 'test_brand_pipeline.py' -v
-      - run: node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js
+      - run: node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js src/core/*.test.js
       - name: offline native bundle and capability contract
         run: |
           python3 -m unittest discover -s tools -p 'test_native_build.py' -v

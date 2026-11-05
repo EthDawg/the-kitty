@@ -206,6 +206,8 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
                 mime = 'image/svg+xml' if file.suffix.lower() == '.svg' else 'image/png'
                 logos[file.stem] = f'data:{mime};base64,' + base64.b64encode(file.read_bytes()).decode()
     kit = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.js')
+    # Keep the importer byte-for-byte identical to the code exercised in Node.
+    core = '\n'.join(read(src, 'core', name + '.js') for name in ('sheet-contract', 'import', 'records', 'close'))
     shell = read(src, 'shell.html')
     font_css, host_css, notices = '', '', []
     if native:
@@ -222,6 +224,7 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
             .replace('/*SNAPSHOT*/', 'window.KITTY_SNAPSHOT=' + js(snapshot) + ';window.KITTY_PAGE_URL=' + js(config['page_url']) + ';window.KITTY_SHEET=' + js(sheet_id) + ';')
             .replace('/*MOTION*/', read(brand, 'motion', 'motion.js'))
             .replace('/*ENGINE*/', read(src, 'engine.js'))
+            .replace('/*IMPORT_CORE*/', core)
             .replace('/*KIT*/', kit)
             .replace('/*APP*/', read(src, 'app.js')))
     if native:

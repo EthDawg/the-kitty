@@ -14,6 +14,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     private var exportDirectory: URL?
     private weak var exportPicker: UIDocumentPickerViewController?
     private static var clearedAbandonedExports = false
+    private let importPicker = ImportFilePicker()
     private var pageReady = false
     private lazy var google = GoogleConnection(defaults: preferences)
     private var verifiedSheet: GoogleSheetSelection.Verified?
@@ -118,6 +119,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     @objc private func background() { if privacy.enabled { closeProtectedSession() } }
     @objc private func protectedDataLost() { closeProtectedSession() }
     private func closeProtectedSession() {
+        importPicker.cancel()
         coverLive(); privacy.lock(); liveSession = UUID()
         guard liveSheet != nil || openingLive else { return }
         liveSheet = nil; verifiedSheet = nil; pageReady = false; pendingRoute = "setup"
@@ -248,6 +250,15 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 preferences.set(data, forKey: key)
                 reply(HostPolicy.reply(), nil)
             }
+        case "files.open":
+            let session = liveSession, owner = liveSheet?.preferenceID ?? "native-demo"
+            guard liveSheet == nil ? params["session"] == nil : params["session"] as? String == session.uuidString else {
+                reply(HostPolicy.failure("stale_session", "Choose the file again in this household."),nil); return
+            }
+            importPicker.open(on:self,scope:owner,check:{ [weak self] in
+                guard let self else { return false }
+                return self.liveSession == session && (self.liveSheet?.preferenceID ?? "native-demo") == owner
+            },reply:{ reply($0,nil) })
         case "icon.status", "icon.set":
             let app = UIApplication.shared
             let state = { ["supported": app.supportsAlternateIcons, "alternate": app.alternateIconName == "KittyAlternate"] }
