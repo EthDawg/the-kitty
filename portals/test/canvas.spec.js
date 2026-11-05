@@ -143,3 +143,10 @@ test("every icon the shell asks for exists in the brand sprite", async ({ page }
   const missing = await page.locator("use").evaluateAll((us) => us.map((u) => u.getAttribute("href")).filter((h) => h && h.startsWith("#") && !document.querySelector(h)));
   expect(missing).toEqual([]);
 });
+
+test("the header fits the narrowest phone, live label included", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 }); await open(page);
+  await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live · demo sheet"; });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  const search = await page.locator("#topsearch").boundingBox(); expect(search.x + search.width).toBeLessThanOrEqual(308);
+});
