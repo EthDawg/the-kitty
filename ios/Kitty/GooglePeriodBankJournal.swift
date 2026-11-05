@@ -111,23 +111,65 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
         let b = try resolved(batch,owner)
         return try batch.usingMarkerID(b.receiptMarkerID)
     }
-    private func availableMarker(defaultID: Int, candidate: BankBinding, owner: GoogleSheetSelection.Verified) async throws -> Int {
+    private func availableMarker(for batch: PeriodBankAppend, candidate: BankBinding, owner: GoogleSheetSelection.Verified) async throws -> Int {
+        let defaultID = batch.markerID
         guard defaultID != GoogleBankStore.gateID else { throw GoogleBankStore.invalid }
         guard let occupied = try await store.marker(defaultID) else { return defaultID }
-        // A cancelled T slot may be valid again. Never remove its fence or choose a different ID around foreign metadata.
-        guard let old = try GoogleBankStore.abandonedOwner(occupied,id:defaultID) else {
-            throw GoogleSheetTools.Failure(code:"import_marker_conflict",message:"The next ledger slot already has a different permanent marker. Check the Entries and their original receipt before importing.")
+        if let old = try GoogleBankStore.abandonedOwner(occupied,id:defaultID) {
+            try Self.checked(old,owner:owner,api:api)
+            guard try await Self.action(old,store:store) == .dispatched,
+                  try await Self.markerID(old,store:store) == defaultID,
+                  try await store.blob(.receipt,old) == Self.fencedReceipt(old,id:defaultID) else { throw GoogleBankStore.invalid }
+        } else {
+            try await checkDeletedPosting(occupied,id:defaultID,batch:batch,owner:owner)
         }
-        try Self.checked(old,owner:owner,api:api)
-        guard try await Self.action(old,store:store) == .dispatched,
-              try await Self.markerID(old,store:store) == defaultID,
-              try await store.blob(.receipt,old) == Self.fencedReceipt(old,id:defaultID) else { throw GoogleBankStore.invalid }
+        // Preserve the prior permanent marker. Only this newly generated, vacant ID can authorise the new batch.
         let hex = SourceDocument.sha256(Data(("kitty.period.bank.generation.v1\u{0}" + candidate.ticket).utf8))
         guard let n = Int(hex.prefix(8),radix:16) else { throw GoogleBankStore.invalid }
         let alternative = n & 0x7fff_ffff
         guard alternative > 0, alternative != defaultID, alternative != GoogleBankStore.gateID,
               try await store.marker(alternative) == nil else { throw GoogleBankStore.pending }
         return alternative
+    }
+    private func checkDeletedPosting(_ marker: Object, id: Int, batch: PeriodBankAppend, owner: GoogleSheetSelection.Verified) async throws {
+        let conflict = GoogleSheetTools.Failure(code:"import_marker_conflict",message:"An earlier import used this entry ID. Check Entries and the original receipt before importing.")
+        guard marker["metadataKey"] as? String == PeriodBankAppend.guardKey, let digest = marker["metadataValue"] as? String,
+              BankBinding.hash(digest), let old = try await store.finished(digest:digest,scope:nil),
+              old.digest == digest, old.sourceSHA256 != batch.originalSHA256 else { throw conflict }
+        try Self.checked(old,owner:owner,api:api)
+        guard try await Self.action(old,store:store) == .dispatched, let terminal = try await store.blob(.receipt,old) else { throw conflict }
+        let (_,prior) = try await Self.restore(old,store:store)
+        let verified = try Self.record("verified",old), manual = try Self.manualTab(terminal,old,id:id)
+        guard prior.markerID == id, terminal == verified || manual != nil else { throw conflict }
+        if manual != nil, try await store.manualSource(old.sourceKey) != old { throw conflict }
+
+        let metadata = try await api.request(query:["ranges":"Entries!A1","fields":"spreadsheetId,sheets(properties(sheetId,title))"])
+        guard metadata["spreadsheetId"] as? String == batch.sheetID, let tabs = metadata["sheets"] as? [Object], tabs.count == 1,
+              let properties = tabs[0]["properties"] as? Object, properties["title"] as? String == "Entries",
+              let tab = PeriodBankAppend.number(properties["sheetId"]).flatMap(Int.init(exactly:)), tab >= 0,
+              manual == nil || manual == tab, Self.posted(marker,old,id:id,tab:tab) else { throw conflict }
+
+        // Bounded full-height reads reject a truncated range. Check all IDs, including those moved away from the old slot.
+        let grids = try await PeriodBankPlanner.freshGrids(ranges:["entries":"Entries!A1:A","decisions":"Decisions!A1:C"],api:api)
+        guard let entries = grids["entries"], entries.first as? [String] == ["Entry ID"], let decisions = grids["decisions"] else { throw api.invalid }
+        let ids = Set((prior.rows + batch.rows).map(\.id))
+        let tidy: (String) -> String = { $0.trimmingCharacters(in:.whitespacesAndNewlines).uppercased() }
+        for row in entries.dropFirst() {
+            if row.isEmpty { continue }
+            guard row.count == 1, let entry = row[0] as? String, !tidy(entry).hasPrefix("#") else { throw api.invalid }
+            if ids.contains(tidy(entry)) { throw conflict }
+        }
+        let header = ["Decision ID","Ref kind","Ref ID"]
+        guard decisions.filter({ $0 as? [String] == header }).count == 1 else { throw api.invalid }
+        for row in decisions where row.count >= 2 {
+            guard let kind = row[1] as? String, !tidy(kind).hasPrefix("#") else { throw api.invalid }
+            if tidy(kind) == "ENTRY" {
+                guard row.count == 3, let ref = row[2] as? String, !tidy(ref).isEmpty, !tidy(ref).hasPrefix("#") else { throw api.invalid }
+                if ids.contains(tidy(ref)) {
+                    throw GoogleSheetTools.Failure(code:"import_decision_reference",message:"The Decisions tab still refers to \(tidy(ref)). Restore the original entry or correct that decision’s Ref ID in your Sheet, then refresh the import.")
+                }
+            }
+        }
     }
     private static func persist(_ kind: BankBlob, _ data: Data, _ b: BankBinding, store: BankStore) async throws {
         let saved = try await store.create(kind,b,data:data)
@@ -171,7 +213,7 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
                                         account: batch.account, sourceSHA256: original.id, digest: batch.digest,
                                         month: month, downloadDay: downloadDay, rowCount: batch.rows.count,
                                         sourceID: ids[0], manifestID: ids[1], actionID: ids[2], receiptID: ids[3])
-            candidate.receiptMarkerID = try await availableMarker(defaultID:batch.markerID,candidate:candidate,owner:owner)
+            candidate.receiptMarkerID = try await availableMarker(for:batch,candidate:candidate,owner:owner)
             guard candidate.valid, batch.markerID != GoogleBankStore.gateID else { throw GoogleBankStore.invalid }
             held = try await store.acquire(candidate)
             // A first device can finish and release between our initial receipt search and a delayed hold creation.

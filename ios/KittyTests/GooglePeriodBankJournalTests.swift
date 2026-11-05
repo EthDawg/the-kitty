@@ -80,8 +80,9 @@ final class GooglePeriodBankJournalTests: XCTestCase {
           "writes":[["id":"entries-1","tab":"Entries","op":"append","range":"Entries!A\(last+1):T\(last+1)","rows":1,"columns":PeriodBankAppend.columns,"values":[row]]]]
         return (source,plan,try .init(plan:plan,sheetID:selected.sheetID,account:account,original:source,originalSHA256:source.id))
     }
-    func service(_ sample: (SourceDocument,Object,PeriodBankAppend), _ store: Memory, expectedTicket: String? = nil) -> Journal {
-        Journal(api:api,store:store,original:sample.0,plan:sample.1,month:month,downloadDay:day,expectedTicket:expectedTicket,replan:{source,account,month,day in
+    func service(_ sample: (SourceDocument,Object,PeriodBankAppend), _ store: Memory, expectedTicket: String? = nil,
+                 scanAPI: GoogleSheetTools? = nil) -> Journal {
+        Journal(api:scanAPI ?? api,store:store,original:sample.0,plan:sample.1,month:month,downloadDay:day,expectedTicket:expectedTicket,replan:{source,account,month,day in
             XCTAssertEqual(source.bytes,sample.0.bytes); XCTAssertEqual(account,self.account); XCTAssertEqual(month,self.month); XCTAssertEqual(day,self.day)
             return sample.2
         })
@@ -225,6 +226,103 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         XCTAssertEqual(Set(requests[0].keys),["createDeveloperMetadata"])
         let tombstone = try XCTUnwrap((requests[0]["createDeveloperMetadata"] as? Object)?["developerMetadata"] as? Object)
         XCTAssertEqual(try GoogleBankStore.abandonedOwner(tombstone,id:s.2.markerID),b)
+    }
+
+    private final class SlotScan: GoogleHTTPTransport {
+        let sheetID: String
+        var tab = 8, entries = [["Entry ID"],["T0001"]], decisions = [["Decision ID","Ref kind","Ref ID"]]
+        var truncate: String?
+        init(_ sheetID: String) { self.sheetID = sheetID }
+        func send(_ request: URLRequest, maximumBytes: Int) async throws -> GoogleHTTPResponse {
+            let result: Object
+            if request.httpMethod == "GET" {
+                let tabs: [Object] = [["properties":["sheetId":tab,"title":"Entries","gridProperties":["rowCount":200,"columnCount":21]]],
+                                      ["properties":["sheetId":12,"title":"Decisions","gridProperties":["rowCount":100,"columnCount":8]]]]
+                let query = URLComponents(url:try XCTUnwrap(request.url),resolvingAgainstBaseURL:false)?.queryItems ?? []
+                result = ["spreadsheetId":sheetID,"sheets":query.contains(URLQueryItem(name:"ranges",value:"Entries!A1")) ? [tabs[0]] : tabs]
+            } else {
+                guard request.url?.path.hasSuffix("/values:batchGetByDataFilter") == true else { throw GoogleBankStore.invalid }
+                let input = try XCTUnwrap(try JSONSerialization.jsonObject(with:XCTUnwrap(request.httpBody)) as? Object)
+                let ranges = try XCTUnwrap(input["dataFilters"] as? [[String:String]])
+                XCTAssertEqual(Set(ranges.compactMap { $0["a1Range"] }),["Entries!A1:A200","Decisions!A1:C100"])
+                let matches: [Object] = try ranges.map { filter in
+                    let a1 = try XCTUnwrap(filter["a1Range"]), ledger = a1.hasPrefix("Entries!")
+                    let returned = a1 == truncate ? (ledger ? "Entries!A1:A2" : "Decisions!A1:C2") : a1
+                    return ["dataFilters":[filter],"valueRange":["range":returned,"majorDimension":"ROWS","values":ledger ? entries : decisions]]
+                }
+                result = ["spreadsheetId":sheetID,"valueRanges":matches]
+            }
+            return .init(statusCode:200,data:try JSONSerialization.data(withJSONObject:result))
+        }
+    }
+    private func scanAPI(_ scan: SlotScan) -> GoogleSheetTools {
+        .init(http:scan,selected:selected,current:{self.selected},token:{_ in "synthetic"})
+    }
+    func testAnotherCSVAfterVerifiedOrManuallyClosedTailDeletionUsesANewFenceAndPreservesTheOldEvidence() async throws {
+        for manual in [false,true] {
+            let store = Memory(), sheet = Sheet(store), original = try sample(), scan = SlotScan(selected.sheetID)
+            let first = service(original,store)
+            _ = try await first.reserve(original.2,owner:owner); let old = try XCTUnwrap(store.held)
+            let packet = try await packets(original.2,sheet:sheet); try await first.markDispatched(original.2,owner:owner)
+            try sheet.apply(packet)
+            if manual {
+                sheet.cells[7] = ["userEnteredValue":["stringValue":"GROCERIES"]]
+                let closed = try await Journal.closeForReview(owner:owner,api:api,store:store,digest:old.digest,ticket:old.ticket,observe:sheet.observe)
+                XCTAssertTrue(closed.manuallyClosed)
+            } else {
+                let confirmed = try await Journal.lookup(owner:owner,api:api,store:store,digest:old.digest,scope:nil,observe:sheet.observe)
+                XCTAssertEqual(confirmed?.phase,.verified)
+            }
+            let oldReceipt = try XCTUnwrap(store.blobs[old.receiptID]), oldMarker = try XCTUnwrap(store.markers[original.2.markerID])
+            sheet.writtenIDs.removeAll(); sheet.cells.removeAll()
+            let replacement = try sample("NEW CAFE",cents:6.17), journal = service(replacement,store,scanAPI:scanAPI(scan))
+            let initial = try await Journal.lookup(owner:owner,api:api,store:store,digest:old.digest,scope:nil,observe:sheet.observe)
+            XCTAssertEqual(initial?.phase,.needsReview)
+            scan.decisions.append(["D-1","contract","T0002"]) // Only entry-linked Decisions are reapplied to entries.
+            _ = try await journal.reserve(replacement.2,owner:owner)
+            let next = try XCTUnwrap(store.held), authorized = try journal.authorizedBatch(replacement.2,owner:owner)
+            XCTAssertNotEqual(authorized.markerID,original.2.markerID); XCTAssertEqual(next.receiptMarkerID,authorized.markerID)
+            try await journal.markDispatched(authorized,owner:owner); try sheet.apply(await packets(authorized,sheet:sheet))
+            let verified = try await Journal.lookup(owner:owner,api:api,store:store,digest:next.digest,scope:nil,observe:sheet.observe)
+            XCTAssertEqual(verified?.phase,.verified); XCTAssertEqual(sheet.writtenIDs,["T0002"])
+            XCTAssertThrowsError(try sheet.apply(packet))
+            XCTAssertEqual(store.blobs[old.receiptID],oldReceipt)
+            XCTAssertEqual(try JSONSerialization.data(withJSONObject:oldMarker,options:.sortedKeys),
+                           try JSONSerialization.data(withJSONObject:XCTUnwrap(store.markers[original.2.markerID]),options:.sortedKeys))
+        }
+    }
+
+    func testGenerationRefusesAnyRemainingArchivedIDOrEntryDecisionAndRequiresAuthenticCompleteEvidence() async throws {
+        let store = Memory(), basic = try sample(), scan = SlotScan(selected.sheetID)
+        let text = String(decoding:basic.0.bytes,as:UTF8.self) + "03/02/2027,SECOND,Joint,1234,2.50\n"
+        let source = SourceDocument(name:"two.csv",mimeType:"text/csv",bytes:Data(text.utf8))
+        var plan = basic.1, w = try XCTUnwrap((plan["writes"] as? [Object])?.first)
+        let row = try XCTUnwrap((w["values"] as? [[Any]])?.first); var second = row
+        second[0] = "T0003"; second[2] = "2027-02-03"; second[4] = "SECOND"; second[5] = "SECOND"; second[6] = -2.50; second[12] = second[2]
+        w["range"] = "Entries!A3:T4"; w["rows"] = 2; w["values"] = [row,second]; plan["writes"] = [w]
+        let batch = try PeriodBankAppend(plan:plan,sheetID:selected.sheetID,account:account,original:source,originalSHA256:source.id)
+        let oldJournal = service((source,plan,batch),store)
+        _ = try await oldJournal.reserve(batch,owner:owner); let old = try XCTUnwrap(store.held)
+        try await oldJournal.markDispatched(batch,owner:owner)
+        store.markers[batch.markerID] = ["metadataId":batch.markerID,"metadataKey":PeriodBankAppend.guardKey,"metadataValue":old.digest,
+                                         "visibility":"DOCUMENT","location":["sheetId":8]]
+        let receipt = try JSONSerialization.data(withJSONObject:["kind":"verified","binding":old.object],options:[.sortedKeys,.withoutEscapingSlashes])
+        store.blobs[old.receiptID] = receipt
+        store.held = nil
+        let next = try sample("NEW CAFE"), nextJournal = service(next,store,scanAPI:scanAPI(scan))
+        func refused(_ code: String? = nil) async throws {
+            do { _ = try await nextJournal.reserve(next.2,owner:owner); XCTFail("Unproved slot reuse was allowed") }
+            catch { if let code { XCTAssertEqual((error as? GoogleSheetTools.Failure)?.code,code) } }
+            XCTAssertNil(store.held); XCTAssertEqual(store.blobs[old.receiptID],receipt)
+        }
+        // T0002 is no longer at its old address, but moved T0003 still belongs to this very same archived batch.
+        scan.entries += [[],["V0001"],["T0003"]]; try await refused("import_marker_conflict")
+        scan.entries = [["Entry ID"],["T0001"]]
+        scan.decisions += [[],["D-2","entry","T0003"]]; try await refused("import_decision_reference")
+        scan.decisions = [["Decision ID","Ref kind","Ref ID"]]
+        scan.truncate = "Decisions!A1:C100"; try await refused("invalid_response")
+        scan.truncate = nil; scan.tab = 19; try await refused("import_marker_conflict")
+        scan.tab = 8; store.blobs[old.sourceID] = Data("changed".utf8); try await refused()
     }
     func testTwoDevicesRecoverDispatchGapAndDelayedFirstBatchCannotDuplicate() async throws {
         let sample = try sample(), journalStore = Memory(), sheet = Sheet()
