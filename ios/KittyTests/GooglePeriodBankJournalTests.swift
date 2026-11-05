@@ -9,6 +9,9 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         var held: BankBinding?, all = [BankBinding](), blobs = [String: Data]()
         var generated = 0, eligibility = true, loseActionResponse = false
         var markers = [Int:Object]()
+        var highestIssued = 0, entryFacts = [[Any]]()
+        func issuedTransactionNumber() async throws -> Int { highestIssued }
+        func currentEntryFacts() async throws -> [[Any]] { entryFacts }
         var beforeFence: (() throws -> Void)?
         var loseFenceResponse = false
         func checkNewWrite(_ owner: GoogleSheetSelection.Verified) async throws {
@@ -43,14 +46,16 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         }
         func finished(digest: String?, scope: String?) async throws -> BankBinding? {
             var cancelled: BankBinding?
+            var committed = [(String,BankBinding)]()
             for b in all {
                 let s = try b.scope
                 guard (digest != nil && b.digest == digest) || (scope != nil && s == scope),
                       let bytes = blobs[b.receiptID], let record = try JSONSerialization.jsonObject(with:bytes) as? Object else { continue }
-                if let kind = record["kind"] as? String, ["verified","needs-review"].contains(kind) { return b }
-                cancelled = b
+                if let kind = record["kind"] as? String, ["verified","needs-review"].contains(kind) { committed.append((kind,b)) }
+                else { cancelled = b }
             }
-            return cancelled
+            if scope != nil, !committed.isEmpty { return try GoogleBankStore.latest(committed) }
+            return committed.first?.1 ?? cancelled
         }
         func manualSource(_ key: String) async throws -> BankBinding? {
             for b in all where b.sourceKey == key {
@@ -67,22 +72,26 @@ final class GooglePeriodBankJournalTests: XCTestCase {
     var owner: GoogleSheetSelection.Verified { .init(selection:selected,title:"Fictional",canEdit:true) }
     var api: GoogleSheetTools { .init(http:Offline(),selected:selected,current:{self.selected},token:{_ in "fictional"}) }
     let day = "2027-02-10", month = "2027-02", account = "ACC-CC"
-    func sample(_ name: String = "CAFE", cents: Double = 4.50, followingValuation: Bool = false, followingPosting: Bool = false) throws -> (SourceDocument,Object,PeriodBankAppend) {
+    func sample(_ name: String = "CAFE", cents: Double = 4.50, followingValuation: Bool = false, followingPosting: Bool = false,
+                issuedFloor: Int? = nil) throws -> (SourceDocument,Object,PeriodBankAppend) {
         let csv = "Date,Description,Card Member,Account #,Amount\n02/02/2027,\(name),Joint,1234,\(cents)\n"
         let source = SourceDocument(name:"fictional.csv",mimeType:"text/csv",bytes:Data(csv.utf8))
         let settled = "2027-02-02"
-        let priorT = followingPosting ? "T0002" : "T0001", nextT = followingPosting ? "T0003" : "T0002"
+        let priorT = followingPosting ? "T0002" : "T0001", nextT = String(format:"T%04d",(issuedFloor ?? (followingPosting ? 2 : 1))+1)
         let row: [Any] = [nextT,"transaction",settled,account,name,name,-cents,"UNCAT","Joint","","","settled",settled,"","","","","","","bank export"]
         let last = followingValuation || followingPosting ? 3 : 2, anchor = followingValuation ? "V0001" : priorT
+        var assumptions: Object = ["entries_rows":last-1,"last_entry_row":last,"last_entry_id":anchor,"last_ids":["T":priorT]]
+        if let issuedFloor { assumptions["transaction_id_floor"] = issuedFloor }
         let plan: Object = ["schema":"kitty-write-plan/1","status":"ready","sheet":["version":2,"id":selected.sheetID],"deferred":[],
-          "assumes":["entries_rows":last-1,"last_entry_row":last,"last_entry_id":anchor,"last_ids":["T":priorT]],
+          "assumes":assumptions,
           "preconditions":[["range":"Entries!A\(last):A\(last+1)","expect":[[anchor],[]]]],
           "writes":[["id":"entries-1","tab":"Entries","op":"append","range":"Entries!A\(last+1):T\(last+1)","rows":1,"columns":PeriodBankAppend.columns,"values":[row]]]]
         return (source,plan,try .init(plan:plan,sheetID:selected.sheetID,account:account,original:source,originalSHA256:source.id))
     }
     func service(_ sample: (SourceDocument,Object,PeriodBankAppend), _ store: Memory, expectedTicket: String? = nil,
-                 scanAPI: GoogleSheetTools? = nil) -> Journal {
-        Journal(api:scanAPI ?? api,store:store,original:sample.0,plan:sample.1,month:month,downloadDay:day,expectedTicket:expectedTicket,replan:{source,account,month,day in
+                 scanAPI: GoogleSheetTools? = nil, replacesTicket: String? = nil, observation: Journal.Observe? = nil) -> Journal {
+        Journal(api:scanAPI ?? api,store:store,original:sample.0,plan:sample.1,month:month,downloadDay:day,expectedTicket:expectedTicket,
+                replacesTicket:replacesTicket,observe:observation ?? PeriodBankReadback.read,replan:{source,account,month,day in
             XCTAssertEqual(source.bytes,sample.0.bytes); XCTAssertEqual(account,self.account); XCTAssertEqual(month,self.month); XCTAssertEqual(day,self.day)
             return sample.2
         })
@@ -112,11 +121,20 @@ final class GooglePeriodBankJournalTests: XCTestCase {
             }
             marker = m; store?.markers[mid] = m; cells = row; applied += 1
             writtenIDs.append(try XCTUnwrap((row[0]["userEnteredValue"] as? Object)?["stringValue"] as? String))
+            store?.entryFacts.append(row.prefix(7).map { cell in
+                let value = cell["userEnteredValue"] as? Object
+                return value?["stringValue"] ?? value?["numberValue"] ?? ""
+            })
+            if let store, let issued = (requests.last?["createDeveloperMetadata"] as? Object)?["developerMetadata"] as? Object,
+               issued["metadataKey"] as? String == PeriodBankAppend.issuedKey, let raw = issued["metadataValue"] as? String,
+               let first = raw.split(separator:"|").first, let t = Int(first) { store.highestIssued = max(t,store.highestIssued) }
         }
     }
     func packets(_ batch: PeriodBankAppend, sheet: Sheet) async throws -> [Object] {
-        let before = try await sheet.observe(batch,owner,api)
-        guard case .batch(let requests) = try batch.next(before,stage:.prepared,freshlyPlanned:batch) else { throw GoogleBankStore.invalid }
+        let b = sheet.store?.held
+        let bound = try batch.usingMarkerID(b?.receiptMarkerID,recordsIssuedIDs:(b?.version ?? 1) >= 3)
+        let before = try await sheet.observe(bound,owner,api)
+        guard case .batch(let requests) = try bound.next(before,stage:.prepared,freshlyPlanned:batch) else { throw GoogleBankStore.invalid }
         return requests
     }
 
@@ -159,9 +177,9 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         let edited = try await Journal.lookup(owner:owner,api:api,store:store,digest:b.digest,scope:nil,observe:sheet.observe)
         XCTAssertEqual(edited?.phase,.verified); XCTAssertEqual(edited?.evidence,.recategorised)
         XCTAssertEqual(store.markers[s.2.markerID]?["metadataKey"] as? String,PeriodBankAppend.guardKey)
-        sheet.writtenIDs = []; sheet.cells = []
+        sheet.writtenIDs = []; sheet.cells = []; store.entryFacts = []
         let deleted = try await Journal.lookup(owner:owner,api:api,store:store,digest:b.digest,scope:nil,observe:sheet.observe)
-        XCTAssertEqual(deleted?.phase,.needsReview); XCTAssertEqual(deleted?.canDiscard,false)
+        XCTAssertEqual(deleted?.phase,.removed); XCTAssertEqual(deleted?.removedIDFloor,2); XCTAssertEqual(deleted?.canDiscard,false)
         let receipt = try XCTUnwrap(try JSONSerialization.jsonObject(with:XCTUnwrap(store.blobs[b.receiptID])) as? Object)
         XCTAssertEqual(receipt["kind"] as? String,"verified")
     }
@@ -274,22 +292,137 @@ final class GooglePeriodBankJournalTests: XCTestCase {
                 XCTAssertEqual(confirmed?.phase,.verified)
             }
             let oldReceipt = try XCTUnwrap(store.blobs[old.receiptID]), oldMarker = try XCTUnwrap(store.markers[original.2.markerID])
-            sheet.writtenIDs.removeAll(); sheet.cells.removeAll()
-            let replacement = try sample("NEW CAFE",cents:6.17), journal = service(replacement,store,scanAPI:scanAPI(scan))
+            sheet.writtenIDs.removeAll(); sheet.cells.removeAll(); store.entryFacts = []
+            let stale = try sample("NEW CAFE",cents:6.17)
+            do { _ = try await service(stale,store).reserve(stale.2,owner:owner); XCTFail("Deleted ID was reissued") } catch {}
+            let replacement = try sample("NEW CAFE",cents:6.17,issuedFloor:2), journal = service(replacement,store,scanAPI:scanAPI(scan))
             let initial = try await Journal.lookup(owner:owner,api:api,store:store,digest:old.digest,scope:nil,observe:sheet.observe)
-            XCTAssertEqual(initial?.phase,.needsReview)
+            XCTAssertEqual(initial?.phase,manual ? .needsReview : .removed)
             scan.decisions.append(["D-1","contract","T0002"]) // Only entry-linked Decisions are reapplied to entries.
             _ = try await journal.reserve(replacement.2,owner:owner)
             let next = try XCTUnwrap(store.held), authorized = try journal.authorizedBatch(replacement.2,owner:owner)
             XCTAssertNotEqual(authorized.markerID,original.2.markerID); XCTAssertEqual(next.receiptMarkerID,authorized.markerID)
             try await journal.markDispatched(authorized,owner:owner); try sheet.apply(await packets(authorized,sheet:sheet))
             let verified = try await Journal.lookup(owner:owner,api:api,store:store,digest:next.digest,scope:nil,observe:sheet.observe)
-            XCTAssertEqual(verified?.phase,.verified); XCTAssertEqual(sheet.writtenIDs,["T0002"])
+            XCTAssertEqual(verified?.phase,.verified); XCTAssertEqual(sheet.writtenIDs,["T0003"])
             XCTAssertThrowsError(try sheet.apply(packet))
             XCTAssertEqual(store.blobs[old.receiptID],oldReceipt)
             XCTAssertEqual(try JSONSerialization.data(withJSONObject:oldMarker,options:.sortedKeys),
                            try JSONSerialization.data(withJSONObject:XCTUnwrap(store.markers[original.2.markerID]),options:.sortedKeys))
         }
+    }
+
+    func testExplicitSameFileReplacementUsesFreshIDsAndTheNextReplayResolvesOnlyItsVerifiedSuccessor() async throws {
+        let store = Memory(), sheet = Sheet(store), original = try sample()
+        let first = service(original,store,observation:sheet.observe)
+        _ = try await first.reserve(original.2,owner:owner)
+        let old = try XCTUnwrap(store.held), oldPacket = try await packets(original.2,sheet:sheet)
+        try await first.markDispatched(original.2,owner:owner); try sheet.apply(oldPacket)
+        let saved = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        XCTAssertEqual(saved?.phase,.verified); XCTAssertEqual(store.highestIssued,2)
+        let oldReceipt = try XCTUnwrap(store.blobs[old.receiptID])
+        // Only the old ID disappeared. Recreated movement under another ID must still block a second copy.
+        sheet.writtenIDs.removeAll(); sheet.cells.removeAll()
+        store.entryFacts[0][0] = "T0099"
+        let copied = try await Journal.lookup(owner:owner,api:api,store:store,digest:old.digest,scope:nil,observe:sheet.observe)
+        XCTAssertEqual(copied?.phase,.needsReview)
+        store.entryFacts = []; sheet.baseIDs.append("T0002")
+        let moved = try await Journal.lookup(owner:owner,api:api,store:store,digest:old.digest,scope:nil,observe:sheet.observe)
+        XCTAssertEqual(moved?.phase,.needsReview)
+        sheet.baseIDs.removeLast()
+        let removed = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        XCTAssertEqual(removed?.phase,.removed); XCTAssertEqual(removed?.removedIDFloor,2)
+        let fresh = try sample(issuedFloor:2)
+        for wrongTicket in [nil,String(repeating:"f",count:64)] as [String?] {
+            do { _ = try await service(fresh,store,replacesTicket:wrongTicket,observation:sheet.observe).reserve(fresh.2,owner:owner); XCTFail("A new explicit approval is required") } catch {}
+            XCTAssertNil(store.held)
+        }
+        let successor = service(fresh,store,replacesTicket:old.ticket,observation:sheet.observe)
+        _ = try await successor.reserve(fresh.2,owner:owner)
+        let next = try XCTUnwrap(store.held)
+        XCTAssertEqual(next.replacesTicket,old.ticket); XCTAssertEqual(next.issuedThrough,3)
+        let pending = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        XCTAssertEqual(pending?.pendingIDFloor,2)
+        _ = try await successor.replan(fresh.2,owner:owner)
+        let packet = try await packets(fresh.2,sheet:sheet)
+        try await successor.markDispatched(fresh.2,owner:owner); try sheet.apply(packet)
+        let done = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        XCTAssertEqual(done?.phase,.verified); XCTAssertEqual(done?.ticket,next.ticket); XCTAssertNil(store.held)
+        let replay = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        XCTAssertEqual(replay?.digest,next.digest); XCTAssertEqual(store.highestIssued,3)
+        XCTAssertEqual(sheet.writtenIDs,["T0003"]); XCTAssertThrowsError(try sheet.apply(oldPacket))
+        XCTAssertEqual(store.blobs[old.receiptID],oldReceipt); XCTAssertNotNil(store.blobs[next.receiptID])
+        XCTAssertNotNil(store.markers[old.receiptMarkerID!]); XCTAssertNotNil(store.markers[next.receiptMarkerID!])
+        let fork = BankBinding(version:3,sheetID:next.sheetID,owner:next.owner,account:next.account,
+            sourceSHA256:next.sourceSHA256,digest:String(repeating:"9",count:64),month:next.month,downloadDay:next.downloadDay,rowCount:1,
+            sourceID:"fictional_fork_original",manifestID:"fictional_fork_manifest",actionID:"fictional_fork_action",receiptID:"fictional_fork_receipt",
+            receiptMarkerID:321,issuedThrough:4,replacesTicket:old.ticket)
+        XCTAssertThrowsError(try GoogleBankStore.latest([("verified",old),("verified",next),("verified",fork)]))
+        XCTAssertThrowsError(try GoogleBankStore.latest([("verified",next)]))
+    }
+
+    func testIssuedTIsAuthenticatedFromLegacyArchiveWhenNoWatermarkExists() async throws {
+        let old = try sample(), store = Memory(), sheet = Sheet(store)
+        let b = BankBinding(version:2,sheetID:selected.sheetID,owner:selected.permissionID,account:account,sourceSHA256:old.0.id,
+             digest:old.2.digest,month:month,downloadDay:day,rowCount:1,sourceID:"legacy_fixture_source",manifestID:"legacy_fixture_manifest",
+             actionID:"legacy_fixture_action",receiptID:"legacy_fixture_receipt",receiptMarkerID:old.2.markerID)
+        func json(_ v: Object) throws -> Data { try JSONSerialization.data(withJSONObject:v,options:[.sortedKeys,.withoutEscapingSlashes]) }
+        store.all = [b]; store.blobs[b.sourceID] = old.0.bytes
+        store.blobs[b.manifestID] = try json(["kind":"reviewed","binding":b.object,"originalName":old.0.name,
+                                             "amountEncoding":PeriodBankAppend.manifestAmountEncoding,"plan":PeriodBankAppend.planForManifest(old.1)])
+        store.blobs[b.actionID] = try json(["kind":"dispatch","binding":b.object])
+        store.blobs[b.receiptID] = try json(["kind":"verified","binding":b.object])
+        store.markers[b.receiptMarkerID!] = ["metadataId":old.2.markerID,"metadataKey":PeriodBankAppend.guardKey,
+            "metadataValue":b.digest,"visibility":"DOCUMENT","location":["sheetId":8]]
+        let issued = try await Journal.legacyIssuedNumber(digest:b.digest,id:old.2.markerID,tab:8,store:store,api:api)
+        XCTAssertEqual(issued,2)
+        do { _ = try await Journal.legacyIssuedNumber(digest:b.digest,id:999,tab:8,store:store,api:api); XCTFail("Wrong permanent ID accepted") } catch {}
+        let originalReceipt = store.blobs[b.receiptID]
+        let removed = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.scope,observe:sheet.observe)
+        XCTAssertEqual(removed?.phase,.removed); XCTAssertEqual(removed?.removedIDFloor,2)
+        store.highestIssued = issued
+        let fresh = try sample(issuedFloor:issued), j = service(fresh,store,replacesTicket:b.ticket,observation:sheet.observe)
+        _ = try await j.reserve(fresh.2,owner:owner); let successor = try XCTUnwrap(store.held)
+        let pending = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.scope,observe:sheet.observe)
+        XCTAssertEqual(pending?.pendingIDFloor,2)
+        let secondDevice = service(fresh,store,expectedTicket:successor.ticket,observation:sheet.observe)
+        _ = try await secondDevice.reserve(fresh.2,owner:owner); try await secondDevice.markDispatched(fresh.2,owner:owner)
+        let result = try await Journal.retry(owner:owner,api:api,store:store,digest:successor.digest,ticket:successor.ticket,
+            replan:{ _,_,_,_ in try self.sample(issuedFloor:try XCTUnwrap(pending?.pendingIDFloor)).2 },observe:sheet.observe,send:sheet.apply)
+        XCTAssertEqual(result.phase,.verified); XCTAssertEqual(result.ticket,successor.ticket); XCTAssertEqual(sheet.writtenIDs,["T0003"])
+        XCTAssertEqual(store.blobs[b.receiptID],originalReceipt); XCTAssertEqual(store.highestIssued,3)
+        store.blobs[b.sourceID] = nil
+        do { _ = try await Journal.legacyIssuedNumber(digest:b.digest,id:old.2.markerID,tab:8,store:store,api:api); XCTFail("Unverifiable legacy allocation accepted") }
+        catch let error as GoogleSheetTools.Failure { XCTAssertTrue(error.message.contains("Restore")) }
+    }
+
+    func testIssuedMarkerAndPrivateMaximumUseBoundedReadsAndRejectChangedOrUnpairedIssuance() async throws {
+        let memory = Memory(), s = try sample(issuedFloor:2), session = selected
+        _ = try await service(s,memory).reserve(s.2,owner:owner); let b = try XCTUnwrap(memory.held), id = try XCTUnwrap(b.receiptMarkerID)
+        let http = HTTP(), rest = GoogleBankStore(api:.init(http:http,selected:session,current:{session},token:{_ in "fictional"}))
+        let receipt = try JSONSerialization.data(withJSONObject:["kind":"verified","binding":b.object],options:[.sortedKeys,.withoutEscapingSlashes])
+        let sheetKey = SourceDocument.sha256(Data((b.sheetID + "\u{0}" + b.owner).utf8))
+        let tags = ["kittyBankKind":"receipt","kittyBankDigest":b.digest,"kittyBankScope":try b.scope,"kittyBankIntent":b.manifestID,"kittyBankTerminal":"verified",
+                    "kittyBankIssuedSheet":sheetKey,"kittyBankIssuedT":"3","kittyBankIssuedMarker":String(id)]
+        let file: Object = ["id":b.receiptID,"mimeType":"application/json","trashed":false,"ownedByMe":true,"owners":[["permissionId":b.owner]],
+                            "permissions":[["id":b.owner,"type":"user","role":"owner"]],"size":String(receipt.count),"appProperties":tags]
+        let posted: Object = ["metadataId":id,"metadataKey":PeriodBankAppend.guardKey,"metadataValue":b.digest,"visibility":"DOCUMENT","location":["sheetId":8]]
+        func stamp(_ n: Int) -> Object { ["metadataId":1234,"metadataKey":PeriodBankAppend.issuedKey,"metadataValue":"\(n)|\(b.digest)","visibility":"DOCUMENT","location":["spreadsheet":true]] }
+        func pack(_ markers: [Object]) throws -> [GoogleHTTPResponse] {
+            [try http.json(["matchedDeveloperMetadata":markers.map{["developerMetadata":$0]}]),
+             try http.json(["files":[["id":b.receiptID,"appProperties":tags]],"incompleteSearch":false]),
+             try http.json(["spreadsheetId":b.sheetID,"sheets":[["properties":["sheetId":8,"title":"Entries"]]]])]
+        }
+        http.replies = try pack([posted,stamp(3)]) + [http.json(file),.init(statusCode:200,data:receipt)]
+        let first = try await rest.issuedTransactionNumber(); XCTAssertEqual(first,3); XCTAssertEqual(http.requests.count,5)
+        http.replies = try pack([posted,stamp(3)])
+        let warm = try await rest.issuedTransactionNumber(); XCTAssertEqual(warm,3); XCTAssertEqual(http.requests.count,8)
+        for invalid in [[posted,stamp(2)],[stamp(3)],[posted,stamp(3),stamp(3)]] {
+            http.replies = try pack(invalid)
+            do { _ = try await rest.issuedTransactionNumber(); XCTFail("Changed or unpaired issuance accepted") } catch {}
+        }
+        http.replies = [try http.json([:]),try http.json(["files":[],"incompleteSearch":true])]
+        do { _ = try await rest.issuedTransactionNumber(); XCTFail("Incomplete metadata search accepted") } catch {}
     }
 
     func testGenerationRefusesAnyRemainingArchivedIDOrEntryDecisionAndRequiresAuthenticCompleteEvidence() async throws {
@@ -323,6 +456,13 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         scan.truncate = "Decisions!A1:C100"; try await refused("invalid_response")
         scan.truncate = nil; scan.tab = 19; try await refused("import_marker_conflict")
         scan.tab = 8; store.blobs[old.sourceID] = Data("changed".utf8); try await refused()
+        // The original stamp covers both T0002 and T0003, even though its slot marker is at the first ID only.
+        store.blobs[old.sourceID] = source.bytes; store.highestIssued = batch.lastTransactionNumber
+        let partialTail = try sample("NEW CAFE",followingPosting:true)
+        do { _ = try await service(partialTail,store).reserve(partialTail.2,owner:owner); XCTFail("A vacant T0003 marker bypassed its issued ID") }
+        catch let error as PeriodBankAppend.Failure { XCTAssertEqual(error,.staleLedger) }
+        let above = try sample("NEW CAFE",followingPosting:true,issuedFloor:3)
+        _ = try await service(above,store).reserve(above.2,owner:owner); XCTAssertEqual(above.2.rows.map(\.id),["T0004"])
     }
     func testTwoDevicesRecoverDispatchGapAndDelayedFirstBatchCannotDuplicate() async throws {
         let sample = try sample(), journalStore = Memory(), sheet = Sheet()

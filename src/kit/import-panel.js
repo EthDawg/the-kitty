@@ -99,11 +99,11 @@
         const explain=document.createElement("p");
         explain.textContent=response.message||(response.mode==="pending"?"A previous import is still being checked.":!host.commit?"This is a preview. No Sheet rows were written.":s.proposedCount===0?"No Sheet rows were written.":"Check the complete preview before saving.");
         result.append(explain);
-        const label={confirm:"Confirm import to "+host.title,recover:"Check previous import receipt",resume:"Resume verified import",stale:"Discard outdated review"}[response.mode];
+        const label={confirm:"Confirm import to "+host.title,reimport:"Reimport removed entries to "+host.title,recover:"Check previous import receipt",resume:"Resume verified import",stale:"Discard outdated review"}[response.mode];
         if(!label || !host.preview || !host.commit || typeof response.ticket!=="string" || !response.ticket ||
-            (response.mode==="confirm" && (s.status!=="ready" || !s.proposedCount || !s.writes.length || s.deferred.length)) ||
+            (["confirm","reimport"].includes(response.mode) && (s.status!=="ready" || !s.proposedCount || !s.writes.length || s.deferred.length)) ||
             (response.mode==="stale" && !host.cancel))return;
-        if(response.mode==="confirm" || response.mode==="resume"){
+        if(["confirm","reimport","resume"].includes(response.mode)){
           const destination=document.createElement("p");
           destination.textContent="Your private Google Drive will keep the full original CSV, including duplicates, other columns and rows outside this month, and its import record. The reviewed entries will go into “"+host.title+"”, where anyone with access to that Sheet can read them.";
           result.append(destination);

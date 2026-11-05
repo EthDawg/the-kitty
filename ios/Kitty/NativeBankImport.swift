@@ -5,13 +5,14 @@ import Foundation
 @MainActor
 final class NativeBankImport {
     typealias Object = [String:Any]
-    private enum Action: String { case confirm, resume, recover, stale }
+    private enum Action: String { case confirm, reimport, resume, recover, stale }
     private struct Review {
         let id, session: UUID
         let selection: GoogleConnection.Selection
         let original: SourceDocument
         let account, month, day, digest: String
         let priorTicket: String?
+        let minimumID: Int
         let preview: PeriodBankPlanner.Preview
         let action: Action
     }
@@ -52,6 +53,7 @@ final class NativeBankImport {
         case .prepared: result["message"] = "This review was saved before its entries were sent. Reopen the file to finish, or discard this attempt."
         case .dispatched: result["message"] = "Google has not returned the saved entries. Reopen the file to resume, or discard this attempt. Kitty checks the result with Google before releasing it."
         case .cancelled: result["message"] = "This unfinished import has been discarded."
+        case .removed: result["message"] = "The entries from this verified import were removed. Choose the original file to review a fresh import."
         case .needsReview:
             result["message"] = Self.changedMessage
             if status.canReleaseForReview {
@@ -84,17 +86,17 @@ final class NativeBankImport {
         clear()
         let request = revision
         guard owner.canImportBankFiles, owner.selection == api.selected else { throw api.invalid }
-        let preview = try await PeriodBankPlanner.prepare(original:original,account:account,month:month,
-                            downloadDay:day,owner:owner,api:api)
         let status = try await GooglePeriodBankJournal.recover(owner:owner,api:api,sourceSHA256:original.id,
                             account:account,month:month,downloadDay:day)
+        let minimumID = max(status?.removedIDFloor ?? 0,status?.pendingIDFloor ?? 0)
+        let preview = try await Self.freshPlan(original:original,account:account,month:month,day:day,
+                                               minimumID:minimumID,owner:owner,api:api)
         try api.check()
         guard request == revision else { throw Self.stale }
         var out: Object = ["mode":"preview", "summary":preview.summary]
         let action: Action
         let digest: String
         if let status, status.phase != .cancelled {
-            digest = status.digest
             switch status.phase {
             case .verified:
                 out["mode"] = "verified"
@@ -108,8 +110,17 @@ final class NativeBankImport {
                 out["mode"] = "pending"
                 out["message"] = Self.changedMessage
                 return out
-            case .prepared: action = preview.batch?.digest == digest ? .confirm : .stale
-            case .dispatched: action = preview.batch?.digest == digest ? .resume : .recover
+            case .removed:
+                guard let batch = preview.batch else {
+                    out["message"] = "The original entries were removed. Check the current file and Sheet before restoring them."
+                    return out
+                }
+                digest = batch.digest; action = .reimport
+                out["message"] = "The entries from your earlier verified import were removed. Review these new entries and IDs. Your earlier receipt will be kept."
+            case .prepared:
+                digest = status.digest; action = preview.batch?.digest == digest ? .confirm : .stale
+            case .dispatched:
+                digest = status.digest; action = preview.batch?.digest == digest ? .resume : .recover
             case .cancelled: throw api.invalid
             }
         } else if let batch = preview.batch {
@@ -117,7 +128,8 @@ final class NativeBankImport {
         } else { return out }
         let ticket = UUID()
         review = Review(id:ticket,session:session,selection:owner.selection,original:original,
-                        account:account,month:month,day:day,digest:digest,priorTicket:status?.phase == .cancelled ? nil : status?.ticket,preview:preview,action:action)
+                        account:account,month:month,day:day,digest:digest,priorTicket:status?.phase == .cancelled ? nil : status?.ticket,
+                        minimumID:minimumID,preview:preview,action:action)
         out["mode"] = action.rawValue; out["ticket"] = ticket.uuidString
         if let status, let discardID = armDiscard(status,session:session,owner:owner) {
             if action == .stale { out["ticket"] = discardID } else { out["discardTicket"] = discardID }
@@ -152,8 +164,8 @@ final class NativeBankImport {
         }
         guard let batch = r.preview.batch, batch.digest == r.digest else { throw Self.stale }
         let replan: GooglePeriodBankJournal.Replan = { original, account, month, day in
-                let fresh = try await PeriodBankPlanner.prepare(original:original,account:account,month:month,
-                                                                downloadDay:day,owner:owner,api:api)
+                let fresh = try await Self.freshPlan(original:original,account:account,month:month,
+                                                     day:day,minimumID:r.minimumID,owner:owner,api:api)
                 guard let checked = fresh.batch else { throw PeriodBankAppend.Failure.staleLedger }
                 return checked
         }
@@ -164,9 +176,17 @@ final class NativeBankImport {
             return Self.historicalReceipt(status)
         }
         let journal = GooglePeriodBankJournal(api:api,original:r.original,plan:r.preview.plan,month:r.month,
-            downloadDay:r.day,expectedTicket:r.priorTicket,replan:replan)
+            downloadDay:r.day,expectedTicket:r.action == .reimport ? nil : r.priorTicket,
+            replacesTicket:r.action == .reimport ? r.priorTicket : nil,replan:replan)
         let digest = try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal)
         return Self.receipt(digest,count:batch.rows.count,replay:false)
+    }
+    private static func freshPlan(original: SourceDocument, account: String, month: String, day: String,
+                                  minimumID: Int, owner: GoogleSheetSelection.Verified,
+                                  api: GoogleSheetTools) async throws -> PeriodBankPlanner.Preview {
+        let issued = try await GoogleBankStore(api:api).issuedTransactionNumber()
+        return try await PeriodBankPlanner.prepare(original:original,account:account,month:month,downloadDay:day,
+                                owner:owner,api:api,transactionIDFloor:max(issued,minimumID))
     }
     private static let changedMessage = "Google’s import record and the current entries differ. Check the original entries in your Sheet before importing this file again."
     private static func historicalReceipt(_ status: GooglePeriodBankJournal.Status) -> Object {
