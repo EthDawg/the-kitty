@@ -60,7 +60,7 @@ final class OfflineInteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["Cash and offset, tap for the accounts behind it"].waitForExistence(timeout: 5))
     }
 
-    func testSearchReviewAndCancelledCSVExport() {
+    func testSearchAndCancelCSVExportReturnsToKitty() {
         continueAfterFailure = false
         executionTimeAllowance = 120
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
@@ -116,6 +116,17 @@ final class OfflineInteractionTests: XCTestCase {
                        "An intentional cancellation is not an export failure.")
         capture("CSV — cancelled, no saved confirmation")
 
+        tap(app.buttons["Setup"])
+        XCTAssertTrue(app.buttons["Choose your Sheet"].waitForExistence(timeout:8),
+                      "Cancelling Files must return control to Kitty’s Setup page.")
+    }
+
+    func testReviewCategoryIsKeptForThisDemoVisit() {
+        continueAfterFailure = false
+        executionTimeAllowance = 120
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
+        app.launch()
+        openHome()
         tap(app.buttons["Setup"])
         let review = app.buttons["Open Review"]
         revealByScrollingDown(review)
