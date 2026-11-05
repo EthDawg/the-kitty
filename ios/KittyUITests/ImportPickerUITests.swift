@@ -4,7 +4,7 @@ import XCTest
 final class ImportPickerUITests: XCTestCase {
     func testBankPreviewOpensFilesAndCancellationLeavesPreviewEmpty() {
         continueAfterFailure = false
-        executionTimeAllowance = 60
+        executionTimeAllowance = 120
         let app = XCUIApplication(bundleIdentifier: "com.ethdawg.kitty")
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
@@ -24,7 +24,14 @@ final class ImportPickerUITests: XCTestCase {
         choose.tap()
 
         let navigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-        XCTAssertTrue(navigation.waitForExistence(timeout: 8), "The system Files picker must open.")
+        // On a cold simulator UIKit can present the sheet before the Files service draws its controls.
+        guard navigation.waitForExistence(timeout:45) else {
+            let stalled = XCTAttachment(screenshot:app.screenshot())
+            stalled.name = "Files presentation before its navigation controls appeared"
+            stalled.lifetime = .keepAlways
+            add(stalled)
+            return XCTFail("The system Files picker did not expose its navigation controls.")
+        }
         let cancel = app.buttons.matching(identifier: "Cancel").firstMatch
         if cancel.exists && cancel.isHittable {
             cancel.tap()

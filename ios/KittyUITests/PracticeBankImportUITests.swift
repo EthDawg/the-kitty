@@ -62,7 +62,7 @@ final class PracticeBankImportUITests: XCTestCase {
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     private func localRoot(destination: Bool) {
-        XCTAssertTrue(navigation.waitForExistence(timeout: 15), "The system Files picker must open.")
+        XCTAssertTrue(navigation.waitForExistence(timeout: 45), "The system Files picker must expose its navigation controls.")
         let browseTitle = navigation.staticTexts["Browse"]
         let root = navigation.staticTexts["On My iPhone"]
         let identified = app.descendants(matching:.any).matching(identifier:"DOC.browsingRoot Source: com.apple.FileProvider.LocalStorage, Title: On My iPhone").firstMatch
