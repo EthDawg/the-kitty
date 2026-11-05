@@ -13,18 +13,27 @@ final class ImportOriginalsTests: XCTestCase {
             """.utf8))
         let source = await SourceDocumentCapture.extract(original)
         XCTAssertEqual(source.state, .extracted)
-        let config = WKWebViewConfiguration()
-        config.websiteDataStore = .nonPersistent()
-        let page = WKWebView(frame: .zero, configuration: config)
-        let url = try XCTUnwrap(Bundle.main.url(forResource: "kitty-native", withExtension: "html"))
-        page.loadFileURL(url, allowingReadAccessTo: url)
-        let deadline = Date().addingTimeInterval(10)
+        let suite = "KittyIntakePreviewTests-" + UUID().uuidString
+        let preferences = try XCTUnwrap(UserDefaults(suiteName:suite))
+        defer { preferences.removePersistentDomain(forName:suite) }
+        let host = KittyViewController(preferences:preferences, websiteDataStore:.nonPersistent())
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let window = UIWindow(windowScene:scene)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        host.loadViewIfNeeded()
+        let page = try XCTUnwrap(host.webView)
+        let deadline = Date().addingTimeInterval(45)
         var ready = false
         while !ready && Date() < deadline {
             ready = (try? await page.evaluateJavaScript("window.KittyNative?.ready === true && typeof window.KittyIntake?.open === 'function'")) as? Bool == true
             if !ready { try await Task.sleep(for: .milliseconds(100)) }
         }
-        guard ready else { return XCTFail("The bundled app did not finish loading its offline Sheet and intake panel.") }
+        guard ready else {
+            let state = try? await page.evaluateJavaScript("document.readyState + ', ' + document.visibilityState") as? String
+            return XCTFail("The visible Kitty host did not load the offline Sheet and intake panel. WebKit state: \(state ?? "unavailable").")
+        }
         let file: [String: Any] = ["id": source.id, "name": source.name, "mimeType": source.mimeType,
                                    "byteLength": source.byteLength, "text": try XCTUnwrap(String(data: source.bytes, encoding: .utf8)),
                                    "pageCount": source.pageCount, "state": source.state.rawValue, "messages": source.messages]
