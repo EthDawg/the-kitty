@@ -61,6 +61,8 @@ jobs:
             -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
             -maximum-test-execution-time-allowance 120 \
             CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee ios/build/build.log
+      - name: Read the saved fictional CSV back from simulator Files
+        run: python3 ios/scripts/verify_simulator_export.py "$KITTY_SIMULATOR_ID" ios/build/build.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
