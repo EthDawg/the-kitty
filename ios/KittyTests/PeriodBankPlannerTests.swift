@@ -7,7 +7,7 @@ final class PeriodBankPlannerTests: XCTestCase {
     private let selected = GoogleConnection.Selection(permissionID: "fictional", sheetID: "private_fictional_planner_sheet", sessionID: UUID())
     private final class Transport: GoogleHTTPTransport {
         let sheetID: String
-        let tables: [String: [[Any]]]
+        var tables: [String: [[Any]]]
         var shorten = false
         var requests: [String] = []
         init(sheetID: String) {
@@ -64,6 +64,44 @@ final class PeriodBankPlannerTests: XCTestCase {
         XCTAssertEqual(p.batch?.rows.count,2)
         XCTAssertEqual(p.batch?.destination,"Entries!A3:T4")
         XCTAssertEqual(net.requests.count,2)
+    }
+    func testLeadingSourceApostrophesReachLiteralGoogleCellsAndReplayWithoutNewEntries() async throws {
+        let net = Transport(sheetID:selected.sheetID), (owner,api) = context(net)
+        let original = SourceDocument(name:"card-2027-02.csv",mimeType:"text/csv",bytes:Data("""
+            Date,Description,Card Member,Account #,Amount
+            02/02/2027,'PLAIN,Joint,1234,12.34
+            03/02/2027,''TWO,Joint,1234,-1.23
+            04/02/2027,'\u{301}ACCENT,Joint,1234,4.50
+            """.utf8))
+        func prepare() async throws -> PeriodBankPlanner.Preview {
+            try await PeriodBankPlanner.prepare(original:original,account:"ACC-CC",month:"2027-02",downloadDay:"2027-02-28",owner:owner,api:api)
+        }
+        let first = try await prepare(), batch = try XCTUnwrap(first.batch)
+        let planWrites = try XCTUnwrap(first.plan["writes"] as? [Object])
+        let planned = try XCTUnwrap(planWrites.first?["values"] as? [[Any]])
+        XCTAssertEqual(planned.compactMap { $0[4] as? String }, ["''PLAIN","'''TWO","''\u{301}ACCENT"])
+        let ids = try XCTUnwrap(net.tables["Entries"]).compactMap { $0.first as? String }
+        let before = PeriodBankAppend.Observation(sheetID:selected.sheetID,entriesTabID:8,headers:PeriodBankAppend.columns,
+                                                  ids:ids,firstRow:batch.firstRow,cells:[],marker:nil)
+        guard case .batch(let requests) = try batch.next(before,stage:.prepared,freshlyPlanned:batch) else { return XCTFail("Expected an append") }
+        let write = try XCTUnwrap(requests.compactMap { $0["updateCells"] as? Object }.first)
+        let typedRows = try XCTUnwrap(write["rows"] as? [Object])
+        let originals = ["'PLAIN","''TWO","'\u{301}ACCENT"]
+        XCTAssertEqual(typedRows.count,originals.count)
+        for (typed,expected) in zip(typedRows,originals) {
+            let cells = try XCTUnwrap(typed["values"] as? [Object])
+            XCTAssertEqual(cells[4]["userEnteredValue"] as? [String:String],["stringValue":expected])
+            // Feed the actual typed payload back as a fresh, unformatted Google values response.
+            let saved: [Any] = cells.map { cell in
+                let value = cell["userEnteredValue"] as? Object
+                return value?["stringValue"] ?? value?["numberValue"] ?? ""
+            }
+            net.tables["Entries"]?.append(saved)
+        }
+        let replay = try await prepare()
+        XCTAssertNil(replay.batch)
+        XCTAssertEqual((replay.plan["writes"] as? [Object])?.count,0)
+        XCTAssertEqual(replay.summary["duplicateCount"] as? Int,3)
     }
     func testTruncatedReadAndReadOnlySelectionCannotProduceABatch() async throws {
         let net = Transport(sheetID:selected.sheetID); net.shorten = true

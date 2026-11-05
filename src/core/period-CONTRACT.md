@@ -56,7 +56,7 @@ review_md: string     // byte-equal Python review.md, except the "seconds" figur
 A write is `{id, tab, op: "append"|"update", range: "Entries!A13:T512", rows, columns?, values, precondition?, note?, why?}`. Rules the host must keep:
 - Read every `preconditions[]` range first, call `verify(plan, preflight, {preconditions:true})`; refuse to write unless ok. Then write `writes[]` in order by explicit range with
   `update_values` (USER_ENTERED), **never append**. Then re-read every range and `verify(plan, reread)`.
-- `null` in an update means leave that cell alone; `""` means blank. Leading `= + - @` text is already apostrophe-escaped. Appends are already chunked at 500 rows.
+- `null` in an update means leave that cell alone; `""` means blank. For USER_ENTERED, the planner prefixes one apostrophe to text starting with `= + - @ '`. A typed string writer removes exactly that one escape so the source's own apostrophes survive readback and re-import. Appends are already chunked at 500 rows.
 - `preconditions` cover rows on the sheet now, nothing else. A deferred pair on a row this plan appends carries none: check that row once it lands.
 - A `null` in `expect` means the cell was blank and must still be. `verify` refuses preflight on any plan that is not `ready`.
 - On hold or stop, `writes` and `deferred` are empty. `deferred` waits for a person or phase D and is re-planned each run; `--loans now` is `options.loans = "now"`.

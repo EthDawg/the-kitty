@@ -180,17 +180,25 @@ class FailLoud(Base):
         for amount in ['', ' \t ']:
             with self.subTest(amount=amount):
                 self.file('ACC-CC', '2027-03-01', CARD, [card(2, amount=amount)])
-                self.assertIn('missing signed card amount', self.stop())
+                self.assertIn('row 2 has no amount', self.stop())
         self.file('ACC-CC', '2027-03-01', CARD, [card(2, amount='0.00')])
-        _, rows, _, plan = self.run_import(expect=(0,))
+        run, rows, _, plan = self.run_import(expect=(0,))
         self.assertEqual([row[5] for row in rows], [0])
         self.assertEqual(plan['totals']['rows_written'], 1)
+        self.assertIn('MYKI TOP UP (+0.00)', run.stdout)
 
-    def test_literal_apostrophe_before_formula_sign_stops_the_whole_bank_plan(self):
-        for sign in '=+-@':
-            with self.subTest(sign=sign):
-                self.file('ACC-CC', '2027-03-01', CARD, [card(1), card(2, "  '" + sign + 'LITERAL,\nCARD')], bom=True)
-                self.assertIn('literal apostrophe', self.stop())
+    def test_date_fault_precedes_missing_amount_on_a_repeated_card_header(self):
+        self.file('ACC-CC', '2027-03-01', CARD, [CARD[:-1] + ['']])
+        self.assertIn('"Date" is not a date', self.stop())
+
+    def test_bank_rows_without_a_signed_amount_or_either_leg_stop(self):
+        self.file('ACC-OLD', '2027-03-01', None, [['02/02/2027', '', 'COFFEE', '1000.00']])
+        self.file('ACC-EVD', '2027-03-01', WESTPAC, [westpac(2, 'COFFEE', balance='10000.00')])
+        self.file('ACC-SAV', '2027-03-01', BANK, [['02/02/2027', 'COFFEE', ' ', '', '101.00']])
+        report = self.stop()
+        self.assertEqual(report.count('has no amount'), 3)
+        for source in ['ACC-OLD', 'ACC-EVD', 'ACC-SAV']:
+            self.assertIn(source + '/2027-03-01/export.csv', report)
 
     def test_a_header_mismatch_names_the_missing_column(self):
         self.file('ACC-CC', '2027-03-01', ['Date', 'Description', 'Card Member', 'Amount'], [['02/02/2027', 'MYKI', 'J', '60.00']])
@@ -412,6 +420,28 @@ class Shapes(Base):
 
 
 class Plan(Base):
+    def test_literal_apostrophes_survive_user_entered_readback_and_replay(self):
+        # Every raw description shares the day, account and amount. Removing even one original
+        # apostrophe could collapse distinct charges or cause a second import on the next run.
+        originals = [prefix + 'LITERAL,\nCARD' for sign in '=+-@' for prefix in (sign, "'" + sign)]
+        originals += ["'PLAIN WORD", "''=TWICE", "'"]
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2, '  ' + text) for text in originals], bom=True)
+        _, rows, _, plan = self.run_import(expect=(0,))
+        self.assertCountEqual([row[3] for row in rows], originals)
+        entered = plan['writes'][0]['values']
+        # Model the connector independently of W.plain: USER_ENTERED consumes one leading apostrophe.
+        self.assertCountEqual([row[4] for row in entered], ["'" + text for text in originals])
+        for row in entered:
+            landed = row[4][1:]
+            self.assertTrue(W.same(row[4], landed))
+            self.assertFalse(W.same(row[4], row[4]))
+            self.sheet_tx.append({**LAST, 'txn_id': row[0], 'date': row[2], 'account_id': row[3],
+                                  'bank_description': landed, 'amount': row[6]})
+        run, repeated, _, replay = self.run_import(out='replay', expect=(0,))
+        self.assertIn(f'{len(originals)} already in the sheet', run.stdout)
+        self.assertEqual(repeated, [])
+        self.assertEqual(replay['writes'], [])
+
     def test_the_plan_appends_from_the_next_empty_row_in_chunks_of_500(self):
         self.sheet_tx = [LAST] + [{**LAST, 'txn_id': f'T{i:04d}', 'date': '2027-01-30'} for i in range(2, 12)]  # 11 entries: rows 2..12, next empty 13
         rows = [card(1 + i % 28, f'SHOP {i}', f'{1 + i % 90}.00') for i in range(1200)]

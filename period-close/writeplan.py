@@ -66,8 +66,8 @@ def range_key(rng):
 
 
 def escape(v):
-    """What goes to the connector: text that would be read as a formula or a number sign is prefixed with an apostrophe."""
-    if isinstance(v, str) and v[:1] in ('=', '+', '-', '@') and v != '':
+    """USER_ENTERED consumes one protecting apostrophe, including before a literal source apostrophe."""
+    if isinstance(v, str) and v.startswith(('=', '+', '-', '@', "'")):
         return "'" + v
     return v
 
@@ -120,7 +120,7 @@ def _date_forms(s):
 
 def plain(v):
     """A planned value as the person would read it back: the escaping apostrophe removed."""
-    if isinstance(v, str) and v.startswith("'") and len(v) > 1 and v[1] in '=+-@':
+    if isinstance(v, str) and v.startswith("'") and len(v) > 1 and v[1] in "=+-@'":
         return v[1:]
     return v
 

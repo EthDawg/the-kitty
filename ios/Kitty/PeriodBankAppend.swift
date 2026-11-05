@@ -101,7 +101,8 @@ struct PeriodBankAppend {
                     }
                     guard var text = item as? String, text.utf8.count <= 50_000 else { throw Failure.invalidPlan }
                     // After source validation, the planner's USER_ENTERED escape can be removed for typed stringValue.
-                    if text.first == "'", let next = text.dropFirst().first, "=+-@".contains(next) { text.removeFirst() }
+                    let scalars = text.unicodeScalars
+                    if scalars.first == "'", let next = scalars.dropFirst().first, "=+-@'".unicodeScalars.contains(next) { text.removeFirst() }
                     return text.isEmpty ? .blank : .text(text)
                 }
                 built.append(Row(id: id, cells: cells))

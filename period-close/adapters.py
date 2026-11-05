@@ -103,6 +103,12 @@ def money(v, file=None, row=None):
     return -n if neg else n
 
 
+def require_bank_amount(path, line, *cells):
+    """A blank debit or credit leg is valid only if the row prints the other leg."""
+    if not any(cell.strip() for cell in cells):
+        raise ImportFault(path, f'row {line} has no amount', 'a truncated download; download again', line)
+
+
 # ---------- Harbour Bank: Westpac shape ----------
 HARBOUR_HEAD = ['Bank Account', 'Date', 'Narrative', 'Debit Amount', 'Credit Amount', 'Balance', 'Categories', 'Serial']
 
@@ -275,21 +281,28 @@ def read_rows(path, shape, download_day=None, opening_date=None, as_of=None, fir
             if len(r) != 8:
                 raise ImportFault(path, f'{len(r)} columns, expected 8', 'a comma inside an unquoted narrative, or a truncated download; download again', line)
             d = parse_date(r[1], order, path, line)
+            require_bank_amount(path, line, r[3], r[4])
             out.append({'date': d, 'description': r[2].strip(), 'amount': round(money(r[4], path, line) - money(r[3], path, line), 2), 'balance': money(r[5], path, line), 'line': line, 'account_number': r[0].strip()})
         elif shape == 'Southern Card':
             if len(r) != 5:
                 raise ImportFault(path, f'{len(r)} columns, expected 5', 'a truncated or hand-edited download; download again', line)
-            if not r[4].strip():
-                raise ImportFault(path, 'missing signed card amount', 'check the original bank export; a zero transaction must contain an explicit amount', line)
-            out.append({'date': parse_date(r[0], order, path, line), 'description': r[1].strip(), 'amount': round(-money(r[4], path, line), 2), 'balance': None, 'line': line})
+            d = parse_date(r[0], order, path, line)
+            require_bank_amount(path, line, r[4])
+            # Card charges reverse sign. A printed zero still reads as +0.00 in the review.
+            amount = round(-money(r[4], path, line), 2) or 0.0
+            out.append({'date': d, 'description': r[1].strip(), 'amount': amount, 'balance': None, 'line': line})
         elif shape == 'Wattle Credit Union':
             if len(r) != 5:
                 raise ImportFault(path, f'{len(r)} columns, expected 5', 'a truncated or hand-edited download; download again', line)
-            out.append({'date': parse_date(r[0], order, path, line), 'description': r[1].strip(), 'amount': round(money(r[2], path, line) + money(r[3], path, line), 2), 'balance': money(r[4], path, line), 'line': line})
+            d = parse_date(r[0], order, path, line)
+            require_bank_amount(path, line, r[2], r[3])
+            out.append({'date': d, 'description': r[1].strip(), 'amount': round(money(r[2], path, line) + money(r[3], path, line), 2), 'balance': money(r[4], path, line), 'line': line})
         elif shape == 'Bark Bank':
             if len(r) != 4 or not BARK_DATE.fullmatch(r[0].strip()):
                 raise ImportFault(path, f'not a CommBank line: {r[:4]}', 'the headerless shape is Date, Amount, Description, Balance; download again', line)
-            out.append({'date': parse_date(r[0], order, path, line), 'description': r[2].strip(), 'amount': round(money(r[1], path, line), 2), 'balance': money(r[3], path, line), 'line': line})
+            d = parse_date(r[0], order, path, line)
+            require_bank_amount(path, line, r[1])
+            out.append({'date': d, 'description': r[2].strip(), 'amount': round(money(r[1], path, line), 2), 'balance': money(r[3], path, line), 'line': line})
         elif shape == 'Owner statement':
             if len(r) != 6:
                 raise ImportFault(path, f'{len(r)} columns, expected 6', 'a truncated download; download again', line)
@@ -302,9 +315,6 @@ def read_rows(path, shape, download_day=None, opening_date=None, as_of=None, fir
             out.append({'date': parse_date(r[0], order, path, line), 'person': r[1].strip(), 'employer': r[2].strip(), 'gross': round(money(r[3], path, line), 2),
                         'tax': round(money(r[4], path, line), 2), 'super': round(money(r[5], path, line), 2), 'net': round(money(r[6], path, line), 2),
                         'description': f'{r[1].strip()} {r[2].strip()}', 'amount': round(money(r[6], path, line), 2), 'balance': None, 'line': line})
-        if shape in BANK_SHAPES and re.match(r"^'[=+@-]", out[-1]['description']):
-            raise ImportFault(path, 'bank description starts with a literal apostrophe and formula sign',
-                              'keep the original for manual review; the write plan cannot preserve this prefix unambiguously', line)
     check_window(path, out, download_day, opening_date, as_of, first_day)
     check_sequence(path, out, sequence)
     return out
