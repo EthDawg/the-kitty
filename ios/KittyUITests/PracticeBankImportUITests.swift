@@ -35,16 +35,24 @@ final class PracticeBankImportUITests: XCTestCase {
         XCTAssertTrue(item.isHittable, "Required control must be reachable by touch.", file: file, line: line)
         item.tap()
     }
-    private func setup() {
+    private enum LaunchBoundary: Error { case appNotVisible }
+    private func setup() throws {
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
+        // A locked phone can run the test process while iOS still displays its own search/lock surface.
+        // Require the real application window and web view before interacting with anything on the device.
+        guard app.wait(for:.runningForeground,timeout:12), app.windows.firstMatch.waitForExistence(timeout:12),
+              page.waitForExistence(timeout:20) else {
+            XCTFail("Kitty did not own a visible foreground web view. No navigation or confirmation was attempted. Check the device unlock or system prompt.")
+            throw LaunchBoundary.appNotVisible
+        }
         tap(app.buttons["Setup"])
     }
     private func openRestoredPractice() throws {
         guard !privateTitle.isEmpty, privateTitle.localizedCaseInsensitiveContains("practice") else {
             throw XCTSkip("The independent Google baseline must supply the exact private copy title.")
         }
-        setup()
+        try setup()
         let open = button("Open live Sheet")
         if open.waitForExistence(timeout: 5) { tap(open, scroll: true) }
         XCTAssertTrue(text(privateTitle).waitForExistence(timeout: 45), "Kitty must display the exact verified private Sheet.")
@@ -75,6 +83,10 @@ final class PracticeBankImportUITests: XCTestCase {
         }
         XCTAssertTrue(root.waitForExistence(timeout: 15), "Files must enter the named, on-device location.")
     }
+    private func folderTitle(_ name: String) -> XCUIElement {
+        // A newly created folder's title is exposed as an Actions Menu button on iOS 26.
+        navigation.descendants(matching:.any).matching(NSPredicate(format:"label == %@ OR label == %@", name, name + ", Actions Menu")).firstMatch
+    }
     private func folderCell() -> XCUIElement {
         app.cells.matching(NSPredicate(format:"label BEGINSWITH[c] %@", runFolder + ",")).firstMatch
     }
@@ -85,26 +97,21 @@ final class PracticeBankImportUITests: XCTestCase {
             tap(navigation.buttons["More"])
             let make = app.descendants(matching:.any).matching(NSPredicate(format:"label ==[c] %@", "New Folder")).firstMatch
             tap(make)
-            let name = app.textFields.firstMatch
-            tap(name)
-            if let old = name.value as? String, !old.isEmpty {
-                name.press(forDuration:0.8)
-                let all = app.menuItems["Select All"]
-                if all.exists && all.isHittable { all.tap() } else { name.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:old.count+4)) }
-            }
-            name.typeText(runFolder)
-            let create = app.buttons.matching(NSPredicate(format:"label IN %@", ["Create","Done"])).firstMatch
-            if create.exists && create.isHittable { tap(create) } else { name.typeText("\n") }
-            if !navigation.staticTexts[runFolder].waitForExistence(timeout:3) { tap(folderCell()) }
+            // New Folder preselects its inline name and presents the keyboard. The export's original
+            // filename editor can also exist underneath this overlay, so never target a generic text field.
+            XCTAssertTrue(navigation.staticTexts["On My iPhone"].exists)
+            _ = app.keyboards.firstMatch.waitForExistence(timeout: 2)
+            app.typeText(runFolder + "\n")
+            if !folderTitle(runFolder).waitForExistence(timeout:3) { tap(folderCell()) }
         }
-        XCTAssertTrue(navigation.staticTexts[runFolder].waitForExistence(timeout:10))
+        XCTAssertTrue(folderTitle(runFolder).waitForExistence(timeout:10))
     }
-    @discardableResult private func saveSample() -> String {
+    @discardableResult private func saveSample(forceFolder: Bool = false) -> String {
         tap(button("Save a sample CSV"), scroll: true)
         localRoot(destination: true)
         let name = app.textFields["DOCPicker.filenameTextField"]
         let used: String
-        if name.waitForExistence(timeout: 5) {
+        if !forceFolder && name.waitForExistence(timeout: 5) {
             let old = name.value as? String ?? ""
             XCTAssertTrue(old.hasPrefix(fixtureBase), "Expected the canonical fictional sample, not another export.")
             tap(name); name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count + 8))
@@ -130,7 +137,7 @@ final class PracticeBankImportUITests: XCTestCase {
         throw XCTSkip("Physical account opt-in only.")
         #else
         try require("private-google")
-        setup()
+        try setup()
         let make = button("Make a private practice Sheet")
         let active = page.staticTexts.matching(NSPredicate(format: "label MATCHES[c] %@", ".*Connected to Davies practice · [A-Fa-f0-9]{8}.*")).firstMatch
         if !active.exists {
@@ -150,7 +157,7 @@ final class PracticeBankImportUITests: XCTestCase {
         tap(button("Import a bank file"), scroll: true)
         tap(app.buttons["Choose from Files"])
         localRoot(destination: false)
-        if base == fixtureBase { tap(folderCell()); XCTAssertTrue(navigation.staticTexts[runFolder].waitForExistence(timeout:10)) }
+        if base == fixtureBase { tap(folderCell()); XCTAssertTrue(folderTitle(runFolder).waitForExistence(timeout:10)) }
         let item = app.descendants(matching: .cell).matching(NSPredicate(format: "label BEGINSWITH[c] %@", base)).firstMatch
         let named = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@ OR label == %@", base, base + ".csv")).firstMatch
         if item.waitForExistence(timeout: 14) && item.isHittable { item.tap() }
@@ -180,8 +187,11 @@ final class PracticeBankImportUITests: XCTestCase {
     private func assertFirstPreview() {
         XCTAssertTrue(text("Review proposed changes").waitForExistence(timeout: 12))
         XCTAssertTrue(text("KITTY PRACTICE PAPER BOAT").exists)
-        XCTAssertTrue(text("KITTY PRACTICE KITE REFUND").exists)
+        let refund = text("KITTY PRACTICE KITE REFUND")
+        XCTAssertTrue(refund.exists)
         XCTAssertTrue(text("17.45").exists && text("6.25").exists)
+        XCTAssertTrue(text("Review proposed changes").isHittable)
+        XCTAssertLessThanOrEqual(refund.frame.maxY,app.frame.maxY + 1,"The explicit preview should reveal both signed rows without an extra scroll.")
     }
     func testConfirmOriginalFromFilesOnPrivateCopy() throws {
         #if targetEnvironment(simulator)
@@ -214,7 +224,7 @@ final class PracticeBankImportUITests: XCTestCase {
     func testSimulatorFilesPreviewForSameSignedOriginal() throws {
         #if targetEnvironment(simulator)
         try require("simulator-files")
-        setup(); let saved = saveSample(); openPickerAndSelect(saved); assertFirstPreview()
+        try setup(); let saved = saveSample(forceFolder:env["KITTY_PRACTICE_FOLDER"] == "yes"); openPickerAndSelect(saved); assertFirstPreview()
         XCTAssertFalse(button("Confirm import").exists, "The offline demo remains a preview.")
         capture("Simulator — real Files selection and original two-row preview")
         #else

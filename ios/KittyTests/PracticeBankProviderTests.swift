@@ -31,6 +31,17 @@ final class PracticeBankProviderTests: XCTestCase {
     private func number(_ value: Any?) -> Double? {
         guard let n = value as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() else { return nil }; return n.doubleValue
     }
+    /// Independent check against the source's signed, two-decimal currency. Older manifests stored dollars.
+    private func signedCents(_ raw: Any?, encoding: Any? = nil) -> Int64? {
+        guard let v = number(raw), v.isFinite else { return nil }
+        if let encoding {
+            guard encoding as? String == "integer-cents-v1" else { return nil }
+            return Int64(exactly:v)
+        }
+        let scaled = v * 100, whole = scaled.rounded()
+        guard abs(scaled - whole) < 0.000001 else { return nil }
+        return Int64(exactly:whole)
+    }
     private func drive(_ api: GoogleSheetTools, path: String, query: [String: String]) async throws -> Data {
         try api.check()
         var url = URLComponents(); url.scheme = "https"; url.host = "www.googleapis.com"; url.path = "/drive/v3/" + path
@@ -106,9 +117,10 @@ final class PracticeBankProviderTests: XCTestCase {
         let rows = try await readLedger(api)
         guard rows.count == oldCount + 3, hash(try json(Array(rows.prefix(oldCount + 1)))) == oldHash else { throw Fail.differentLedger }
         try assertDuplicate(rows)
-        for (r, expected) in zip(rows.suffix(2),newRows) {
+        let sourceCents: [Int64] = [-1745,625]
+        for ((r, expected), minor) in zip(zip(rows.suffix(2),newRows),sourceCents) {
             guard r.count >= 20, r[0] as? String == expected.0, r[1] as? String == "transaction", number(r[2]) == Double(expected.2),
-                  r[3] as? String == "ACC-CC", r[4] as? String == expected.1, number(r[6]) == expected.3,
+                  r[3] as? String == "ACC-CC", r[4] as? String == expected.1, signedCents(r[6]) == minor,
                   r[11] as? String == "settled", number(r[12]) == Double(expected.2), r[19] as? String == "bank export" else { throw Fail.differentLedger }
         }
         let matches = try await receiptFiles(api)
@@ -125,6 +137,10 @@ final class PracticeBankProviderTests: XCTestCase {
               receiptTags["kittyBankDigest"] == digest, let manifestID = binding["manifestID"] as? String,
               let actionID = binding["actionID"] as? String, receiptTags["kittyBankIntent"] == manifestID,
               Set([sourceID,manifestID,actionID,receiptID]).count == 4 else { throw Fail.archiveMismatch }
+        guard let version = number(binding["version"]).flatMap(Int.init(exactly:)), [1,2].contains(version) else { throw Fail.archiveMismatch }
+        let expectedMarker = number(binding["receiptMarkerID"]).flatMap(Int.init(exactly:))
+        guard version == 1 ? expectedMarker == nil : (expectedMarker.map { (1...Int(Int32.max)).contains($0) && $0 != 2017113179 } == true) else { throw Fail.archiveMismatch }
+        var archivedPlan: Object?, amountEncoding: Any?, archiveName: String?
         for (id, kind) in [(sourceID,"original"),(manifestID,"manifest"),(actionID,"action")] {
             guard GoogleConnection.validSheetID(id) else { throw Fail.archiveMismatch }
             let meta = try obj(await drive(api,path:"files/" + id,query:["fields":fields]))
@@ -143,21 +159,28 @@ final class PracticeBankProviderTests: XCTestCase {
                           let plan = body["plan"] as? Object, let writes = plan["writes"] as? [Object], writes.count == 1,
                           writes[0]["tab"] as? String == "Entries", writes[0]["op"] as? String == "append",
                           let values = writes[0]["values"] as? [[Any]], values.count == 2 else { throw Fail.archiveMismatch }
-                    for (r, expected) in zip(values,newRows) {
+                    archivedPlan = plan; amountEncoding = body["amountEncoding"]; archiveName = filename
+                    guard amountEncoding as? String == "integer-cents-v1" || (version == 1 && amountEncoding == nil) else { throw Fail.archiveMismatch }
+                    for ((r, expected), minor) in zip(zip(values,newRows),sourceCents) {
                         guard r.count == 20, r[0] as? String == expected.0, r[3] as? String == "ACC-CC",
-                              r[4] as? String == expected.1, number(r[6]) == expected.3 else { throw Fail.archiveMismatch }
+                              r[4] as? String == expected.1, signedCents(r[6],encoding:amountEncoding) == minor else { throw Fail.archiveMismatch }
                     }
                 }
             }
         }
         let bytes = try await drive(api,path:"files/" + sourceID,query:["alt":"media"])
         guard bytes.count == 229, hash(bytes) == sha else { throw Fail.archiveMismatch }
+        let restored = try PeriodBankAppend.restoredPlan(XCTUnwrap(archivedPlan),amountEncoding:amountEncoding)
+        let original = SourceDocument(name:try XCTUnwrap(archiveName),mimeType:"text/csv",bytes:bytes)
+        let rebuilt = try PeriodBankAppend(plan:restored,sheetID:api.selected.sheetID,account:"ACC-CC",original:original,originalSHA256:sha).usingMarkerID(expectedMarker)
+        guard rebuilt.digest == digest, rebuilt.rows.map(\.id) == newRows.map(\.0) else { throw Fail.archiveMismatch }
         let search = try await api.request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[["developerMetadataLookup":["metadataKey":"kitty.period.bank.v1","metadataValue":digest,"visibility":"DOCUMENT"]]]])
-        guard (search["matchedDeveloperMetadata"] as? [Object])?.count == 1 else { throw Fail.archiveMismatch }
+        guard let hits = search["matchedDeveloperMetadata"] as? [Object], hits.count == 1,
+              let marker = hits[0]["developerMetadata"] as? Object, number(marker["metadataId"]) == Double(rebuilt.markerID) else { throw Fail.archiveMismatch }
         let gate = try await api.request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[["developerMetadataLookup":["metadataId":2017113179,"metadataKey":"kitty.period.bank.hold.v1","visibility":"DOCUMENT"]]]])
         guard gate["matchedDeveloperMetadata"] == nil || (gate["matchedDeveloperMetadata"] as? [Object])?.isEmpty == true else { throw Fail.archiveMismatch }
         try attachment("Independent provider read after Files replay", ["run":run, "privateOwnerOnly":true,"publicFeed":"no","originalEntries":oldCount,"allOriginalRowsIntact":true,
-                       "newIDs":newRows.map(\.0),"signedAmounts":newRows.map(\.3),"account":"ACC-CC","existingDuplicate":"T0880","duplicateOccurrences":1,
+                       "newIDs":newRows.map(\.0),"signedSourceCents":sourceCents,"manifestAmountEncoding":amountEncoding ?? "legacy-decimal","account":"ACC-CC","existingDuplicate":"T0880","duplicateOccurrences":1,
                        "archivedBytes":bytes.count,"archivedSHA256":sha,"verifiedReceipts":1,"durableSheetMarkers":1,"sharedHoldReleased":true,"boundPrivateDriveFiles":4,"totalEntries":rows.count-1])
     }
 }
@@ -250,6 +273,14 @@ extension PracticeBankProviderTests {
         XCTAssertEqual(verified,batch.digest); XCTAssertEqual(sheet.batchCount,1); XCTAssertEqual(Array(sheet.ids.suffix(2)),["T0926","T0927"])
         let binding = try XCTUnwrap(store.all.first); XCTAssertEqual(store.blobs[binding.sourceID],bytes); XCTAssertNil(store.held)
         XCTAssertEqual(try obj(XCTUnwrap(store.blobs[binding.receiptID]))["kind"] as? String,"verified")
+        let manifest = try obj(XCTUnwrap(store.blobs[binding.manifestID])), savedPlan = try XCTUnwrap(manifest["plan"] as? Object)
+        let encoding = try XCTUnwrap(manifest["amountEncoding"] as? String); XCTAssertEqual(encoding,"integer-cents-v1")
+        let savedWrites = try XCTUnwrap(savedPlan["writes"] as? [Object]), values = try XCTUnwrap(savedWrites.first?["values"] as? [[Any]])
+        XCTAssertEqual(values.compactMap { $0.count == 20 ? signedCents($0[6],encoding:encoding) : nil },[-1745,625])
+        XCTAssertNil(signedCents(-17.45,encoding:encoding)); XCTAssertEqual(signedCents(-17.45),-1745)
+        let decoded = try PeriodBankAppend.restoredPlan(savedPlan,amountEncoding:encoding)
+        let archived = try PeriodBankAppend(plan:decoded,sheetID:fileID,account:"ACC-CC",original:original,originalSHA256:sha).usingMarkerID(binding.receiptMarkerID)
+        XCTAssertEqual(archived.digest,batch.digest); XCTAssertEqual(number(sheet.marker?["metadataId"]),Double(archived.markerID))
         let replay = try await plan(sheet.cells), again = try XCTUnwrap(replay["summary"] as? Object)
         XCTAssertEqual(again["duplicateCount"] as? Int,3); XCTAssertEqual(again["proposedCount"] as? Int,0)
         let second = try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal); XCTAssertEqual(second,verified); XCTAssertEqual(sheet.batchCount,1)
@@ -258,3 +289,315 @@ extension PracticeBankProviderTests {
     private var envSim: Bool { ProcessInfo.processInfo.environment["KITTY_PRACTICE_ACCEPTANCE"] == "simulator-files" }
 }
 #endif
+
+extension PracticeBankProviderTests {
+    private struct RaceTrace: Codable {
+        let run, operation, sheet, owner, sourceSHA, digest, priorSHA, priorEnteredSHA, batchSHA: String
+        let priorCount: Int
+        var gateReplies = [String:Int]()
+        var deliveries = 0, successes = 0, droppedSuccess = 0, rejected = 0, quotaReadRetries = 0
+        var contested: Bool {
+            gateReplies.count == 2 && gateReplies.values.filter { (200..<300).contains($0) }.count == 1 &&
+                gateReplies.values.filter { [400,409].contains($0) }.count == 1
+        }
+    }
+
+    /// Both gate creations reach the provider before either client learns the result. Only the real,
+    /// exactly reviewed bank batch loses a response, after Google acknowledges its atomic success.
+    @MainActor private final class RaceWire {
+        var trace: RaceTrace
+        let record: URL, scope: String, original: Data
+        private var atGate = Set<String>()
+        var allowBankBatch = false
+        init(_ trace: RaceTrace, record: URL, scope: String, original: Data) {
+            self.trace = trace; self.record = record; self.scope = scope; self.original = original
+        }
+        func save() throws {
+            try JSONEncoder().encode(trace).write(to:record,options:[.atomic,.completeFileProtection])
+        }
+        func rejection() throws { trace.rejected += 1; try save() }
+        private func read(_ request: URLRequest, _ http: GoogleHTTPTransport, _ limit: Int) async throws -> GoogleHTTPResponse {
+            let response = try await http.send(request,maximumBytes:limit)
+            guard response.statusCode == 429 else { return response }
+            // The two-client proof also independently reads the entire fixture twice. Pace only quota-limited reads.
+            trace.quotaReadRetries += 1; try save()
+            try await Task.sleep(for:.seconds(62))
+            return try await http.send(request,maximumBytes:limit)
+        }
+        private func barrier(_ ready: () -> Bool) async throws {
+            let clock = ContinuousClock(), deadline = clock.now.advanced(by:.seconds(90))
+            while !ready() {
+                guard clock.now < deadline else { throw Fail.unexpectedResponse }
+                try await Task.sleep(for:.milliseconds(100))
+            }
+        }
+        private func checkBinding(_ b: BankBinding) throws {
+            guard b.valid, b.sheetID == trace.sheet, b.owner == trace.owner, b.account == "ACC-CC",
+                  b.sourceSHA256 == trace.sourceSHA, b.digest == trace.digest, b.month == "2027-01",
+                  b.downloadDay == "2027-01-31", b.rowCount == 1, try b.scope == scope else { throw Fail.wrongFixture }
+        }
+        private func binding(_ raw: String?) throws {
+            guard let raw else { throw Fail.unexpectedResponse }
+            try checkBinding(JSONDecoder().decode(BankBinding.self,from:Data(raw.utf8)))
+        }
+        private func checkUpload(_ request: URLRequest) throws {
+            guard let url = request.url, let items = URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems,
+                  items.contains(URLQueryItem(name:"uploadType",value:"multipart")), items.contains(URLQueryItem(name:"ignoreDefaultVisibility",value:"true")),
+                  let body = request.httpBody, body.count < 3_500_000,
+                  let type = request.value(forHTTPHeaderField:"Content-Type"), let boundary = type.components(separatedBy:"boundary=").last,
+                  !boundary.isEmpty, let start = body.range(of:Data("\r\n\r\n".utf8)),
+                  let end = body.range(of:Data(("\r\n--" + boundary + "\r\n").utf8),in:start.upperBound..<body.endIndex),
+                  let meta = try JSONSerialization.jsonObject(with:body[start.upperBound..<end.lowerBound]) as? Object,
+                  let tags = meta["appProperties"] as? [String:String], tags["kittyBankScope"] == scope, tags["kittyBankDigest"] == trace.digest,
+                  let kind = tags["kittyBankKind"].flatMap(BankBlob.init(rawValue:)), let id = meta["id"] as? String,
+                  GoogleConnection.validSheetID(id), allowBankBatch || kind == .receipt, let intent = tags["kittyBankIntent"], GoogleConnection.validSheetID(intent),
+                  meta["mimeType"] as? String == kind.mime,
+                  let content = body.range(of:Data("\r\n\r\n".utf8),in:end.upperBound..<body.endIndex),
+                  let tail = body.range(of:Data(("\r\n--" + boundary + "--\r\n").utf8),in:content.upperBound..<body.endIndex),
+                  tail.upperBound == body.endIndex else { throw Fail.wrongFixture }
+            let payload = body.subdata(in:content.upperBound..<tail.lowerBound)
+            if kind == .original {
+                guard payload == original else { throw Fail.wrongFixture }
+            } else {
+                guard let value = try JSONSerialization.jsonObject(with:payload) as? Object, let raw = value["binding"] as? Object else { throw Fail.wrongFixture }
+                let b = try JSONDecoder().decode(BankBinding.self,from:JSONSerialization.data(withJSONObject:raw))
+                try checkBinding(b)
+                let expected: [BankBlob:String] = [.manifest:"reviewed",.action:"dispatch",.receipt:"verified"]
+                guard b.manifestID == intent, kind.id(b) == id, value["kind"] as? String == expected[kind] else { throw Fail.wrongFixture }
+            }
+        }
+        func forward(_ request: URLRequest, limit: Int, client: String, http: GoogleHTTPTransport) async throws -> GoogleHTTPResponse {
+            guard let url = request.url else { throw Fail.wrongFixture }
+            let base = "/v4/spreadsheets/" + trace.sheet, method = request.httpMethod ?? "GET"
+            if url.host == "www.googleapis.com" {
+                if method == "POST" && url.path == "/upload/drive/v3/files" {
+                    try checkUpload(request); return try await http.send(request,maximumBytes:limit)
+                }
+                guard method == "GET", url.path == "/drive/v3/files" || url.path.hasPrefix("/drive/v3/files/") else { throw Fail.wrongFixture }
+                return try await read(request,http,limit)
+            }
+            guard url.host == "sheets.googleapis.com", url.path == base || url.path.hasPrefix(base + "/") || url.path == base + ":batchUpdate" else { throw Fail.wrongFixture }
+            if method == "GET" || (method == "POST" && [base + "/values:batchGetByDataFilter",base + "/developerMetadata:search"].contains(url.path)) {
+                return try await read(request,http,limit)
+            }
+            guard method == "POST", url.path == base + ":batchUpdate", let body = request.httpBody,
+                  let o = try JSONSerialization.jsonObject(with:body) as? Object, let requests = o["requests"] as? [Object] else { throw Fail.wrongFixture }
+            let canonical = try JSONSerialization.data(withJSONObject:o,options:[.sortedKeys,.withoutEscapingSlashes])
+            if SourceDocument.sha256(canonical) == trace.batchSHA {
+                guard allowBankBatch, trace.contested else { throw Fail.wrongFixture }
+                trace.deliveries += 1; try save()
+                let response = try await http.send(request,maximumBytes:limit)
+                if (200..<300).contains(response.statusCode) {
+                    trace.successes += 1; try save()
+                    guard trace.successes == 1, trace.droppedSuccess == 0, let result = try JSONSerialization.jsonObject(with:response.data) as? Object,
+                          result["spreadsheetId"] as? String == trace.sheet, (result["replies"] as? [Object])?.count == requests.count else { throw Fail.differentLedger }
+                    trace.droppedSuccess = 1; try save()
+                    throw URLError(.networkConnectionLost)
+                }
+                return response
+            }
+            guard requests.count == 1 else { throw Fail.wrongFixture }
+            if let c = requests[0]["createDeveloperMetadata"] as? Object, let m = c["developerMetadata"] as? Object,
+               m["metadataId"] as? Int == GoogleBankStore.gateID, m["metadataKey"] as? String == GoogleBankStore.gateKey,
+               m["visibility"] as? String == "DOCUMENT", (m["location"] as? Object)?["spreadsheet"] as? Bool == true {
+                try binding(m["metadataValue"] as? String)
+                guard allowBankBatch, !trace.contested, atGate.insert(client).inserted else { throw Fail.wrongFixture }
+                try await barrier { self.atGate.count == 2 }
+                let response = try await http.send(request,maximumBytes:limit)
+                trace.gateReplies[client] = response.statusCode; try save()
+                try await barrier { self.trace.gateReplies.count == 2 }
+                guard trace.contested else { throw Fail.unexpectedResponse }
+                return response
+            }
+            guard let d = requests[0]["deleteDeveloperMetadata"] as? Object, let f = d["dataFilter"] as? Object,
+                  let m = f["developerMetadataLookup"] as? Object, m["metadataId"] as? Int == GoogleBankStore.gateID,
+                  m["metadataKey"] as? String == GoogleBankStore.gateKey, m["locationMatchingStrategy"] as? String == "EXACT_LOCATION",
+                  m["visibility"] as? String == "DOCUMENT", (m["metadataLocation"] as? Object)?["spreadsheet"] as? Bool == true else { throw Fail.wrongFixture }
+            try binding(m["metadataValue"] as? String)
+            return try await http.send(request,maximumBytes:limit)
+        }
+    }
+    private struct RaceTransport: GoogleHTTPTransport {
+        let client: String, wire: RaceWire, http: GoogleHTTPTransport
+        func send(_ request: URLRequest, maximumBytes: Int) async throws -> GoogleHTTPResponse {
+            do { return try await wire.forward(request,limit:maximumBytes,client:client,http:http) }
+            catch let error as Fail { try await wire.rejection(); throw error }
+        }
+    }
+    private func raceAPI(_ api: GoogleSheetTools, _ name: String, _ wire: RaceWire) -> GoogleSheetTools {
+        .init(http:RaceTransport(client:name,wire:wire,http:api.http),selected:api.selected,current:api.current,token:api.token)
+    }
+    private func racePriorEnteredHash(_ api: GoogleSheetTools, count: Int) async throws -> String {
+        let grid = try await api.request(query:["ranges":"Entries!A1:U\(count)",
+            "fields":"spreadsheetId,sheets(properties(title),data(startRow,startColumn,rowData(values(userEnteredValue))))"])
+        guard grid["spreadsheetId"] as? String == api.selected.sheetID, let tabs = grid["sheets"] as? [Object], tabs.count == 1,
+              (tabs[0]["properties"] as? Object)?["title"] as? String == "Entries", let blocks = tabs[0]["data"] as? [Object],
+              blocks.count == 1, (blocks[0]["startRow"] as? Int ?? 0) == 0, (blocks[0]["startColumn"] as? Int ?? 0) == 0,
+              let rows = blocks[0]["rowData"] as? [Object], rows.count == count else { throw Fail.differentLedger }
+        let entered = try rows.map { row -> [Object] in
+            guard let cells = row["values"] as? [Object], (1...21).contains(cells.count),
+                  (cells[0]["userEnteredValue"] as? Object)?["stringValue"] is String else { throw Fail.differentLedger }
+            return (0..<21).map { i in i < cells.count ? (cells[i]["userEnteredValue"] as? Object ?? [:]) : [:] }
+        }
+        return hash(try json(entered))
+    }
+    private func raceReplan(_ owner: GoogleSheetSelection.Verified, _ api: GoogleSheetTools) -> GooglePeriodBankJournal.Replan {
+        { source,account,month,day in
+            let preview = try await PeriodBankPlanner.prepare(original:source,account:account,month:month,downloadDay:day,owner:owner,api:api)
+            guard let batch = preview.batch else { throw PeriodBankAppend.Failure.staleLedger }
+            return batch
+        }
+    }
+    private func raceCommit(_ preview: PeriodBankPlanner.Preview, _ original: SourceDocument, _ owner: GoogleSheetSelection.Verified,
+                            _ api: GoogleSheetTools, _ ticket: String?) async throws -> String? {
+        let batch = try XCTUnwrap(preview.batch)
+        let journal = GooglePeriodBankJournal(api:api,original:original,plan:preview.plan,month:"2027-01",downloadDay:"2027-01-31",
+                                              expectedTicket:ticket,replan:raceReplan(owner,api))
+        do { return try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal) }
+        catch let error as GoogleSheetTools.Failure where error.code == "import_pending" { return nil }
+        catch PeriodBankAppend.Failure.staleLedger { return nil } // The winning device can move the slot between the loser's reads.
+        catch PeriodBankAppend.Failure.unverifiedRows { return nil } // A new marker can precede a coherent row read. Both clients must verify it below.
+    }
+    func testConcurrentNativeBankImportRecoversLostGoogleSuccess() async throws {
+        try await proveRace(readbackOnly:false)
+    }
+    func testReadBackExistingConcurrentNativeBankImport() async throws {
+        try await proveRace(readbackOnly:true)
+    }
+    private func proveRace(readbackOnly: Bool) async throws {
+        try requirePhysical()
+        let env = ProcessInfo.processInfo.environment
+        guard env["KITTY_PRACTICE_CONCURRENCY"] == "post-replay",
+              readbackOnly ? env["KITTY_PRACTICE_RACE_READBACK_ONLY"] == "1" : env["KITTY_PRACTICE_RACE_READBACK_ONLY"] == nil
+        else { throw XCTSkip("Run only the explicitly requested phase following all six private practice checks.") }
+        executionTimeAllowance = 480
+        let (one,title,operation) = try await context(), (two,titleB,operationB) = try await context()
+        let saved = try obj(Data(contentsOf:baseline)), selection = one.selected
+        guard title == titleB, operation == operationB, selection.permissionID == two.selected.permissionID, selection.sheetID == two.selected.sheetID,
+              selection.sessionID != two.selected.sessionID, saved["run"] as? String == run, saved["operation"] as? String == operation,
+              saved["title"] as? String == title, saved["sheetID"] as? String == selection.sheetID, saved["owner"] as? String == selection.permissionID,
+              saved["rowCount"] as? Int == 1082, let oldHash = saved["ledgerSHA256"] as? String else { throw Fail.wrongFixture }
+        let oa = try await GoogleSheetSelection(http:one.http,current:one.current,token:one.token).verify(selection)
+        let ob = try await GoogleSheetSelection(http:two.http,current:two.current,token:two.token).verify(two.selected)
+        let previous = try await receiptFiles(one)
+        guard oa.canImportBankFiles, oa.isPracticeCopy, ob.canImportBankFiles, ob.isPracticeCopy,
+              previous.count == 1, privateFile(previous[0],selection.permissionID),
+              (previous[0]["appProperties"] as? [String:String])?["kittyBankTerminal"] == "verified",
+              let previousID = previous[0]["id"] as? String, GoogleConnection.validSheetID(previousID) else { throw Fail.wrongFixture }
+        let oldReceipt = try obj(await drive(one,path:"files/" + previousID,query:["alt":"media"]))
+        guard oldReceipt["kind"] as? String == "verified", let old = oldReceipt["binding"] as? Object,
+              old["sourceSHA256"] as? String == sha, old["sheetID"] as? String == selection.sheetID,
+              old["owner"] as? String == selection.permissionID, old["rowCount"] as? Int == 2 else { throw Fail.wrongFixture }
+        let before = try await readLedger(one), priorCount = 1085 // Header, untouched baseline, and both six-phase entries.
+        guard [priorCount,priorCount+1].contains(before.count), hash(try json(Array(before.prefix(1083)))) == oldHash,
+              try json(before) == json(await readLedger(two)) else { throw Fail.differentLedger }
+        try assertDuplicate(before)
+        for (row,expected) in zip(before[1083..<1085],newRows) {
+            guard row.count >= 20, row[0] as? String == expected.0, row[4] as? String == expected.1, number(row[2]) == Double(expected.2),
+                  row[3] as? String == "ACC-CC", number(row[6]) == expected.3, row[19] as? String == "bank export" else { throw Fail.differentLedger }
+        }
+        let raw = "KITTY PRACTICE RACE " + run.uppercased()
+        let bytes = Data("Date,Description,Card Member,Account #,Amount\r\n31/01/2027,\(raw),JORDAN DAVIES,-41007,3.17\r\n".utf8)
+        let original = SourceDocument(name:"Kitty-2027-01-race-" + run + ".csv",mimeType:"text/csv",bytes:bytes)
+        let priorHash = hash(try json(Array(before.prefix(priorCount)))), priorEntered = try await racePriorEnteredHash(one,count:priorCount)
+        let record = baseline.deletingLastPathComponent().appendingPathComponent("KittyPracticeRace-" + run + ".json")
+        let scope = try BankBinding.scope(sheet:selection.sheetID,owner:selection.permissionID,source:original.id,account:"ACC-CC",month:"2027-01",day:"2027-01-31")
+        func preview(_ o: GoogleSheetSelection.Verified, _ api: GoogleSheetTools) async throws -> PeriodBankPlanner.Preview {
+            try await PeriodBankPlanner.prepare(original:original,account:"ACC-CC",month:"2027-01",downloadDay:"2027-01-31",owner:o,api:api)
+        }
+        let a = try await preview(oa,one), b = try await preview(ob,two)
+        var trace: RaceTrace?
+        let resumingTrace = FileManager.default.fileExists(atPath:record.path)
+        if resumingTrace {
+            let t = try JSONDecoder().decode(RaceTrace.self,from:Data(contentsOf:record))
+            guard t.run == run, t.operation == operation, t.sheet == selection.sheetID, t.owner == selection.permissionID,
+                  t.sourceSHA == original.id, t.priorCount == priorCount, t.priorSHA == priorHash, t.priorEnteredSHA == priorEntered else { throw Fail.wrongFixture }
+            trace = t
+        }
+        if readbackOnly {
+            guard before.count == priorCount+1, trace?.contested == true, trace?.droppedSuccess == 1 else { throw Fail.differentLedger }
+        }
+        if before.count == priorCount {
+            guard !before.contains(where:{ $0.first as? String == "T0928" || ($0.count > 4 && $0[4] as? String == raw) }),
+                  let p = a.batch, let q = b.batch, p.digest == q.digest, try json(a.plan) == json(b.plan),
+                  p.rows.map(\.id) == ["T0928"], p.firstRow == priorCount+1,
+                  a.summary["duplicateCount"] as? Int == 0, b.summary["duplicateCount"] as? Int == 0 else { throw Fail.differentLedger }
+            let observation = try await PeriodBankReadback.read(p,owner:oa,api:one)
+            guard case .batch(let requests) = try p.next(observation,stage:.prepared,freshlyPlanned:q),
+                  let write = requests.compactMap({$0["updateCells"] as? Object}).first, let row = (write["rows"] as? [Object])?.first,
+                  let cells = row["values"] as? [Object], cells.count == 20,
+                  (cells[4]["userEnteredValue"] as? [String:String]) == ["stringValue":raw],
+                  number((cells[6]["userEnteredValue"] as? Object)?["numberValue"]) == -3.17 else { throw Fail.differentLedger }
+            let payloadHash = hash(try json(["requests":requests]))
+            if let t = trace {
+                guard t.digest == p.digest, t.batchSHA == payloadHash else { throw Fail.differentLedger }
+            } else {
+                trace = RaceTrace(run:run,operation:operation,sheet:selection.sheetID,owner:selection.permissionID,sourceSHA:original.id,
+                                  digest:p.digest,priorSHA:priorHash,priorEnteredSHA:priorEntered,batchSHA:payloadHash,priorCount:priorCount)
+            }
+        } else {
+            guard trace?.droppedSuccess == 1, a.batch == nil, b.batch == nil,
+                  a.summary["duplicateCount"] as? Int == 1, b.summary["duplicateCount"] as? Int == 1 else { throw Fail.differentLedger }
+        }
+        let wire = RaceWire(try XCTUnwrap(trace),record:record,scope:scope,original:bytes)
+        try wire.save()
+        wire.allowBankBatch = !readbackOnly && before.count == priorCount
+        let apiA = raceAPI(one,"A",wire), apiB = raceAPI(two,"B",wire), digest = wire.trace.digest
+        if before.count == priorCount {
+            let hold = try await GoogleBankStore(api:apiA).gate()
+            if let hold {
+                guard wire.trace.contested, hold.digest == digest, hold.sourceSHA256 == original.id, try hold.scope == scope else { throw Fail.wrongFixture }
+            }
+            let pending = try await GooglePeriodBankJournal.status(owner:oa,api:apiA,expectedDigest:digest)
+            if let pending, pending.phase == .dispatched {
+                guard pending.digest == digest, wire.trace.contested else { throw Fail.wrongFixture }
+                _ = try await GooglePeriodBankJournal.resume(owner:oa,api:apiA,digest:digest,ticket:pending.ticket,replan:raceReplan(oa,apiA))
+            } else {
+                guard pending == nil || pending?.phase == .prepared else { throw Fail.wrongFixture }
+                async let clientA = raceCommit(a,original,oa,apiA,pending?.ticket)
+                async let clientB = raceCommit(b,original,ob,apiB,pending?.ticket)
+                for result in try await [clientA,clientB] { if let result, result != digest { throw Fail.archiveMismatch } }
+            }
+        }
+        guard wire.trace.contested, wire.trace.successes == 1, wire.trace.droppedSuccess == 1, wire.trace.rejected == 0,
+              wire.trace.deliveries >= 1, resumingTrace || wire.trace.deliveries == 1 else { throw Fail.unexpectedResponse }
+        wire.allowBankBatch = false
+        let financialRequestsAfterRace = wire.trace.deliveries
+        for (owner,api) in [(oa,apiA),(ob,apiB)] {
+            var status: GooglePeriodBankJournal.Status?
+            for wait in [0,1,2,4,8] {
+                if wait > 0 { try await Task.sleep(for:.seconds(wait)) }
+                status = try await GooglePeriodBankJournal.recover(owner:owner,api:api,sourceSHA256:original.id,account:"ACC-CC",month:"2027-01",downloadDay:"2027-01-31")
+                if status != nil && status?.phase != .dispatched { break }
+            }
+            guard status?.phase == .verified, status?.digest == digest, status?.rowCount == 1 else { throw Fail.archiveMismatch }
+            let store = GoogleBankStore(api:api)
+            guard let binding = try await store.finished(digest:digest,scope:nil), try binding.scope == scope,
+                  let archived = try await store.blob(.original,binding), archived == bytes, hash(archived) == original.id,
+                  let manifest = try await store.blob(.manifest,binding),
+                  try await store.gate() == nil else { throw Fail.archiveMismatch }
+            let archivedReview = try obj(manifest)
+            guard let encodedPlan = archivedReview["plan"] as? Object else { throw Fail.archiveMismatch }
+            let approved = try PeriodBankAppend.restoredPlan(encodedPlan,amountEncoding:archivedReview["amountEncoding"])
+            let batch = try PeriodBankAppend(plan:approved,sheetID:selection.sheetID,account:"ACC-CC",original:original,
+                                            originalSHA256:original.id).usingMarkerID(binding.receiptMarkerID)
+            let read = try await PeriodBankReadback.read(batch,owner:owner,api:api)
+            guard batch.digest == digest, case .verified = try batch.next(read,stage:.dispatched) else { throw Fail.archiveMismatch }
+            let rows = try await readLedger(api)
+            guard rows.count == priorCount+1, hash(try json(Array(rows.prefix(priorCount)))) == priorHash,
+                  try await racePriorEnteredHash(api,count:priorCount) == priorEntered, let r = rows.last,
+                  r[0] as? String == "T0928", r[3] as? String == "ACC-CC", r[4] as? String == raw,
+                  number(r[2]) == Double(GoogleSheetDay.serial("2027-01-31")!), number(r[6]) == -3.17,
+                  rows.filter({ $0.count > 4 && $0[4] as? String == raw }).count == 1 else { throw Fail.differentLedger }
+            let replay = try await preview(owner,api)
+            guard replay.batch == nil, replay.summary["duplicateCount"] as? Int == 1,
+                  replay.summary["proposedCount"] as? Int == 0, (replay.plan["writes"] as? [Object])?.isEmpty == true else { throw Fail.differentLedger }
+        }
+        guard wire.trace.deliveries == financialRequestsAfterRace else { throw Fail.differentLedger }
+        try attachment("Private Google race and deliberately lost success",["run":run,"twoIndependentSessions":true,
+            "confirmedGateReplies":wire.trace.gateReplies,"bankRequests":wire.trace.deliveries,"successfulResponsesDropped":wire.trace.droppedSuccess,
+            "successfulGoogleBankBatches":wire.trace.successes,"refusedOutOfScopeRequests":wire.trace.rejected,"quotaLimitedReadsRetried":wire.trace.quotaReadRetries,
+            "originalSHA256":original.id,"archiveBytes":bytes.count,"verifiedDigest":digest,"priorRowsUnchanged":priorCount-1,"priorEnteredCellsAndFormulasMatch":true,
+            "newIDs":["T0928"],"signedAmount":-3.17,"replayWrites":0,"replayFinancialRequests":0,"verifiedBySessions":2,"readbackOnlyInvocation":readbackOnly])
+    }
+}
