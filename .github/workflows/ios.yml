@@ -1,32 +1,77 @@
 name: iOS host
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 15
+    # Cold runners sometimes spend five minutes compiling Apple's SDK modules alone.
+    # Keep a separate allowance for the actual device tests and their evidence.
+    timeout-minutes: 21
+    env:
+      # Pin a supported SDK/runtime pair; iOS 18.5 has WebKit bug 293831.
+      # https://bugs.webkit.org/show_bug.cgi?id=293831
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
+      - name: Verify pinned Xcode
+        run: xcodebuild -version
       - name: Check deterministic project
         run: |
           python3 ios/scripts/generate_project.py
           git diff --exit-code -- ios/Kitty.xcodeproj
-      - name: Build unsigned simulator host
+      - name: Bundle shared offline page and brand icon
+        run: python3 ios/scripts/prepare_resources.py
+      - name: Choose iOS 26.2 iPhone simulator
+        run: |
+          xcrun simctl list devices available -j > /tmp/kitty-simulators.json
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          devices = json.load(open('/tmp/kitty-simulators.json'))['devices']
+          phone = next(d for runtime, values in devices.items()
+                       if runtime.endswith('.iOS-26-2') for d in values
+                       if d['name'] == 'iPhone 17 Pro' and d.get('isAvailable'))
+          print('KITTY_SIMULATOR_ID=' + phone['udid'])
+          PY
+      - name: Start the simulator
+        run: xcrun simctl boot "$KITTY_SIMULATOR_ID"
+      - name: Build host and tests while the simulator starts
+        timeout-minutes: 9
+        run: |
+          mkdir -p ios/build
+          set -o pipefail
+          xcodebuild -project ios/Kitty.xcodeproj -scheme Kitty \
+            -configuration Debug -destination "platform=iOS Simulator,id=$KITTY_SIMULATOR_ID" \
+            -derivedDataPath ios/build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee ios/build/compile.log
+      - name: Wait for the simulator
+        timeout-minutes: 3
+        run: xcrun simctl bootstatus "$KITTY_SIMULATOR_ID" -b
+      - name: Run offline host and Files tests
         timeout-minutes: 10
         run: |
           mkdir -p ios/build
           set -o pipefail
           xcodebuild -project ios/Kitty.xcodeproj -scheme Kitty \
-            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug -destination "platform=iOS Simulator,id=$KITTY_SIMULATOR_ID" \
             -derivedDataPath ios/build/DerivedData \
-            -resultBundlePath ios/build/build.xcresult \
-            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ios/build/build.log
+            -resultBundlePath ios/build/offline.xcresult \
+            -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
+            -maximum-test-execution-time-allowance 120 \
+            CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee ios/build/build.log
+      - name: Read the saved fictional CSV back from simulator Files
+        run: python3 ios/scripts/verify_simulator_export.py "$KITTY_SIMULATOR_ID" ios/build/build.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ios-build-evidence
           path: |
+            ios/build/compile.log
             ios/build/build.log
-            ios/build/build.xcresult
+            ios/build/offline.xcresult
           if-no-files-found: ignore
           retention-days: 7

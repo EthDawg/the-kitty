@@ -2,11 +2,24 @@ import SwiftUI
 
 @main
 struct KittyApp: App {
+    @StateObject private var host = KittyHost()
+
     var body: some Scene {
         WindowGroup {
-            // Milestone 1 proves the native build. Milestone 2 supplies the shared page.
-            Text("The Kitty")
-                .accessibilityIdentifier("native-foundation")
+            KittyPage(controller: host.controller)
+                .ignoresSafeArea(.container)
+                .onOpenURL { host.controller.openDeepLink($0) }
         }
     }
+}
+
+@MainActor
+private final class KittyHost: ObservableObject {
+    let controller = KittyViewController()
+}
+
+private struct KittyPage: UIViewControllerRepresentable {
+    let controller: KittyViewController
+    func makeUIViewController(context: Context) -> KittyViewController { controller }
+    func updateUIViewController(_ controller: KittyViewController, context: Context) {}
 }
