@@ -169,6 +169,15 @@ def native_shell(root, shell):
     return shell, '\n'.join(fonts), host_css, notices
 
 
+PERIOD_BANK_MODULES = ('period-text', 'period-adapters', 'period-writeplan', 'period-plan', 'period-core', 'period-bank')
+
+
+def period_bank_script(root):
+    """Byte-identical shared modules for native JavaScriptCore, with no page or network dependencies."""
+    return '\n'.join((Path(root) / 'src/core' / (name + '.js')).read_text(encoding='utf-8')
+                     for name in ('import', *PERIOD_BANK_MODULES))
+
+
 def render(root, host='artifact', v2=False, no_snapshot=False):
     root = Path(root)
     if host not in ('artifact', 'native'):
@@ -207,7 +216,7 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
                 logos[file.stem] = f'data:{mime};base64,' + base64.b64encode(file.read_bytes()).decode()
     kit = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.js')
     # Keep the importer byte-for-byte identical to the code exercised in Node.
-    core = '\n'.join(read(src, 'core', name + '.js') for name in ('sheet-contract', 'import', 'records', 'close'))
+    core = '\n'.join(read(src, 'core', name + '.js') for name in ('sheet-contract', 'import', 'records', 'close', *PERIOD_BANK_MODULES))
     shell = read(src, 'shell.html')
     font_css, host_css, notices = '', '', []
     if native:

@@ -5,15 +5,19 @@ import CryptoKit
 /// are persisted by this probe, and a selected file never by itself establishes write authority.
 @MainActor
 struct GoogleSheetSelection {
-    // This development milestone is explicitly limited to the public fictional household.
+    // The public example may be read, but never receives a bank file.
     static let demoFileID = "16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA"
+    static let driveFields = "id,name,mimeType,trashed,ownedByMe,capabilities(canEdit),permissions(id,type,role,deleted),appProperties"
     struct Verified {
         let selection: GoogleConnection.Selection
         let title: String
         let canEdit: Bool
         var timeZone: TimeZone = TimeZone(secondsFromGMT:0)!
+        var canImportBankFiles = false
+        var isPracticeCopy = false
         var summary: [String: Any] {
-            ["sheetID": selection.sheetID, "title": title, "sheetVersion": 2, "canEdit": canEdit]
+            ["sheetID": selection.sheetID, "title": title, "sheetVersion": 2, "canEdit": canEdit,
+             "canImportBankFiles": canImportBankFiles, "isPracticeCopy": isPracticeCopy]
         }
         var preferenceID: String {
             let bytes = Data((selection.permissionID + "\u{0}" + selection.sheetID).utf8)
@@ -42,10 +46,23 @@ struct GoogleSheetSelection {
     let current: () -> GoogleConnection.Selection?
     let token: (GoogleConnection.Selection) async throws -> String
 
+    static func ownedPrivateFile(_ file: [String:Any], permissionID: String) -> Bool {
+        guard let id = file["id"] as? String, GoogleConnection.validSheetID(id), id != demoFileID,
+              file["mimeType"] as? String == "application/vnd.google-apps.spreadsheet",
+              file["ownedByMe"] as? Bool == true, file["trashed"] as? Bool == false,
+              (file["capabilities"] as? [String:Any])?["canEdit"] as? Bool == true,
+              let access = file["permissions"] as? [[String:Any]], !access.isEmpty else { return false }
+        // Named people can share a household. A link, domain or group can have an unknown audience.
+        let active = access.filter { $0["deleted"] as? Bool != true }
+        return active.allSatisfy { $0["type"] as? String == "user" && ($0["id"] as? String)?.isEmpty == false } &&
+            active.filter { $0["role"] as? String == "owner" }.count == 1 &&
+            active.contains { $0["id"] as? String == permissionID && $0["role"] as? String == "owner" }
+    }
+
     func verify(_ selection: GoogleConnection.Selection) async throws -> Verified {
         guard GoogleConnection.validSheetID(selection.sheetID) else { throw Failure.wrongFile }
         let file = try await read(selection, host: "www.googleapis.com", path: "/drive/v3/files/" + selection.sheetID,
-                                  query: ["fields": "id,name,mimeType,trashed,capabilities(canEdit)", "supportsAllDrives": "true"])
+                                  query: ["fields": Self.driveFields, "supportsAllDrives": "true"])
         guard file["id"] as? String == selection.sheetID,
               file["mimeType"] as? String == "application/vnd.google-apps.spreadsheet",
               file["trashed"] as? Bool == false,
@@ -73,7 +90,13 @@ struct GoogleSheetSelection {
         guard rows.count == 1, rows[0].count == 2,
               String(describing: rows[0][1]) == "2" else { throw Failure.wrongVersion }
         guard current() == selection else { throw Failure.changed }
-        return Verified(selection: selection, title: String(name.prefix(250)), canEdit: canEdit, timeZone:zone)
+        let owned = Self.ownedPrivateFile(file, permissionID: selection.permissionID)
+        let properties = file["appProperties"] as? [String:String]
+        let practice = owned && properties?["kittyPractice"] == "davies-v2" &&
+            properties?["kittyPracticeOperation"].flatMap(UUID.init(uuidString:)) != nil
+        let feedIsPrivate = (try? GoogleBankStore.checkFeed(values)) != nil
+        return Verified(selection: selection, title: String(name.prefix(250)), canEdit: canEdit,
+                        timeZone:zone, canImportBankFiles:owned && feedIsPrivate, isPracticeCopy:practice)
     }
 
     #if DEBUG

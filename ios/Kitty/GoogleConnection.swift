@@ -172,6 +172,21 @@ final class GoogleConnection: NSObject, ObservableObject, ASWebAuthenticationPre
         return selected
     }
 
+    /// Drive gave this app a grant for a file it created. The native copy receipt binds it
+    /// to the current account; a web-view supplied identifier cannot switch the Keychain scope.
+    func adoptPractice(_ copy: GooglePracticeSheet.Copy) throws -> Selection {
+        guard selection == copy.source, !isAuthorizing, !isRestoring, !isDisconnecting,
+              let stored = credential, stored.sheetID == GoogleSheetSelection.demoFileID,
+              stored.permissionID == copy.source.permissionID else { throw ConnectionError.reconnect }
+        let next = Credential(version:stored.version, clientID:stored.clientID, permissionID:stored.permissionID,
+                              sheetID:copy.id, access:stored.access, refresh:stored.refresh, expiresAt:stored.expiresAt, scope:stored.scope)
+        let current = beginGeneration()
+        try persist(next)
+        let picked = Selection(permissionID:next.permissionID, sheetID:copy.id, sessionID:current)
+        selection = picked
+        return picked
+    }
+
     /// A saved token is not a verified live session until Drive confirms the same native user identity.
     @discardableResult
     func restore() async throws -> Selection? {

@@ -201,3 +201,24 @@ test("system reduced motion remains effective and changes propagate", () => {
   assert.equal(h.window.KittyNative.environment.reduceMotion, false);
   assert.equal(h.attributes.get("data-kitty-reduce-motion"), "false");
 });
+
+test("bank review binds a private editable session and dispatches only its opaque ticket", async () => {
+  const sheetID="fictional_private_sheet_00001", sourceID="a".repeat(64), session="80454d6f-fde5-4fc1-8361-accdd7c9ce50";
+  const descriptor={sheetID,session,sheetVersion:2,preferenceID:"native-"+"b".repeat(64),title:"Practice",canEdit:true,canImportBankFiles:true};
+  const metadata={sourceID,name:"proof.csv",byteLength:149,mimeType:"text/csv",account:"ACC-CC",month:"2027-01",downloadDay:"2027-01-31"};
+  const h=host(({method})=>ok(method==="google.open"?descriptor:method==="files.bank-preview"?{mode:"confirm",ticket:"opaque"}:{status:"verified"}));
+  await h.window.KittyNative.google.open(sheetID);
+  const files=h.window.KittyNative.files;
+  await assert.rejects(files.previewBank({...metadata,text:"edited rows"}),isCode("invalid_request"));
+  await assert.rejects(files.commitBank({bytes:"replacement"}),isCode("invalid_request"));
+  await files.previewBank(metadata);await files.commitBank("opaque");
+  assert.deepEqual(h.calls.at(-2),{method:"files.bank-preview",params:{session,sheetID,...metadata}});
+  assert.deepEqual(h.calls.at(-1),{method:"files.bank-commit",params:{session,sheetID,ticket:"opaque"}});
+  await h.window.KittyNative.google.close();
+  await assert.rejects(files.cancelBank("opaque"),isCode("not_granted"));
+  for(const override of [{canEdit:false},{canImportBankFiles:false}, {canImportBankFiles:undefined}]){
+    const denied=host(()=>ok({...descriptor,...override}));await denied.window.KittyNative.google.open(sheetID);
+    await assert.rejects(denied.window.KittyNative.files.previewBank(metadata),isCode("not_granted"));
+    assert.equal(denied.calls.filter(c=>c.method==="files.bank-preview").length,0);
+  }
+});

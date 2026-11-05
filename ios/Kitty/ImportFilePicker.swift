@@ -40,17 +40,35 @@ final class ImportFilePicker: NSObject, UIDocumentPickerDelegate, UIAdaptivePres
     private var scope = ""
     private var generation = UUID()
     private let originals = ImportOriginals()
+    private struct Pick {
+        let scope, id, name, mimeType: String
+        let size: Int
+    }
+    private var selected: Pick?
+
+    /// Only native Files selection supplies the filename, media type, household and hash.
+    /// A JS preview references these values but cannot supply the bytes or change their meaning.
+    func reviewedOriginal(params: [String:Any], scope: String) throws -> SourceDocument {
+        guard let picked = selected, picked.scope == scope, params["sourceID"] as? String == picked.id,
+              params["name"] as? String == picked.name, params["mimeType"] as? String == picked.mimeType,
+              picked.mimeType == "text/csv", params["byteLength"] as? Int == picked.size else {
+            throw SourceIntakeError.message("Choose this bank CSV from Files again before reviewing.")
+        }
+        let bytes = try originals.load(id:picked.id,scope:scope)
+        guard bytes.count == picked.size else { throw SourceIntakeError.message("The retained original changed. Choose the file again.") }
+        return SourceDocument(name:picked.name,mimeType:picked.mimeType,bytes:bytes)
+    }
 
     func open(on host: UIViewController, scope: String, check: @escaping () -> Bool, reply: @escaping ([String:Any]) -> Void) {
         guard self.reply == nil, host.presentedViewController == nil, check() else {
             reply(HostPolicy.failure("busy","Close the current sheet and try Files again.")); return
         }
-        self.reply = reply; self.scope = scope; self.check = check; self.generation = UUID()
+        self.reply = reply; self.scope = scope; self.check = check; self.generation = UUID(); self.selected = nil
         let picker = UIDocumentPickerViewController(forOpeningContentTypes:[.commaSeparatedText, .pdf], asCopy:false)
         picker.allowsMultipleSelection = false; picker.delegate = self
         host.present(picker,animated:true); picker.presentationController?.delegate = self
     }
-    func cancel() { finish(HostPolicy.failure("cancelled","No file was added.")) }
+    func cancel() { selected = nil; finish(HostPolicy.failure("cancelled","No file was added.")) }
     private func finish(_ payload: [String:Any]) { let cb = reply; reply = nil; check = nil; generation = UUID(); cb?(payload) }
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { cancel() }
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { cancel() }
@@ -76,6 +94,7 @@ final class ImportFilePicker: NSObject, UIDocumentPickerDelegate, UIAdaptivePres
                     preview["pdf_text"] = source.pages.map(\.text).joined(separator:"\n")
                     preview["ocr"] = source.pages.contains { $0.method == .visionOCR }
                 }
+                selected = Pick(scope:owner,id:source.id,name:source.name,mimeType:source.mimeType,size:source.byteLength)
                 finish(HostPolicy.reply(preview))
             } catch {
                 guard bound == generation else { return }

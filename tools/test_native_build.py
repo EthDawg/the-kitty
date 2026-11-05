@@ -118,7 +118,7 @@ class NativeBuildTests(unittest.TestCase):
         for relative in ('src/engine.js', 'src/app.js', 'brand/motion/motion.js'):
             self.assertIn((self.root / relative).read_text(), bodies)
         core = '\n'.join((self.root / 'src/core' / (name + '.js')).read_text()
-                         for name in ('sheet-contract', 'import', 'records', 'close'))
+                         for name in ('sheet-contract', 'import', 'records', 'close', *BUILD.PERIOD_BANK_MODULES))
         self.assertIn(core, bodies)
         kit = '\n'.join(p.read_text() for p in sorted((self.root / 'src/kit').glob('*.js')))
         self.assertIn(kit, bodies)

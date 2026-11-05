@@ -1,102 +1,116 @@
-/* A single intake UI. File access and confirmed writes are supplied by the host. */
+/* Bank source review shared by the artifact and iOS. Original selection and remote authority belong to the host. */
 (function (root) {
   "use strict";
-  const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[ch]);
-  const fileMax = 5 * 1024 * 1024;
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const maxBytes = 5 * 1024 * 1024;
   async function browserFile(file) {
-    if (!file || !/\.(csv|pdf)$/i.test(file.name) || !file.size || file.size > fileMax) throw Error("Choose a CSV or PDF under 5 MB.");
+    if (!file || !/\.csv$/i.test(file.name) || !file.size || file.size > maxBytes) throw Error("Choose an original bank CSV up to 5 MB.");
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const id = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), v => v.toString(16).padStart(2,"0")).join("");
-    if (/\.pdf$/i.test(file.name)) throw Error("The artifact cannot read PDF pages. Open the original on your iPhone, or choose the bank’s CSV.");
-    try { return { id, name:file.name, byteLength:bytes.length, text:new TextDecoder("utf-8",{fatal:true,ignoreBOM:true}).decode(bytes), mimeType:"text/csv" }; }
-    catch (_) { throw Error("Choose a UTF-8 CSV export. The original has not been changed."); }
+    const id = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)), n=>n.toString(16).padStart(2,"0")).join("");
+    try { return {id,name:file.name,byteLength:bytes.length,text:new TextDecoder("utf-8",{fatal:true,ignoreBOM:true}).decode(bytes),mimeType:"text/csv"}; }
+    catch (_) { throw Error("Choose a UTF-8 bank export. This file could not be decoded without changing its bytes."); }
   }
-  const firstOf = (ym, fallback) => /^\d{4}-\d{2}$/.test(ym || "") ? ym : fallback;
+
+  function summaryHTML(s) {
+    const rows = (list, pending) => list.map(r=>'<li><b>'+esc(r.signedAmount)+' '+esc(s.currency)+'</b> · '+esc(r.date)+' · '+esc(r.raw)+
+      (pending ? ' · '+esc(r.id)+' · '+esc(r.merchant)+' · '+esc(r.category)+' · '+esc(r.person) : '')+' · source row '+esc(r.line)+'</li>').join("");
+    const outside=s.outside.reduce((a,x)=>a+(x.earlier||0)+(x.later||0),0);
+    const detail=(title,content)=>content?'<details><summary>'+esc(title)+'</summary>'+content+'</details>':'';
+    const list = a => a.length ? '<ul>'+a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>' : '';
+    return '<h3>'+ (s.status==="ready" ? (s.proposedCount?"Review proposed changes":"No new bank entries"):"Check this source before importing") +'</h3>'+
+      '<p><b>'+esc(s.name)+'</b> → '+esc(s.accountName)+' ('+esc(s.account)+') · '+esc(s.month)+' · downloaded '+esc(s.downloadDay)+'</p>'+
+      '<p>'+(Number.isInteger(s.sourceRows)?esc(s.sourceRows)+' source rows · ':'')+esc(s.proposedCount)+' proposed · '+esc(s.duplicateCount)+' already in this Sheet'+(outside?' · '+esc(outside)+' outside the selected month':'')+'.</p>'+
+      (s.rows.length?'<ol>'+rows(s.rows,true)+'</ol>':'')+
+      detail('Already in this Sheet ('+s.duplicates.length+')',s.duplicates.length?'<ul>'+rows(s.duplicates,false)+'</ul>':'')+
+      list(s.faults.concat(s.holds)) + (s.restriction?'<p>'+esc(s.restriction)+'</p>':'')+
+      detail('Review notes',list(s.review))+
+      (s.checks.length?'<p>'+s.checks.map(c=>esc(c.unchecked?'Balance check: '+c.unchecked:'Closing balance '+c.day+': '+c.printed+' printed, '+c.ledger+' in the ledger')).join('<br>')+'</p>':'')+
+      detail('Original and exact Sheet plan','<p>'+esc(s.byteLength)+' bytes · SHA-256 <code style="overflow-wrap:anywhere">'+esc(s.sourceID)+'</code></p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(JSON.stringify({writes:s.writes,deferred:s.deferred},null,2))+'</pre>');
+  }
+
   function open(host) {
-    const starting = host.sheet;
-    const accounts = (starting.accounts || []).filter(a => a.account_id
-      && String(a.valuation_method || "").trim().toLowerCase() === "ledger" && String(a.status || "").trim().toLowerCase() === "active");
-    const periodPlanner = typeof root.KittyPeriod?.plan === "function" ? root.KittyPeriod : null;
-    if (!accounts.length) { host.drawer("<h2>Import a bank file</h2><p>This Sheet needs an active ledger account for a bank export.</p>"); return; }
-    const day = (starting.settings || []).find(s=>s.setting==="As-of date")?.value || "";
-    let file, approvedPlan, busy = false;
-    host.drawer('<h2>Import a bank file</h2><p>Choose the original export, tell Kitty which account it belongs to, then check the proposed rows.</p>'
-      + (host.pick ? '<button class="btn" id="ifpick">Choose from Files</button>' : '<label>Bank file <input id="iffile" type="file" accept=".csv,.pdf"></label>')
-      + '<p id="ifname" role="status"></p><label>Sheet account <select id="ifaccount"><option value="">Choose an account</option>'
-      + accounts.map(a=>'<option value="'+esc(a.account_id)+'">'+esc(a.account || a.account_id)+'</option>').join("") + '</select></label>'
-      + (periodPlanner ? '<p><label>Month to import <input type="month" id="ifmonth"></label></p><label>Date of the download <input type="date" id="ifdate"></label>'
-        + '<p class="sub">Use the date of the bank export. Kitty checks the source dates, including overlaps with rows already in the Sheet.</p>'
-        : '<p class="sub">The preview checks all dates in this export against the selected account.</p>')
-      + '<button class="btn" id="ifprepare">Preview import</button><section id="ifresult" aria-live="polite"></section>');
-    const box = document.querySelector("#drawer"), q = id => box.querySelector("#"+id);
-    const account=q("ifaccount"), month=q("ifmonth"), date=q("ifdate"), name=q("ifname"), result=q("ifresult");
-    if (periodPlanner && /^\d{4}-\d{2}-\d{2}$/.test(day)) { month.value=day.slice(0,7); date.value=day; }
-    const mounted = () => name.isConnected && host.current();
-    function stale() { approvedPlan=null; result.replaceChildren(); }
-    for (const f of [account,month,date]) f?.addEventListener("change",stale);
+    const core=root.KittyBank, accounts=(host.sheet.accounts || []).filter(a=>a.account_id && String(a.valuation_method).toLowerCase()==="ledger" && String(a.status).toLowerCase()==="active");
+    if (!core || !accounts.length) { host.drawer("<h2>Bank imports</h2><p>"+(core?"This Sheet needs an active ledger account for a bank export.":"The period planner could not be loaded. Reopen the app.")+"</p>"); return; }
+    const day=host.asOf || (host.sheet.settings||[]).find(s=>s.setting==="As-of date")?.value || "";
+    host.drawer('<h2>Import a bank file</h2><p>Choose the original bank CSV and its Sheet account. Review the signed amounts and existing matches before saving.</p>'+
+      (host.pick?'<button class="btn" id="ifpick">Choose from Files</button>':'<label>Bank file <input id="iffile" type="file" accept=".csv,text/csv"></label>')+
+      '<p id="ifname" role="status"></p><label>Sheet account <select id="ifaccount"><option value="">Choose an account</option>'+
+      accounts.map(a=>'<option value="'+esc(a.account_id)+'">'+esc(a.account||a.account_id)+'</option>').join("")+'</select></label>'+
+      '<p><label>Month to import <input type="month" id="ifmonth"></label></p><label>Date of the download <input type="date" id="ifdate"></label>'+
+      '<p class="sub">Kitty checks all the dates in the export. Only rows in the selected month can be added.</p>'+
+      '<button class="btn" id="ifprepare">Preview import</button><section id="ifresult" aria-live="polite"></section>');
+    const box=document.querySelector("#drawer"), q=id=>box.querySelector("#"+id);
+    const account=q("ifaccount"), month=q("ifmonth"), date=q("ifdate"), name=q("ifname"), result=q("ifresult"), preview=q("ifprepare");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) { month.value=day.slice(0,7); date.value=day; }
+    let file=null, busy=false, revision=0;
+    const mounted=()=>name.isConnected && host.current();
+    function stale(){ revision++; result.replaceChildren(); }
+    function lock(value){busy=value; for(const control of [q("ifpick"),q("iffile"),account,month,date,preview])if(control)control.disabled=value;}
+    for(const input of [account,month,date]) { input.addEventListener("input",stale); input.addEventListener("change",stale); }
     async function receive(reader) {
-      if (busy) return;
-      stale(); file=null; busy=true; name.textContent="Opening the selected file…";
-      try {
-        const value=await reader();
-        if (!mounted()) return;
-        if (!value || !/^[a-f0-9]{64}$/.test(value.id) || !value.byteLength || value.byteLength>fileMax) throw Error("Kitty could not verify the original.");
-        file=value;
-        const hint=(value.name.match(/(20\d\d-\d\d)(?:[.\-_]|$)/)||[])[1];
-        if (hint && month) month.value=firstOf(hint,month.value);
-        name.textContent=value.name+" · "+value.byteLength.toLocaleString()+" bytes"+(value.ocr?" · text recognised on iPhone; check every figure.":"");
-      } catch(e) { if (mounted()) name.textContent=e?.code==="cancelled"?"No file selected.":String(e?.message || "Could not read the selected file."); }
-      finally { busy=false; }
+      if(busy) return;
+      stale(); file=null; lock(true); name.textContent="Opening the selected file…";
+      try{
+        const selected=await reader(); if(!mounted())return;
+        if(!selected || !/^[a-f0-9]{64}$/.test(selected.id) || !Number.isInteger(selected.byteLength) || selected.byteLength<1 || selected.byteLength>maxBytes) throw Error("Kitty could not verify the selected original.");
+        if(selected.mimeType!=="text/csv")throw Error("This bank account needs the bank’s CSV export. A PDF cannot establish its transaction rows.");
+        if(["failed","partial","cancelled"].includes(selected.state))throw Error(selected.messages?.join(" ")||"The original could not be read completely.");
+        file=selected;
+        const hint=file.name.match(/(20\d\d-(?:0[1-9]|1[0-2]))(?:[.\-_]|$)/); if(hint)month.value=hint[1];
+        name.textContent=file.name+" · "+file.byteLength.toLocaleString()+" bytes";
+      }catch(e){if(mounted())name.textContent=e?.code==="cancelled"?"No file selected.":e.message||"Could not read this original.";}
+      finally{lock(false);}
     }
     q("ifpick")?.addEventListener("click",()=>receive(host.pick));
-    q("iffile")?.addEventListener("change",e=>{ const f=e.target.files[0]; if(f) receive(()=>browserFile(f)); });
-    function previewFallback() {
-      if (file.mimeType!=="text/csv") { result.textContent="Extracted document text is ready to review; this file needs a supported statement adapter before it can write."; return; }
-      const existing = (starting.entries||[]).filter(e=>e.kind==="transaction").map(e=>({
-        id:e.entry_id,date:e.settled_at,accountId:e.account_id,description:e.raw_text||e.description||"",categoryId:e.category_id,
-        amountMinor:root.KittyImport.money(String(e.amount))}));
-      const currency=(starting.kitty||[]).find(r=>r.key==="currency")?.value;
-      const options = {files:[{...file,accountId:account.value}],existing,currency,accounts:accounts.map(a=>({id:a.account_id,name:a.account,owner:a.owner,currency:a.currency||currency})),
-        categories:(starting.category_list||[]).map(c=>({id:c.category_id,name:c.category})),decisions:{}};
-      const preview=root.KittyImport.prepare(options);
-      result.innerHTML="<h3>File preview</h3><p>"+preview.counts.source+" source rows · "+preview.rows.length+" proposed · "+(preview.counts.existing||0)+" already matched.</p>"
-        + listRows(preview.rows.slice(0,20).map(r=>[r.date,r.description,r.decimalAmount || root.KittyImport.decimalAmount(r.amountMinor)]))
-        + "<p>"+esc(preview.issues[0]?.message || "Preview only. No rows were written.")+"</p>";
-    }
-    function listRows(rows) { return '<ul>'+rows.map(r=>'<li>'+r.map(esc).join(" · ")+'</li>').join("")+'</ul>'; }
-    q("ifprepare").addEventListener("click",async()=>{
-      if (busy || !mounted()) return;
-      stale();
-      if(!file || !accounts.some(a=>a.account_id===account.value)) { result.textContent="Choose a file and an active ledger account."; return; }
-      if(periodPlanner && (!/^\d{4}-\d{2}$/.test(month.value) || !root.SheetContract.validDate(date.value))) { result.textContent="Choose the month and date of the download."; return; }
-      if(file.state==="failed" || file.state==="partial" || file.state==="cancelled") { result.textContent=file.messages?.length ? file.messages.join(" ") : "This source needs review. Try a shorter export."; return; }
-      try {
-        if (!periodPlanner) { previewFallback(); return; }
-        if (file.mimeType==="text/csv") root.KittyImport.validateBankOriginal(file.text);
-        const f={name:file.name,account:account.value,download_day:date.value,...(file.mimeType==="text/csv"?{text:file.text}:{pdf_text:file.pdf_text})};
-        const input={months:month.value,sheet:starting,files:[f],inputs:[],options:{as_of:date.value,...(host.sheetID?{sheet_id:host.sheetID}:{})}};
-        const prepared=periodPlanner.plan(input), writes=prepared.plan?.writes || [], tx=prepared.proposed?.transactions || [];
-        const faults=(prepared.faults||[]).concat(prepared.holds||[]).map(h=>String(h.message||h.reason||h.code||h));
-        const counts=prepared.outcomes||[];
-        result.innerHTML="<h3>"+(prepared.status==="ready"?(writes.length?"Review proposed changes":"Nothing new to write"):"Check the source before importing")+"</h3><p>"+esc(file.name)+" → "+esc(account.options[account.selectedIndex].text)+"</p>"
-          + listRows(tx.slice(0,25).map(r=>[r.date,r.raw_text,root.SheetContract.decimalAmount(String(r.amount_cents))]))
-          + (tx.length>25?"<p>"+(tx.length-25)+" more transactions.</p>":"")
-          + faults.map(s=>'<p>'+esc(s)+'</p>').join("")
-          + (writes.length? "<details><summary>Every proposed Sheet change ("+writes.length+")</summary><pre style='white-space:pre-wrap;overflow-wrap:anywhere'>"+esc(JSON.stringify(writes,null,2))+"</pre></details>":"")
-          + "<p>"+(writes.length && !host.commit?"This host can preview the import. No rows were written.":!writes.length?"No rows were written.":"Only confirm after checking the whole preview.")+"</p>";
-        if(prepared.status==="ready" && writes.length && host.commit){
-          approvedPlan={file,account:account.value,downloadDay:date.value,month:month.value,plan:prepared.plan};
-          const b=document.createElement("button");b.type="button";b.className="btn";b.textContent="Confirm import to "+host.title;result.append(b);
-          b.onclick=async()=>{
-            if(!mounted() || !approvedPlan || busy) return;
-            const proposal=approvedPlan;approvedPlan=null;busy=true;b.disabled=true;
-            try{const receipt=await host.commit(proposal); if(mounted())result.textContent=receipt.message;}
-            catch(e){if(mounted())result.textContent=e.message||"No verified receipt yet. Recheck the import before trying again.";}
-            finally{busy=false;}
-          };
+    q("iffile")?.addEventListener("change",e=>{const picked=e.target.files[0];if(picked)receive(()=>browserFile(picked));});
+    function details(){return {sourceID:file.id,name:file.name,byteLength:file.byteLength,mimeType:file.mimeType,account:account.value,month:month.value,downloadDay:date.value};}
+    function verified(r){return r?.status==="verified" && /^[a-f0-9]{64}$/.test(r.digest);}
+    function showReceipt(r,s){ if(!verified(r))throw Error("The Sheet receipt has not been verified. Preview the same original to check again.");
+      result.innerHTML='<h3>Verified import</h3><p>'+esc(r.message||"The saved receipt and the exact Sheet rows were checked.")+'</p><p>'+esc(s.duplicateCount)+' already in this Sheet at preview.</p><code style="overflow-wrap:anywhere">'+esc(r.digest)+'</code>'; }
+    preview.addEventListener("click",async()=>{
+      if(busy||!mounted())return;
+      stale();const turn=revision;
+      if(!file || !accounts.some(a=>a.account_id===account.value)){result.textContent="Choose a bank CSV and an active ledger account.";return;}
+      if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month.value)||!root.SheetContract.validDate(date.value)){result.textContent="Choose the month and the bank download date.";return;}
+      const request=details();lock(true);result.textContent=host.preview?"Checking the retained original and the current Sheet…":"Checking the bank export…";
+      try{
+        let response;
+        if(host.preview)response=await host.preview(request);
+        else {
+          const sheet=host.grids?core.fromGrids(host.grids,true):host.sheet;
+          response={mode:"preview",summary:core.prepare(sheet,file,{...request,sheetID:host.sheetID}).summary};
         }
-      } catch(e) { result.textContent=e.message || "The import could not be prepared. No rows were written."; }
+        if(!mounted()||turn!==revision)return;
+        if(response?.mode==="pending"&&!response.summary){result.textContent=response.message||"A previous import needs its receipt checked.";return;}
+        const s=response?.summary;
+        if(!s||Object.entries(request).some(([k,v])=>s[k]!==v)||!Array.isArray(s.rows)||s.rows.length!==s.proposedCount||!Array.isArray(s.duplicates)||s.duplicates.length!==s.duplicateCount)throw Error("The preview does not match this original, account and period. Choose Preview import again.");
+        result.innerHTML=summaryHTML(s);
+        if(response.mode==="verified"){showReceipt(response.receipt,s);return;}
+        const explain=document.createElement("p");
+        explain.textContent=response.message||(response.mode==="pending"?"A previous import is still being checked.":!host.commit?"This is a preview. No Sheet rows were written.":s.proposedCount===0?"No Sheet rows were written.":"Check the complete preview before saving.");
+        result.append(explain);
+        const label={confirm:"Confirm import to "+host.title,recover:"Check previous import receipt",resume:"Resume verified import",stale:"Discard outdated review"}[response.mode];
+        if(!label || !host.preview || !host.commit || typeof response.ticket!=="string" || !response.ticket ||
+            (response.mode==="confirm" && (s.status!=="ready" || !s.proposedCount || !s.writes.length || s.deferred.length)) ||
+            (response.mode==="stale" && !host.cancel))return;
+        const button=document.createElement("button");button.type="button";button.className="btn";button.textContent=label;result.append(button);
+        button.onclick=async()=>{
+          if(busy||!mounted()||revision!==turn||JSON.stringify(details())!==JSON.stringify(request))return;
+          lock(true);button.disabled=true;
+          try{
+            const reply=await (response.mode==="stale"?host.cancel(response.ticket):host.commit(response.ticket));
+            if(!mounted()||revision!==turn)return;
+            if(response.mode==="stale"){
+              if(verified(reply)){showReceipt(reply,s);return;}
+              if(reply?.status!=="cancelled")throw Error("Cancellation was not confirmed. Preview the original to check the receipt.");
+              result.textContent="Outdated review discarded. Choose Preview import to check current rows.";
+            }else showReceipt(reply,s);
+          }catch(e){if(mounted()&&revision===turn)result.textContent=e.message||"No verified receipt yet. Preview this same file to check its status.";}
+          finally{lock(false);}
+        };
+      }catch(e){if(mounted()&&turn===revision)result.textContent=e.message||"The import could not be prepared. No new write was requested.";}
+      finally{lock(false);}
     });
   }
-  root.KittyIntake={open};
+  root.KittyIntake=Object.freeze({open});
 })(window);

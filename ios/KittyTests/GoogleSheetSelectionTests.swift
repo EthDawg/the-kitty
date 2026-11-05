@@ -38,6 +38,7 @@ final class GoogleSheetSelectionTests: XCTestCase {
         let result = try await probe.verify(selected)
         XCTAssertEqual(result.selection, selected)
         XCTAssertFalse(result.canEdit)
+        XCTAssertFalse(result.canImportBankFiles)
         XCTAssertEqual(result.title, "Digital Davies test")
         XCTAssertEqual(t.requests.map { $0.url?.host }, ["www.googleapis.com", "sheets.googleapis.com", "sheets.googleapis.com"])
         XCTAssertTrue(t.requests.allSatisfy { $0.url!.path.contains(selected.sheetID) })
@@ -58,6 +59,21 @@ final class GoogleSheetSelectionTests: XCTestCase {
             do { _ = try await probe.verify(selected); XCTFail("Incorrect Sheet or version was accepted") }
             catch is GoogleSheetSelection.Failure { }
         }
+    }
+
+    func testBankFilesRequireKnownOwnerAndNamedPeopleOnly() {
+        let owner = ["type":"user","id":selected.permissionID,"role":"owner"]
+        let member = ["type":"user","id":"member","role":"writer"]
+        var file: [String:Any] = ["id":selected.sheetID,"mimeType":"application/vnd.google-apps.spreadsheet",
+            "trashed":false,"ownedByMe":true,"capabilities":["canEdit":true],"permissions":[owner,member]]
+        XCTAssertTrue(GoogleSheetSelection.ownedPrivateFile(file,permissionID:selected.permissionID))
+        XCTAssertFalse(GoogleSheetSelection.ownedPrivateFile(file,permissionID:"member"))
+        for audience in ["anyone","domain","group"] {
+            file["permissions"] = [owner,["type":audience,"id":"broad","role":"reader"]]
+            XCTAssertFalse(GoogleSheetSelection.ownedPrivateFile(file,permissionID:selected.permissionID))
+        }
+        file["permissions"] = [owner]; file["id"] = GoogleSheetSelection.demoFileID
+        XCTAssertFalse(GoogleSheetSelection.ownedPrivateFile(file,permissionID:selected.permissionID))
     }
 
     func testOldResponseAfterAccountSwitchCannotOpenHousehold() async throws {
