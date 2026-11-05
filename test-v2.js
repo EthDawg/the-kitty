@@ -269,3 +269,10 @@ test("widgets: fill is drawing only, so narrowing two neighbours in turn puts th
   const two = narrow(one, "needs");
   assert.deepEqual(W.flow(two).slice(0, 2).map((i) => [i.id, i.x, i.y, i.w]), [["review", 0, 0, 6], ["needs", 6, 0, 6]]);
 });
+
+test("a new sheet row is placed from a fresh read, never from the page's cached grid", () => {
+  const src = fs.readFileSync(path.join(__dirname, "src", "app.js"), "utf8");
+  assert.match(src, /cache: \{ staleTime: 0, gcTime: 0, refresh: true \}/);
+  for (const tab of ["Decisions", "Rules"]) assert.match(src, new RegExp(`freshColumn\\("${tab}"\\)`), tab);
+  assert.doesNotMatch(src, /const g = S\.grids\.(decisions|rules); const n = lastRow\(g\)/);
+});

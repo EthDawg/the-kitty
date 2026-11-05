@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0 shared writes
+- New Decisions and Rules rows are placed from a forced read, so a page holding a cached read cannot overwrite a row another device just saved.
+
 ## 2.0 canvas quality
 - Home is a plain grid at all times: gaps are exactly 16px, and a row fills whenever its last card has a size that does. GridStack mounts only while arranging, and a drop closes the page up, so no card overlaps and no hole is left.
 - Arrange has a Home button in the header, a Done bar that stays on screen, Escape to leave, and a Wider button so width needs no dragging. Phone controls are 44px.
