@@ -106,7 +106,25 @@
   });
   const capabilities = Object.freeze({ mcp: null, sample: null, user, db, downloads });
   function sheets(session) {
+    const categoryRPC = async (method, request = {}) => {
+      if (activeGoogle?.session !== session) throw failure("stale_session", "Open the selected Sheet again.");
+      const result = await rpc(method, { session, server:"Google Sheets", input:{ ...request, spreadsheetId:activeGoogle.sheetID } });
+      if (activeGoogle?.session !== session) throw failure("stale_session", "The selected Sheet changed.");
+      return result;
+    };
     return Object.freeze({
+      pendingCategory: () => categoryRPC("sheets.category-pending"),
+      async saveCategory(entry, old, category) {
+        if (activeGoogle?.canEdit !== true) throw failure("not_granted", "This Sheet is read-only.");
+        const id = activeGoogle.sheetID, plan = await categoryRPC("sheets.category-plan", {entry, old, category});
+        if (!plan || plan.entry !== entry || plan.category !== category || !Array.isArray(plan.decision) ||
+            plan.decision.length !== 8 || !/^Entries!H[1-9][0-9]*$/.test(plan.cell) || !/^Decisions!A[1-9][0-9]*:H$/.test(plan.table)) {
+          throw failure("invalid_response", "The category write plan did not match your choice.");
+        }
+        await this.callTool("Google Sheets", "update_values", {spreadsheetId:id, range:plan.cell, values:[[category]]});
+        await this.callTool("Google Sheets", "append_values", {spreadsheetId:id, range:plan.table, values:[plan.decision]});
+        return { decisionID:plan.decision[0], entry, category };
+      },
       async callTool(server, tool, input) {
         if (activeGoogle?.session !== session || server !== "Google Sheets" || !plain(input) ||
             input.spreadsheetId !== activeGoogle.sheetID) throw failure("not_granted", "Only the selected Sheet is available.");
@@ -142,6 +160,7 @@
     doc.dispatchEvent(new root.CustomEvent("kitty:native-route", { detail: { route: routeName } }));
   }
   root.KittyNative = Object.freeze({
+    privacy: Object.freeze({setEnabled:enabled => rpc("privacy.set",{enabled:enabled === true})}),
     google: Object.freeze({
       status: () => rpc("google.status", {}),
       select: (sheetID) => { activeGoogle = null; return rpc("google.choose", { sheetID }); },

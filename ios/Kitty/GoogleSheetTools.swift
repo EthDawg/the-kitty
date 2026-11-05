@@ -91,6 +91,42 @@ struct GoogleSheetTools {
 
     var invalid: Failure { Failure(code: "invalid_response", message: "Google returned an unexpected Sheet range or layout.") }
 
+    /// Only a verified writer can call these. The bridge does not expose an arbitrary Google URL or range.
+    func updateValue(_ range: String, to value: String) async throws -> [String: Any] {
+        guard let r = Rect(range), r.tab == "Entries", r.firstCol == 8, r.lastCol == 8, r.lastRow == r.firstRow else { throw invalid }
+        return try await request(path: "/values/" + range, query: ["valueInputOption":"RAW"], method: "PUT",
+                                 body: ["range":range, "majorDimension":"ROWS", "values":[[value]]])
+    }
+
+    func decisionSlot(_ range: String, at next: Int) async throws -> [String:Int] {
+        guard let r = Rect(range), r.tab == "Decisions", r.firstCol == 1, r.lastCol == 8, r.lastRow == nil,
+              next > r.firstRow else { throw invalid }
+        let meta = try await request(query:["fields":"spreadsheetId,sheets(properties(sheetId,title,gridProperties(rowCount)))"])
+        let tabs = (meta["sheets"] as? [[String:Any]])?.compactMap { $0["properties"] as? [String:Any] }.filter { $0["title"] as? String == "Decisions" }
+        guard meta["spreadsheetId"] as? String == selected.sheetID, tabs?.count == 1, let tab = tabs?.first,
+              let id = tab["sheetId"] as? Int, let grid = tab["gridProperties"] as? [String:Any],
+              let count = grid["rowCount"] as? Int, next <= count else { throw invalid }
+        let empty = try await values("Decisions!A\(next):H\(next)",render:"FORMULA")
+        guard ((empty["values"] as? [[Any]]) ?? []).joined().allSatisfy({ ($0 as? String) == "" }) else {
+            throw Failure(code:"write_conflict", message:"The next decision row changed. Check the Sheet before continuing.")
+        }
+        return ["sheetId":id,"startRowIndex":next-1,"endRowIndex":next,"startColumnIndex":0,"endColumnIndex":8]
+    }
+
+    func appendDecision(_ slot: [String:Int], row: [String]) async throws -> [String: Any] {
+        guard row.count == 8, slot["startColumnIndex"] == 0, slot["endColumnIndex"] == 8,
+              let n = slot["startRowIndex"], n > 0, slot["endRowIndex"] == n+1 else { throw invalid }
+        // values.append infers a table and can land after helper columns. Insert only A:H at the
+        // verified address, then fill that slot in the same atomic Google request. A concurrent
+        // writer's just-added row is shifted, never overwritten; I onward do not move.
+        let cells = row.map { ["userEnteredValue":["stringValue":$0]] }
+        let requests: [[String:Any]] = [
+            ["insertRange":["range":slot,"shiftDimension":"ROWS"]],
+            ["updateCells":["range":slot,"fields":"userEnteredValue","rows":[["values":cells]]]]
+        ]
+        return try await request(path:":batchUpdate",method:"POST",body:["requests":requests])
+    }
+
     func request(path: String = "", query: [String: String] = [:], method: String = "GET", body: [String: Any]? = nil) async throws -> [String: Any] {
         try check()
         let access = try await token(selected)

@@ -89,6 +89,7 @@
       case "server_unavailable": case "upstream_error": return `Google Sheets didn't answer just now. Try again in a moment.`;
       case "invalid_response": return `The connector returned unreadable data for ${what || "the sheet"}.`;
       case "invalid_ledger": return `Couldn't verify the v2 Sheet. ${esc(e.message || "")}`;
+      case "write_pending": case "write_conflict": case "busy": return esc(e.message || "Check the Sheet before saving again.");
       case "no_mcp": return `Connectors aren't available in this view, so the page shows the bundled demo household.`;
       default: return `Couldn't read ${what || "the sheet"} (${esc(code || "unknown")}).`;
     }
@@ -634,7 +635,33 @@
     catch (e) { console.error(e); toast("Couldn't write: " + errText(e, "the sheet")); return false; }
   }
   const catName = (id) => (S.m.catById[id] || {}).name || id;
-  const categorise = (id, cat) => act(async () => { await writeCategory(id, cat); await writeDecisions([["entry", id, "categorise", cat, ""]]); }, `${id}: ${catName(cat)}`);
+  const hasCategoryWriter = () => S.mode === "live" && S.nativeSheet?.canEdit === true && typeof S.mcp?.saveCategory === "function";
+  let categoryBusy = false;
+  async function verifiedCategory(id, cat) {
+    if (categoryBusy || S.loading || S.liveErr) { toast("Wait for a fresh Sheet read before saving."); return false; }
+    const host = S.mcp, n = entryRowNumber(id);
+    if (!n || !S.m.catById[cat]) { toast("Refresh before choosing a category."); return false; }
+    categoryBusy = true;
+    try {
+      const proof = await host.saveCategory(id, String(S.grids.entries[n-1]?.[7] ?? ""), cat);
+      if (S.mcp !== host) return false;
+      googlePicker.pending = null;
+      const ok = await loadLive(true);
+      if (host !== S.mcp) return false;
+      const row = entryRowNumber(id), decisions = S.m.decisions.filter(d => d.id === proof.decisionID);
+      if (!ok || !row || S.grids.entries[row-1][7] !== cat || decisions.length !== 1 ||
+          decisions[0].decision !== "categorise" || decisions[0].ref !== id || decisions[0].value !== cat) {
+        toast("Google verified the save. Refresh to check the dashboard.", 6000); return false;
+      }
+      toast(`${id}: ${catName(cat)} · verified in Entries and Decisions`, 5000); return true;
+    } catch (e) {
+      if (host !== S.mcp) return false;
+      try { googlePicker.pending = await host.pendingCategory(); } catch (_) {}
+      renderNativeSetup(); toast(e.message || "The category save was not verified.", 7000); return false;
+    } finally { categoryBusy = false; }
+  }
+  const categorise = (id, cat) => hasCategoryWriter() ? verifiedCategory(id, cat) :
+    act(async () => { await writeCategory(id, cat); await writeDecisions([["entry", id, "categorise", cat, ""]]); }, `${id}: ${catName(cat)}`);
   const confirmEntry = (id) => act(() => writeDecisions([["entry", id, "confirm", (S.m.entryById[id] || {}).cat || "", ""]]), `${id} confirmed`);
   const mergeDup = (id, of) => act(() => writeDecisions([["entry", id, "merge_duplicate", of, "same merchant, amount, account and day"]]), `${id} merged into ${of}`);
   const matchTransfer = (id, mate) => act(() => writeDecisions([["entry", id, "match_transfer", mate, ""]]), `${id} matched with ${mate}`);
@@ -727,7 +754,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     openDrawer(`${h2(`Categorise ${Kit.nameOf(e)}`, `${esc(e.raw || "")} · ${E.fmtDay(e.date, { year: true })} · ${fmt(Math.abs(e.amount))}`)}
       <div class="searchbox" style="margin-top:12px">${ico("i-search")}<input id="catq" type="search" placeholder="Type to filter, Enter picks the first" autocomplete="off" aria-label="Filter categories"></div>
       <div class="catpick" id="catpick">${draw("")}</div>
-      <p class="sub" style="margin-top:10px">${canWriteSheet() ? "Writes the category to this row's cell on the Entries tab and a categorise row on Decisions." : "Kept on screen for this visit; the sheet is not written here."}</p>`);
+      <p class="sub" style="margin-top:10px">${hasCategoryWriter() ? "Choosing a category saves it to this entry and adds a decision in your Google Sheet. Kitty reads both back to verify the save." : canWriteSheet() ? "Writes the category to this row's cell on the Entries tab and a categorise row on Decisions." : "Kept on screen for this visit; the sheet is not written here."}</p>`);
     const q = $("#catq"), box = $("#catpick"); const bind = () => $$("[data-pickcat]", box).forEach((b) => b.addEventListener("click", () => { closeDrawer(); categorise(id, b.dataset.pickcat); }));
     bind(); q.addEventListener("input", () => { box.innerHTML = draw(q.value); bind(); });
     q.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { const first = $("[data-pickcat]", box); if (first) first.click(); } });
@@ -915,7 +942,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $$("[data-theme-pick]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ theme: b.dataset.themePick }); applyTheme(); renderSetup(); buzz(); }));
     $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
   }
-  const googlePicker = { busy: "", verified: null, message: "", attempted: false, canResume: false, checked: false, revision: 0 };
+  const googlePicker = { busy: "", verified: null, message: "", pending: null, attempted: false, canResume: false, checked: false, lockEnabled: false, privacyMessage:"", revision: 0 };
   const verifiedDemo = v => v?.sheetID === DEMO_SHEET && v.sheetVersion === 2 &&
     typeof v.title === "string" && v.title.trim() !== "" && typeof v.canEdit === "boolean";
   async function syncGoogleStatus() {
@@ -929,7 +956,9 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       if (revision !== googlePicker.revision || googlePicker.busy) return;
       const checked = verifiedDemo(status?.verified) ? status.verified : null;
       const canResume = status?.canResume === true || !!checked;
-      if (!checked && !googlePicker.verified && canResume === googlePicker.canResume) return;
+      const lockEnabled = status?.lockEnabled === true;
+      if (!checked && !googlePicker.verified && canResume === googlePicker.canResume && lockEnabled === googlePicker.lockEnabled) return;
+      googlePicker.lockEnabled = lockEnabled;
       googlePicker.canResume = canResume;
       googlePicker.verified = checked;
       if (checked) { googlePicker.attempted = true; googlePicker.message = ""; }
@@ -939,7 +968,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   if (NATIVE) document.addEventListener("kitty:google-status", syncGoogleStatus);
   function leaveNativeSheet() {
     if (!S.nativeSheet) return;
-    ++readGeneration; prefPrefix = "kitty:";
+    ++readGeneration; prefPrefix = "kitty:"; googlePicker.pending = null;
     Object.assign(S, { nativeSheet: null, mcp: null, grids: null, mode: "demo", loading: false, canWrite: false,
       liveErr: null, err: {}, kittyRows: null, settingsRows: null, storedAt: null, unknownReadAge: false,
       sessionDecisions: [], sessionCats: {}, chat: [], dbDoc: S.demoDbDoc, prefs: Object.assign({}, DEFAULT_PREFS, store.get("prefs", {})) });
@@ -965,6 +994,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         }
       }
       if (!await loadLive(true)) throw new Error(errText(S.liveErr || { code: "invalid_response" }, "the selected Sheet"));
+      if (typeof S.mcp?.pendingCategory === "function") googlePicker.pending = await S.mcp.pendingCategory();
     } catch (error) {
       if (S.mode !== "live") { leaveNativeSheet(); await window.KittyNative.google.close().catch(() => {}); }
       googlePicker.message = error.message || "The live Sheet could not be opened.";
@@ -988,6 +1018,16 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     } catch (error) { googlePicker.message = error.message || "Google Sheet selection was not confirmed."; }
     finally { googlePicker.busy = ""; renderNativeSetup(); }
   }
+  async function changePrivacy() {
+    if (googlePicker.busy) return;
+    const want = !googlePicker.lockEnabled; googlePicker.busy = "privacy"; googlePicker.privacyMessage = ""; renderNativeSetup();
+    try {
+      const result = await window.KittyNative.privacy.setEnabled(want);
+      if (result?.enabled !== want) throw new Error("The privacy setting was not confirmed.");
+      googlePicker.lockEnabled = want;
+    } catch (e) { googlePicker.privacyMessage = e.message || "The privacy setting did not change."; }
+    finally { googlePicker.busy = ""; renderNativeSetup(); }
+  }
   function renderNativeSetup() {
     const m = S.m, v = $("#v-setup");
     const live = S.mode === "live" && !!S.nativeSheet;
@@ -1000,14 +1040,16 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <p role="status" aria-live="polite">${googlePicker.message ? esc(googlePicker.message) : googlePicker.busy === "open" ? "Reading the selected Sheet from Google…" : googlePicker.verified ? `<b>Verified in Google:</b> ${esc(googlePicker.verified.title)} · Kitty v2 · ${googlePicker.verified.canEdit ? "editor" : "viewer"}. No rows were changed.` : googlePicker.busy === "choose" ? "Finish choosing the Sheet in Google." : googlePicker.busy ? "Disconnecting from Google." : googlePicker.canResume ? "A saved Google connection is available. Open the Sheet to verify it again." : "Sheet not verified yet."}</p>
       </div>
       <div class="card"><div class="cardhead"><span class="q">The Kitty on your phone</span><span class="sub">${live ? "Live Sheet" : "Offline demo"}</span></div>
-        ${live ? `<div class="prose"><p>Home, Activity, Review, Insights and Goals use <b>${esc(S.nativeSheet.title)}</b>. The Sheet's as-of date is ${E.fmtDay(m.asOf, { year: true })}. This build reads your ledger without editing it.</p></div>` : `
+        ${live ? `<div class="prose"><p>Home, Activity, Review, Insights and Goals use <b>${esc(S.nativeSheet.title)}</b>. The Sheet's as-of date is ${E.fmtDay(m.asOf, { year: true })}. ${hasCategoryWriter() ? "A category you choose in Review is saved to this Sheet and checked." : "You have read-only access here."}</p></div>` : `
         <div class="prose"><p>Explore Home, Activity, Review, Insights and Goals using <b>${esc(m.householdName)}</b>, a fictional household. The bundled Sheet snapshot covers ${E.fmtDay(m.asOf, { year: true })}. It opens without a network connection.</p>
         <p>The dashboard uses the bundled demo until you open the live Sheet. Your numbers belong in a Google Sheet you can open and keep.</p></div>`}
         <div class="chips"><button class="btn sm" data-go="review">Open Review</button><button class="btn sm ghost" data-go="goals">Explore Goals</button></div>
       </div>
+      ${live && googlePicker.pending ? `<div class="card"><b>A category save needs checking</b><p>${esc(googlePicker.pending.entry)} → ${esc(catName(googlePicker.pending.category))}. Kitty checks the original save before sending anything else.</p><button class="btn sm" id="nativecheckpending">Check this save</button></div>` : ""}
+      ${window.KittyNative?.privacy ? `<div class="card"><div class="cardhead"><span class="q">Lock your live Sheet</span></div><p>${googlePicker.lockEnabled ? "On. Leaving Kitty locks the live Sheet. Use Face ID, Touch ID or your device passcode to reopen it." : "Require Face ID, Touch ID or your passcode when you return to your live numbers. The fictional offline demo stays available."}</p><button id="nativelock" class="btn sm ghost" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.lockEnabled ? "Turn off Sheet lock" : "Turn on Sheet lock"}</button><p role="status">${esc(googlePicker.privacyMessage)}</p></div>` : ""}
       ${appearanceCard(m)}
       <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
-        <div class="prose"><p>Display preferences and demo goal edits stay on this device. Review decisions last for this visit. None of them changes the Google Sheet.</p>
+        <div class="prose"><p>Display preferences and demo goal edits stay on this device. ${live && hasCategoryWriter() ? "Only a category you choose in Review writes to the Sheet in this build." : "Demo review decisions last for this visit and do not change the Google Sheet."}</p>
         <p>${S.downloads ? "Activity can export its filtered rows as a CSV through the iOS file picker. A save is confirmed only after the picker finishes." : "Native file export is unavailable in this view."}</p>
         <p>Text size and reduced motion follow your device settings.</p></div>
       </div>
@@ -1017,6 +1059,8 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}</div>
       </div>`;
     $("#nativepick", v).addEventListener("click", () => chooseDemoSheet());
+    $("#nativelock", v)?.addEventListener("click", changePrivacy);
+    $("#nativecheckpending", v)?.addEventListener("click", () => verifiedCategory(googlePicker.pending.entry, googlePicker.pending.category));
     $("#nativelive", v)?.addEventListener("click", openNativeSheet);
     $("#nativedisconnect", v)?.addEventListener("click", () => chooseDemoSheet(true));
     bindAppearance(v);
