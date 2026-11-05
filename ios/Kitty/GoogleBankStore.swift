@@ -114,7 +114,7 @@ struct GoogleBankStore: BankStore {
     private static func issuedSheet(_ sheet: String, _ owner: String) -> String {
         SourceDocument.sha256(Data((sheet + "\u{0}" + owner).utf8))
     }
-    nonisolated static var invalid: GoogleSheetTools.Failure { .init(code: "import_evidence", message: "Kitty could not verify this import's original or receipt. Restore the private Drive original and import records if they were removed, then check the import again.") }
+    nonisolated static var invalid: GoogleSheetTools.Failure { .init(code: "import_evidence", message: "Kitty could not verify the bank original or receipt. Restore any removed Kitty bank archive files from Google Drive’s Trash. If you shared an archive file, set it to Restricted and remove other people’s access to that file. Then check the import again.") }
     static var pending: GoogleSheetTools.Failure { .init(code: "import_pending", message: "A bank import is awaiting verification. Check its status before confirming another import.") }
 
     func checkNewWrite(_ owner: GoogleSheetSelection.Verified) async throws {

@@ -118,7 +118,6 @@ final class OfflineInteractionTests: XCTestCase {
 
         tap(app.buttons["Setup"])
         let review = app.buttons["Open Review"]
-        XCTAssertTrue(review.waitForExistence(timeout: 12), "Setup must offer access to Review.")
         revealByScrollingDown(review)
         tap(review)
         XCTAssertTrue(text(containing: "the demo sheet is never written")
@@ -250,10 +249,16 @@ final class OfflineInteractionTests: XCTestCase {
     }
 
     private func revealByScrollingDown(_ element: XCUIElement) {
-        // Only nearby controls, never an unbounded search through all review rows.
-        for _ in 0..<3 {
+        // A full flick can jump over a button on a short phone. Move part of a screen at a time.
+        let top = page.coordinate(withNormalizedOffset: CGVector(dx:0.5, dy:0.35))
+        let bottom = page.coordinate(withNormalizedOffset: CGVector(dx:0.5, dy:0.72))
+        for _ in 0..<10 {
             if canTap(element) { return }
-            page.swipeUp()
+            if element.exists, !element.frame.isEmpty, element.frame.midY < page.frame.midY {
+                top.press(forDuration:0.05, thenDragTo:bottom, withVelocity:.slow, thenHoldForDuration:0.15)
+            } else {
+                bottom.press(forDuration:0.05, thenDragTo:top, withVelocity:.slow, thenHoldForDuration:0.15)
+            }
         }
     }
 
@@ -272,14 +277,19 @@ final class OfflineInteractionTests: XCTestCase {
     }
 
     private func cancelExportPicker(navigation: XCUIElement) {
-        // The iOS 26.2 Files sheet animates between Locations and Browse. Its
-        // "Cancel" accessibility node can disappear between two queries while the
-        // visible X stays on screen. Dismiss the presented sheet in place, as a
-        // person can, without navigating elsewhere or ever tapping Save.
         XCTAssertTrue(navigation.waitForExistence(timeout: 8))
-        let topEdge = navigation.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))
+        // In a folder the navigation title opens an actions menu. Go back to Browse
+        // for its Cancel button, or pull down on the sheet edge above the title.
+        for _ in 0..<6 {
+            let cancel = navigation.buttons["Cancel"]
+            if canTap(cancel) { cancel.tap(); return }
+            let back = navigation.buttons["BackButton"]
+            guard canTap(back) else { break }
+            back.tap()
+        }
+        let topEdge = navigation.coordinate(withNormalizedOffset: CGVector(dx:0.5, dy:0)).withOffset(CGVector(dx:0, dy:-5))
         let lowerScreen = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
-        topEdge.press(forDuration: 0.15, thenDragTo: lowerScreen)
+        topEdge.press(forDuration:0.05, thenDragTo:lowerScreen)
     }
 
     private var localExportRoot: XCUIElement {
