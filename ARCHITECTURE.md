@@ -39,7 +39,8 @@ selectively as new changes based on main.
 Each milestone has a small PR into main and green CI; the implementing agent does
 not merge its own PRs. Evidence belongs in CI artifacts or release assets, with
 only a short `ios/ACCEPTANCE.md` in Git. Simulator evidence, physical-device
-acceptance and live provider outcomes are reported separately. Milestone 2 needs
-Ethan's phone-feel verdict before continuing the renderer; live OAuth needs his
+acceptance and live provider outcomes are reported separately. The container
+continues on verified physical-device evidence; Ethan's subjective phone verdict
+is recorded separately and can trigger a renderer change. Live OAuth needs his
 iOS client and actual device proof. No TestFlight upload or App Store submission
 is part of this work. All validation uses the fictional Digital Davies household.

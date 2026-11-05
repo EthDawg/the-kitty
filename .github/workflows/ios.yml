@@ -9,23 +9,36 @@ jobs:
   build:
     runs-on: macos-15
     timeout-minutes: 15
+    env:
+      # Pin a supported SDK/runtime pair; iOS 18.5 has WebKit bug 293831.
+      # https://bugs.webkit.org/show_bug.cgi?id=293831
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
+      - name: Verify pinned Xcode
+        run: xcodebuild -version
       - name: Check deterministic project
         run: |
           python3 ios/scripts/generate_project.py
           git diff --exit-code -- ios/Kitty.xcodeproj
       - name: Bundle shared offline page and brand icon
         run: python3 ios/scripts/prepare_resources.py
-      - name: Choose available iPhone simulator
+      - name: Choose iOS 26.2 iPhone simulator
         run: |
           xcrun simctl list devices available -j > /tmp/kitty-simulators.json
           python3 - <<'PY' >> "$GITHUB_ENV"
           import json
           devices = json.load(open('/tmp/kitty-simulators.json'))['devices']
-          phone = next(d for runtime, values in devices.items() if '.iOS-' in runtime for d in values if d['name'].startswith('iPhone'))
+          phone = next(d for runtime, values in devices.items()
+                       if runtime.endswith('.iOS-26-2') for d in values
+                       if d['name'] == 'iPhone 17 Pro' and d.get('isAvailable'))
           print('KITTY_SIMULATOR_ID=' + phone['udid'])
           PY
+      - name: Boot simulator before testing
+        timeout-minutes: 3
+        run: |
+          xcrun simctl boot "$KITTY_SIMULATOR_ID"
+          xcrun simctl bootstatus "$KITTY_SIMULATOR_ID" -b
       - name: Build and test offline host
         timeout-minutes: 10
         run: |
