@@ -12,7 +12,7 @@
   const COLS = 12;
   const active = (m, f) => m.accounts.filter((a) => a.status === "active" && f(String(a.type || "").toLowerCase(), a));
   const held = (m, f) => { const rows = active(m, f).map((a) => ({ id: a.id, name: a.name, sub: a.purpose || a.bank || "", value: E.balanceAt(a, m.asOf) })); return rows.length ? { rows, total: rows.reduce((s, r) => s + (r.value || 0), 0) } : null; };
-  const list = (rows, size) => `<div class="wlist">${rows.slice(0, size === "wide" ? 8 : 4).map((r) => `<div class="whrow"><span class="mid"><span class="t">${esc(r.name)}</span>${r.sub ? `<span class="s">${esc(r.sub)}</span>` : ""}</span><b class="num">${E.fmt0(r.value)}</b></div>`).join("")}</div>`;
+  const list = (rows, size) => `<div class="wlist${size === "wide" ? " two" : ""}">${rows.slice(0, size === "wide" ? 8 : 4).map((r) => `<div class="whrow"><span class="mid"><span class="t">${esc(r.name)}</span>${r.sub ? `<span class="s">${esc(r.sub)}</span>` : ""}</span><b class="num">${E.fmt0(r.value)}</b></div>`).join("")}</div>`;
   const heldCard = (q, drill) => (p, size) => `<div class="cardhead"><span class="q">${esc(q)}</span><button class="linkbtn" data-open="${esc(drill)}">Net worth →</button></div><div class="wtotal num">${E.fmt0(p.total)}</div>${list(p.rows, size)}`;
   const nextDue = (c, asOf) => (c.next && c.next >= asOf ? c.next : null);
 
@@ -49,6 +49,17 @@
     let x = 0, y = y0 || 0;
     return items.map((it) => { if (x + it.w > COLS) { x = 0; y += 1; } const out = { ...it, x, y }; x += it.w; if (x >= COLS) { x = 0; y += 1; } return out; });
   };
+  // Reading order at the widths a person asked for. This is what gets saved and edited; K.flow's fill is drawing only and must never come back here.
+  K.order = (items) => K.pack(items.slice().sort((a, b) => a.y - b.y || a.x - b.x));
+  // The page as drawn: the order above, with a row's last widget taking up the slack when it has a size that fills it.
+  K.flow = (items) => {
+    const out = K.order(items); const rows = new Map();
+    for (const it of out) rows.set(it.y, (rows.get(it.y) || []).concat(it));
+    for (const row of rows.values()) { const last = row[row.length - 1], w = byId.get(last.id), left = COLS - row.reduce((t, i) => t + i.w, 0); if (w && left > 0 && w.sizes.some((s) => s.w === last.w + left)) last.w += left; }
+    return out;
+  };
+  // The next size a widget offers, for people who cannot drag a handle: wider until the widest, then back to the narrowest.
+  K.nextSize = (w, width) => { const ws = [...new Set(w.sizes.map((s) => s.w))].sort((a, b) => a - b); return ws.find((x) => x > width) || ws[0]; };
   K.defaultItems = (ws) => K.pack(ws.map((w) => ({ id: w.id, w: w.sizes[0].w })));
   // Snap a dragged width to the nearest size the manifest declares: a different variant, never a stretched one.
   K.snapWidth = (w, wanted) => w.sizes.reduce((best, s) => (Math.abs(s.w - wanted) < Math.abs(best.w - wanted) ? s : best), w.sizes[0]);

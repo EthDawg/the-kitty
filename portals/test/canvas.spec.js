@@ -10,7 +10,7 @@ const ids = (page) => page.locator(".wcell").evaluateAll((els) => els.map((e) =>
 
 test("desktop: signals add widgets once with an undo; drag and resize survive a reload; hide, show and reset work", async ({ page }) => {
   const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
-  await open(page); await mounted(page);
+  await open(page);
   await expect(page.locator("#toast")).toContainText("Property");
   expect((await prefs(page)).layout.seen).toContain("property");
   // heights follow the content: nothing clipped, nothing overlapping
@@ -26,6 +26,7 @@ test("desktop: signals add widgets once with an undo; drag and resize survive a 
   await page.mouse.up(); await page.waitForTimeout(200);
   let saved = (await prefs(page)).layout.items; const movedY = saved.find((i) => i.id === "property").y;
   expect(movedY).toBeLessThan(saved.find((i) => i.id === "goals").y);
+  await mounted(page);
   // resize Super from half to wide: the width snaps to a declared size
   await cell(page, "super").scrollIntoViewIfNeeded();
   const sb = await cell(page, "super").locator(".ui-resizable-e").boundingBox(); expect(sb.width).toBeGreaterThan(4);
@@ -33,7 +34,7 @@ test("desktop: signals add widgets once with an undo; drag and resize survive a 
   saved = (await prefs(page)).layout.items; const widths = Object.fromEntries(saved.map((i) => [i.id, i.w]));
   expect([6, 12]).toContain(widths.super);
   // reload keeps it, and no second toast
-  await open(page); await mounted(page);
+  await open(page);
   await expect(page.locator("#toast")).not.toHaveClass(/on/);
   expect((await prefs(page)).layout.items.find((i) => i.id === "property").y).toBe(movedY);
   // hide, then show again
@@ -96,4 +97,118 @@ test("the undo cannot be clicked once the toast has gone", async ({ page }) => {
   await open(page); await expect(page.locator("#toast")).toHaveClass(/on/);
   await expect(page.locator("#toast")).not.toHaveClass(/on/, { timeout: 9000 });
   await expect(page.locator("#toast button")).toHaveCount(0);
+});
+
+// card edges by row: every gap between rows is the grid's own, and a row runs edge to edge
+const rows = (page) => page.locator(".wcell").evaluateAll((els) => {
+  const by = new Map(); for (const e of els) { const r = (e.querySelector(".card") || e).getBoundingClientRect(); const k = Math.round(r.top); by.set(k, (by.get(k) || []).concat({ l: r.left, r: r.right, b: r.bottom })); }
+  return [...by.entries()].sort((a, b) => a[0] - b[0]).map(([top, cs]) => ({ top, bottom: Math.max(...cs.map((c) => c.b)), left: Math.min(...cs.map((c) => c.l)), right: Math.max(...cs.map((c) => c.r)) }));
+});
+const flush = async (page) => {
+  const rs = await rows(page); const left = rs[0].left, right = rs[0].right;
+  for (const r of rs) { expect(Math.abs(r.left - left)).toBeLessThan(1); expect(Math.abs(r.right - right)).toBeLessThan(1); }
+  return rs;
+};
+
+test("spacing: gaps are the grid's own, rows run edge to edge, and nothing needs GridStack", async ({ page }) => {
+  await open(page); await expect(page.locator("#canvas.grid-stack")).toHaveCount(0);
+  const rs = await flush(page);
+  for (let i = 1; i < rs.length; i++) expect(Math.abs(rs[i].top - rs[i - 1].bottom - 16), `row ${i}`).toBeLessThan(1);
+});
+
+test("a drop leaves no hole, and the page matches what the arrange view showed", async ({ page }) => {
+  await open(page);
+  await page.locator("#arrangebtn").click(); await mounted(page);
+  await expect(page.locator(".arrangebar .btn")).toBeFocused();
+  await cell(page, "contracts").scrollIntoViewIfNeeded();
+  const box = await cell(page, "contracts").boundingBox(), to = await cell(page, "shares").boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 80); await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + 120, box.y + 80 + (to.y - box.y - 60) * i / 12);
+  await page.mouse.up(); await mounted(page);
+  await expect.poll(async () => { const o = await ids(page); return o.indexOf("contracts") < o.indexOf("shares"); }).toBe(true);
+  await page.keyboard.press("Escape"); await expect(page.locator("#canvas.grid-stack")).toHaveCount(0);
+  await flush(page);
+});
+
+test("width changes without dragging, and a newer local layout beats an older cloud copy", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Super wider" }).click();
+  await expect(page.getByRole("button", { name: "Make Super narrower" })).toBeFocused();
+  expect((await prefs(page)).layout.items.find((i) => i.id === "super").w).toBe(12);
+  expect(await page.evaluate(() => Number(localStorage.getItem("kitty:prefsSavedAt")))).toBeGreaterThan(0);
+});
+
+test("every icon the shell asks for exists in the brand sprite", async ({ page }) => {
+  await open(page);
+  const missing = await page.locator("use").evaluateAll((us) => us.map((u) => u.getAttribute("href")).filter((h) => h && h.startsWith("#") && !document.querySelector(h)));
+  expect(missing).toEqual([]);
+});
+
+test("the header fits the narrowest phone, live label included", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 }); await open(page);
+  await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live · demo sheet"; });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  const search = await page.locator("#topsearch").boundingBox(); expect(search.x + search.width).toBeLessThanOrEqual(308);
+});
+
+test("Narrower twice puts two neighbours side by side, and a reload keeps it", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Review narrower" }).click();
+  await expect(page.locator("#toast")).toContainText("fills its row");
+  await expect(page.getByRole("button", { name: "Make Review wider" })).toBeFocused();
+  await page.getByRole("button", { name: "Make What needs you narrower" }).click();
+  const check = async () => {
+    const r = await cell(page, "review").boundingBox(), n = await cell(page, "needs").boundingBox();
+    expect(Math.abs(r.y - n.y)).toBeLessThan(2); expect(n.x).toBeGreaterThan(r.x + r.width - 1);
+    expect(Math.abs(r.width - n.width)).toBeLessThan(2);
+  };
+  await check(); await open(page); await check();
+  const items = (await prefs(page)).layout.items; expect(items.find((i) => i.id === "review").w).toBe(6); expect(items.find((i) => i.id === "needs").w).toBe(6);
+});
+
+test("a drop keeps every other widget's chosen width", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Review narrower" }).click(); await mounted(page);
+  await cell(page, "contracts").scrollIntoViewIfNeeded();
+  const box = await cell(page, "contracts").boundingBox(), to = await cell(page, "shares").boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 80); await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + 120, box.y + 80 + (to.y - box.y - 60) * i / 12);
+  await page.mouse.up(); await mounted(page);
+  await expect.poll(async () => (await prefs(page)).layout.items.find((i) => i.id === "review").w).toBe(6);
+});
+
+test.describe("a phone on its side", () => {
+  test.use({ viewport: { width: 956, height: 440 }, hasTouch: true, isMobile: true });
+  test("stays a phone: one column and no GridStack", async ({ page }) => {
+    await open(page); await expect(page.locator("#canvas")).toHaveClass(/phone/);
+    await page.locator("#arrangebtn").click(); await expect(page.locator(".arrangebar .btn")).toBeFocused();
+    await expect(page.locator("#canvas.grid-stack")).toHaveCount(0);
+    const a = await cell(page, "property").boundingBox(), b = await cell(page, "super").boundingBox(); expect(b.y).toBeGreaterThan(a.y + a.height - 1);
+  });
+});
+
+test("Escape and a resize in mid-drag cost nothing, and leaving the arrange view on the narrowest phone keeps focus", async ({ page }) => {
+  const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await cell(page, "contracts").scrollIntoViewIfNeeded(); const box = await cell(page, "contracts").boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 80); await page.mouse.down(); await page.mouse.move(box.x + 120, box.y + 40, { steps: 6 });
+  await page.keyboard.press("Escape"); await page.setViewportSize({ width: 1270, height: 860 }); await page.waitForTimeout(250);
+  await page.mouse.up(); await mounted(page); expect(errors).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 640 }); await open(page);
+  await page.getByRole("button", { name: "Arrange this page" }).click(); await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("button", { name: "Arrange this page" })).toBeFocused();
+});
+
+test("a blocked GridStack offers no handle it cannot honour", async ({ page }) => {
+  await page.route(/gridstack/, (r) => r.abort()); await open(page);
+  await page.locator("#arrangebtn").click(); await expect(page.locator(".whandle").first()).toBeHidden();
+  await page.getByRole("button", { name: "Move What needs you up" }).click();
+  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "review"]);
+});
+
+test("a card that already draws full width says so when it is widened", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Review narrower" }).click(); await page.waitForTimeout(100);
+  await page.getByRole("button", { name: "Make Review wider" }).click();
+  await expect(page.locator("#toast")).toContainText("stays full width");
 });

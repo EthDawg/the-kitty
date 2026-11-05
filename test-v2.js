@@ -260,3 +260,12 @@ test("widgets: saving keeps what a lost signal took off the page, and never what
   assert.deepEqual(kept[1], prior[1]);
   assert.deepEqual(W.keepAbsent(kept, undefined, []).map((i) => i.id), ["hero", "property"]);
 });
+
+test("widgets: fill is drawing only, so narrowing two neighbours in turn puts them side by side", () => {
+  const start = [{ id: "review", x: 0, y: 0, w: 12 }, { id: "needs", x: 0, y: 1, w: 12 }, { id: "goals", x: 0, y: 2, w: 12 }];
+  const narrow = (items, id) => W.order(items.map((i) => (i.id === id ? { ...i, w: W.nextSize(W.widget(id), i.w) } : i)));
+  const one = narrow(start, "review");
+  assert.equal(one[0].w, 6); assert.equal(W.flow(one)[0].w, 12, "drawn full while alone"); assert.equal(one[0].w, 6, "flow does not touch what was asked for");
+  const two = narrow(one, "needs");
+  assert.deepEqual(W.flow(two).slice(0, 2).map((i) => [i.id, i.x, i.y, i.w]), [["review", 0, 0, 6], ["needs", 6, 0, 6]]);
+});
