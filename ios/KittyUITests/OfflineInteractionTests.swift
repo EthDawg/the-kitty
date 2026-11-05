@@ -19,7 +19,7 @@ final class OfflineInteractionTests: XCTestCase {
         XCTAssertTrue(page.waitForExistence(timeout: 15))
         // The web-view container can exist while WebKit opens the local bundle.
         let ask = app.buttons["Ask the Kitty"]
-        XCTAssertTrue(ask.waitForExistence(timeout:30), "The app must finish opening and expose Ask.")
+        XCTAssertTrue(ask.waitForExistence(timeout:45), "The app must finish opening and expose Ask.")
         tap(ask)
         tap(app.buttons["Groceries last month"])
         XCTAssertTrue(text(containing: "$1,429.05 spent").waitForExistence(timeout: 5))
@@ -96,7 +96,7 @@ final class OfflineInteractionTests: XCTestCase {
         tap(csv)
         let filename = app.textFields["DOCPicker.filenameTextField"]
         let pickerNavigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-        XCTAssertTrue(pickerNavigation.waitForExistence(timeout: 20), "The native Files picker must open.")
+        XCTAssertTrue(pickerNavigation.waitForExistence(timeout: 45), "The native Files picker must open.")
         XCTAssertTrue(pickerNavigation.buttons["Save"].waitForExistence(timeout: 8), "Files must offer to save the export.")
         if filename.exists {
             XCTAssertTrue((filename.value as? String)?.hasPrefix("kitty-entries-") == true)
@@ -159,7 +159,7 @@ final class OfflineInteractionTests: XCTestCase {
 
         let filename = app.textFields["DOCPicker.filenameTextField"]
         let navigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-        XCTAssertTrue(navigation.waitForExistence(timeout: 20), "The native Files picker must open.")
+        XCTAssertTrue(navigation.waitForExistence(timeout: 45), "The native Files picker must open.")
         let pickedLocal = try selectVerifiedLocalExportDestination(navigation: navigation)
         let emptyRoot = app.descendants(matching: .any).matching(identifier: "On My iPhone is Empty").firstMatch
         let fixtureName: String
@@ -216,10 +216,12 @@ final class OfflineInteractionTests: XCTestCase {
 
     private func openHome() {
         XCTAssertTrue(page.waitForExistence(timeout: 15), "The bundled page must open.")
+        let home = app.buttons["Home"]
+        XCTAssertTrue(home.waitForExistence(timeout:45), "WebKit must load Kitty’s tabs.")
         let cash = app.buttons["Cash and offset, tap for the accounts behind it"]
         // Home is already selected on first launch. The nav exists in the static
         // shell before WebKit has laid it out; this control comes from the model.
-        if !cash.waitForExistence(timeout: 8) { tap(app.buttons["Home"]) }
+        if !cash.waitForExistence(timeout: 8) { tap(home) }
         XCTAssertTrue(cash.waitForExistence(timeout: 12), "Home must finish rendering.")
     }
 

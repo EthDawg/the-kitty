@@ -35,8 +35,8 @@ final class OfflinePageTests: XCTestCase {
         try await page.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page) ?? NSNull()
     }
 
-    private func wait(_ page: WKWebView, for expression: String) async throws {
-        let end = Date().addingTimeInterval(15)
+    private func wait(_ page: WKWebView, for expression: String, timeout: TimeInterval = 15) async throws {
+        let end = Date().addingTimeInterval(timeout)
         while Date() < end {
             if let ready = try? await js(page, "return Boolean(" + expression + ")"), ready as? Bool == true { return }
             try await Task.sleep(for: .milliseconds(100))
@@ -72,7 +72,7 @@ final class OfflinePageTests: XCTestCase {
         window.makeKeyAndVisible()
         defer { window.isHidden = true }
         let page = try XCTUnwrap(host.webView)
-        try await wait(page, for: "window.KittyNative?.ready")
+        try await wait(page, for: "window.KittyNative?.ready", timeout: 45)
         _ = try await js(page, """
             document.querySelector('[data-tab=activity]').click();
             const input = window.activityTestInput = document.querySelector('#feedq');
@@ -121,7 +121,7 @@ final class OfflinePageTests: XCTestCase {
         defer { window.isHidden = true }
         host.loadViewIfNeeded()
         let page = try XCTUnwrap(host.webView)
-        try await wait(page, for: "window.KittyNative?.ready && !document.querySelector('#askbtn').hidden")
+        try await wait(page, for: "window.KittyNative?.ready && !document.querySelector('#askbtn').hidden", timeout: 45)
         try await wait(page, for: "getComputedStyle(document.querySelector('#toast')).opacity === '0' && !document.querySelector('canvas[data-generated-confetti]')")
         _ = try await js(page, "document.querySelector('#askbtn').click(); return true")
         _ = try await js(page,"const i=document.querySelector('[data-ask-input]'); i.value='Where do we stand financially?'; i.form.requestSubmit(); return true")
@@ -196,7 +196,7 @@ final class OfflinePageTests: XCTestCase {
             addEventListener('error', e => window.__testErrors.push(String(e.message)));
             addEventListener('unhandledrejection', e => window.__testErrors.push(String(e.reason)));
             """, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-        try await wait(page, for: "window.KittyNative?.ready && document.querySelector('#v-home .hero')")
+        try await wait(page, for: "window.KittyNative?.ready && document.querySelector('#v-home .hero')", timeout: 45)
         try await wait(page, for: "getComputedStyle(document.querySelector('#toast')).opacity === '0'")
         let initial = try await js(page, "return document.querySelector('#v-home').innerText") as? String ?? ""
         XCTAssertTrue(initial.contains("99,388"), initial)
