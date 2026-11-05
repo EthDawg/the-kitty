@@ -20,8 +20,14 @@ Drive intents/receipts and readback. An uncertain result is reconciled before a
 retry. A serial queue in one app does not prove a cross-device transaction lock.
 Shared JavaScript will own import, review, close and calculation logic. Python
 remains the import oracle until source-by-source plan equality is demonstrated.
-AI on iOS is an explicit Claude/ChatGPT handoff with a preview of the shared data;
-it does not pretend an external chat is an in-process model capability.
+On iOS, Ask runs read-only skills against the household currently visible. The
+shared engine supplies amounts, dates, source entries and goal projections. The shared router resolves known paraphrases. For a bounded question whose meaning
+is ambiguous, the app shows the labelled alternatives immediately. Apple model inference
+is a developer experiment outside the app target. Core questions
+and follow-ups work without the model or a network connection. Sharing is optional:
+preview the exact answer, then choose an app in the iOS share sheet. The public
+Claude link is explicitly the fictional demo, never a private household session.
+See [Ask behaviour, tests and provider limits](docs/ask.md).
 
 `brand/` owns tokens, icons, mascot, app icons and motion. Hosts request semantic
 names. Generated native tokens are the only place for Swift color literals; no

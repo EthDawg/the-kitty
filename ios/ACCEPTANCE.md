@@ -79,3 +79,34 @@ The generated Swift colours and Xcode launch assets match, and the app icons
 exchange places. A local iOS 26.5 simulator also opened Appearance and read the
 registered primary/alternate icon state. No Home Screen preference on Ethan’s
 phone was changed for this proof.
+
+Native Ask was exercised in the real bundled WKWebView on an iPhone 17 Pro
+simulator (iOS 26.5). The test opened the emergency-fund scenario and its two
+eligible subscriptions, typed a groceries question, opened its ledger row,
+compared the previous month, previewed the exact answer and opened the system
+share sheet without sending. The merchant check opened the ordinary category
+picker. Full-resolution screenshots accompany the XCTest result. A signed update
+installed on the paired physical iPhone; its lock prevented an automated launch.
+That installation does not establish physical Ask usability.
+
+The local Apple model classified five ordinary fictional questions correctly on
+the first Mac probe, declined two more and returned one service error; three
+additional safety cases were correctly refused. A repeat probe declined those
+same three safety cases but the model service failed on all eight other prompts,
+and an independent one-word control also failed. Core answers need no model.
+
+A read-only check on the published Davies v2 Sheet found exactly four December
+2026 grocery entries (T0834, T0844, T0853, T0866), totalling $1,429.05. The
+two subscription decisions eligible for the emergency-fund scenario total
+$449.88 a year, or $37.49/month. Goals showed $26,902.84 of $30,000, a target
+date of 31 December 2026, and a recorded pace of about $700.05/month. The June
+2027 estimate and the original deadline are displayed separately.
+
+After independent artifact review, the native answer distinguishes unmarked receipt
+flags from missing documents, names the excluded Keep decision and models all unused
+subscriptions as an explicitly different scenario. The latter projects May rather
+than June. A touch-only simulator test tapped the sparkle, chose groceries, expanded
+the source and opened T0866. The verified public Sheet and both bundled v2 fixtures
+now show the investment loan on 28 February, separately from the home loan on 1 February.
+
+In the final bounded Apple-model experiment, all three requests completed and all three proposals were out of scope. The production app omits inference; its labelled local choices remain usable immediately.

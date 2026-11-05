@@ -347,8 +347,24 @@
   E.upcoming = (m, days) => {
     if (days == null) days = E.num(m.kitty.look_ahead_days) || 35;
     const today = m.asOf, until = E.addDays(today, days), items = [];
-    for (const s of m.subs) { if (/cancel/i.test(s.decision) && /cancelled/i.test(s.flag)) continue; const d = E.nextCharge(s, today); if (d && d <= until) items.push({ date: d, kind: "bill", title: s.service, sub: `${E.cap(String(s.cadence).toLowerCase())}${s.owner && s.owner !== "Joint" ? ` · ${s.owner}` : ""}${/still charging/i.test(s.flag) ? " · still charging after cancel" : ""}`, amount: -(s.latest || 0), warn: /still charging/i.test(s.flag), ref: { type: "sub", key: s.service } }); }
-    for (const l of m.loans) { if (!l.repayment) continue; let d = E.monthStart(E.addMonths(today, 1)); if (l.purpose === "Investment") d = E.addDays(E.monthEnd(today), 0) <= today ? E.monthEnd(E.addMonths(today, 1)) : E.monthEnd(today); if (d > today && d <= until) items.push({ date: d, kind: "loan", title: `${l.name} ${l.type === "Interest only" ? "interest" : "repayment"}`, sub: `${l.lender} · ${E.fmtPct(l.rate, 2)}`, amount: -l.repayment, ref: { type: "loan", key: l.id } }); }
+    // A dated, unambiguous v2 contract outranks the legacy guess from past entries.
+    // A refunded last charge is never forecast as income.
+    const onlyTerm = predicate => { const terms = (m.contracts || []).filter(c => c.status === "active" && predicate(c)); return terms.length === 1 ? terms[0] : null; };
+    for (const s of m.subs) {
+      if (/cancel/i.test(s.decision) && /cancelled/i.test(s.flag)) continue;
+      const term = onlyTerm(c => ["subscription","bill","insurance"].includes(c.kind) && (c.name === s.service || c.provider === s.service) && (!s.owner || !c.owner || c.owner === s.owner));
+      const d = term?.next > today ? term.next : E.nextCharge(s,today);
+      const amount = s.latest > 0 ? -s.latest : term?.amount > 0 ? -term.amount : null;
+      if (d && d <= until) items.push({ date:d, kind:"bill", title:s.service, sub:`${E.cap(String(s.cadence).toLowerCase())}${s.owner && s.owner !== "Joint" ? ` · ${s.owner}` : ""}${/still charging/i.test(s.flag) ? " · still charging after cancel" : ""}`, amount, warn:/still charging/i.test(s.flag), ref:{type:"sub",key:s.service} });
+    }
+    for (const l of m.loans) {
+      if (!l.repayment) continue;
+      const term = onlyTerm(c => c.kind === "loan" && c.acct === l.id);
+      if (m.sheetVersion >= 2 && (!term?.next || term.next <= today)) continue;
+      const fallback = l.purpose === "Investment" ? (E.monthEnd(today) <= today ? E.monthEnd(E.addMonths(today,1)) : E.monthEnd(today)) : E.monthStart(E.addMonths(today,1));
+      const d = term?.next > today ? term.next : fallback;
+      if (d > today && d <= until) items.push({ date:d, kind:"loan", title:`${l.name} ${l.type === "Interest only" ? "interest" : "repayment"}`, sub:`${l.lender} · ${E.fmtPct(l.rate,2)}`, amount:-l.repayment, ref:{type:"loan",key:l.id} });
+    }
     for (const p of E.payday(m)) if (p.next <= until) items.push({ date: p.next, kind: "pay", title: `${p.person}'s pay`, sub: p.employer, amount: p.net, ref: { type: "pay", key: p.person } });
     for (const g of m.goals) if (g.date > today && g.date <= until) items.push({ date: g.date, kind: "goal", title: `${g.name} target date`, sub: g.status === "Reached" ? "Reached" : `${E.fmt0(g.target - (g.balance || 0))} still to go`, amount: null, ref: { type: "goal", key: g.name } });
     return items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));

@@ -47,9 +47,9 @@
   if (NATIVE) document.addEventListener("kitty:native-environment", setAnim);
   // every model goes through here so the per-render caches (merchant context, review queue) reset with it
   let CTX = null, REVIEW = null;
-  const setModel = (m) => { S.m = m; CTX = null; REVIEW = null; return m; };
+  const setModel = (m) => { if (NATIVE && S.m && S.m !== m) { window.KittyAskPanel?.reset(); if ($("#drawer.on [data-native-ask], #drawer.on [data-ask-choose]")) closeDrawer(); } S.m = m; CTX = null; REVIEW = null; return m; };
   const review = () => REVIEW || (REVIEW = E.review(S.m));
-  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, cookie: NATIVE && !S.sample ? "" : ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
+  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, nativeAsk: NATIVE, cookie: ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
   // the demo and a read-only sheet keep this visit's judgments in memory only: the sheet is never written and nothing is remembered
   const demoModel = () => { if (!SNAP) return null; const snap = Object.assign({}, SNAP, { decisions: (SNAP.decisions || []).concat(S.sessionDecisions), entries: Object.keys(S.sessionCats).length ? (SNAP.entries || []).map((e) => (S.sessionCats[e.entry_id] ? Object.assign({}, e, { category_id: S.sessionCats[e.entry_id] }) : e)) : SNAP.entries }); return applyLocalGoals(E.model(snap)); };
   const sheetId = () => (NATIVE ? S.nativeSheet?.sheetID || DEMO_SHEET : S.prefs.sheet || DEMO_SHEET).trim();
@@ -341,7 +341,7 @@
     else if (S.mode === "local") setPill("demo", "Local test copy");
     else setPill("demo", "Demo household");
     document.title = `The ${m.householdName.replace(/^The /, "")} Kitty`;
-    $("#askbtn").hidden = !S.sample;
+    $("#askbtn").hidden = !NATIVE && !S.sample;
   }
   const period = () => E.window(S.period.kind, S.period.anchor || S.m.asOf);
   function periodBar(id) {
@@ -720,8 +720,17 @@
   }
   // the fortune cookie: Ask proposes a merchant and a category from the raw descriptor; the person decides. One open at a time, never on load.
   async function crackCookie(card, btn) {
+    if (NATIVE) {
+      const id=card.dataset.rid, e=S.m.entryById[id], evidence=window.KittyAsk.merchantEvidence(E,S.m,id);
+      if (!e || !evidence) return;
+      const category=evidence.category, count=evidence.matches.length;
+      openDrawer(`${h2("Review this merchant",esc(e.raw || e.desc))}<div class="plan"><h3>${category?esc(catName(category)):"Choose a category"}</h3><p>${category?`The same description appears in ${count} earlier ${count===1?"entry":"entries"} on this account, all filed under ${esc(catName(category))}.`:count?"Earlier entries with this description used different categories.":"There’s no earlier categorised entry with this description on this account."}</p>
+        ${evidence.matches.slice(0,3).map(k=>`<button class="pp" data-go="entry:${esc(k)}">See ${esc(E.fmtDay(S.m.entryById[k].date,{year:true}))} · ${esc(k)}</button>`).join("")}
+        <button class="btn" data-ask-choose>Choose a category…</button><span class="plan-foot">This check hasn’t changed the entry or created a rule.</span></div>`);
+      $("[data-ask-choose]").onclick=()=>openCategoryPicker(id); return;
+    }
     if (!Motion) return;
-    if (!S.sample) { toast(NATIVE ? "Ask Claude and ChatGPT are not available in this offline preview." : "Claude isn't available in this view, so the cookie stays closed. Open the page in Claude."); return; }
+    if (!S.sample) { toast("Claude isn't available in this view, so the cookie stays closed. Open the page in Claude."); return; }
     if (S.cookie && S.cookie !== btn) { S.cookie.classList.remove("open"); const sv = S.cookie.querySelector("svg"); if (sv) sv.classList.remove("open"); const old = S.cookie.closest(".rcard"); const os = old && $(".rslip", old); if (os) os.hidden = true; }
     S.cookie = btn; const id = card.dataset.rid; const m = S.m, e = m.entryById[id]; if (!e) return;
     const slip = $(".rslip", card); slip.hidden = false; slip.innerHTML = `<span class="sub">Asking the Kitty… the first time, claude.ai asks you to allow “Use Claude” for this page.</span>`;
@@ -1077,7 +1086,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <p>Text size and reduced motion follow your device settings.</p></div>
       </div>
       <div class="card"><div class="cardhead"><span class="q">About this preview</span></div>
-        <div class="prose"><p>Imports, document scanning and Ask Claude or ChatGPT are not available in this preview. No financial data is being sent to an AI.</p>
+        <div class="prose"><p>Ask the Kitty can explain spending, savings goals and upcoming bills on this device. Tap the sparkle at the top. To share an answer, you choose its destination after previewing the text.</p>
         <p>The household's Google Sheet remains the owner of its numbers. These links open online and need a connection:</p></div>
         <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}</div>
       </div>`;
@@ -1181,7 +1190,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
 
   // ---------- drawers ----------
   let lastFocus = null;
-  function openDrawer(html) {
+  function openDrawer(html, focusFirst = true) {
     if (!$("#drawer").classList.contains("on")) lastFocus = document.activeElement;
     const d = $("#drawer"); d.inert = false; d.removeAttribute("aria-hidden"); d.setAttribute("aria-modal", "true"); d.innerHTML = `<div class="grab" id="grab"></div><button class="close" id="dclose" aria-label="Close">${ico("i-x")}</button>${html}`;
     d.classList.add("on"); $("#scrim").classList.add("on"); d.scrollTop = 0;
@@ -1192,7 +1201,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const end = (e) => { if (y0 == null) return; const dy = e.clientY - y0; y0 = null; d.classList.remove("dragging"); d.style.transform = ""; if (dy > 110) closeDrawer(); };
     g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
     $("#app").setAttribute("aria-hidden", "true"); $("header.top").setAttribute("aria-hidden", "true");
-    const first = d.querySelector("input, select, button:not(.close)"); setTimeout(() => { if (d.classList.contains("on")) (first || $("#dclose")).focus({ preventScroll: true }); }, 60);
+    const first = focusFirst && d.querySelector("input, select, button:not(.close)"); setTimeout(() => { if (d.classList.contains("on")) (first || $("#dclose")).focus({ preventScroll: true }); }, 60);
     buzz(5);
   }
   function closeDrawer() {
@@ -1394,7 +1403,9 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     return `<div class="msg kit">${esc(c.text)}</div>`;
   }
   function openAsk() {
-    if (NATIVE && !S.sample) { openDrawer(`${h2("Ask the Kitty", "Ask Claude and ChatGPT are not available in this offline preview.")}<p class="sub">You can explore the fictional household's numbers in Activity and Insights. No financial data has been sent to an AI.</p>`); return; }
+    if (NATIVE) { window.KittyAskPanel.open({ E, model:()=>S.m, mode:()=>S.mode, drawer:()=>$("#drawer"), openDrawer,
+      go:target=>{ if (target==="home" || validGo(target)) { closeDrawer(); go(target); } }, bridge:()=>window.KittyNative.ask,
+      origin:()=>S.mode+":"+(S.nativeSheet?.session||"demo"), artifact:isDemoSheet()&&PAGE_URL.startsWith("https://claude.ai/artifact/")?PAGE_URL:null }); return; }
     openDrawer(`${h2("Ask the Kitty", `Claude answers from the numbers on this page, with your consent, and keeps nothing between questions. Today is ${E.fmtDay(S.m.asOf, { year: true })} for the household.`)}
       <div class="ask" style="margin-top:12px"><div class="msgs" id="msgs">${S.chat.map((c, i) => msgHTML(c, i === S.chat.length - 1)).join("") || `<div class="sugg">${SUGGEST.map((s) => `<button class="chip" data-sugg="${esc(s)}">${esc(s)}</button>`).join("")}</div>`}</div>
       <div class="askrow"><div class="searchbox">${ico("i-spark")}<input id="askq" type="text" placeholder="Ask about the money…" autocomplete="off" aria-label="Your question"></div><button class="btn" id="asksend" ${S.asking ? "disabled" : ""}>Ask</button></div>

@@ -208,6 +208,25 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             return
         }
         switch method {
+        case "ask.share":
+            let session = liveSession
+            let isDemo = liveSheet == nil
+            guard !openingLive, !choosingSheet, shield == nil,
+                  isDemo ? params["session"] == nil : params["session"] as? String == session.uuidString else {
+                reply(HostPolicy.failure("stale_session", "Reopen Ask in your current household view."), nil); return
+            }
+            guard let text = params["text"] as? String, !text.isEmpty, text.utf8.count <= 8192,
+                  viewIfLoaded?.window != nil, presentedViewController == nil else {
+                reply(HostPolicy.failure("unavailable", "The share sheet isn't available."), nil); return
+            }
+            let share = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+            share.popoverPresentationController?.sourceView = view
+            share.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
+            share.completionWithItemsHandler = { _, completed, _, error in
+                if error != nil { reply(HostPolicy.failure("unavailable", "Sharing wasn't confirmed."), nil) }
+                else { reply(HostPolicy.reply(["status": completed ? "completed" : "cancelled"]), nil) }
+            }
+            present(share, animated: true); return
         case "preferences.get", "preferences.set":
             let userID = liveSheet?.preferenceID ?? "native-demo"
             guard params["path"] as? String == "data/users/\(userID)/kitty",
