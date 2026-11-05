@@ -147,6 +147,16 @@ final class OfflinePageTests: XCTestCase {
         XCTAssertTrue(setup.localizedCaseInsensitiveContains("demo"))
         XCTAssertFalse(setup.contains("Safari"))
         XCTAssertFalse(setup.contains("sheet_version 1"))
+        try await wait(page, for: "document.querySelector('[data-icon-choice=cat][aria-pressed]') && document.querySelector('[data-icon-choice=dog][aria-pressed]')")
+        let icons = try await js(page, """
+            const native = await KittyNative.icon.status();
+            return [...document.querySelectorAll('[data-icon-choice]')].every(button =>
+                button.disabled === !native.supported &&
+                button.getAttribute('aria-pressed') === String((button.dataset.iconChoice !== KITTY_ART.set) === native.alternate));
+            """)
+        XCTAssertEqual(icons as? Bool, true, "The actual Home Screen setting is shown on this device.")
+        let info = try XCTUnwrap(Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any])
+        XCTAssertNotNil((info["CFBundleAlternateIcons"] as? [String: Any])?["KittyAlternate"])
         let appearance = try await js(page, """
             const root = document.querySelector('#v-setup');
             root.querySelector('[data-theme-pick=dark]').click();

@@ -72,3 +72,10 @@ T0761|categorise. Prior row 20 is intact. The iPhone showed four reviews,
 1,082 entries and $99,388; the [published artifact check](https://github.com/EthDawg/the-kitty/pull/16#issuecomment-6650396347)
 also found four and $99,388. A biometric or passcode lock is optional. Simulated
 unlock outcomes are tested; a physical Face ID acceptance was not recorded.
+
+The brand drill changes the page background, Offset drawing and mascot in a
+temporary checkout. Both built pages use the changed tokens, sprite and art.
+The generated Swift colours and Xcode launch assets match, and the app icons
+exchange places. A local iOS 26.5 simulator also opened Appearance and read the
+registered primary/alternate icon state. No Home Screen preference on Ethan’s
+phone was changed for this proof.

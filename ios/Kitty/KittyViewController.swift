@@ -36,6 +36,8 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = KittyTokens.background
+        view.tintColor = KittyTokens.tint
         // Once per process: another scene must not remove an active export.
         if !Self.clearedAbandonedExports {
             Self.clearedAbandonedExports = true
@@ -104,7 +106,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
 
     @objc private func coverLive() {
         guard liveSheet != nil || openingLive, shield == nil else { return }
-        let cover = UIView(frame:view.bounds); cover.backgroundColor = .systemBackground
+        let cover = UIView(frame:view.bounds); cover.backgroundColor = KittyTokens.background
         cover.autoresizingMask = [.flexibleWidth,.flexibleHeight]
         cover.isAccessibilityElement = true; cover.accessibilityLabel = "Live Sheet hidden"
         view.addSubview(cover); shield = cover; webView.accessibilityElementsHidden = true
@@ -124,6 +126,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
 
     private func showFailure(_ message: String) {
         let label = UILabel()
+        label.textColor = KittyTokens.text
         label.text = message
         label.numberOfLines = 0
         label.font = .preferredFont(forTextStyle: .body)
@@ -225,6 +228,20 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 }
                 preferences.set(data, forKey: key)
                 reply(HostPolicy.reply(), nil)
+            }
+        case "icon.status", "icon.set":
+            let app = UIApplication.shared
+            let state = { ["supported": app.supportsAlternateIcons, "alternate": app.alternateIconName == "KittyAlternate"] }
+            guard method == "icon.set" else { reply(HostPolicy.reply(state()), nil); return }
+            guard app.supportsAlternateIcons, let alternate = params["alternate"] as? Bool else {
+                reply(HostPolicy.failure("unavailable", "This device cannot change its Home Screen icon."), nil); return
+            }
+            let name: String? = alternate ? "KittyAlternate" : nil
+            if name == app.alternateIconName { reply(HostPolicy.reply(state()), nil); return }
+            app.setAlternateIconName(name) { error in
+                Task { @MainActor in
+                    reply(error == nil ? HostPolicy.reply(state()) : HostPolicy.failure("unavailable", "The icon could not be changed."), nil)
+                }
             }
         case "google.status":
             reply(HostPolicy.reply(["configured": google.isConfigured, "canResume": google.hasSavedGrant || google.isConnected,

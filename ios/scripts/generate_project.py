@@ -80,7 +80,9 @@ for name in ("Kitty", "KittyTests", "KittyUITests"):
         "GENERATE_INFOPLIST_FILE": "NO" if is_app else "YES", "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
     }
     if is_app:
-        settings.update(INFOPLIST_FILE="Kitty/Info.plist", ASSETCATALOG_COMPILER_APPICON_NAME="AppIcon")
+        settings.update(INFOPLIST_FILE="Kitty/Info.plist", ASSETCATALOG_COMPILER_APPICON_NAME="AppIcon",
+                        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES="KittyAlternate",
+                        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME="KittyTint")
     elif name == "KittyTests":
         settings.update(TEST_HOST="$(BUILT_PRODUCTS_DIR)/Kitty.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kitty",
                         BUNDLE_LOADER="$(TEST_HOST)", TEST_TARGET_NAME="Kitty")
