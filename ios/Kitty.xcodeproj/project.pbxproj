@@ -5,6 +5,8 @@ EBD5AF246DE9C096ECC9270C = { isa = PBXFileReference; lastKnownFileType = "source
 7A1B9E386AECFC44B85BF9B3 = { isa = PBXBuildFile; fileRef = EBD5AF246DE9C096ECC9270C; };
 A7D48D62525CA8A88306AB10 = { isa = PBXFileReference; lastKnownFileType = "sourcecode.swift"; path = "Kitty/GoogleHTTP.swift"; sourceTree = "SOURCE_ROOT"; };
 7EA140A47ABACE85B0E83B92 = { isa = PBXBuildFile; fileRef = A7D48D62525CA8A88306AB10; };
+99F6F77811F5AD4018CCAFF3 = { isa = PBXFileReference; lastKnownFileType = "sourcecode.swift"; path = "Kitty/GoogleSheetSelection.swift"; sourceTree = "SOURCE_ROOT"; };
+C24E16EF977F9DCEA439E711 = { isa = PBXBuildFile; fileRef = 99F6F77811F5AD4018CCAFF3; };
 8995BB1203E66EFF390CC5A7 = { isa = PBXFileReference; lastKnownFileType = "sourcecode.swift"; path = "Kitty/GoogleTokenStore.swift"; sourceTree = "SOURCE_ROOT"; };
 B6A386E512CECA9F3E8D505E = { isa = PBXBuildFile; fileRef = 8995BB1203E66EFF390CC5A7; };
 63B8D8D0AE08D2848DC306BE = { isa = PBXFileReference; lastKnownFileType = "sourcecode.swift"; path = "Kitty/HostPolicy.swift"; sourceTree = "SOURCE_ROOT"; };
@@ -19,8 +21,8 @@ C98FCCD25836DC519D57980C = { isa = PBXFileReference; lastKnownFileType = "folder
 503EC223603638EA82012A47 = { isa = PBXBuildFile; fileRef = C98FCCD25836DC519D57980C; };
 ADAFA40EEF870157631F71C8 = { isa = PBXFileReference; lastKnownFileType = "text.xml"; path = "Kitty/PrivacyInfo.xcprivacy"; sourceTree = "SOURCE_ROOT"; };
 552714C6B338892B70332B7A = { isa = PBXBuildFile; fileRef = ADAFA40EEF870157631F71C8; };
-BDB49F56A8B3322ECA200796 = { isa = PBXGroup; children = (EBD5AF246DE9C096ECC9270C,A7D48D62525CA8A88306AB10,8995BB1203E66EFF390CC5A7,63B8D8D0AE08D2848DC306BE,456DCA0C7F7E2149CDA2C2B5,A4DD1D423BA41E5A4B927341,70DC923B3261A1741081621C,C98FCCD25836DC519D57980C,ADAFA40EEF870157631F71C8); name = "Kitty"; sourceTree = "<group>"; };
-82CDE981064EDACBD32560B0 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (7A1B9E386AECFC44B85BF9B3,7EA140A47ABACE85B0E83B92,B6A386E512CECA9F3E8D505E,CFB73CD82234C09FA42203BA,C28DB345058C97C15FD65695,CC11AD693BF6F43E411030F8); runOnlyForDeploymentPostprocessing = 0; };
+BDB49F56A8B3322ECA200796 = { isa = PBXGroup; children = (EBD5AF246DE9C096ECC9270C,A7D48D62525CA8A88306AB10,99F6F77811F5AD4018CCAFF3,8995BB1203E66EFF390CC5A7,63B8D8D0AE08D2848DC306BE,456DCA0C7F7E2149CDA2C2B5,A4DD1D423BA41E5A4B927341,70DC923B3261A1741081621C,C98FCCD25836DC519D57980C,ADAFA40EEF870157631F71C8); name = "Kitty"; sourceTree = "<group>"; };
+82CDE981064EDACBD32560B0 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (7A1B9E386AECFC44B85BF9B3,7EA140A47ABACE85B0E83B92,C24E16EF977F9DCEA439E711,B6A386E512CECA9F3E8D505E,CFB73CD82234C09FA42203BA,C28DB345058C97C15FD65695,CC11AD693BF6F43E411030F8); runOnlyForDeploymentPostprocessing = 0; };
 22487EA4835D34913BEB0A2D = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (D741CCA0AE4A53E3736E812C,503EC223603638EA82012A47,552714C6B338892B70332B7A); runOnlyForDeploymentPostprocessing = 0; };
 F274DC0DFBFE95C74F2B7963 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 02179E8659530CC3BF63B84D = { isa = PBXFileReference; explicitFileType = "wrapper.application"; includeInIndex = 0; path = "Kitty.app"; sourceTree = "BUILT_PRODUCTS_DIR"; };
@@ -30,10 +32,12 @@ F274DC0DFBFE95C74F2B7963 = { isa = PBXFrameworksBuildPhase; buildActionMask = 21
 F22E4996FB99E35F30E31585 = { isa = PBXNativeTarget; buildConfigurationList = 7418842E7DC2CBF6E0756437; buildPhases = (82CDE981064EDACBD32560B0,22487EA4835D34913BEB0A2D,F274DC0DFBFE95C74F2B7963); buildRules = (); dependencies = (); name = "Kitty"; productName = "Kitty"; productReference = 02179E8659530CC3BF63B84D; productType = "com.apple.product-type.application"; };
 80C7A2AF7277BFAB6149AB92 = { isa = PBXFileReference; lastKnownFileType = "sourcecode.swift"; path = "KittyTests/GoogleConnectionTests.swift"; sourceTree = "SOURCE_ROOT"; };
 8CA50D474FC1C5EB9AC1DF2E = { isa = PBXBuildFile; fileRef = 80C7A2AF7277BFAB6149AB92; };
+46D0ED3716D5432210B4F984 = { isa = PBXFileReference; lastKnownFileType = "sourcecode.swift"; path = "KittyTests/GoogleSheetSelectionTests.swift"; sourceTree = "SOURCE_ROOT"; };
+372EFA83D89B8B23BC39BC18 = { isa = PBXBuildFile; fileRef = 46D0ED3716D5432210B4F984; };
 33FE54D26BFC47554A96DF1D = { isa = PBXFileReference; lastKnownFileType = "sourcecode.swift"; path = "KittyTests/HostTests.swift"; sourceTree = "SOURCE_ROOT"; };
 6474744344137093CDDCCEBD = { isa = PBXBuildFile; fileRef = 33FE54D26BFC47554A96DF1D; };
-FC915E624639BEA71D64F809 = { isa = PBXGroup; children = (80C7A2AF7277BFAB6149AB92,33FE54D26BFC47554A96DF1D); name = "KittyTests"; sourceTree = "<group>"; };
-93249D07DFDC02E75F0A48DF = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (8CA50D474FC1C5EB9AC1DF2E,6474744344137093CDDCCEBD); runOnlyForDeploymentPostprocessing = 0; };
+FC915E624639BEA71D64F809 = { isa = PBXGroup; children = (80C7A2AF7277BFAB6149AB92,46D0ED3716D5432210B4F984,33FE54D26BFC47554A96DF1D); name = "KittyTests"; sourceTree = "<group>"; };
+93249D07DFDC02E75F0A48DF = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (8CA50D474FC1C5EB9AC1DF2E,372EFA83D89B8B23BC39BC18,6474744344137093CDDCCEBD); runOnlyForDeploymentPostprocessing = 0; };
 4FC457148737C28F8BB4E0C1 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 7DA4E32CD21369A359A8EFBF = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 DEFDB34F29BDB0C9AD7FA3D9 = { isa = PBXFileReference; explicitFileType = "wrapper.cfbundle"; includeInIndex = 0; path = "KittyTests.xctest"; sourceTree = "BUILT_PRODUCTS_DIR"; };

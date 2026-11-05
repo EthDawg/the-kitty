@@ -895,13 +895,37 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $$("[data-theme-pick]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ theme: b.dataset.themePick }); applyTheme(); renderSetup(); buzz(); }));
     $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
   }
+  const googlePicker = { busy: false, verified: null, message: "", attempted: false };
+  async function chooseDemoSheet(disconnect = false) {
+    if (googlePicker.busy) return;
+    googlePicker.busy = true; googlePicker.message = ""; googlePicker.verified = null;
+    googlePicker.attempted = true; renderNativeSetup();
+    try {
+      if (disconnect) {
+        await window.KittyNative.google.disconnect();
+        googlePicker.message = "Disconnected from Google."; googlePicker.attempted = false;
+      } else {
+        const result = await window.KittyNative.google.select(DEMO_SHEET);
+        if (result?.sheetID !== DEMO_SHEET || result.sheetVersion !== 2 || typeof result.title !== "string")
+          throw new Error("Google did not confirm the selected v2 Sheet.");
+        googlePicker.verified = result;
+      }
+    } catch (error) { googlePicker.message = error.message || "Google Sheet selection was not confirmed."; }
+    finally { googlePicker.busy = false; renderNativeSetup(); }
+  }
   function renderNativeSetup() {
     const m = S.m, v = $("#v-setup");
     v.innerHTML = `
       <div class="card"><div class="cardhead"><span class="q">The Kitty on your phone</span><span class="sub">Offline demo</span></div>
         <div class="prose"><p>Explore Home, Activity, Review, Insights and Goals using <b>${esc(m.householdName)}</b>, a fictional household. The bundled Sheet snapshot covers ${E.fmtDay(m.asOf, { year: true })}. It opens without a network connection.</p>
-        <p>The numbers belong in a Google Sheet you can open and keep. This preview uses a fictional copy, with no Google or AI connection active.</p></div>
+        <p>The numbers belong in a Google Sheet you can open and keep. This preview uses a fictional copy. Choosing the Sheet below checks access without changing any rows.</p></div>
         <div class="chips"><button class="btn sm" data-go="review">Open Review</button><button class="btn sm ghost" data-go="goals">Explore Goals</button></div>
+      </div>
+      <div class="card"><div class="cardhead"><span class="q">Your Google Sheet</span></div>
+        <p>Choose the existing Digital Davies v2 Sheet in Google’s picker. The Kitty checks the file and its version. The dashboard above still uses the bundled demo.</p>
+        <div class="chips"><button class="btn sm" id="nativepick" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy ? "Waiting for Google…" : "Choose demo Sheet"}</button>
+          ${googlePicker.attempted ? `<button class="btn sm ghost" id="nativedisconnect" ${googlePicker.busy ? "disabled" : ""}>Disconnect Google</button>` : ""}</div>
+        <p class="sub" role="status" aria-live="polite">${googlePicker.verified ? `Verified in Google: <b>${esc(googlePicker.verified.title)}</b> · Kitty v2 · ${googlePicker.verified.canEdit ? "editor" : "viewer"}. No rows were changed.` : esc(googlePicker.message)}</p>
       </div>
       ${appearanceCard(m)}
       <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
@@ -909,11 +933,13 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <p>${S.downloads ? "Activity can export its filtered rows as a CSV through the iOS file picker. A save is confirmed only after the picker finishes." : "Native file export is unavailable in this view."}</p>
         <p>Text size and reduced motion follow your device settings.</p></div>
       </div>
-      <div class="card"><div class="cardhead"><span class="q">Not connected yet</span></div>
-        <div class="prose"><p>Google sign-in, imports, document scanning and Ask Claude or ChatGPT are not available in this preview. No financial data is being sent to an AI.</p>
+      <div class="card"><div class="cardhead"><span class="q">About this preview</span></div>
+        <div class="prose"><p>Imports, document scanning and Ask Claude or ChatGPT are not available in this preview. No financial data is being sent to an AI.</p>
         <p>The household's Google Sheet remains the owner of its numbers. These links open online and need a connection:</p></div>
         <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}</div>
       </div>`;
+    $("#nativepick", v).addEventListener("click", () => chooseDemoSheet());
+    $("#nativedisconnect", v)?.addEventListener("click", () => chooseDemoSheet(true));
     bindAppearance(v);
     bindCommon(v);
   }

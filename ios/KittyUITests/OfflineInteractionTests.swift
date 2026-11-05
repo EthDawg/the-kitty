@@ -98,7 +98,7 @@ final class OfflineInteractionTests: XCTestCase {
         capture("CSV — cancelled, no saved confirmation")
 
         tap(app.buttons["Setup"])
-        XCTAssertTrue(text(containing: "fictional copy, with no Google or AI connection active")
+        XCTAssertTrue(text(containing: "fictional copy. Choosing the Sheet below checks access")
             .waitForExistence(timeout: 4))
         let review = app.buttons["Open Review"]
         revealByScrollingDown(review)

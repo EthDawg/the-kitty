@@ -31,3 +31,11 @@ snapshot-startup gate flash, stops count-up when reduced motion turns on,
 and removes a closed drawer from the accessibility tree. Live selection and
 writes, import parity, AI handoff and release acceptance require later proof.
 No TestFlight upload or App Store submission has been made.
+
+Milestone 3 begins with a read-only selection check. The registered public iOS
+client and reversed callback are present in the signed app. In Setup, “Choose demo
+Sheet” runs Google’s explicit one-file Picker, binds the returned account and
+Sheet, and reads its Drive metadata and v2 marker. It reports the actual file
+permission, without changing rows or labelling snapshot numbers Live. Eighteen
+injected-response tests cover OAuth, secure storage, bounded HTTP, stale accounts,
+wrong files and ambiguous versions. They do not prove live Google consent.

@@ -127,6 +127,11 @@
     doc.dispatchEvent(new root.CustomEvent("kitty:native-route", { detail: { route: routeName } }));
   }
   root.KittyNative = Object.freeze({
+    google: Object.freeze({
+      status: () => rpc("google.status", {}),
+      select: (sheetID) => rpc("google.choose", { sheetID }),
+      disconnect: () => rpc("google.disconnect", {})
+    }),
     get ready() { return ready; },
     get environment() { return environment(); },
     receiveEnvironment(value) {

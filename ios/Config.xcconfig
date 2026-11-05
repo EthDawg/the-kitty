@@ -1,3 +1,6 @@
 // Local signing settings are optional for unsigned simulator builds.
 DEVELOPMENT_TEAM =
+// Public installed-app identifiers, never a client secret. Forks can override both locally.
+GOOGLE_CLIENT_ID = 75149339889-pdp2csd562rrskurmtjuhdqu2nqaaeot.apps.googleusercontent.com
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.75149339889-pdp2csd562rrskurmtjuhdqu2nqaaeot
 #include? "Config.local.xcconfig"

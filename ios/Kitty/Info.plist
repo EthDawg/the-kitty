@@ -12,9 +12,13 @@
     <key>LSRequiresIPhoneOS</key><true/>
     <key>UILaunchScreen</key><dict/>
     <key>WKAppBoundDomains</key><array/>
+    <key>GoogleClientID</key><string>$(GOOGLE_CLIENT_ID)</string>
     <key>CFBundleURLTypes</key><array><dict>
         <key>CFBundleURLName</key><string>com.ethdawg.kitty</string>
         <key>CFBundleURLSchemes</key><array><string>kitty</string></array>
+    </dict><dict>
+        <key>CFBundleURLName</key><string>Google OAuth</string>
+        <key>CFBundleURLSchemes</key><array><string>$(GOOGLE_REVERSED_CLIENT_ID)</string></array>
     </dict></array>
     <key>UISupportedInterfaceOrientations</key>
     <array>

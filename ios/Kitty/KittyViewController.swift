@@ -15,6 +15,9 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     private weak var exportPicker: UIDocumentPickerViewController?
     private static var clearedAbandonedExports = false
     private var pageReady = false
+    private lazy var google = GoogleConnection(defaults: preferences)
+    private var verifiedSheet: GoogleSheetSelection.Verified?
+    private var choosingSheet = false
 
     init(pageURL: URL? = Bundle.main.url(forResource: "kitty-native", withExtension: "html"),
          preferences: UserDefaults = .standard, websiteDataStore: WKWebsiteDataStore? = nil) {
@@ -188,6 +191,47 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 }
                 preferences.set(data, forKey: key)
                 reply(HostPolicy.reply(), nil)
+            }
+        case "google.status":
+            reply(HostPolicy.reply(["configured": google.isConfigured,
+                                    "verified": verifiedSheet?.summary as Any? ?? NSNull()]), nil)
+        case "google.choose":
+            guard !choosingSheet, presentedViewController == nil,
+                  let id = params["sheetID"] as? String, GoogleConnection.validSheetID(id) else {
+                reply(HostPolicy.failure("busy", "Finish the current selection before choosing a Sheet."), nil)
+                return
+            }
+            choosingSheet = true
+            verifiedSheet = nil
+            Task { @MainActor in
+                defer { choosingSheet = false }
+                do {
+                    let selection = try await google.authorize(fileID: id)
+                    let probe = GoogleSheetSelection(http: GoogleHTTP(), current: { self.google.selection },
+                                                     token: { try await self.google.accessToken(for: $0) })
+                    let verified = try await probe.verify(selection)
+                    verifiedSheet = verified
+                    reply(HostPolicy.reply(verified.summary), nil)
+                } catch {
+                    // Never pass token responses, raw URLs or provider bodies to the page.
+                    let detail = (error as? GoogleConnection.ConnectionError)?.errorDescription ??
+                        (error as? GoogleSheetSelection.Failure)?.errorDescription ?? "Google could not verify this Sheet."
+                    reply(HostPolicy.failure("not_connected", detail), nil)
+                }
+            }
+        case "google.disconnect":
+            guard !choosingSheet else {
+                reply(HostPolicy.failure("busy", "Finish the current Google action."), nil); return
+            }
+            choosingSheet = true
+            verifiedSheet = nil
+            Task { @MainActor in
+                defer { choosingSheet = false }
+                do { try await google.disconnect(); reply(HostPolicy.reply(), nil) }
+                catch {
+                    let detail = (error as? GoogleConnection.ConnectionError)?.errorDescription ?? "Google disconnect could not be verified."
+                    reply(HostPolicy.failure("disconnect_incomplete", detail), nil)
+                }
             }
         case "downloads.save": export(params, reply: reply)
         default: reply(HostPolicy.failure("not_available", "This capability is not available in the demo."), nil)
