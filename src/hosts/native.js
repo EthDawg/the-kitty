@@ -7,7 +7,7 @@
   const PREF_LIMIT = 1024 * 1024, EXPORT_LIMIT = 10 * 1024 * 1024;
   const ROUTES = new Set(["home", "activity", "review", "insights", "goals", "setup"]);
   const doc = root.document;
-  let bridgeFailed = false, ready = false, queuedRoute = null;
+  let bridgeFailed = false, ready = false, queuedRoute = null, activeGoogle = null;
   let textScale = 1, nativeReduceMotion = false;
   const motionQuery = root.matchMedia ? root.matchMedia("(prefers-reduced-motion: reduce)") : null;
   root.KITTY_HOST = "native";
@@ -62,19 +62,21 @@
   const user = Object.freeze({
     isOwner: async () => false,
     me: async () => ({ name: "" }),
-    id: async () => "native-demo",
+    id: async () => activeGoogle?.preferenceID || "native-demo",
   });
   const db = Object.freeze({
     doc(path) {
-      if (path !== PREF_PATH) throw failure("invalid_request", "Only this demo's preference document is available.");
+      const session = activeGoogle?.session, binding = session ? { session } : {};
+      if (path !== (session ? "data/users/" + activeGoogle.preferenceID + "/kitty" : PREF_PATH)) throw failure("invalid_request", "Only this session's preference document is available.");
+      const check = () => { if (session !== activeGoogle?.session) throw failure("stale_session", "The selected Sheet changed."); };
       return Object.freeze({
         async get() {
-          const value = await rpc("preferences.get", { path });
+          check(); const value = await rpc("preferences.get", { path, ...binding }); check();
           const data = value === null ? null : preferenceCopy(value);
           return Object.freeze({ exists: data !== null, data: () => data === null ? undefined : preferenceCopy(data) });
         },
         async set(value) {
-          const result = await rpc("preferences.set", { path, value: preferenceCopy(value) });
+          check(); const result = await rpc("preferences.set", { path, ...binding, value: preferenceCopy(value) }); check();
           if (result !== null) throw failure("invalid_response", "Preference storage was not confirmed.");
         },
       });
@@ -103,9 +105,22 @@
     },
   });
   const capabilities = Object.freeze({ mcp: null, sample: null, user, db, downloads });
+  function sheets(session) {
+    return Object.freeze({
+      async callTool(server, tool, input) {
+        if (activeGoogle?.session !== session || server !== "Google Sheets" || !plain(input) ||
+            input.spreadsheetId !== activeGoogle.sheetID) throw failure("not_granted", "Only the selected Sheet is available.");
+        const result = await rpc("sheets.call", { session, server, tool, input });
+        if (activeGoogle?.session !== session) throw failure("stale_session", "The selected Sheet changed.");
+        return result;
+      },
+      async invalidate() { /* Native reads are always fresh. */ }
+    });
+  }
   root.claude = Object.freeze({
     async use(name) {
       if (!bridge()) return null;
+      if (name === "mcp" && activeGoogle) return sheets(activeGoogle.session);
       return Object.prototype.hasOwnProperty.call(capabilities, name) ? capabilities[name] : null;
     },
   });
@@ -129,8 +144,19 @@
   root.KittyNative = Object.freeze({
     google: Object.freeze({
       status: () => rpc("google.status", {}),
-      select: (sheetID) => rpc("google.choose", { sheetID }),
-      disconnect: () => rpc("google.disconnect", {})
+      select: (sheetID) => { activeGoogle = null; return rpc("google.choose", { sheetID }); },
+      async open(sheetID) {
+        activeGoogle = null;
+        const v = await rpc("google.open", { sheetID });
+        if (!v || v.sheetID !== sheetID || v.sheetVersion !== 2 || typeof v.canEdit !== "boolean" ||
+            !/^native-[0-9a-f]{64}$/.test(v.preferenceID || "") ||
+            !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v.session || "")) {
+          throw failure("invalid_response", "The selected Sheet could not be opened.");
+        }
+        activeGoogle = Object.freeze({ ...v }); return activeGoogle;
+      },
+      close: () => { activeGoogle = null; return rpc("google.close", {}); },
+      disconnect: () => { activeGoogle = null; return rpc("google.disconnect", {}); }
     }),
     get ready() { return ready; },
     get environment() { return environment(); },

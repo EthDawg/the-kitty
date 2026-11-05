@@ -42,6 +42,26 @@ test("missing bridge and subframes have no capabilities", async () => {
   }
 });
 
+test("opening one verified file scopes Sheets and preferences, and closing invalidates old handles", async () => {
+  const sheetID = "fictional_existing_sheet_000001", preferenceID = "native-" + "a".repeat(64);
+  const selection = { sheetID, preferenceID, title: "Fictional Sheet", sheetVersion: 2, canEdit: false, session: "80454d6f-fde5-4fc1-8361-accdd7c9ce50" };
+  const h = host(({ method }) => ok(method === "google.open" ? selection : method === "sheets.call" ? { payload: {values:[["fixture"]]} } : null));
+  const db = await h.use("db"), demo = db.doc(PATH);
+  await h.window.KittyNative.google.open(sheetID);
+  const house = db.doc("data/users/" + preferenceID + "/kitty"), mcp = await h.use("mcp");
+  assert.equal(await (await h.use("user")).id(), preferenceID);
+  await assert.rejects(demo.get(), isCode("stale_session"));
+  await assert.rejects(mcp.callTool("Google Sheets", "get_values", {spreadsheetId:"different"}), isCode("not_granted"));
+  assert.throws(() => db.doc(PATH), isCode("invalid_request"));
+  assert.deepEqual(COPY(await mcp.callTool("Google Sheets", "get_values", {spreadsheetId:sheetID,range:"Entries!A1:U"})), {payload:{values:[["fixture"]]}});
+  assert.equal(h.calls.at(-1).params.session, selection.session);
+  await h.window.KittyNative.google.close();
+  await assert.rejects(house.get(), isCode("stale_session"));
+  await assert.rejects(mcp.callTool("Google Sheets", "get_values", {spreadsheetId:sheetID}), isCode("not_granted"));
+  assert.equal(await h.use("mcp"), null);
+  assert.equal(await (await h.use("user")).id(), "native-demo");
+});
+
 test("a non-Promise native handler fails closed on the actual call", async () => {
   const h = host(() => undefined), db = await h.use("db");
   await assert.rejects(db.doc(PATH).get(), isCode("bridge_unavailable"));

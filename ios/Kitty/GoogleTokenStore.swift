@@ -50,6 +50,7 @@ struct GoogleSignOutState: Codable, Equatable {
 struct GoogleSignOutStore {
     let read: () throws -> GoogleSignOutState
     let write: (GoogleSignOutState) throws -> Void
+    var exists: () -> Bool = { false }
 
     static func preferences(_ defaults: UserDefaults, key: String) -> GoogleSignOutStore {
         GoogleSignOutStore(read: {
@@ -65,6 +66,6 @@ struct GoogleSignOutStore {
             guard defaults.synchronize(), defaults.data(forKey: key) == data else {
                 throw GoogleTokenStore.Failure.persistence
             }
-        })
+        }, exists: { defaults.object(forKey: key) != nil })
     }
 }

@@ -1,18 +1,25 @@
 import Foundation
-#if DEBUG
 import CryptoKit
-#endif
 
 /// Establishes what Google actually returned after Picker consent. No ledger rows or credentials
 /// are persisted by this probe, and a selected file never by itself establishes write authority.
 @MainActor
 struct GoogleSheetSelection {
+    // This development milestone is explicitly limited to the public fictional household.
+    static let demoFileID = "16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA"
     struct Verified {
         let selection: GoogleConnection.Selection
         let title: String
         let canEdit: Bool
         var summary: [String: Any] {
             ["sheetID": selection.sheetID, "title": title, "sheetVersion": 2, "canEdit": canEdit]
+        }
+        var preferenceID: String {
+            let bytes = Data((selection.permissionID + "\u{0}" + selection.sheetID).utf8)
+            return "native-" + SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        }
+        var descriptor: [String: Any] {
+            summary.merging(["session": selection.sessionID.uuidString, "preferenceID": preferenceID]) { _, next in next }
         }
     }
 

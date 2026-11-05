@@ -98,7 +98,7 @@ final class OfflineInteractionTests: XCTestCase {
         capture("CSV — cancelled, no saved confirmation")
 
         tap(app.buttons["Setup"])
-        XCTAssertTrue(text(containing: "The dashboard uses the bundled demo, even after the connection check.")
+        XCTAssertTrue(text(containing: "The dashboard uses the bundled demo until you open the live Sheet.")
             .waitForExistence(timeout: 4))
         let review = app.buttons["Open Review"]
         revealByScrollingDown(review)

@@ -75,6 +75,10 @@ final class GoogleConnection: NSObject, ObservableObject, ASWebAuthenticationPre
     @Published private(set) var isDisconnecting = false
     @Published private(set) var needsCredentialCleanup = false
     var isConnected: Bool { selection != nil }
+    var hasSavedGrant: Bool {
+        guard signOutStore.exists(), let state = try? signOutStore.read() else { return false }
+        return !state.signedOut && !state.needsCleanup
+    }
     var isConfigured: Bool { configuration?.isValid == true }
 
     static let scope = "https://www.googleapis.com/auth/drive.file"

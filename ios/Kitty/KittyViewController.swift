@@ -17,6 +17,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     private var pageReady = false
     private lazy var google = GoogleConnection(defaults: preferences)
     private var verifiedSheet: GoogleSheetSelection.Verified?
+    private var liveSheet: GoogleSheetSelection.Verified?
     private var choosingSheet = false
 
     init(pageURL: URL? = Bundle.main.url(forResource: "kitty-native", withExtension: "html"),
@@ -174,11 +175,13 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
         }
         switch method {
         case "preferences.get", "preferences.set":
-            guard params["path"] as? String == HostPolicy.preferencePath else {
-                reply(HostPolicy.failure("not_granted", "Only this demo's preferences are available."), nil)
+            let userID = liveSheet?.preferenceID ?? "native-demo"
+            guard params["path"] as? String == "data/users/\(userID)/kitty",
+                  liveSheet == nil || params["session"] as? String == liveSheet?.selection.sessionID.uuidString else {
+                reply(HostPolicy.failure("not_granted", "This preference document belongs to a different session."), nil)
                 return
             }
-            let key = "kitty.native.demo.preferences"
+            let key = liveSheet == nil ? "kitty.native.demo.preferences" : "kitty.\(userID).preferences"
             if method == "preferences.get" {
                 let data = preferences.data(forKey: key)
                 let object = data.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
@@ -193,16 +196,55 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 reply(HostPolicy.reply(), nil)
             }
         case "google.status":
-            reply(HostPolicy.reply(["configured": google.isConfigured,
+            reply(HostPolicy.reply(["configured": google.isConfigured, "canResume": google.hasSavedGrant || google.isConnected,
                                     "verified": verifiedSheet?.summary as Any? ?? NSNull()]), nil)
+        case "google.open":
+            guard !choosingSheet, let id = params["sheetID"] as? String, id == GoogleSheetSelection.demoFileID else {
+                reply(HostPolicy.failure("not_granted", "Only the fictional demo Sheet can be opened in this build."), nil); return
+            }
+            choosingSheet = true; liveSheet = nil
+            Task { @MainActor in
+                defer { choosingSheet = false; notifyGoogleStatus() }
+                do {
+                    let selection: GoogleConnection.Selection?
+                    if let old = google.selection { selection = old } else { selection = try await google.restore() }
+                    guard let selection, selection.sheetID == id else {
+                        throw GoogleSheetTools.Failure(code: "selection_required", message: "Choose the demo Sheet in Google first.")
+                    }
+                    let probe = GoogleSheetSelection(http: GoogleHTTP(), current: { self.google.selection },
+                                                     token: { try await self.google.accessToken(for: $0) })
+                    let verified = try await probe.verify(selection)
+                    verifiedSheet = verified; liveSheet = verified
+                    reply(HostPolicy.reply(verified.descriptor), nil)
+                } catch { reply(googleFailure(error), nil) }
+            }
+        case "google.close":
+            guard !choosingSheet else { reply(HostPolicy.failure("busy", "Finish the current Google action."), nil); return }
+            liveSheet = nil
+            reply(HostPolicy.reply(), nil)
+        case "sheets.call":
+            guard let verified = liveSheet, !choosingSheet, google.selection == verified.selection,
+                  params["session"] as? String == verified.selection.sessionID.uuidString,
+                  params["server"] as? String == "Google Sheets", let tool = params["tool"] as? String,
+                  let input = params["input"] as? [String: Any] else {
+                reply(HostPolicy.failure("stale_session", "Open the selected Sheet again in Setup."), nil); return
+            }
+            let api = GoogleSheetTools(http: GoogleHTTP(), selected: verified.selection, current: {
+                self.google.selection == self.liveSheet?.selection ? self.liveSheet?.selection : nil
+            }, token: { try await self.google.accessToken(for: $0) })
+            Task { @MainActor in
+                do { reply(HostPolicy.reply(try await api.call(tool, input: input)), nil) }
+                catch { reply(googleFailure(error), nil) }
+            }
         case "google.choose":
             guard !choosingSheet, presentedViewController == nil,
-                  let id = params["sheetID"] as? String, GoogleConnection.validSheetID(id) else {
+                  let id = params["sheetID"] as? String, id == GoogleSheetSelection.demoFileID else {
                 reply(HostPolicy.failure("busy", "Finish the current selection before choosing a Sheet."), nil)
                 return
             }
             choosingSheet = true
             verifiedSheet = nil
+            liveSheet = nil
             Task { @MainActor in
                 defer { choosingSheet = false; notifyGoogleStatus() }
                 do {
@@ -228,6 +270,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             }
             choosingSheet = true
             verifiedSheet = nil
+            liveSheet = nil
             Task { @MainActor in
                 defer { choosingSheet = false; notifyGoogleStatus() }
                 do { try await google.disconnect(); reply(HostPolicy.reply(), nil) }
@@ -239,6 +282,13 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
         case "downloads.save": export(params, reply: reply)
         default: reply(HostPolicy.failure("not_available", "This capability is not available in the demo."), nil)
         }
+    }
+
+    private func googleFailure(_ error: Error) -> [String: Any] {
+        if let e = error as? GoogleSheetTools.Failure { return HostPolicy.failure(e.code, e.message) }
+        if let e = error as? GoogleConnection.ConnectionError { return HostPolicy.failure("needs_reauth", e.localizedDescription) }
+        if let e = error as? GoogleSheetSelection.Failure { return HostPolicy.failure("not_granted", e.localizedDescription) }
+        return HostPolicy.failure("server_unavailable", "Google could not finish this request.")
     }
 
     private func notifyGoogleStatus() {
