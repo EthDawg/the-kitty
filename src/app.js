@@ -87,6 +87,7 @@
       case "tool_error": return `Google Sheets returned an error for ${what || "the sheet"}${e.message ? `: “${esc(String(e.message).slice(0, 160))}”` : "."} Check that this Google account can open the sheet.`;
       case "server_unavailable": case "upstream_error": return `Google Sheets didn't answer just now. Try again in a moment.`;
       case "invalid_response": return `The connector returned unreadable data for ${what || "the sheet"}.`;
+      case "invalid_ledger": return `Couldn't verify the v2 Sheet. ${esc(e.message || "")}`;
       case "no_mcp": return `Connectors aren't available in this view, so the page shows the bundled demo household.`;
       default: return `Couldn't read ${what || "the sheet"} (${esc(code || "unknown")}).`;
     }
@@ -159,6 +160,8 @@
     const fatal = Object.entries(S.err).filter(([k]) => !OPTIONAL.has(k));
     if (fatal.length) { S.liveErr = fatal[0][1]; setPill(S.mode === "live" ? "bad" : "demo", S.mode === "live" ? "Sheet unavailable" : "Demo data"); return false; }
     try {
+      const knownV2 = isDemoSheet() && (SNAP?.kitty || []).some(r => r.key === "sheet_version" && String(r.value) === "2");
+      E.checkLiveLedger(grids, NATIVE || knownV2);
       const snap = E.fromConnector(grids);
       snap.fetchedAt = null;
       const m = E.model(snap);
@@ -322,7 +325,8 @@
   }
   function renderHeader() {
     const m = S.m;
-    if (S.mode === "live") setPill("live", isDemoSheet() ? "Live · demo sheet" : "Live from your sheet");
+    if (S.mode === "live" && S.liveErr) setPill("bad", "Sheet unavailable");
+    else if (S.mode === "live") setPill("live", isDemoSheet() ? "Live · demo sheet" : "Live from your sheet");
     else if (S.mode === "local") setPill("demo", "Local test copy");
     else setPill("demo", "Demo household");
     document.title = `The ${m.householdName.replace(/^The /, "")} Kitty`;
@@ -1435,8 +1439,6 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   function openSearch() { switchTab("activity"); const q = $("#feedq"); if (q) { q.focus(); q.select(); } }
   function gate(msg, sub) { $("#v-home").innerHTML = `<div class="card hero" style="margin-top:8px"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">${esc(msg)}</h1><p class="vs">${sub || ""}</p></div>`; }
 
-  // worth_it_min is a Kitty-tab key (default 40); written once if the sheet lacks it, so the threshold has a sheet owner
-  async function ensureWorthKey() { if (!canWriteSheet() || S.m.sheetVersion < 2 || S.m.kitty.worth_it_min != null && S.m.kitty.worth_it_min !== "" || S.wroteWorthKey) return; S.wroteWorthKey = true; try { await writeKitty("worth_it_min", 40); S.m.kitty.worth_it_min = "40"; } catch (e) { /* the default stands */ } }
   async function boot() {
     PHONE.addEventListener("change", () => { if (S.m) renderHome(); });
     const saved = window.__KIT_GALLERY__ ? "home" : store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
@@ -1467,7 +1469,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     S.canWrite = S.isOwner || !!S.prefs.sheet;
     if (S.m) renderAll();
     if (window.__KIT_GALLERY__ && S.m) { switchTab("home", true); return; }
-    if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); if (ok) ensureWorthKey(); } else renderHeader(); }
+    if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     S.settled = true; if (S.m) renderHome();
     if (!NATIVE && S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);

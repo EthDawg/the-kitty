@@ -28,6 +28,7 @@ test("a trimmed Sheets page never moves a later entry to an earlier write addres
 test("an incomplete Entries or Decisions row cannot silently disappear", () => {
   assert.throws(() => E.fromConnector({ entries: [["Entry ID", "Amount"], ["", 0]] }), /Entry ID.*row 2/);
   assert.throws(() => E.fromConnector({ decisions: [["Decision ID", "Ref ID"], [], ["", "T0002"]] }), /Decision ID.*row 3/);
+  assert.throws(() => E.fromConnector({ entries: [["Entry ID"], ["T0001"], [], ["T0001"]] }), /Repeated Entry ID.*row 4/);
 });
 
 for (const [name, sn] of [["live v2 snapshot", live], ["fixture everyday-only", everyday], ["fixture everyday+property", property]]) {

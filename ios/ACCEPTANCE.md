@@ -44,3 +44,7 @@ The shared ledger reader preserves physical row numbers across empty Sheets
 pages. A fictional regression places an entry on row 5,003 and finds it at that
 exact address; a populated Entries or Decisions row without its ID fails the
 read. These checks do not enable native ledger writes.
+
+Opening a v2 Sheet now leaves its settings untouched; the existing “Worth it?”
+default of 40 still applies when no threshold is set. A missing ledger tab or
+moved category/decision column prevents a Live result.
