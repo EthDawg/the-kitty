@@ -269,3 +269,45 @@ test("widgets: fill is drawing only, so narrowing two neighbours in turn puts th
   const two = narrow(one, "needs");
   assert.deepEqual(W.flow(two).slice(0, 2).map((i) => [i.id, i.x, i.y, i.w]), [["review", 0, 0, 6], ["needs", 6, 0, 6]]);
 });
+
+// A connector with one real table in it: answers the read, records every write, and can change the session mid-read.
+const connector = (payload, opts = {}) => {
+  const writes = [], reads = []; let live = true;
+  return { writes, reads, host: { sheet: "SHEET-A", current: () => live,
+    call: async (tool, input, o) => { if (tool === "get_values") { reads.push({ input, o }); if (opts.switch) live = false; return { payload }; } writes.push(input); return { payload: {} }; } } };
+};
+const HEAD = ["Decision ID", "Ref kind", "Ref ID"];
+const spec = (rows) => ({ tab: "Decisions", last: "H", header: HEAD, rows: rows || ((g) => [["D" + g.length, "entry", "T1"]]) });
+const refused = async (c, code, s) => { await assert.rejects(E.appendRows(c.host, s || spec()), (e) => e.code === code); assert.equal(c.writes.length, 0, "nothing written"); };
+
+test("appendRows: a row goes under the table as it is now, on the sheet the read came from, not where a stale page thinks", async () => {
+  const c = connector({ range: "Decisions!A1:H500", values: [HEAD, ["D0019", "entry", "T0687"], ["D-phone", "entry", "T0761"]] });
+  const placed = await E.appendRows(c.host, spec());
+  assert.equal(placed.row, 4);
+  assert.deepEqual(c.writes, [{ spreadsheetId: "SHEET-A", range: "Decisions!A4:H4", values: [["D3", "entry", "T1"]] }]);
+  assert.equal(c.reads[0].input.range, "Decisions!A1:H"); assert.equal(c.reads[0].input.spreadsheetId, "SHEET-A"); assert.equal(c.reads[0].o.cache.refresh, true);
+  const two = connector({ range: "'Decisions'!A1:H3", values: [HEAD] });
+  await E.appendRows(two.host, spec(() => [["D1", "a", "b"], ["D2", "a", "b"]])); assert.equal(two.writes[0].range, "Decisions!A2:H3");
+  const str = connector(JSON.stringify({ range: "Decisions!A1:H", values: [HEAD] })); await E.appendRows(str.host, spec()); assert.equal(str.writes[0].range, "Decisions!A2:H2");
+});
+
+test("appendRows: a filled row with no ID still counts, and a gap is never used", async () => {
+  const c = connector({ range: "Decisions!A1:H", values: [HEAD, ["D1", "a", "b"], ["", "", "orphan"], ["D3", "a", "b"], ["", ""]] });
+  assert.equal((await E.appendRows(c.host, spec())).row, 5);
+  const noId = connector({ range: "Decisions!A1:H", values: [HEAD, ["", "entry", "T9"]] });
+  assert.equal((await E.appendRows(noId.host, spec())).row, 3);
+});
+
+test("appendRows: anything it cannot trust stops with no write, and never reaches the header row", async () => {
+  await refused(connector({ range: "Decisions!A1:H500" }), "invalid_response");            // no values at all: row 1 otherwise
+  await refused(connector({ range: "Decisions!A1:H500", values: [] }), "invalid_ledger");   // empty table: row 1 otherwise
+  await refused(connector({ range: "Rules!A1:H", values: [HEAD] }), "invalid_response");    // another tab answered
+  await refused(connector({ range: "Decisions!A2:H", values: [HEAD] }), "invalid_response"); // the table's top is missing
+  await refused(connector({ range: "Decisions!A1:H", values: [["Key", "Value"]] }), "invalid_ledger");
+  await refused(connector({ range: "Decisions!A1:H", values: [HEAD, "row"] }), "invalid_response");
+  await refused(connector("{not json"), "invalid_response"); await refused(connector(null), "invalid_response");
+});
+
+test("appendRows: a sheet switched during the read writes nothing", async () => {
+  await refused(connector({ range: "Decisions!A1:H", values: [HEAD] }, { switch: true }), "stale_session");
+});
