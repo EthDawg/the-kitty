@@ -21,14 +21,16 @@
   "test_amount_zero": {"bug": "PY-10", "input": "card Amount 0.00", "python": "-0.0 reaches the review line as (-0.00); the sheet value is the same", "js": "(+0.00): integer cents have no negative zero"},
   "test_amount_blank": {"bug": "PY-10", "input": "card Amount blank", "python": "as above", "js": "as above"},
   "test_amount_space": {"bug": "PY-10", "input": "card Amount spaces", "python": "as above", "js": "as above"},
+  "test_leading_apostrophe_formula": {"bug": "PY-11", "input": "card description '=LITERAL", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
+  "test_leading_apostrophe_word": {"bug": "PY-11", "input": "card description 'PLAIN WORD", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
+  "test_formula_like_text": {"bug": "PY-11", "input": "card description 'QUOTED", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
   "test_amount_huge": {"bug": "JS-LIMIT", "input": "Amount 1e15", "python": "plans a 1,000,000,000,000,000.00 charge", "js": "bad_amount stop: past safe-integer cents, by contract"},
   "test_non_ascii_digits": {"bug": "JS-LIMIT", "input": "a date in Arabic-Indic digits", "python": "reads it, as \\d and int() take any Unicode digit", "js": "bad_date stop: ASCII digits only, no shape delivers others"}
  },
  "notes": {
   "matched, worth a decision": [
    "A blank Amount on a card row imports a 0.00 row in both importers. money('') is 0.0 by design for the debit/credit columns, and a card row reuses it. Silent on a truncated card file. Python decides first.",
-   "A closing balance from a file exported mid-day holds a run when a later file brings more rows for that day: the ledger counts the whole day. Fails safe, in both.",
-   "A description starting with an apostrophe is not escaped, so USER_ENTERED eats it and verify then reports a mismatch. Fails safe, in both."
+   "A closing balance from a file exported mid-day holds a run when a later file brings more rows for that day: the ledger counts the whole day. Fails safe, in both."
   ],
   "not compared by the harness": [
    "A stray file beside the account folders is silently ignored by Python, against its 'nothing is skipped silently' promise. The core stops on it (file_outside_download_folder); the parity runner drops such files to match the walk, so this is a unit test, not a parity case.",

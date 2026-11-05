@@ -111,6 +111,14 @@ class Hostile(TI.Base):
         self.file('ACC-CC', '2027-03-02', CARD, [card(1 + i % 28, f'S {i}', '1.00') for i in sorted(range(90), key=lambda i: i % 28)], name='b.csv')
         self.go()
 
+    def test_leading_apostrophe_formula(self):
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2, "'=LITERAL")])
+        self.go()
+
+    def test_leading_apostrophe_word(self):
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2, "'PLAIN WORD")])
+        self.go()
+
     def test_chunk_boundaries(self):
         for n, name in ((500, 'a'), (501, 'b')):
             d = self.root / 'sources'

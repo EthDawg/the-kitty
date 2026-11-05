@@ -268,3 +268,19 @@ test("runs on JavaScriptCore, the engine under WKWebView", { skip: !fs.existsSyn
   try { assert.equal(execFileSync(JSC, [file], { encoding: "utf8" }).trim(), '["ready",-6000,"Café Mar 1234"]'); }
   finally { fs.unlinkSync(file); }
 });
+
+// What the connector's USER_ENTERED does to a text cell: one leading apostrophe goes, and the rest is the cell.
+const landed = (v) => (typeof v === "string" && v[0] === "'" ? v.slice(1) : v);
+test("a leading apostrophe survives the write, and the same file replays to nothing", () => {
+  for (const raw of ["'=LITERAL", "'+CARD", "=LITERAL", "+CARD", "'PLAIN WORD", "''=TWICE"]) {
+    const files = [f("ACC-CC/2027-03-01/a.csv", CARD + card(2, raw))];
+    const a = plan(files); assert.equal(a.status, "ready", raw);
+    const w = a.plan.writes.find((x) => x.tab === "Entries"), row = w.values[0];
+    assert.equal(landed(row[4]), raw, `${raw} lands as itself`);
+    const again = sheet({ entries: [entry(), entry({ entry_id: row[0], settled_at: "2027-02-02", account_id: "ACC-CC", raw_text: landed(row[4]), description: landed(row[5]), amount: -60 })] });
+    const r = P.plan({ months: "2027-02", sheet: again, files });
+    assert.equal(r.proposed.transactions.length, 0, `${raw} replays to nothing`); assert.deepEqual(r.plan.writes, []);
+  }
+  assert.ok(W.same("''=X", "'=X")); assert.ok(W.same("'=X", "=X")); assert.ok(!W.same("''=X", "=X"));
+  assert.equal(W.escape("'=X"), "''=X"); assert.equal(W.escape("=X"), "'=X"); assert.equal(W.escape("plain"), "plain");
+});

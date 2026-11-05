@@ -23,9 +23,10 @@
   };
   W.rangeKey = (rng) => { const { tab, r1, c1, r2, c2 } = W.parseRange(rng); return `${tab}!${W.col(c1)}${r1}:${W.col(c2)}${r2}`; };
 
-  // Text that would be read as a formula or a number sign keeps its apostrophe.
-  W.escape = (v) => (typeof v === "string" && /^[=+\-@]/.test(v) ? "'" + v : v);
-  W.plain = (v) => (typeof v === "string" && v.length > 1 && v[0] === "'" && "=+-@".includes(v[1]) ? v.slice(1) : v);
+  // Text that would be read as a formula or a number sign gets an apostrophe, and so does text that already starts with one: USER_ENTERED
+  // consumes exactly one, so what lands is the source's own text and a re-import finds it. Without this, '=X and =X land as the same cell.
+  W.escape = (v) => (typeof v === "string" && /^[=+\-@']/.test(v) ? "'" + v : v);
+  W.plain = (v) => (typeof v === "string" && v.length > 1 && v[0] === "'" && "=+-@'".includes(v[1]) ? v.slice(1) : v);
 
   W.appendWrites = (prefix, tab, columns, rows, firstRow, note) => {
     const out = [];
