@@ -71,6 +71,27 @@
         else if (kind === "valuation") s.valuations.push({ account: e.account_id, month_end: e.settled_at, value: T.sheetCents(e.amount), row: i + 2 });
       });
       s.lastT = highest(entries, (e) => idNumber(e.entry_id, "T"));
+      s.physicalLastT = s.lastT;
+      const floor = opts.transaction_id_floor === undefined ? 0 : opts.transaction_id_floor;
+      if (!Number.isSafeInteger(floor) || floor < 0 || floor > 99999999) throw new PeriodInputError("transaction_id_floor must be an integer from 0 to 99999999");
+      s.lastT = Math.max(s.lastT, floor);
+      // The v2 renderer attaches Decisions to their Ref ID. Two decisions also name a second
+      // entry in Value; categories, split amounts and free-text notes do not reserve entry IDs.
+      (doc.decisions || []).forEach((decision, i) => {
+        if (decision.ref_kind !== "entry") return;
+        const refs = [decision.ref_id];
+        if (decision.decision === "match_transfer" || decision.decision === "merge_duplicate") refs.push(decision.value);
+        for (const ref of refs) {
+          if (typeof ref !== "string" || ref[0] !== "T" || ref.length < 2 || /[^0-9]/.test(ref.slice(1))) continue;
+          const digits = ref.slice(1).replace(/^0+/, "");
+          if (digits.length > 8) {
+            s.faults.push(new ImportFault("bad_sheet_row", "Decisions", "a referenced transaction ID exceeds T99999999", "check this entry reference against the original ledger and its import history", i + 2));
+            break;
+          }
+          s.lastT = Math.max(s.lastT, Number(digits));
+        }
+      });
+      if (!Number.isSafeInteger(s.lastT)) throw new PeriodInputError("the referenced transaction ID exceeds the supported integer range");
       s.lastV = highest(entries, (e) => idNumber(e.entry_id, "V"));
       s.lastX = highest(entries, (e) => idNumber(e.transfer_id, "X"));
       s.allIds = new Set(entries.map((e) => e.entry_id));
@@ -644,6 +665,9 @@
         else policyLines.push(`- ${rd.path}: certificate of currency, ${desc}; ${diffs.length ? `Contracts ${id} differs (${said}); a certificate confirms, it does not change the row: check the renewal notice` : `agrees with Contracts ${id}`}`);
       }
 
+      if (sheet.version === 2 && sheet.lastT + rows.length + loanTx.length > 99999999) {
+        throw new ImportFault("bad_sheet_row", "Entries", "the import would exceed the transaction ID limit T99999999", "check the Sheet's transaction ID history before importing");
+      }
       // ---- closing balances
       const c = closingChecks(sheet, rows, readings, months);
       balanceLines = c.lines; closing = c.checks;
@@ -699,7 +723,8 @@
       verify: "read every range under writes with get_values (and the preconditions before writing), save the responses as JSON, then: python3 period-close/verify.py write-plan.json reread.json" };
     const pad4 = (n) => String(n).padStart(4, "0");
     if (ledger) {
-      plan.assumes = { entries_rows: sheet.rows, last_entry_row: sheet.rows + 1, last_entry_id: sheet.lastEntryId, last_ids: { T: `T${pad4(sheet.lastT)}`, V: `V${pad4(lastV - valuations.length)}`, X: `X${pad4(sheet.lastX)}` }, payslips_rows: sheet.payslips.length };
+      plan.assumes = { entries_rows: sheet.rows, last_entry_row: sheet.rows + 1, last_entry_id: sheet.lastEntryId, last_ids: { T: `T${pad4(sheet.physicalLastT)}`, V: `V${pad4(lastV - valuations.length)}`, X: `X${pad4(sheet.lastX)}` }, payslips_rows: sheet.payslips.length };
+      if (sheet.lastT > sheet.physicalLastT) plan.assumes.transaction_id_floor = sheet.lastT;
       if (mainRows.length) {
         plan.preconditions.push(W.precondition("Entries", sheet.rows ? sheet.rows + 1 : null, sheet.lastEntryId));
         const note = `${rows.length} transactions${valuations.length ? `, ${valuations.length} valuations` : ""}${loansNow && loanTx.length ? `, ${loanTx.length} loan statement lines` : ""}`;

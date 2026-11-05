@@ -11,6 +11,7 @@
     category_list: ["Categories!A1:H", ["Category ID","Category","Group","Flow","Monthly budget ($)","Essential","Tax treatment","ATO label"]],
     entries: ["Entries!A1:T", ["Entry ID","Kind","Settled at","Account ID","Raw text","Description","Amount","Category ID","Person","Receipt held","Note","Status","Created at","Transfer ID","Transfer account","Foreign amount","Foreign currency","Units","Unit price","Source"]],
     rules: ["Rules!A1:J", ["Rule ID","Pattern","Match","Merchant","Category ID","Person","Tax label","Property","Source","Note"]],
+    decisions: ["Decisions!A1:H", ["Decision ID","Ref kind","Ref ID","Decision","Value","By","At","Note"]],
     contracts: ["Contracts!A1:Q", ["Contract ID","Kind","Name","Provider","Owner","Account ID","Category ID","Cadence","Amount ($)","Rate","Start date","End date","Next date","Last used","Cover","Status","Note"]],
     payslips: ["Payslips!A1:G", ["Pay date","Person","Employer","Gross pay","Tax withheld","Super (employer)","Net pay"]],
     assets: ["Assets!A1:A", ["Item ID"]],
@@ -92,7 +93,7 @@
     // Unknown formats still flow to the canonical planner for its institution-specific repair instructions.
     const count=bank.validateBankOriginal(file.text);
     const result=period.plan({months:month,sheet,files:[{name:file.name,account,download_day:downloadDay,text:file.text}],
-      inputs:[],options:{as_of:downloadDay,sheet_id:sheetID,review_outside_rows:true}});
+      inputs:[],options:{as_of:downloadDay,sheet_id:sheetID,review_outside_rows:true,transaction_id_floor:request.transactionIDFloor}});
     const duplicates=result.outcomes.already_in_sheet, repeated=result.outcomes.repeated_across_files;
     const row = r => ({
       line:r.line,date:r.date,raw:r.raw_text ?? r.description,amountCents:r.amount_cents,signedAmount:period.text.plus2(r.amount_cents),

@@ -16,21 +16,38 @@ struct PeriodBankAppend {
     private static let maxCents: Int64 = 100_000_000_000_000
     static let columns = ["Entry ID", "Kind", "Settled at", "Account ID", "Raw text", "Description", "Amount", "Category ID", "Person", "Receipt held", "Note", "Status", "Created at", "Transfer ID", "Transfer account", "Foreign amount", "Foreign currency", "Units", "Unit price", "Source"]
     static let guardKey = "kitty.period.bank.v1"
+    static let issuedKey = "kitty.period.bank.issuedT.v1"
     let sheetID: String
     let account: String
     let originalSHA256: String
     let firstRow: Int
+    let lastTransactionNumber: Int
     let rows: [Row]
     let digest: String
     private(set) var markerID: Int
+    private var recordsIssuedIDs = false
     private let previousID: String?
-    private let previousNumber: Int
+    private let highestLedgerTransactionNumber: Int
     var lastRow: Int { firstRow + rows.count - 1 }
     var destination: String { "Entries!A\(firstRow):T\(lastRow)" }
 
     struct Row {
         let id: String
         fileprivate let cells: [Cell]
+        fileprivate let movement: SourceMovement
+    }
+    fileprivate struct SourceMovement: Hashable {
+        let account: String
+        let day: Int
+        let raw: Data
+        let cents: Int64
+
+        var normalized: Self {
+            // The period planner uses Python's whitespace set, including the four information separators.
+            let text = String(decoding: raw, as: UTF8.self).uppercased()
+            let parts = text.unicodeScalars.split { $0.properties.isWhitespace || (0x1c...0x1f).contains($0.value) }
+            return Self(account: account, day: day, raw: Data(parts.map(String.init).joined(separator: " ").utf8), cents: cents)
+        }
     }
     fileprivate enum Cell: Equatable {
         case blank, text(String), money(Int64), date(Int)
@@ -70,6 +87,11 @@ struct PeriodBankAppend {
               (1...1_000_000).contains(last), Self.integer(assumptions["entries_rows"]) == last - 1,
               let lastIDs = assumptions["last_ids"] as? Object, let txn = lastIDs["T"] as? String,
               let prior = Self.transactionNumber(txn), prior <= 99_999_999 else { throw Failure.invalidPlan }
+        let floor: Int
+        if let raw = assumptions["transaction_id_floor"] {
+            guard let issued = Self.integer(raw), (prior...99_999_999).contains(issued) else { throw Failure.invalidPlan }
+            floor = issued
+        } else { floor = prior }
         let anchor = assumptions["last_entry_id"] as? String
         guard last == 1 ? anchor == nil : anchor?.isEmpty == false,
               let predicates = plan["preconditions"] as? [Object], predicates.count == 1 else { throw Failure.invalidPlan }
@@ -86,7 +108,8 @@ struct PeriodBankAppend {
             let start = last + 1 + built.count
             guard write["range"] as? String == "Entries!A\(start):T\(start + values.count - 1)" else { throw Failure.invalidPlan }
             for row in values {
-                let number = prior + built.count + 1
+                let number = floor + built.count + 1
+                guard number <= 99_999_999 else { throw Failure.unsupportedPlan }
                 let id = "T" + String(format: "%04d", number)
                 guard row.count == Self.columns.count, row[0] as? String == id, row[1] as? String == "transaction",
                       row[3] as? String == account, row[11] as? String == "settled", row[19] as? String == "bank export",
@@ -108,7 +131,10 @@ struct PeriodBankAppend {
                     if scalars.first == "'", let next = scalars.dropFirst().first, "=+-@'".unicodeScalars.contains(next) { text.removeFirst() }
                     return text.isEmpty ? .blank : .text(text)
                 }
-                built.append(Row(id: id, cells: cells))
+                guard case .date(let day) = cells[2], case .money(let cents) = cells[6] else { throw Failure.invalidPlan }
+                let raw = cells[4].entered["stringValue"] as? String ?? ""
+                let movement = SourceMovement(account: account, day: day, raw: Data(raw.utf8), cents: cents)
+                built.append(Row(id: id, cells: cells, movement: movement))
             }
         }
         self.sheetID = sheetID
@@ -116,7 +142,8 @@ struct PeriodBankAppend {
         self.originalSHA256 = originalSHA256
         firstRow = last + 1
         previousID = anchor
-        previousNumber = prior
+        highestLedgerTransactionNumber = prior
+        lastTransactionNumber = floor + built.count
         rows = built
         // Deliberately exclude timestamps, review prose, and access identity. A second device can recognise this import.
         let canonical: Object = ["sheet": sheetID, "source": originalSHA256, "account": account, "firstRow": last + 1,
@@ -214,12 +241,35 @@ struct PeriodBankAppend {
         }
     }
 
-    func usingMarkerID(_ explicit: Int?) throws -> Self {
-        guard let explicit else { return self }
-        guard (1...Int(Int32.max)).contains(explicit) else { throw Failure.invalidPlan }
+    func usingMarkerID(_ explicit: Int?, recordsIssuedIDs: Bool = false) throws -> Self {
         var copy = self
-        copy.markerID = explicit
+        if let explicit {
+            guard (1...Int(Int32.max)).contains(explicit) else { throw Failure.invalidPlan }
+            copy.markerID = explicit
+        }
+        copy.recordsIssuedIDs = recordsIssuedIDs
         return copy
+    }
+
+    func hasSameSourceRows(as old: Self) -> Bool {
+        guard sheetID == old.sheetID, account == old.account, originalSHA256 == old.originalSHA256 else { return false }
+        return Dictionary(grouping: rows, by: \.movement).mapValues(\.count) ==
+            Dictionary(grouping: old.rows, by: \.movement).mapValues(\.count)
+    }
+
+    /// Data rows from the complete unformatted Entries A:G range, excluding its header.
+    func hasSourceMovement(in current: [[Any]]) throws -> Bool {
+        let archived = Set(rows.map { $0.movement.normalized })
+        for row in current {
+            guard row.count >= 2, let kind = row[1] as? String else { throw Failure.staleLedger }
+            if ["trade", "valuation"].contains(kind.lowercased()) { continue }
+            guard kind.isEmpty || kind.lowercased() == "transaction", row.count >= 7,
+                  let account = row[3] as? String, !account.isEmpty, let raw = row[4] as? String,
+                  let day = (row[2] as? String).flatMap(GoogleSheetDay.serial) ?? Self.integer(row[2]),
+                  let amount = Self.cents(row[6]) else { throw Failure.staleLedger }
+            if archived.contains(SourceMovement(account: account, day: day, raw: Data(raw.utf8), cents: amount).normalized) { return true }
+        }
+        return false
     }
     private static func integer(_ raw: Any?) -> Int? { number(raw).flatMap(Int.init(exactly:)) }
     private static func transactionNumber(_ id: String) -> Int? {
@@ -293,7 +343,7 @@ struct PeriodBankAppend {
             }
         }
         guard seen.ids.count == firstRow - 1, previousID == (seen.ids.count == 1 ? nil : seen.ids.last),
-              (seen.ids.compactMap(Self.transactionNumber).max() ?? 0) == previousNumber,
+              (seen.ids.compactMap(Self.transactionNumber).max() ?? 0) == highestLedgerTransactionNumber,
               seen.cells.joined().allSatisfy({ ($0["userEnteredValue"] as? Object ?? [:]).isEmpty }) else { throw Failure.staleLedger }
         if stage == .dispatched { return .waitingForReadback }
         guard freshlyPlanned?.digest == digest else { throw Failure.staleLedger }
@@ -318,6 +368,10 @@ struct PeriodBankAppend {
             dates["endColumnIndex"] = column + 1
             result.append(["repeatCell": ["range": dates, "cell": ["userEnteredFormat": ["numberFormat": GoogleSheetDay.numberFormat]],
                                          "fields": "userEnteredFormat.numberFormat"]])
+        }
+        if recordsIssuedIDs {
+            result.append(["createDeveloperMetadata": ["developerMetadata": ["metadataKey": Self.issuedKey,
+                "metadataValue": "\(lastTransactionNumber)|\(digest)", "location": ["spreadsheet": true], "visibility": "DOCUMENT"]]])
         }
         return result
     }

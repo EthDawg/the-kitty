@@ -14,12 +14,13 @@ enum PeriodBankPlanner {
     }
 
     static func prepare(original: SourceDocument, account: String, month: String, downloadDay: String,
-                        owner: GoogleSheetSelection.Verified, api: GoogleSheetTools) async throws -> Preview {
+                        owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, transactionIDFloor: Int = 0) async throws -> Preview {
         guard owner.selection == api.selected, owner.canEdit, owner.canImportBankFiles,
               owner.selection.sheetID != GoogleSheetSelection.demoFileID else {
             throw GoogleSheetTools.Failure(code: "not_granted", message: "Open the selected private, editable v2 Sheet before preparing a bank import.")
         }
         try api.check()
+        guard (0...99_999_999).contains(transactionIDFloor) else { throw api.invalid }
         guard original.isIntact, original.mimeType == "text/csv",
               (1...SourceDocumentCapture.maximumBytes).contains(original.byteLength),
               GoogleSheetDay.serial(downloadDay) != nil,
@@ -34,7 +35,8 @@ enum PeriodBankPlanner {
         // Match each fresh table by its returned A1 bounds rather than provider response order.
         let grids = try await freshGrids(ranges: ranges, api: api)
         try api.check()
-        let request: Object = ["account": account, "month": month, "downloadDay": downloadDay, "sheetID": api.selected.sheetID]
+        let request: Object = ["account": account, "month": month, "downloadDay": downloadDay, "sheetID": api.selected.sheetID,
+                               "transactionIDFloor": transactionIDFloor]
         let result = runtime.core.invokeMethod("fromFreshGrids", withArguments: [grids, file, request])
         if let exception = runtime.context.exception {
             throw GoogleSheetTools.Failure(code: "import_plan_invalid", message: String((exception.forProperty("message")?.toString() ?? "Kitty could not read this source and Sheet together.").prefix(800)))

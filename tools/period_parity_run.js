@@ -46,6 +46,7 @@ function main() {
   }
   const shuffle = bool("--shuffle");
   const jsOut = flag("--js-out"), sheetPath = flag("--sheet"), sourcesDir = flag("--sources"), out = flag("--out"), inputsDir = flag("--inputs"), asOf = flag("--as-of"), loans = flag("--loans"), sheetId = flag("--sheet-id"), history = flag("--history");
+  const floor = flag("--transaction-id-floor");
   bool("--dry-run");
   const months = args[0];
   const list = months.includes("..") ? P.adapters && require(path.resolve(process.env.KITTY_CORE || path.join(ROOT, "src/core"), "period-plan.js")).monthsOf(months) : [months];
@@ -59,7 +60,7 @@ function main() {
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, "kitty.config.json"), "utf8"));
   const files = walk(sourcesDir);
   if (shuffle && files) files.reverse(); // input order must never matter
-  const r = P.plan({ months, sheet: JSON.parse(fs.readFileSync(sheetPath, "utf8")), files, inputs, options: { as_of: asOf, loans: loans || "defer", sheet_id: sheetId,
+  const r = P.plan({ months, sheet: JSON.parse(fs.readFileSync(sheetPath, "utf8")), files, inputs, options: { as_of: asOf, loans: loans || "defer", sheet_id: sheetId, transaction_id_floor: floor === undefined ? undefined : Number(floor),
     snapshot_label: sheetPath, sources_label: sourcesDir, allow_v1: true, default_sheet_ids: { v1: config.demo_sheet, v2: config.v2_sheet }, history: history ? JSON.parse(fs.readFileSync(history, "utf8")).Transactions.slice(1) : undefined } });
   fs.mkdirSync(jsOut, { recursive: true });
   const live = r.exit === 0;

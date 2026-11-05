@@ -19,6 +19,7 @@ final class PeriodBankPlannerTests: XCTestCase {
                 "Entries": [PeriodBankAppend.columns, ["T0001","transaction",46404,"ACC-CC","EXISTING","Existing",-7.85,"UNCAT","Joint"]],
                 "Categories": [["Category ID","Category","Group","Flow","Monthly budget ($)","Essential","Tax treatment","ATO label"],["UNCAT","Uncategorised","Other","Expense"]],
                 "Rules":[["Rule ID","Pattern","Match","Merchant","Category ID","Person","Tax label","Property","Source","Note"]],
+                "Decisions":[["Decision ID","Ref kind","Ref ID","Decision","Value","By","At","Note"]],
                 "Contracts":[["Contract ID","Kind","Name","Provider","Owner","Account ID","Category ID","Cadence","Amount ($)","Rate","Start date","End date","Next date","Last used","Cover","Status","Note"]],
                 "Payslips":[["Pay date","Person","Employer","Gross pay","Tax withheld","Super (employer)","Net pay"]],
                 "Assets":[["Item ID"]],"Loans":[["Loan ID"]]
@@ -88,6 +89,52 @@ final class PeriodBankPlannerTests: XCTestCase {
             XCTAssertEqual(batch.digest, reviewed.digest)
             XCTAssertEqual(batch.markerID, reviewed.markerID)
         }
+    }
+
+    func testSurvivingDecisionsAndDurableFloorNeverRetargetAPartiallyDeletedImport() async throws {
+        let net = Transport(sheetID: selected.sheetID), (owner, api) = context(net), document = source
+        func preview(_ floor: Int = 0) async throws -> PeriodBankPlanner.Preview {
+            try await PeriodBankPlanner.prepare(original: document, account: "ACC-CC", month: "2027-02", downloadDay: "2027-02-28",
+                                                owner: owner, api: api, transactionIDFloor: floor)
+        }
+        let initial = try await preview(), archived = try XCTUnwrap(initial.batch)
+        XCTAssertEqual(archived.rows.map(\.id), ["T0002","T0003"])
+        let day = try XCTUnwrap(GoogleSheetDay.serial("2027-02-02"))
+        let kept: [Any] = ["T0002","transaction",day,"ACC-CC","SHOP 🐱","Shop",-12.34,"UNCAT","Joint"]
+        net.tables["Entries"]?.append(kept)
+        net.tables["Decisions"]?.append(["D1","entry","T0003","categorise","GROCERIES"])
+        let single = try await preview()
+        XCTAssertEqual(single.batch?.rows.map(\.id), ["T0004"])
+        XCTAssertEqual(single.summary["duplicateCount"] as? Int, 1)
+        net.tables["Decisions"]?.append(["D2","entry","T0001","match_transfer","T0005"])
+        let transfer = try await preview()
+        XCTAssertEqual(transfer.batch?.rows.map(\.id), ["T0006"])
+        let high = try await preview(12), batch = try XCTUnwrap(high.batch)
+        XCTAssertEqual(batch.rows.map(\.id), ["T0013"])
+        let assumptions = try XCTUnwrap(high.plan["assumes"] as? Object)
+        XCTAssertEqual((assumptions["last_ids"] as? [String: String])?["T"], "T0002")
+        XCTAssertEqual(assumptions["transaction_id_floor"] as? Int, 12)
+        XCTAssertEqual(batch.firstRow, 4)
+        XCTAssertFalse(batch.hasSameSourceRows(as: archived))
+        let seen = PeriodBankAppend.Observation(sheetID: selected.sheetID, entriesTabID: 8, headers: PeriodBankAppend.columns,
+            ids: ["Entry ID","T0001","T0002"], firstRow: batch.firstRow, cells: [], marker: nil)
+        let current = try batch.usingMarkerID(nil, recordsIssuedIDs: true)
+        guard case .batch(let requests) = try current.next(seen, stage: .prepared, freshlyPlanned: batch) else { return XCTFail("Physical tail and issued floor must be checked independently") }
+        let watermark = try XCTUnwrap((requests.last?["createDeveloperMetadata"] as? Object)?["developerMetadata"] as? Object)
+        XCTAssertEqual(watermark["metadataKey"] as? String, PeriodBankAppend.issuedKey)
+        XCTAssertEqual(watermark["metadataValue"] as? String, "13|" + batch.digest)
+        XCTAssertEqual(watermark["location"] as? [String: Bool], ["spreadsheet": true])
+        XCTAssertEqual(watermark["visibility"] as? String, "DOCUMENT")
+        XCTAssertNil(watermark["metadataId"])
+        var renamed = kept; renamed[0] = "T0099"; renamed[4] = " shop \u{1c} 🐱 "
+        XCTAssertTrue(try archived.hasSourceMovement(in: [renamed]))
+        renamed[6] = 12.34
+        XCTAssertFalse(try archived.hasSourceMovement(in: [renamed]))
+        XCTAssertThrowsError(try archived.hasSourceMovement(in: [["T0099","transaction"]]))
+        _ = net.tables["Entries"]?.popLast()
+        let replacement = try await preview(13), whole = try XCTUnwrap(replacement.batch)
+        XCTAssertEqual(whole.rows.map(\.id), ["T0014","T0015"])
+        XCTAssertTrue(whole.hasSameSourceRows(as: archived))
     }
     func testLeadingSourceApostrophesReachLiteralGoogleCellsAndReplayWithoutNewEntries() async throws {
         let net = Transport(sheetID:selected.sheetID), (owner,api) = context(net)

@@ -12,7 +12,7 @@ Same input gives the same bytes. `input.files` order never matters.
   files: [ File ] | null,                     // null = no sources folder at all (Stop). [] = nothing to import (ready, empty plan)
   inputs: [ { path, shown?, kind: "overrides"|"valuations"|"payslips", text } ],  // month CSVs, in precedence order; first override per Description wins
   options: { as_of?: "yyyy-mm-dd", loans?: "defer"|"now", sheet_id?, default_sheet_ids?: {v1, v2}, snapshot_label?, sources_label?,
-             generated_at?, history?: [Transactions rows], allow_v1?: false, review_outside_rows?: boolean } }
+             generated_at?, history?: [Transactions rows], allow_v1?: false, review_outside_rows?: boolean, transaction_id_floor?: integer } }
 ```
 `File`, either binding works; both reach one path `account/download_day/name`:
 ```
@@ -52,6 +52,8 @@ checks:    { closing: [{file, day, printed, ledger, ok, gap_cents} | {file, unch
 review_md: string     // byte-equal Python review.md, except the "seconds" figure is always 0.0. Show structured fields; this is the audit copy.
 ```
 Bank file review sets `review_outside_rows: true` to include each excluded row's `line`, `date`, `description` and signed `amount_cents` in its file's `outside_window` result.
+
+V2 allocates transaction IDs above the largest T number in Entries, every entry reference in Decisions and the second entry named by `match_transfer` or `merge_duplicate`. A host can also supply its verified highest issued number for this exact Sheet through `options.transaction_id_floor` (Python CLI `--transaction-id-floor`). The native bank boundary reads all eight Decisions columns. Physical tail checks still use `assumes.last_entry_row`, `last_entry_id` and `last_ids.T`. When the allocation base is higher, `assumes.transaction_id_floor` records it separately.
 
 `plan` is `kitty-write-plan/1`, key for key Python's `write-plan.json`:
 `schema, generated_at (options.generated_at or null), importer, months, status, sheet, assumes, preconditions, writes, deferred, verify, totals`, plus `held_writes` on hold and `not_planned` on stop.

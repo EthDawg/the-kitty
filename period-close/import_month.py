@@ -134,9 +134,10 @@ class Stop(Exception):
 
 # ---------- the sheet as snapshotted ----------
 class Sheet:
-    def __init__(self, path, sheet_id=None):
+    def __init__(self, path, sheet_id=None, transaction_id_floor=0):
         doc = json.loads(Path(path).read_text())
         self.doc, self.path = doc, str(path)
+        self.id_faults = []
         self.version = 2 if 'entries' in doc else 1
         self.accounts = {a['account_id']: a for a in doc.get('accounts', []) if a.get('account_id')}
         cats = {c['category_id']: c for c in doc.get('category_list', []) if c.get('category_id')}
@@ -165,6 +166,23 @@ class Sheet:
                     self.valuations.append({'account_id': e['account_id'], 'month_end': e['settled_at'], 'value': fnum(e.get('amount')), 'row': i + 2, 'id': e['entry_id']})
             ids = [e['entry_id'] for e in entries]
             self.last_t = max([id_number(i, 'T') or 0 for i in ids] + [0])
+            self.physical_last_t = self.last_t
+            self.last_t = max(self.last_t, transaction_id_floor)
+            for row, decision in enumerate(doc.get('decisions') or [], 2):
+                if decision.get('ref_kind') != 'entry':
+                    continue
+                refs = [decision.get('ref_id')]
+                if decision.get('decision') in ('match_transfer', 'merge_duplicate'):
+                    refs.append(decision.get('value'))
+                for ref in refs:
+                    if not isinstance(ref, str) or not re.fullmatch(r'T[0-9]+', ref):
+                        continue
+                    digits = ref[1:].lstrip('0')
+                    if len(digits) > 8:
+                        self.id_faults.append(A.ImportFault('Decisions', 'a referenced transaction ID exceeds T99999999',
+                                                            'check this entry reference against the original ledger and its import history', row))
+                        break
+                    self.last_t = max(self.last_t, int(digits or '0'))
             self.last_v = max([id_number(i, 'V') or 0 for i in ids] + [0])
             self.last_x = max([id_number(e.get('transfer_id'), 'X') or 0 for e in entries] + [0])
             self.all_ids = set(ids)
@@ -432,7 +450,7 @@ def run(args):
     first_day, last_day = f'{months[0]}-01', month_end(months[-1])
     label = args.months
     folder = Path(args.out) if args.out else HERE / label
-    sheet = Sheet(args.sheet, args.sheet_id)
+    sheet = Sheet(args.sheet, args.sheet_id, getattr(args, 'transaction_id_floor', 0))
     if not sheet.id:
         try:
             cfg = json.loads((ROOT / 'kitty.config.json').read_text())
@@ -455,6 +473,8 @@ def run(args):
     rows, loan_tx, loan_pairs, valuations, payslips, pair_updates, contract_updates = [], [], [], [], [], [], []
     plan_notes = []
     try:
+        if sheet.id_faults:
+            raise Stop(sheet.id_faults)
         readings = gather(args.sources, sheet, args.as_of, months[0] + '-01')
         in_window = lambda r: first_day <= r['date'] <= last_day  # noqa: E731
 
@@ -762,6 +782,9 @@ def run(args):
             else:
                 policy_lines.append(f'- {rd["path"]}: certificate of currency, {desc}; ' + (f'Contracts {contract["contract_id"]} differs ({"; ".join(diffs)}); a certificate confirms, it does not change the row: check the renewal notice' if diffs else f'agrees with Contracts {contract["contract_id"]}'))
 
+        if sheet.version == 2 and sheet.last_t + len(rows) + len(loan_tx) > 99_999_999:
+            raise Stop([A.ImportFault('Entries', 'the import would exceed the transaction ID limit T99999999',
+                                      "check the Sheet's transaction ID history before importing")])
         # ---- closing balances
         balance_lines, bal_held = closing_checks(sheet, rows, readings, months)
         held = held or bal_held
@@ -825,7 +848,9 @@ def run(args):
             'assumes': {}, 'preconditions': [], 'writes': [], 'deferred': [],
             'verify': 'read every range under writes with get_values (and the preconditions before writing), save the responses as JSON, then: python3 period-close/verify.py write-plan.json reread.json'}
     if sheet.version == 2:
-        plan['assumes'] = {'entries_rows': sheet.entries_rows, 'last_entry_row': sheet.entries_rows + 1, 'last_entry_id': sheet.last_entry_id, 'last_ids': {'T': f'T{sheet.last_t:04d}', 'V': f'V{sheet.last_v - len(valuations):04d}', 'X': f'X{sheet.last_x:04d}'}, 'payslips_rows': len(sheet.payslips)}
+        plan['assumes'] = {'entries_rows': sheet.entries_rows, 'last_entry_row': sheet.entries_rows + 1, 'last_entry_id': sheet.last_entry_id, 'last_ids': {'T': f'T{sheet.physical_last_t:04d}', 'V': f'V{sheet.last_v - len(valuations):04d}', 'X': f'X{sheet.last_x:04d}'}, 'payslips_rows': len(sheet.payslips)}
+        if sheet.last_t > sheet.physical_last_t:
+            plan['assumes']['transaction_id_floor'] = sheet.last_t
         if main_rows:
             plan['preconditions'].append(W.precondition('Entries', sheet.entries_rows + 1 if sheet.entries_rows else None, sheet.last_entry_id))
             plan['writes'] += W.append_writes('entries', 'Entries', ENTRY_COLS, main_rows, first_entry_row, note=f'{len(rows)} transactions' + (f', {len(valuations)} valuations' if valuations else '') + (f', {len(loan_tx)} loan statement lines' if loans_now and loan_tx else ''))
@@ -939,6 +964,7 @@ def main(argv=None):
     p.add_argument('months', help='YYYY-MM, or YYYY-MM..YYYY-MM for a backfill in one run')
     p.add_argument('--sheet', default=ROOT / 'data' / 'snapshot.json', help='the sheet as last snapshotted (data/snapshot-v2.json for the ledger)')
     p.add_argument('--sheet-id', default=None, help='the spreadsheet id to write in the plan (default: the snapshot\'s, else kitty.config.json)')
+    p.add_argument('--transaction-id-floor', type=int, default=0, help='highest transaction number already issued for this v2 Sheet')
     p.add_argument('--history', default=None, help='optional older history (the generator\'s data.json) for categorising')
     p.add_argument('--sources', default=ROOT / 'sources', help='the sources/ folder to read (default: the repo\'s)')
     p.add_argument('--out', default=None, help='where the run lands (default: period-close/<month>/; runs are kept under runs/<timestamp>/)')
@@ -947,6 +973,8 @@ def main(argv=None):
     p.add_argument('--loans', choices=['defer', 'now'], default='defer', help='loan statement transactions and pairing: deferred for phase D (default) or written now')
     p.add_argument('--dry-run', action='store_true', help='print the review and write nothing to disk')
     args = p.parse_args(argv)
+    if not 0 <= args.transaction_id_floor <= 99_999_999:
+        p.error('--transaction-id-floor must be an integer from 0 to 99999999')
     if args.as_of:
         try:
             date.fromisoformat(args.as_of)

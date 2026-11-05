@@ -191,6 +191,14 @@ class FailLoud(Base):
         self.file('ACC-CC', '2027-03-01', CARD, [CARD[:-1] + ['']])
         self.assertIn('"Date" is not a date', self.stop())
 
+    def test_unrepresentable_references_and_exhausted_id_space_stop_before_writes(self):
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2)])
+        self.extra['decisions'] = [{'decision_id': 'D1', 'ref_kind': 'entry', 'ref_id': 'T1',
+                                    'decision': 'match_transfer', 'value': 'T9007199254740993'}]
+        self.assertIn('a referenced transaction ID exceeds T99999999', self.stop())
+        self.extra['decisions'] = []
+        self.assertIn('would exceed the transaction ID limit', self.stop('--transaction-id-floor', '99999999'))
+
     def test_bank_rows_without_a_signed_amount_or_either_leg_stop(self):
         self.file('ACC-OLD', '2027-03-01', None, [['02/02/2027', '', 'COFFEE', '1000.00']])
         self.file('ACC-EVD', '2027-03-01', WESTPAC, [westpac(2, 'COFFEE', balance='10000.00')])
@@ -420,6 +428,30 @@ class Shapes(Base):
 
 
 class Plan(Base):
+    def test_deleted_transaction_ids_remain_reserved_by_decisions_and_the_sheet_floor(self):
+        self.sheet_tx.append({**LAST, 'txn_id': 'T0002', 'date': '2027-02-02', 'account_id': 'ACC-CC',
+                              'bank_description': 'ORIGINAL', 'amount': -60})
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2, 'ORIGINAL'), card(3, 'OTHER')])
+        self.extra['decisions'] = [
+            {'decision_id': 'D1', 'ref_kind': 'entry', 'ref_id': 'T0003', 'decision': 'categorise', 'value': 'T9999'},
+            {'decision_id': 'D2', 'ref_kind': 'contract', 'ref_id': 'T9998', 'decision': 'confirm', 'value': 'T9997'}]
+        def check(expected, *arguments):
+            run, rows, _, plan = self.run_import(*arguments, expect=(0,))
+            self.assertEqual([row[0] for row in rows], [f'T{expected:04d}'])
+            self.assertIn('1 already in the sheet', run.stdout)
+            self.assertEqual(plan['assumes']['last_ids']['T'], 'T0002')
+            self.assertEqual(plan['assumes']['last_entry_id'], 'T0002')
+            self.assertEqual(plan['assumes']['transaction_id_floor'], expected - 1)
+            self.assertEqual(plan['writes'][0]['range'], 'Entries!A4:T4')
+        check(4)
+        self.extra['decisions'].append({'decision_id': 'D3', 'ref_kind': 'entry', 'ref_id': 'T0001',
+                                        'decision': 'match_transfer', 'value': 'T0005'})
+        check(6)
+        self.extra['decisions'].append({'decision_id': 'D4', 'ref_kind': 'entry', 'ref_id': 'T0001',
+                                        'decision': 'merge_duplicate', 'value': 'T0007'})
+        check(8)
+        check(12, '--transaction-id-floor', '11')
+
     def test_literal_apostrophes_survive_user_entered_readback_and_replay(self):
         # Every raw description shares the day, account and amount. Removing even one original
         # apostrophe could collapse distinct charges or cause a second import on the next run.

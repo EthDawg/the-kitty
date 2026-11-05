@@ -8,6 +8,7 @@ const file = {id:crypto.createHash("sha256").update(original).digest("hex"),name
 const request = {sheetID:"fixture-private",account:"ACC-CC",month:"2027-01",downloadDay:"2027-01-31"};
 const plan = (snapshot=sheet,f=file,r=request)=>B.prepare(snapshot,f,r);
 const headers={
+  decisions:["Decision ID","Ref kind","Ref ID","Decision","Value","By","At","Note"],
   kitty:["Key","Value"],accounts:["Account ID","Account","Institution","Type","Owner","Opening balance ($)","Opening date","Balance at as-of date ($)","Liquid","Class","Valuation method","Currency","Status","Purpose","Linked account","Note"],
   entries:["Entry ID","Kind","Settled at","Account ID","Raw text","Description","Amount","Category ID","Person","Receipt held","Note","Status","Created at","Transfer ID","Transfer account","Foreign amount","Foreign currency","Units","Unit price","Source"],
   category_list:["Category ID","Category","Group","Flow","Monthly budget ($)","Essential","Tax treatment","ATO label"],rules:["Rule ID","Pattern","Match","Merchant","Category ID","Person","Tax label","Property","Source","Note"],
@@ -35,6 +36,33 @@ test("one preview reproduces the canonical plan, every signed row and the existi
   assert.deepEqual(s.rows.map(r=>[r.raw,r.signedAmount,r.line]),[["KITTY PRACTICE PAPER BOAT","-17.45",3],["KITTY PRACTICE KITE REFUND","+6.25",4]]);
   assert.deepEqual(s.duplicates.map(d=>[d.raw,d.signedAmount,d.line]),[["MYKI TOP UP","-60.00",2]]);
   assert.equal(s.sourceID,file.id);assert.equal(s.byteLength,original.length);
+});
+test("a partially deleted import leaves its Decisions attached only to their original IDs",()=>{
+  const original=plan().plan, old=original.writes[0].values, landed=after(original);
+  const removedID=old[1][0], number=Number(removedID.slice(1)), physical=old[0][0];
+  const tx=n=>"T"+String(n).padStart(4,"0");
+  const decisions=[
+    {decision_id:"DZ1",ref_kind:"entry",ref_id:removedID,decision:"categorise",value:"GROCERIES"},
+    {decision_id:"DZ2",ref_kind:"entry",ref_id:physical,decision:"categorise",value:"T9999"},
+    {decision_id:"DZ3",ref_kind:"contract",ref_id:"T9998",decision:"planned_refresh",value:"T9997"}];
+  const partial={...landed,entries:landed.entries.filter(e=>e.entry_id!==removedID),decisions};
+  const check=(floor,expected)=>{
+    const out=B.fromFreshGrids(asGrids(partial),file,{...request,transactionIDFloor:floor});
+    assert.equal(out.summary.duplicateCount,2);assert.deepEqual(out.summary.rows.map(r=>r.id),[tx(expected)]);
+    assert.equal(out.plan.assumes.last_ids.T,physical);assert.equal(out.plan.assumes.transaction_id_floor,expected-1);
+    const added=Object.fromEntries(headers.entries.map((h,i)=>[key(h),out.plan.writes[0].values[0][i]]));
+    const model=require("../src/engine").model({...partial,entries:[...partial.entries,added]});
+    const next=model.entries.find(e=>e.id===tx(expected));
+    assert.equal(next.cat,"UNCAT");assert.equal(next.matchedWith,undefined);assert.equal(next.dupOf,undefined);
+  };
+  check(0,number+1);
+  decisions.push({decision_id:"DZ4",ref_kind:"entry",ref_id:physical,decision:"match_transfer",value:tx(number+2)});
+  check(0,number+3);
+  decisions.push({decision_id:"DZ5",ref_kind:"entry",ref_id:physical,decision:"merge_duplicate",value:tx(number+4)});
+  check(0,number+5);check(number+8,number+9);
+  const grids=asGrids(partial);delete grids.decisions;
+  assert.throws(()=>B.fromFreshGrids(grids,file,request),/complete Decisions/);
+  for(const bad of [-1,1.4,"12",null,100000000])assert.throws(()=>plan(partial,file,{...request,transactionIDFloor:bad}),/transaction_id_floor/);
 });
 test("fresh raw Sheets serials map to the same reviewed bank append, while damaged or sparse grids stop",()=>{
   const g=asGrids(), before=plan({...sheet,fetchedAt:null}), fresh=B.fromFreshGrids(g,file,request);
@@ -127,4 +155,10 @@ test("an unchanged reserved review can be discarded without confirming any rows"
   await discard.onclick();
   assert.deepEqual(ui.calls.cancel,["bound-discard"]); assert.deepEqual(ui.calls.commit,[]);
   assert.match(box.textContent,/discarded/);
+});
+test("restoring a deleted import requires a new explicit confirmation",async()=>{
+  const ui=panelFixture("reimport"), box=await ui.preview();
+  const restore=box.children.find(e=>e.textContent==="Reimport removed entries to Private practice");
+  assert.ok(restore);assert.deepEqual(ui.calls.commit,[]);
+  await restore.onclick();assert.deepEqual(ui.calls.commit,["one-use-ticket"]);
 });
