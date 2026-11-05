@@ -117,11 +117,22 @@ function panelFixture(responseMode, remote=true, verifiedOnCancel=false, reserve
   const window={KittyBank:B,SheetContract:C}, calls={preview:[],commit:[],cancel:[]};
   let current=true;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,"../src/kit/import-panel.js"),"utf8"),{window,document:doc,console});
-  const replay=["verified","recover","resume"].includes(responseMode), snapshot=replay?after(plan().plan):sheet;
-  const summary=plan(snapshot).summary, digest="a".repeat(64);
+  const hasPriorImport=["verified","recover","resume","pending"].includes(responseMode);
+  const snapshot=hasPriorImport?after(plan().plan):sheet;
+  if(responseMode==="pending"){
+    const posted=snapshot.entries.find(entry=>entry.raw_text==="KITTY PRACTICE PAPER BOAT");
+    assert.ok(posted);
+    posted.amount=-18.45;
+  }
+  const digest="a".repeat(64);
   const receipt={status:"verified",digest,message:"Saved rows and receipt were checked."};
   window.KittyIntake.open({sheet:snapshot,asOf:"2027-01-31",title:"Private practice",sheetID:request.sheetID,current:()=>current,drawer:()=>{},pick:async()=>file,
-    preview:remote?async request=>{calls.preview.push(request);return {mode:responseMode,summary,ticket:"one-use-ticket",...(reserved?{discardTicket:"bound-discard"}:{}),...(responseMode==="verified"?{receipt}:{})};}:null,
+    preview:remote?async input=>{
+      calls.preview.push(input);
+      const summary=plan(snapshot,file,{...request,...input}).summary;
+      return {mode:responseMode,summary,ticket:"one-use-ticket",...(reserved?{discardTicket:"bound-discard"}:{}),
+        ...(responseMode==="pending"?{message:"Compare the amounts in Entries with the original file."}:{}),...(responseMode==="verified"?{receipt}:{})};
+    }:null,
     commit:remote?async token=>{calls.commit.push(token);return receipt;}:null,cancel:remote?async token=>{calls.cancel.push(token);return verifiedOnCancel?receipt:{status:"cancelled"};}:null});
   ids.ifaccount.value="ACC-CC";
   return {ids,calls,switchSheet:()=>{current=false;},async preview(){await ids.ifpick.events.click();await ids.ifprepare.events.click();return ids.ifresult;}};
@@ -161,4 +172,18 @@ test("restoring a deleted import requires a new explicit confirmation",async()=>
   const restore=box.children.find(e=>e.textContent==="Reimport removed entries to Private practice");
   assert.ok(restore);assert.deepEqual(ui.calls.commit,[]);
   await restore.onclick();assert.deepEqual(ui.calls.commit,["one-use-ticket"]);
+});
+test("a previous receipt holds the review before the amounts even when the user changes the download date",async()=>{
+  const ui=panelFixture("pending");
+  await ui.ids.ifpick.events.click();
+  ui.ids.ifdate.value="2027-02-01";
+  ui.ids.ifdate.events.change();
+  await ui.ids.ifprepare.events.click();
+  const box=ui.ids.ifresult;
+  assert.equal(ui.calls.preview[0].downloadDay,"2027-02-01");
+  assert.match(box.innerHTML,/^<h3>Import on hold<\/h3><p>Compare the amounts in Entries/);
+  assert.match(box.innerHTML,/1 proposed · 2 already in this Sheet/);
+  assert.match(box.innerHTML,/-17\.45 AUD/);
+  assert.ok(box.children.every(element=>!element.onclick));
+  assert.deepEqual(ui.calls.commit,[]);
 });

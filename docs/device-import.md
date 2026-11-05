@@ -14,6 +14,10 @@ An exclusive hold in Sheets and immutable files in the owner’s Drive coordinat
 
 Use **Setup → Check unfinished import** if a phone lost its connection or the original file is no longer in Files. The owner can discard a prepared review or stop an unresolved submission. Google must either return the original saved entries or permanently block that specific delayed batch before Kitty releases the hold. Later edits to a category are identified as edits to a previously verified import. If Google recorded the batch and the underlying entries changed before verification, the owner can **Close for manual review**. That records the discrepancy, preserves the entries and permits other imports.
 
+When you pick the same CSV for the same account and month, Kitty checks its previous import even if you enter a different download date. If an amount was edited or only some of the saved rows remain, the preview shows **Import on hold**. Compare the dates, descriptions and amounts in the Entries tab with the original file. A CSV containing several months can still be reviewed one month at a time.
+
+For overlapping exports with different contents, the planner matches the account, bank date, signed amount and normalised bank description. If you’ve edited those fields directly in the Sheet, check the overlapping rows in the preview before saving.
+
 The planner reserves transaction IDs still referenced in Decisions, including the other entry in a transfer match. An iPhone import also records the highest ID it issued in the selected Sheet, in the same atomic write. If all the entries from a verified import were removed, choosing the same original offers **Reimport removed entries**. That action requires a fresh review, assigns new IDs and links the new receipt to its predecessor.
 
 This path supports ordinary single-account transaction appends. A source that also needs a balance adjustment, transfer repair or another type of write stays in review. Blank signed amounts, an ambiguous literal apostrophe before a spreadsheet formula character and incomplete ledger reads stop confirmation.

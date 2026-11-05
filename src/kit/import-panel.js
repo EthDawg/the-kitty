@@ -11,14 +11,15 @@
     catch (_) { throw Error("Choose a UTF-8 bank export. This file could not be decoded without changing its bytes."); }
   }
 
-  function summaryHTML(s) {
+  function summaryHTML(s, holdMessage) {
     const rows = (list, pending) => list.map(r=>'<li><b>'+esc(r.signedAmount)+' '+esc(s.currency)+'</b> · '+esc(r.date)+' · '+esc(r.raw)+
       (pending ? ' · '+esc(r.id)+' · '+esc(r.merchant)+' · '+esc(r.category)+' · '+esc(r.person) : '')+' · source row '+esc(r.line)+'</li>').join("");
     const outside=s.outside.reduce((a,x)=>a+(x.earlier||0)+(x.later||0),0);
     const outsideRows=s.outside.flatMap(window=>window.rows||[]);
     const detail=(title,content)=>content?'<details><summary>'+esc(title)+'</summary>'+content+'</details>':'';
     const list = a => a.length ? '<ul>'+a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>' : '';
-    return '<h3>'+ (s.status==="ready" ? (s.proposedCount?"Review proposed changes":"No new bank entries"):"Check this source before importing") +'</h3>'+
+    const heading=s.status==="ready" ? (s.proposedCount?"Review proposed changes":"No new bank entries"):"Check this source before importing";
+    return (holdMessage?'<h3>Import on hold</h3><p>'+esc(holdMessage)+'</p>':'<h3>'+heading+'</h3>')+
       '<p><b>'+esc(s.name)+'</b> → '+esc(s.accountName)+' ('+esc(s.account)+') · '+esc(s.month)+' · downloaded '+esc(s.downloadDay)+'</p>'+
       '<p>'+(Number.isInteger(s.sourceRows)?esc(s.sourceRows)+' source rows · ':'')+esc(s.proposedCount)+' proposed · '+esc(s.duplicateCount)+' already in this Sheet'+(outside?' · '+esc(outside)+' outside the selected month':'')+'.</p>'+
       (s.rows.length?'<ol>'+rows(s.rows,true)+'</ol>':'')+
@@ -93,11 +94,13 @@
         if(response?.mode==="pending"&&!response.summary){result.textContent=response.message||"A previous import needs its receipt checked.";return;}
         const s=response?.summary;
         if(!s||Object.entries(request).some(([k,v])=>s[k]!==v)||!Array.isArray(s.rows)||s.rows.length!==s.proposedCount||!Array.isArray(s.duplicates)||s.duplicates.length!==s.duplicateCount)throw Error("The preview does not match this original, account and period. Choose Preview import again.");
-        result.innerHTML=summaryHTML(s);
         if(response.mode==="verified"){showReceipt(response.receipt,s);return;}
+        const holdMessage=response.mode==="pending"?(response.message||"A previous import is still being checked."):null;
+        result.innerHTML=summaryHTML(s,holdMessage);
         revealReview();
+        if(holdMessage)return;
         const explain=document.createElement("p");
-        explain.textContent=response.message||(response.mode==="pending"?"A previous import is still being checked.":!host.commit?"This is a preview. No Sheet rows were written.":s.proposedCount===0?"No Sheet rows were written.":"Check the complete preview before saving.");
+        explain.textContent=response.message||(!host.commit?"This is a preview. No Sheet rows were written.":s.proposedCount===0?"No Sheet rows were written.":"Check the complete preview before saving.");
         result.append(explain);
         const label={confirm:"Confirm import to "+host.title,reimport:"Reimport removed entries to "+host.title,recover:"Check previous import receipt",resume:"Resume verified import",stale:"Discard outdated review"}[response.mode];
         if(!label || !host.preview || !host.commit || typeof response.ticket!=="string" || !response.ticket ||

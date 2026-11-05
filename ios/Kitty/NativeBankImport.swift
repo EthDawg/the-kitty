@@ -108,7 +108,9 @@ final class NativeBankImport {
                 return out
             case .needsReview:
                 out["mode"] = "pending"
-                out["message"] = Self.changedMessage
+                out["message"] = Self.changedMessage + (status.canReleaseForReview
+                    ? " Then open Setup → Check unfinished import to close this attempt for manual review."
+                    : " If you intended those edits, keep them and leave this file aside.")
                 return out
             case .removed:
                 guard let batch = preview.batch else {
@@ -188,7 +190,7 @@ final class NativeBankImport {
         return try await PeriodBankPlanner.prepare(original:original,account:account,month:month,downloadDay:day,
                                 owner:owner,api:api,transactionIDFloor:max(issued,minimumID))
     }
-    private static let changedMessage = "Google’s import record and the current entries differ. Check the original entries in your Sheet before importing this file again."
+    private static let changedMessage = "The saved import and the current Sheet entries differ. Compare the dates, descriptions and amounts in the Entries tab with your original bank file."
     private static func historicalReceipt(_ status: GooglePeriodBankJournal.Status) -> Object {
         var result = receipt(status.digest,count:status.rowCount,replay:true)
         if status.evidence == .recategorised {
