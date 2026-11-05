@@ -55,6 +55,7 @@ class NativeBuildTests(unittest.TestCase):
             shutil.copytree(ROOT / directory, self.root / directory)
         for relative in ('brand/fonts', 'brand/icons', 'brand/motion', 'brand/illustrations'):
             shutil.copytree(ROOT / relative, self.root / relative)
+        shutil.copyfile(ROOT / 'brand/tokens.json', self.root / 'brand/tokens.json')
         (self.root / 'data').mkdir()
         for filename in ('snapshot.json', 'snapshot-v2.json'):
             shutil.copyfile(ROOT / 'data' / filename, self.root / 'data' / filename)

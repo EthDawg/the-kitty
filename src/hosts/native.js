@@ -160,6 +160,7 @@
     doc.dispatchEvent(new root.CustomEvent("kitty:native-route", { detail: { route: routeName } }));
   }
   root.KittyNative = Object.freeze({
+    icon: Object.freeze({status: () => rpc("icon.status", {}), select: alternate => rpc("icon.set", {alternate})}),
     privacy: Object.freeze({setEnabled:enabled => rpc("privacy.set",{enabled:enabled === true})}),
     google: Object.freeze({
       status: () => rpc("google.status", {}),

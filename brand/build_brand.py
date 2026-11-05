@@ -314,9 +314,7 @@ def illustration(kind, scene):
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="{cap}">{body}</svg>\n'
 
 # ---------------------------------------------------------------- write everything
-def build():
-    for d in ["icons", "cat", "dog", "motion", "illustrations"]:
-        shutil.rmtree(os.path.join(HERE, d), ignore_errors=True)
+def build_icons():
     sprite = ['<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">']
     meta = {}
     for name, (sem, inner) in ICONS.items():
@@ -326,6 +324,12 @@ def build():
     sprite.append("</svg>")
     w("icons/sprite.svg", "\n".join(sprite) + "\n")
     w("icons/icons.json", json.dumps({"grid": 24, "stroke": 2, "caps": "round", "fill": "none unless the icon is a solid mark", "use": "<svg><use href=\"#i-name\"/></svg> after inlining sprite.svg, or the file itself", "icons": meta}, indent=1) + "\n")
+    return meta
+
+def build():
+    for d in ["icons", "cat", "dog", "motion", "illustrations"]:
+        shutil.rmtree(os.path.join(HERE, d), ignore_errors=True)
+    meta = build_icons()
     w("cat/mascot.svg", CAT); w("dog/mascot.svg", DOG)
     w("cat/app-icon.svg", app_icon("cat")); w("dog/app-icon.svg", app_icon("dog"))
     w("motion/motion.css", MOTION_CSS); w("motion/motion.js", MOTION_JS)
@@ -396,4 +400,9 @@ h1{{font:800 34px/1.1 var(--display);margin:0 0 4px}}h2{{font:700 20px/1.2 var(-
 '''
 
 if __name__ == "__main__":
-    build(); print("brand kit built:", len(ICONS), "icons")
+    if sys.argv[1:] == ["--icons-only"]:
+        build_icons()
+    elif not sys.argv[1:]:
+        build()
+    else:
+        sys.exit("Usage: build_brand.py [--icons-only]")

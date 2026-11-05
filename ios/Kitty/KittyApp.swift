@@ -7,6 +7,7 @@ struct KittyApp: App {
     var body: some Scene {
         WindowGroup {
             KittyPage(controller: host.controller)
+                .tint(Color(uiColor: KittyTokens.tint))
                 .ignoresSafeArea(.container)
                 .onOpenURL { host.controller.openDeepLink($0) }
         }

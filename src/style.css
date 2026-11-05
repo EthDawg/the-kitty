@@ -1,45 +1,4 @@
-/* The Kitty — design tokens. Layout: a phone-first money app (bottom tab bar, bottom sheets) that widens into a 12-column desktop page.
-   Color: warm paper + deep ink, one violet accent that runs to magenta in the hero, lime for celebration; semantic green/red/amber kept separate.
-   Type: Bricolage Grotesque for display and money, DM Sans for everything read. */
-:root{
-  --bg:#F7F4EE; --surface:#FFFFFF; --surface2:#F1EDE5; --surface3:#E9E3D8; --ink:#17122B; --ink2:#443D5C; --muted:#6E6785; --line:#E5DFD4;
-  --accent:#5B3DF5; --accent-ink:#FFFFFF; --accent-soft:#ECE8FF; --accent2:#C13DFF; --magenta:#FF5CC8;
-  --glow:linear-gradient(135deg,#5B3DF5 0%,#8E45FF 48%,#FF5CC8 100%);
-  --lime:#D9F94B; --lime-ink:#17122B;
-  --good:#17986A; --good-soft:#DFF5E9; --warn:#D6404A; --warn-soft:#FCE6E7; --amber:#C27306; --amber-soft:#FFF0D2;
-  --c-in:#0E9F9E; --c-out:#5B3DF5; --c-loan:#C27306; --c-kept:#17986A; --c-dip:#E5484D; --c-move:#9A93B2;
-  --hero-bg:#17122B; --hero-ink:#F7F4EE; --hero-muted:rgba(247,244,238,.72);
-  --shadow:0 1px 2px rgba(23,18,43,.05),0 10px 30px rgba(23,18,43,.07);
-  --shadow-lg:0 24px 60px rgba(23,18,43,.22);
-  --r:22px; --r-sm:14px; --r-xs:10px;
-  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
-  --body:"DM Sans","Avenir Next","Segoe UI",system-ui,sans-serif;
-  --ease:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.34,1.4,.4,1);
-  --tabbar:calc(64px + env(safe-area-inset-bottom,0px));
-}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0F0C1B; --surface:#1A1530; --surface2:#231D3C; --surface3:#2D2648; --ink:#F3F0FF; --ink2:#CBC4E3; --muted:#9F97BE; --line:#2C2546;
-  --accent:#8F7BFF; --accent-ink:#0F0C1B; --accent-soft:#2A2352; --accent2:#C98BFF; --magenta:#FF7AD3;
-  --glow:linear-gradient(135deg,#5B3DF5 0%,#8E45FF 48%,#FF5CC8 100%);
-  --lime:#DBFF3F; --lime-ink:#0F0C1B;
-  --good:#3BCB8F; --good-soft:#15362A; --warn:#FF6B72; --warn-soft:#3B1C24; --amber:#F0A53A; --amber-soft:#3A2A12;
-  --c-in:#1EB3A6; --c-out:#8F7BFF; --c-loan:#D18A1E; --c-kept:#2FB27C; --c-dip:#F05A5F; --c-move:#6F6890;
-  --hero-bg:#241C4A; --hero-ink:#F3F0FF; --hero-muted:rgba(243,240,255,.7);
-  --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 30px rgba(0,0,0,.3); --shadow-lg:0 24px 60px rgba(0,0,0,.55); color-scheme:dark; } }
-:root[data-theme="dark"]{
-  --bg:#0F0C1B; --surface:#1A1530; --surface2:#231D3C; --surface3:#2D2648; --ink:#F3F0FF; --ink2:#CBC4E3; --muted:#9F97BE; --line:#2C2546;
-  --accent:#8F7BFF; --accent-ink:#0F0C1B; --accent-soft:#2A2352; --accent2:#C98BFF; --magenta:#FF7AD3;
-  --glow:linear-gradient(135deg,#5B3DF5 0%,#8E45FF 48%,#FF5CC8 100%);
-  --lime:#DBFF3F; --lime-ink:#0F0C1B;
-  --good:#3BCB8F; --good-soft:#15362A; --warn:#FF6B72; --warn-soft:#3B1C24; --amber:#F0A53A; --amber-soft:#3A2A12;
-  --c-in:#1EB3A6; --c-out:#8F7BFF; --c-loan:#D18A1E; --c-kept:#2FB27C; --c-dip:#F05A5F; --c-move:#6F6890;
-  --hero-bg:#241C4A; --hero-ink:#F3F0FF; --hero-muted:rgba(243,240,255,.7);
-  --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 30px rgba(0,0,0,.3); --shadow-lg:0 24px 60px rgba(0,0,0,.55); color-scheme:dark; }
-/* accent choices from the Kitty tab */
-:root[data-accent="coral"]{--accent:#F0533D;--accent-soft:#FFE6E0;--accent2:#FF8A5C;--magenta:#FFB36B;--glow:linear-gradient(135deg,#F0533D 0%,#FF7A4D 50%,#FFC46B 100%);--c-out:#F0533D}
-:root[data-accent="teal"]{--accent:#0E8F8E;--accent-soft:#DDF3F2;--accent2:#2BB8B0;--magenta:#7BE0C9;--glow:linear-gradient(135deg,#0E8F8E 0%,#19B3AA 50%,#8DE3C8 100%);--c-out:#0E8F8E}
-:root[data-accent="lime"]{--accent:#5E8E00;--accent-soft:#EDF7CF;--accent2:#8AC926;--magenta:#D9F94B;--glow:linear-gradient(135deg,#3E7A00 0%,#7DB91D 50%,#D9F94B 100%);--c-out:#5E8E00}
-
+/* Theme values come from brand/tokens.json, via src/tokens.css. */
 *{box-sizing:border-box}
 html{height:100%}
 body{margin:0;overflow-x:clip;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
