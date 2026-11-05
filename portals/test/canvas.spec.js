@@ -212,3 +212,14 @@ test("a card that already draws full width says so when it is widened", async ({
   await page.getByRole("button", { name: "Make Review wider" }).click();
   await expect(page.locator("#toast")).toContainText("stays full width");
 });
+
+test("the desktop header fits from 820px up, live label and Ask included", async ({ page }) => {
+  for (const width of [820, 860, 900, 960, 1000, 1040, 1100, 1180]) {
+    await page.setViewportSize({ width, height: 800 }); await open(page);
+    await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live · demo sheet"; document.querySelector("#askbtn").hidden = false; });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), `page at ${width}`).toBeLessThanOrEqual(width);
+    const lines = await page.locator(".brand .bname").evaluateAll((e) => e.filter((x) => x.offsetParent).map((x) => x.getBoundingClientRect().height));
+    for (const h of lines) expect(h, `wordmark at ${width}`).toBeLessThan(40);
+  }
+  await expect(page.locator("nav.tabs button").first()).toHaveAccessibleName(/Home/);
+});
