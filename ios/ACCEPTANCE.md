@@ -31,3 +31,44 @@ snapshot-startup gate flash, stops count-up when reduced motion turns on,
 and removes a closed drawer from the accessibility tree. Live selection and
 writes, import parity, AI handoff and release acceptance require later proof.
 No TestFlight upload or App Store submission has been made.
+
+Milestone 3 begins with a read-only selection check. The registered public iOS
+client and reversed callback are present in the signed app. In Setup, “Choose demo
+Sheet” runs Google’s explicit one-file Picker, binds the returned account and
+Sheet, and reads its Drive metadata and v2 marker. It reports the actual file
+permission, without changing rows or labelling snapshot numbers Live. Eighteen
+injected-response tests cover OAuth, secure storage, bounded HTTP, stale accounts,
+wrong files and ambiguous versions. They do not prove live Google consent.
+
+On 5 November at 15:26 Sydney time, the signed build on Ethan's iPhone verified
+the existing **Digital Davies v2** Sheet as an editor. Its protected device
+receipt matched the expected file and the installed page (SHA-256 `100cea52…f7418`).
+The probe read Drive metadata, tab names and the version marker; it wrote no cells.
+This establishes selection separately from reading the dashboard.
+
+At 16:00 Sydney time the same physical iPhone reopened its saved grant without
+another login. The shared dashboard showed **Live · demo sheet**, **$99,388**
+cash and offset, **1,082 entries** and **5 entries needing review**. The test
+made a second uncached request for the Sheet's `networth.cash` metric and compared
+it against the rendered Home value. They matched. The physical XCTest bundle
+holds the JSON receipt and 1320 × 2868 screenshot. This was read-only.
+
+The shared ledger reader preserves physical row numbers across empty Sheets
+pages. A fictional regression places an entry on row 5,003 and finds it at that
+exact address; a populated Entries or Decisions row without its ID fails the
+read. These checks do not enable native ledger writes.
+
+Opening a v2 Sheet now leaves its settings untouched; the existing “Worth it?”
+default of 40 still applies when no threshold is set. A missing ledger tab or
+moved category/decision column prevents a Live result.
+
+The iPhone's ordinary category picker saved the fictional $38.50 Market Lane
+entry (T0761) as Dining. The first write used a text date; the Sheet's own
+Latest formula rejected it despite the dashboard dropping from five to four
+reviews. At 16:28 Sydney the corrected signed build changed only that record's
+date, then passed a fresh physical test: Entries!H762 = DINING, Decisions row 21
+contains the same unique decision, G21 is numeric 46331, I21 = TRUE, and J21 =
+T0761|categorise. Prior row 20 is intact. The iPhone showed four reviews,
+1,082 entries and $99,388; the [published artifact check](https://github.com/EthDawg/the-kitty/pull/16#issuecomment-6650396347)
+also found four and $99,388. A biometric or passcode lock is optional. Simulated
+unlock outcomes are tested; a physical Face ID acceptance was not recorded.

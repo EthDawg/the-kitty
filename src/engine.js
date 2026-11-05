@@ -46,6 +46,11 @@
     return null;
   };
   E.dateOrder = "dmy";   // set from the Kitty tab's country before a model is built; US and some others show month first
+  E.auditDay = (instant, zone) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {timeZone: zone || undefined, calendar:"gregory",
+      year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(instant);
+    const p = Object.fromEntries(parts.map(x => [x.type,x.value])); return p.year + "-" + p.month + "-" + p.day;
+  };
   E.month = (v) => { const d = E.date(v); return d ? d.slice(0, 7) + "-01" : null; };
   E.key = (h) => String(h == null ? "" : h).toLowerCase().replace(/\(.*?\)/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 
@@ -91,15 +96,58 @@
   const HEAD = { metrics: "Metric ID", compliance: "Check", networth: "Month end", savings: "Opportunity", budget: "Category", settings: "Setting", kitty: "Key", accounts: "Account ID", category_list: "Category ID", goals: "Goal", subscriptions: "Service", loans: "Loan ID", assets: "Item ID", transactions: "Txn ID", payslips: "Pay date",
     entries: "Entry ID", balances: "Month end", contracts: "Contract ID", decisions: "Decision ID", rules: "Rule ID" };
   const blank = (r) => !r || r.every((v) => v == null || v === "");
+  // Sheets omits trailing empty rows from each values response. Place each page at its
+  // requested address: Entries row numbers are also the addresses used for category writes.
+  E.joinGridPages = (pages) => {
+    const grid = []; let next = 1;
+    for (const { first, last, rows } of pages) {
+      if (first !== next || !Number.isSafeInteger(last) || last < first || !Array.isArray(rows) ||
+          rows.length > last - first + 1 || rows.some(r => !Array.isArray(r))) {
+        throw new Error("Sheets returned an invalid row range.");
+      }
+      rows.forEach((r, i) => { if (!blank(r)) grid[first - 1 + i] = r; });
+      next = last + 1;
+    }
+    return grid;
+  };
+  const ledgerTables = new Set(["entries", "balances", "contracts", "decisions", "rules", "transactions"]);
+  const requiredRowKeys = new Set(["entries", "decisions", "rules"]);
+  const invalidLedger = message => { const e = new Error(message); e.code = "invalid_ledger"; throw e; };
+  // A live v2 dashboard cannot substitute a missing ledger with an empty table or
+  // address column H as "Category" when someone has moved it. Header-only ledgers are valid.
+  E.checkLiveLedger = (g, requireV2) => {
+    const kitty = g.kitty || [];
+    const versions = kitty.filter(r => r && r[0] === "sheet_version");
+    if (!requireV2 && !g.entries?.length && versions.every(r => ["1", "1.1"].includes(String(r[1])))) return;
+    if (!kitty.some(r => r?.[0] === "Key" && r[1] === "Value") ||
+        versions.length !== 1 || String(versions[0][1]) !== "2") invalidLedger("The Kitty tab needs one sheet_version 2 setting.");
+    for (const [k, name] of Object.entries({ accounts: "Accounts", category_list: "Categories", entries: "Entries",
+                                             balances: "Balances", contracts: "Contracts", decisions: "Decisions", rules: "Rules" })) {
+      if (g[k]?.[0]?.[0] !== HEAD[k]) invalidLedger(`Check the ${name} tab and its ${HEAD[k]} header.`);
+    }
+    if (g.entries[0][7] !== "Category ID") invalidLedger("Entries column H must be Category ID.");
+    const decisions = ["Decision ID", "Ref kind", "Ref ID", "Decision", "Value", "By", "At", "Note"];
+    if (decisions.some((name, i) => g.decisions[0][i] !== name)) invalidLedger("The Decisions columns do not match the v2 Sheet.");
+  };
   function gridTable(grid, head, opts = {}) {
     if (!Array.isArray(grid)) return [];
     const hi = grid.findIndex((r) => r && String(r[0]).trim() === head);
     if (hi < 0) return [];
     const keys = grid[hi].map(E.key);
     const out = [];
+    const seen = opts.keyed ? new Set() : null;
     for (let i = hi + 1; i < grid.length; i++) {
       const r = grid[i];
-      if (blank(r) || r[0] === "" || r[0] == null) { if (opts.all) continue; break; }
+      if (blank(r)) { if (opts.all) continue; break; }
+      if (r[0] == null || String(r[0]).trim() === "") {
+        if (opts.keyed) invalidLedger(`Missing ${head} on row ${i + 1}.`);
+        if (opts.all) continue; break;
+      }
+      if (seen) {
+        const key = String(r[0]).trim();
+        if (seen.has(key)) invalidLedger(`Repeated ${head} on row ${i + 1}.`);
+        seen.add(key);
+      }
       const o = {}; keys.forEach((k, j) => { if (k) o[k] = r[j] == null || r[j] === "" ? null : r[j]; }); out.push(o);
     }
     return out;
@@ -112,7 +160,7 @@
   function gridAfter(grid, title, head) { const i = grid.findIndex((r) => r && r[0] === title); return i < 0 ? [] : gridTable(grid.slice(i + 1), head); }
   E.fromConnector = (g) => {
     const s = {};
-    for (const [k, head] of Object.entries(HEAD)) s[k] = gridTable(g[k], head, { all: k === "budget" });
+    for (const [k, head] of Object.entries(HEAD)) s[k] = gridTable(g[k], head, { all: k === "budget" || ledgerTables.has(k), keyed: requiredRowKeys.has(k) });
     s.budget = s.budget.filter((r) => r.category !== "Total");
     s.compliance = s.compliance.filter((r) => r.status);
     s.savings = s.savings.filter((r) => r.type === "Recurring" || r.type === "One-off");
