@@ -33,12 +33,22 @@ struct BankBinding: Codable, Equatable {
             Self.validDateScope(month, downloadDay) && (1...4000).contains(rowCount) &&
             Set(ids).count == 4 && ids.allSatisfy { GoogleConnection.validSheetID($0) && $0.utf8.count <= 100 }
     }
+    private static func hashScope(_ parts: [String]) throws -> String {
+        SourceDocument.sha256(try JSONSerialization.data(withJSONObject:parts,options:[.withoutEscapingSlashes]))
+    }
+    // The original approval includes its stated download day. Keep this hash byte-compatible with all private archives.
     static func scope(sheet: String, owner: String, source: String, account: String, month: String, day: String) throws -> String {
-        let data = try JSONSerialization.data(withJSONObject: [sheet, owner, source, account, month, day], options: [.withoutEscapingSlashes])
-        return SourceDocument.sha256(data)
+        try hashScope([sheet,owner,source,account,month,day])
     }
     var scope: String {
         get throws { try Self.scope(sheet: sheetID, owner: owner, source: sourceSHA256, account: account, month: month, day: downloadDay) }
+    }
+    // Finding an earlier posting depends on which month of the file was imported, regardless of its download day.
+    static func periodScope(sheet: String, owner: String, source: String, account: String, month: String) throws -> String {
+        try hashScope([sheet,owner,source,account,month])
+    }
+    var periodScope: String {
+        get throws { try Self.periodScope(sheet:sheetID,owner:owner,source:sourceSHA256,account:account,month:month) }
     }
     func data() throws -> Data {
         let e = JSONEncoder(); e.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -81,6 +91,7 @@ protocol BankStore {
     func release(_ b: BankBinding) async throws
     func blob(_ kind: BankBlob, _ b: BankBinding) async throws -> Data?
     func create(_ kind: BankBlob, _ b: BankBinding, data: Data) async throws -> (createdHere: Bool, bytes: Data)
+    /// Supply one receipt digest or the day-independent BankBinding.periodScope.
     func finished(digest: String?, scope: String?) async throws -> BankBinding?
     func manualSource(_ key: String) async throws -> BankBinding?
     func issuedTransactionNumber() async throws -> Int
@@ -97,6 +108,9 @@ struct GoogleBankStore: BankStore {
     // A digest's authenticated plan is immutable. Keep only its numeric floor in this native session.
     private static var legacySession: UUID?
     private static var legacyIssued = [String:Int]()
+    // Older receipts have only the day-specific tag. Cache their authenticated routing hashes for this sign-in.
+    private static var routeSession: UUID?
+    private static var legacyRoutes = [String:String]()
     private static func issuedSheet(_ sheet: String, _ owner: String) -> String {
         SourceDocument.sha256(Data((sheet + "\u{0}" + owner).utf8))
     }
@@ -316,8 +330,8 @@ struct GoogleBankStore: BankStore {
         ["kittyBankKind":kind.rawValue,"kittyBankDigest":b.digest,"kittyBankScope":try b.scope,"kittyBankIntent":b.manifestID]
     }
     private let fileFields = "id,mimeType,trashed,ownedByMe,owners(permissionId),driveId,permissions(id,type,role,deleted),size,appProperties"
-    private func privateFile(_ record: Object, expectedID: String) throws {
-        guard record["id"] as? String == expectedID, record["trashed"] as? Bool == false, record["ownedByMe"] as? Bool == true,
+    private func privateFile(_ record: Object, expectedID: String, forRoutingOnly: Bool = false) throws {
+        guard record["id"] as? String == expectedID, let trashed = record["trashed"] as? Bool, !trashed || forRoutingOnly, record["ownedByMe"] as? Bool == true,
               record["driveId"] == nil, let owners = record["owners"] as? [Object], owners.count == 1,
               owners[0]["permissionId"] as? String == api.selected.permissionID,
               let acl = record["permissions"] as? [Object], acl.count == 1, acl[0]["type"] as? String == "user",
@@ -348,6 +362,7 @@ struct GoogleBankStore: BankStore {
             guard let record = try JSONSerialization.jsonObject(with:data) as? Object, let terminal = record["kind"] as? String,
                   ["verified","cancelled","needs-review"].contains(terminal) else { throw Self.invalid }
             tags["kittyBankTerminal"] = terminal
+            tags["kittyBankPeriod"] = try b.periodScope
             if terminal == "needs-review" { tags["kittyBankManualSource"] = b.sourceKey }
             if terminal != "cancelled", let n = b.issuedThrough, let id = b.receiptMarkerID {
                 tags["kittyBankIssuedSheet"] = Self.issuedSheet(b.sheetID,b.owner)
@@ -374,8 +389,8 @@ struct GoogleBankStore: BankStore {
     func finished(digest: String?, scope: String?) async throws -> BankBinding? {
         let filter = digest ?? scope ?? ""
         guard (digest == nil) != (scope == nil), BankBinding.hash(filter) else { throw Self.invalid }
-        let key = digest == nil ? "kittyBankScope" : "kittyBankDigest"
-        return try await findTerminal(key:key,filter:filter)
+        if scope != nil { return try await periodHead(filter) }
+        return try await findTerminal(key:"kittyBankDigest",filter:filter)
     }
     func manualSource(_ key: String) async throws -> BankBinding? {
         guard BankBinding.hash(key) else { throw Self.invalid }
@@ -404,12 +419,56 @@ struct GoogleBankStore: BankStore {
             guard let cancelled else { return nil }
             return try await readTerminal(id:cancelled,kind:"cancelled",key:key,filter:filter)
         }
-        guard key == "kittyBankScope" || active.count == 1 else { throw Self.invalid }
-        var receipts = [(String,BankBinding)]()
-        for (id,kind) in active {
-            receipts.append((kind,try await readTerminal(id:id,kind:kind,key:key,filter:filter)))
+        guard active.count == 1 else { throw Self.invalid }
+        return try await readTerminal(id:active[0].0,kind:active[0].1,key:key,filter:filter)
+    }
+
+    /// Read the owner's app-private receipt index. New records route by hash. Before that index existed,
+    /// authenticate the small terminal JSON once per session to learn its period. Names and listing order
+    /// are never evidence that the source is new. No historical CSV or manifest is opened for discovery.
+    private func periodHead(_ period: String) async throws -> BankBinding? {
+        if Self.routeSession != api.selected.sessionID {
+            Self.routeSession = api.selected.sessionID; Self.legacyRoutes.removeAll()
         }
-        return key == "kittyBankScope" ? try Self.latest(receipts) : receipts[0].1
+        let sheet = Self.issuedSheet(api.selected.sheetID,api.selected.permissionID)
+        let q = "'me' in owners and appProperties has { key='kittyBankKind' and value='receipt' }"
+        var page: String?, pages = Set<String>(), ids = Set<String>(), active = [(String,BankBinding)](), cancelled: BankBinding?
+        repeat {
+            var query = ["q":q,"fields":"nextPageToken,incompleteSearch,files(id,trashed,appProperties)",
+                         "spaces":"drive","corpora":"user","pageSize":"1000","orderBy":"createdTime desc"]
+            if let page { query["pageToken"] = page }
+            let data = try json(await drive("/drive/v3/files",query:query,limit:2*1024*1024))
+            guard data["incompleteSearch"] as? Bool != true, let files = data["files"] as? [Object] else { throw Self.invalid }
+            for file in files {
+                guard let id = file["id"] as? String, GoogleConnection.validSheetID(id), ids.insert(id).inserted,
+                      let trashed = file["trashed"] as? Bool, let tags = file["appProperties"] as? [String:String],
+                      tags["kittyBankKind"] == "receipt" else { throw Self.invalid }
+                if let claim = tags["kittyBankIssuedSheet"] {
+                    guard BankBinding.hash(claim), claim == sheet || tags["kittyBankPeriod"] != period else { throw Self.invalid }
+                    if claim != sheet { continue }
+                }
+                guard let kind = tags["kittyBankTerminal"], ["verified","needs-review","cancelled"].contains(kind),
+                      let digest = tags["kittyBankDigest"], BankBinding.hash(digest), let approval = tags["kittyBankScope"],
+                      BankBinding.hash(approval), let intent = tags["kittyBankIntent"], GoogleConnection.validSheetID(intent) else { throw Self.invalid }
+                let cacheKey = [id,digest,approval,intent,kind].joined(separator:"|")
+                let indexed = tags["kittyBankPeriod"]
+                if let indexed { guard BankBinding.hash(indexed) else { throw Self.invalid } }
+                if trashed && kind == "cancelled" { continue }
+                if let route = indexed ?? Self.legacyRoutes[cacheKey], route != period { continue }
+                let b = try await readTerminal(id:id,kind:kind,key:"kittyBankDigest",filter:digest,forRoutingOnly:true,listedTags:tags,listedTrashed:trashed)
+                let actualPeriod = try b.periodScope
+                if indexed == nil, Self.routeSession == api.selected.sessionID { Self.legacyRoutes[cacheKey] = actualPeriod }
+                guard actualPeriod == period else { continue }
+                guard !trashed, b.sheetID == api.selected.sheetID, b.owner == api.selected.permissionID else { throw Self.invalid }
+                if kind == "cancelled" {
+                    if cancelled == nil { cancelled = b }
+                } else { active.append((kind,b)) }
+            }
+            guard data["nextPageToken"] == nil || data["nextPageToken"] is String else { throw Self.invalid }
+            page = data["nextPageToken"] as? String
+            if let page, page.isEmpty || !pages.insert(page).inserted || pages.count > 100 { throw Self.invalid }
+        } while page != nil
+        return try Self.latest(active) ?? cancelled
     }
 
     /// A scope has one verified original followed by zero or more separately approved replacements.
@@ -417,11 +476,14 @@ struct GoogleBankStore: BankStore {
     static func latest(_ records: [(String,BankBinding)]) throws -> BankBinding? {
         if records.isEmpty { return nil }
         let roots = records.filter { $0.1.replacesTicket == nil }
+        if roots.count > 1 {
+            throw GoogleSheetTools.Failure(code:"import_needs_review",message:"There are separate bank receipts for this file, account and month. Check the receipts and Entries before making corrections.")
+        }
         guard roots.count == 1, Set(records.map { $0.1.ticket }).count == records.count else { throw invalid }
         var current = roots[0], visited = Set([current.1.ticket]), children = [String:(String,BankBinding)]()
-        let scope = try current.1.scope
+        let scope = try current.1.periodScope
         for child in records where child.1.replacesTicket != nil {
-            guard child.1.valid, try child.1.scope == scope, let parent = child.1.replacesTicket,
+            guard child.1.valid, try child.1.periodScope == scope, let parent = child.1.replacesTicket,
                   children.updateValue(child,forKey:parent) == nil else { throw invalid }
         }
         while let child = children[current.1.ticket] {
@@ -434,10 +496,15 @@ struct GoogleBankStore: BankStore {
         guard visited.count == records.count else { throw invalid }
         return current.1
     }
-    private func readTerminal(id: String, kind: String, key: String, filter: String) async throws -> BankBinding {
+    private func readTerminal(id: String, kind: String, key: String, filter: String, forRoutingOnly: Bool = false,
+                              listedTags: [String:String]? = nil, listedTrashed: Bool? = nil) async throws -> BankBinding {
         guard GoogleConnection.validSheetID(id) else { throw Self.invalid }
         let metadata = try json(await drive("/drive/v3/files/" + id, query: ["fields":fileFields]))
-        try privateFile(metadata, expectedID: id)
+        try privateFile(metadata,expectedID:id,forRoutingOnly:forRoutingOnly)
+        guard let tags = metadata["appProperties"] as? [String:String], listedTags == nil || tags == listedTags,
+              listedTrashed == nil || metadata["trashed"] as? Bool == listedTrashed,
+              metadata["mimeType"] as? String == BankBlob.receipt.mime, let rawSize = metadata["size"] as? String,
+              let size = Int(rawSize), (1...BankBlob.receipt.limit).contains(size) else { throw Self.invalid }
         let response = try await drive("/drive/v3/files/" + id, query: ["alt":"media"], limit: BankBlob.receipt.limit)
         guard response.statusCode == 200, let record = try JSONSerialization.jsonObject(with: response.data) as? Object,
               record["kind"] as? String == kind, let binding = record["binding"] as? Object else { throw Self.invalid }
@@ -445,15 +512,14 @@ struct GoogleBankStore: BankStore {
         let expected: String
         switch key {
         case "kittyBankDigest": expected = b.digest
-        case "kittyBankScope": expected = try b.scope
         case "kittyBankManualSource":
             guard record["kind"] as? String == "needs-review" else { throw Self.invalid }
             expected = b.sourceKey
         default: throw Self.invalid
         }
-        guard b.valid, b.receiptID == id, b.owner == api.selected.permissionID, b.sheetID == api.selected.sheetID,
-              expected == filter, metadata["mimeType"] as? String == BankBlob.receipt.mime,
-              metadata["size"] as? String == String(response.data.count), let tags = metadata["appProperties"] as? [String:String],
+        if let period = tags["kittyBankPeriod"], try b.periodScope != period { throw Self.invalid }
+        guard b.valid, b.receiptID == id, b.owner == api.selected.permissionID, (b.sheetID == api.selected.sheetID || forRoutingOnly),
+              expected == filter, size == response.data.count,
               tags["kittyBankTerminal"] == kind, try properties(.receipt,b).allSatisfy({ tags[$0.key] == $0.value }) else { throw Self.invalid }
         if b.version >= 3, kind != "cancelled" {
             guard let n = b.issuedThrough, let marker = b.receiptMarkerID, tags["kittyBankIssuedT"] == String(n),

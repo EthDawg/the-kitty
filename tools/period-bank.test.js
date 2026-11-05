@@ -129,6 +129,7 @@ function panelFixture(responseMode, remote=true, verifiedOnCancel=false, reserve
   window.KittyIntake.open({sheet:snapshot,asOf:"2027-01-31",title:"Private practice",sheetID:request.sheetID,current:()=>current,drawer:()=>{},pick:async()=>file,
     preview:remote?async input=>{
       calls.preview.push(input);
+      if(responseMode==="unfinished-date")return {mode:"pending",message:"Set Date of the download to 2027-01-31 to reopen that review."};
       const summary=plan(snapshot,file,{...request,...input}).summary;
       return {mode:responseMode,summary,ticket:"one-use-ticket",...(reserved?{discardTicket:"bound-discard"}:{}),
         ...(responseMode==="pending"?{message:"Compare the amounts in Entries with the original file."}:{}),...(responseMode==="verified"?{receipt}:{})};
@@ -184,6 +185,14 @@ test("a previous receipt holds the review before the amounts even when the user 
   assert.match(box.innerHTML,/^<h3>Import on hold<\/h3><p>Compare the amounts in Entries/);
   assert.match(box.innerHTML,/1 proposed · 2 already in this Sheet/);
   assert.match(box.innerHTML,/-17\.45 AUD/);
+  assert.ok(box.children.every(element=>!element.onclick));
+  assert.deepEqual(ui.calls.commit,[]);
+});
+test("an unfinished import can point back to the approved date before calculating a new preview",async()=>{
+  const ui=panelFixture("unfinished-date");
+  ui.ids.ifdate.value="2027-02-01";
+  const box=await ui.preview();
+  assert.match(box.innerHTML,/^<h3>Import on hold<\/h3><p>Set Date of the download to 2027-01-31/);
   assert.ok(box.children.every(element=>!element.onclick));
   assert.deepEqual(ui.calls.commit,[]);
 });

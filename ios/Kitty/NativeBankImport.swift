@@ -88,6 +88,11 @@ final class NativeBankImport {
         guard owner.canImportBankFiles, owner.selection == api.selected else { throw api.invalid }
         let status = try await GooglePeriodBankJournal.recover(owner:owner,api:api,sourceSHA256:original.id,
                             account:account,month:month,downloadDay:day)
+        if let status, (status.phase == .prepared || status.phase == .dispatched), status.downloadDay != day {
+            try api.check()
+            guard request == revision else { throw Self.stale }
+            return ["mode":"pending", "message":"This file already has an unfinished import for \(status.month). Set Date of the download to \(status.downloadDay) to reopen that review, or choose Check unfinished import in Setup."]
+        }
         let minimumID = max(status?.removedIDFloor ?? 0,status?.pendingIDFloor ?? 0)
         let preview = try await Self.freshPlan(original:original,account:account,month:month,day:day,
                                                minimumID:minimumID,owner:owner,api:api)

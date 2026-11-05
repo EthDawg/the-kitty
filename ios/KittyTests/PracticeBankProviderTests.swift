@@ -133,7 +133,9 @@ final class PracticeBankProviderTests: XCTestCase {
               binding["receiptID"] as? String == receiptID, binding["month"] as? String == "2027-01", binding["downloadDay"] as? String == "2027-01-31",
               let sourceID = binding["sourceID"] as? String, GoogleConnection.validSheetID(sourceID), let digest = binding["digest"] as? String,
               digest.range(of:"^[0-9a-f]{64}$",options:.regularExpression) != nil else { throw Fail.archiveMismatch }
+        let expectedPeriod = hash(try json([api.selected.sheetID,api.selected.permissionID,sha,"ACC-CC","2027-01"]))
         guard let receiptTags = matches[0]["appProperties"] as? [String:String], receiptTags["kittyBankTerminal"] == "verified",
+              receiptTags["kittyBankPeriod"] == expectedPeriod,
               receiptTags["kittyBankDigest"] == digest, let manifestID = binding["manifestID"] as? String,
               let actionID = binding["actionID"] as? String, receiptTags["kittyBankIntent"] == manifestID,
               Set([sourceID,manifestID,actionID,receiptID]).count == 4 else { throw Fail.archiveMismatch }
@@ -195,9 +197,15 @@ final class PracticeBankProviderTests: XCTestCase {
         }
         let gate = try await api.request(path:"/developerMetadata:search",method:"POST",body:["dataFilters":[["developerMetadataLookup":["metadataId":2017113179,"metadataKey":"kitty.period.bank.hold.v1","visibility":"DOCUMENT"]]]])
         guard gate["matchedDeveloperMetadata"] == nil || (gate["matchedDeveloperMetadata"] as? [Object])?.isEmpty == true else { throw Fail.archiveMismatch }
+        // A later download date must find the independently verified receipt for the same account and month.
+        let owner = try await GoogleSheetSelection(http:api.http,current:api.current,token:api.token).verify(api.selected)
+        let later = try await GooglePeriodBankJournal.recover(owner:owner,api:api,sourceSHA256:sha,account:"ACC-CC",month:"2027-01",downloadDay:"2027-02-01")
+        guard later?.phase == .verified, later?.digest == digest, later?.downloadDay == "2027-01-31" else { throw Fail.archiveMismatch }
+        let afterLookup = try await readLedger(api)
+        guard hash(try json(afterLookup)) == hash(try json(rows)) else { throw Fail.differentLedger }
         try attachment("Independent provider read after Files replay", ["run":run, "privateOwnerOnly":true,"publicFeed":"no","originalEntries":oldCount,"allOriginalRowsIntact":true,
                        "newIDs":newRows.map(\.0),"signedSourceCents":sourceCents,"manifestAmountEncoding":amountEncoding ?? "legacy-decimal","account":"ACC-CC","existingDuplicate":"T0880","duplicateOccurrences":1,
-                       "archivedBytes":bytes.count,"archivedSHA256":sha,"verifiedReceipts":1,"durableReceiptMarkers":1,"issuedTMarkers":issuedCount,"bindingVersion":version,"sharedHoldReleased":true,"boundPrivateDriveFiles":4,"totalEntries":rows.count-1])
+                       "archivedBytes":bytes.count,"archivedSHA256":sha,"verifiedReceipts":1,"laterDownloadDateFoundOriginalReceipt":true,"durableReceiptMarkers":1,"issuedTMarkers":issuedCount,"bindingVersion":version,"sharedHoldReleased":true,"boundPrivateDriveFiles":4,"totalEntries":rows.count-1])
     }
 }
 
@@ -365,8 +373,10 @@ extension PracticeBankProviderTests {
         let issued = try await rawStore.issuedTransactionNumber(); XCTAssertEqual(issued,927)
         let replay = try await plan(sheet.cells,issuedFloor:issued), again = try XCTUnwrap(replay["summary"] as? Object)
         XCTAssertEqual(again["duplicateCount"] as? Int,3); XCTAssertEqual(again["proposedCount"] as? Int,0)
+        let later = try await GooglePeriodBankJournal.recover(owner:owner,api:api,sourceSHA256:original.id,account:"ACC-CC",month:"2027-01",downloadDay:"2027-02-01",store:store)
+        XCTAssertEqual(later?.phase,.verified); XCTAssertEqual(later?.digest,verified); XCTAssertEqual(later?.downloadDay,"2027-01-31")
         let second = try await PeriodBankWriter.commit(batch,owner:owner,api:api,journal:journal); XCTAssertEqual(second,verified); XCTAssertEqual(sheet.batchCount,1)
-        try attachment("Simulator — Files original, simulated Google save and replay", ["provider":"simulated","sourceSHA256":sha,"firstDuplicates":1,"newIDs":["T0926","T0927"],"replayDuplicates":3,"writeBatches":sheet.batchCount,"privateBlobs":store.blobs.count,"issuedTransactionNumber":issued,"rawManifestCents":[-1745,625]])
+        try attachment("Simulator — Files original, simulated Google save and replay", ["provider":"simulated","sourceSHA256":sha,"firstDuplicates":1,"newIDs":["T0926","T0927"],"replayDuplicates":3,"laterDownloadDateFoundOriginalReceipt":true,"writeBatches":sheet.batchCount,"privateBlobs":store.blobs.count,"issuedTransactionNumber":issued,"rawManifestCents":[-1745,625]])
     }
     private var envSim: Bool { ProcessInfo.processInfo.environment["KITTY_PRACTICE_ACCEPTANCE"] == "simulator-files" }
 }

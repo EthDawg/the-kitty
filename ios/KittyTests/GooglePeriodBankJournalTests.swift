@@ -7,7 +7,7 @@ final class GooglePeriodBankJournalTests: XCTestCase {
     typealias Journal = GooglePeriodBankJournal
     final class Memory: BankStore {
         var held: BankBinding?, all = [BankBinding](), blobs = [String: Data]()
-        var generated = 0, eligibility = true, loseActionResponse = false
+        var generated = 0, eligibility = true, loseActionResponse = false, omitNextPeriodResult = false
         var markers = [Int:Object]()
         var highestIssued = 0, entryFacts = [[Any]]()
         func issuedTransactionNumber() async throws -> Int { highestIssued }
@@ -45,10 +45,11 @@ final class GooglePeriodBankJournalTests: XCTestCase {
             return (true,data)
         }
         func finished(digest: String?, scope: String?) async throws -> BankBinding? {
+            if scope != nil && omitNextPeriodResult { omitNextPeriodResult = false; return nil }
             var cancelled: BankBinding?
             var committed = [(String,BankBinding)]()
             for b in all {
-                let s = try b.scope
+                let s = try b.periodScope
                 guard (digest != nil && b.digest == digest) || (scope != nil && s == scope),
                       let bytes = blobs[b.receiptID], let record = try JSONSerialization.jsonObject(with:bytes) as? Object else { continue }
                 if let kind = record["kind"] as? String, ["verified","needs-review"].contains(kind) { committed.append((kind,b)) }
@@ -89,10 +90,12 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         return (source,plan,try .init(plan:plan,sheetID:selected.sheetID,account:account,original:source,originalSHA256:source.id))
     }
     func service(_ sample: (SourceDocument,Object,PeriodBankAppend), _ store: Memory, expectedTicket: String? = nil,
-                 scanAPI: GoogleSheetTools? = nil, replacesTicket: String? = nil, observation: Journal.Observe? = nil) -> Journal {
-        Journal(api:scanAPI ?? api,store:store,original:sample.0,plan:sample.1,month:month,downloadDay:day,expectedTicket:expectedTicket,
+                 scanAPI: GoogleSheetTools? = nil, replacesTicket: String? = nil, observation: Journal.Observe? = nil,
+                 reviewDay: String? = nil, reviewMonth: String? = nil) -> Journal {
+        let approvedDay = reviewDay ?? day, approvedMonth = reviewMonth ?? month
+        return Journal(api:scanAPI ?? api,store:store,original:sample.0,plan:sample.1,month:approvedMonth,downloadDay:approvedDay,expectedTicket:expectedTicket,
                 replacesTicket:replacesTicket,observe:observation ?? PeriodBankReadback.read,replan:{source,account,month,day in
-            XCTAssertEqual(source.bytes,sample.0.bytes); XCTAssertEqual(account,self.account); XCTAssertEqual(month,self.month); XCTAssertEqual(day,self.day)
+            XCTAssertEqual(source.bytes,sample.0.bytes); XCTAssertEqual(account,self.account); XCTAssertEqual(month,approvedMonth); XCTAssertEqual(day,approvedDay)
             return sample.2
         })
     }
@@ -210,7 +213,7 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         XCTAssertNil(store.held); XCTAssertEqual(sheet.applied,1); XCTAssertEqual(store.markers[s.2.markerID]?["metadataKey"] as? String,PeriodBankAppend.guardKey)
         let terminal = try XCTUnwrap(try JSONSerialization.jsonObject(with:XCTUnwrap(store.blobs[b.receiptID])) as? Object)
         XCTAssertEqual(terminal["kind"] as? String,"needs-review")
-        let replay = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.scope,observe:sheet.observe)
+        let replay = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.periodScope,observe:sheet.observe)
         XCTAssertEqual(replay?.phase,.needsReview); XCTAssertEqual(replay?.manuallyClosed,true)
         let same = try sample(followingPosting:true)
         do { _ = try await service(same,store).reserve(same.2,owner:owner); XCTFail("Manual receipt allowed a new import of the same source") }
@@ -312,13 +315,72 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         }
     }
 
+    func testChangedDownloadDayCannotReimportAnIdenticalOriginalWhosePostedAmountWasEdited() async throws {
+        let store = Memory(), sheet = Sheet(store), original = try sample(), fresh = try sample(followingPosting:true)
+        let first = service(original,store)
+        _ = try await first.reserve(original.2,owner:owner)
+        let later = "2027-02-15", old = try XCTUnwrap(store.held), packet = try await packets(original.2,sheet:sheet)
+        func reopen(_ account: String) async throws -> Journal.Status? {
+            try await Journal.recover(owner:owner,api:api,sourceSHA256:original.0.id,account:account,month:month,downloadDay:later,store:store,observe:sheet.observe)
+        }
+        let prepared = try await reopen(account)
+        XCTAssertEqual(prepared?.phase,.prepared); XCTAssertEqual(prepared?.ticket,old.ticket); XCTAssertEqual(prepared?.downloadDay,day)
+        do { _ = try await service(original,store,expectedTicket:old.ticket,reviewDay:later).reserve(original.2,owner:owner); XCTFail("Altered saved approval") } catch {}
+        try await first.markDispatched(original.2,owner:owner); try sheet.apply(packet)
+        let saved = try await Journal.lookup(owner:owner,api:api,store:store,digest:old.digest,scope:nil,observe:sheet.observe)
+        XCTAssertEqual(saved?.phase,.verified); XCTAssertEqual(original.0.bytes,fresh.0.bytes)
+        sheet.cells[6] = ["userEnteredValue":["numberValue":-99.99]]; store.entryFacts[0][6] = -99.99
+        let previous = try await reopen(account), anotherAccount = try await reopen("ACC-OTHER")
+        XCTAssertEqual(previous?.phase,.needsReview); XCTAssertEqual(previous?.ticket,old.ticket); XCTAssertNil(anotherAccount)
+        let wrongDay = service(fresh,store,observation:sheet.observe,reviewDay:later)
+        do { _ = try await wrongDay.reserve(fresh.2,owner:owner); XCTFail("Changing only the download day allowed another confirm") } catch {}
+        XCTAssertNil(store.held); XCTAssertEqual(store.generated,1); XCTAssertEqual(sheet.applied,1)
+        // The first device's receipt can become visible between a second device's search and its acquisition.
+        store.omitNextPeriodResult = true
+        _ = try await wrongDay.reserve(fresh.2,owner:owner)
+        let raced = try XCTUnwrap(store.held)
+        do { try await wrongDay.markDispatched(fresh.2,owner:owner); XCTFail("Skipped cross-day evidence under the winning hold") } catch {}
+        XCTAssertNil(store.blobs[raced.actionID]); XCTAssertEqual(sheet.applied,1)
+    }
+
+    func testSameRetainedFileCanPostDistinctCalendarMonthsAndScopesDoNotCrossHouseholds() async throws {
+        let store = Memory(), sheet = Sheet(store), feb = try sample("FEB CAFE"), mar = try sample("MAR CAFE",followingPosting:true)
+        let bytes = String(decoding:feb.0.bytes,as:UTF8.self) + "02/03/2027,MAR CAFE,Joint,1234,4.5\n"
+        let source = SourceDocument(name:"two months.csv",mimeType:"text/csv",bytes:Data(bytes.utf8)), pickedDay = "2027-03-15"
+        func posting(_ sourcePlan: Object, period: String, rowDate: String) async throws -> BankBinding {
+            var plan = sourcePlan, write = try XCTUnwrap((sourcePlan["writes"] as? [Object])?.first)
+            var row = try XCTUnwrap((write["values"] as? [[Any]])?.first)
+            row[2] = rowDate; row[12] = rowDate; write["values"] = [row]; plan["writes"] = [write]
+            let batch = try PeriodBankAppend(plan:plan,sheetID:selected.sheetID,account:account,original:source,originalSHA256:source.id)
+            let j = service((source,plan,batch),store,reviewDay:pickedDay,reviewMonth:period)
+            _ = try await j.reserve(batch,owner:owner); let b = try XCTUnwrap(store.held)
+            let packet = try await packets(batch,sheet:sheet)
+            try await j.markDispatched(batch,owner:owner); try sheet.apply(packet)
+            let result = try await Journal.lookup(owner:owner,api:api,store:store,digest:b.digest,scope:nil,observe:sheet.observe)
+            XCTAssertEqual(result?.phase,.verified)
+            return b
+        }
+        let febReceipt = try await posting(feb.1,period:"2027-02",rowDate:"2027-02-02")
+        let marchReceipt = try await posting(mar.1,period:"2027-03",rowDate:"2027-03-02")
+        XCTAssertEqual(febReceipt.sourceSHA256,marchReceipt.sourceSHA256); XCTAssertEqual(sheet.writtenIDs,["T0002","T0003"])
+        for receipt in [febReceipt,marchReceipt] {
+            let head = try await store.finished(digest:nil,scope:receipt.periodScope)
+            XCTAssertEqual(head,receipt); XCTAssertNil(receipt.replacesTicket)
+        }
+        for (sheetID,person) in [("other_fictional_sheet",selected.permissionID),(selected.sheetID,"other_owner")] {
+            let other = try BankBinding.periodScope(sheet:sheetID,owner:person,source:source.id,account:account,month:month)
+            let history = try await store.finished(digest:nil,scope:other)
+            XCTAssertNil(history)
+        }
+    }
+
     func testExplicitSameFileReplacementUsesFreshIDsAndTheNextReplayResolvesOnlyItsVerifiedSuccessor() async throws {
         let store = Memory(), sheet = Sheet(store), original = try sample()
         let first = service(original,store,observation:sheet.observe)
         _ = try await first.reserve(original.2,owner:owner)
         let old = try XCTUnwrap(store.held), oldPacket = try await packets(original.2,sheet:sheet)
         try await first.markDispatched(original.2,owner:owner); try sheet.apply(oldPacket)
-        let saved = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        let saved = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.periodScope,observe:sheet.observe)
         XCTAssertEqual(saved?.phase,.verified); XCTAssertEqual(store.highestIssued,2)
         let oldReceipt = try XCTUnwrap(store.blobs[old.receiptID])
         // Only the old ID disappeared. Recreated movement under another ID must still block a second copy.
@@ -330,25 +392,27 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         let moved = try await Journal.lookup(owner:owner,api:api,store:store,digest:old.digest,scope:nil,observe:sheet.observe)
         XCTAssertEqual(moved?.phase,.needsReview)
         sheet.baseIDs.removeLast()
-        let removed = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        let removed = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.periodScope,observe:sheet.observe)
         XCTAssertEqual(removed?.phase,.removed); XCTAssertEqual(removed?.removedIDFloor,2)
         let fresh = try sample(issuedFloor:2)
         for wrongTicket in [nil,String(repeating:"f",count:64)] as [String?] {
-            do { _ = try await service(fresh,store,replacesTicket:wrongTicket,observation:sheet.observe).reserve(fresh.2,owner:owner); XCTFail("A new explicit approval is required") } catch {}
+            do { _ = try await service(fresh,store,replacesTicket:wrongTicket,observation:sheet.observe,reviewDay:"2027-02-18").reserve(fresh.2,owner:owner); XCTFail("A new explicit approval is required") } catch {}
             XCTAssertNil(store.held)
         }
-        let successor = service(fresh,store,replacesTicket:old.ticket,observation:sheet.observe)
+        let successor = service(fresh,store,replacesTicket:old.ticket,observation:sheet.observe,reviewDay:"2027-02-18")
         _ = try await successor.reserve(fresh.2,owner:owner)
         let next = try XCTUnwrap(store.held)
         XCTAssertEqual(next.replacesTicket,old.ticket); XCTAssertEqual(next.issuedThrough,3)
-        let pending = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        XCTAssertNotEqual(try old.scope,try next.scope); XCTAssertEqual(try old.periodScope,try next.periodScope)
+        let pending = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.periodScope,observe:sheet.observe)
         XCTAssertEqual(pending?.pendingIDFloor,2)
         _ = try await successor.replan(fresh.2,owner:owner)
         let packet = try await packets(fresh.2,sheet:sheet)
         try await successor.markDispatched(fresh.2,owner:owner); try sheet.apply(packet)
-        let done = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        let done = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.periodScope,observe:sheet.observe)
         XCTAssertEqual(done?.phase,.verified); XCTAssertEqual(done?.ticket,next.ticket); XCTAssertNil(store.held)
-        let replay = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try old.scope,observe:sheet.observe)
+        let replay = try await Journal.recover(owner:owner,api:api,sourceSHA256:original.0.id,account:account,month:month,
+                                               downloadDay:"2027-02-24",store:store,observe:sheet.observe)
         XCTAssertEqual(replay?.digest,next.digest); XCTAssertEqual(store.highestIssued,3)
         XCTAssertEqual(sheet.writtenIDs,["T0003"]); XCTAssertThrowsError(try sheet.apply(oldPacket))
         XCTAssertEqual(store.blobs[old.receiptID],oldReceipt); XCTAssertNotNil(store.blobs[next.receiptID])
@@ -378,12 +442,12 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         XCTAssertEqual(issued,2)
         do { _ = try await Journal.legacyIssuedNumber(digest:b.digest,id:999,tab:8,store:store,api:api); XCTFail("Wrong permanent ID accepted") } catch {}
         let originalReceipt = store.blobs[b.receiptID]
-        let removed = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.scope,observe:sheet.observe)
+        let removed = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.periodScope,observe:sheet.observe)
         XCTAssertEqual(removed?.phase,.removed); XCTAssertEqual(removed?.removedIDFloor,2)
         store.highestIssued = issued
         let fresh = try sample(issuedFloor:issued), j = service(fresh,store,replacesTicket:b.ticket,observation:sheet.observe)
         _ = try await j.reserve(fresh.2,owner:owner); let successor = try XCTUnwrap(store.held)
-        let pending = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.scope,observe:sheet.observe)
+        let pending = try await Journal.lookup(owner:owner,api:api,store:store,digest:nil,scope:try b.periodScope,observe:sheet.observe)
         XCTAssertEqual(pending?.pendingIDFloor,2)
         let secondDevice = service(fresh,store,expectedTicket:successor.ticket,observation:sheet.observe)
         _ = try await secondDevice.reserve(fresh.2,owner:owner); try await secondDevice.markDispatched(fresh.2,owner:owner)
@@ -425,6 +489,51 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         do { _ = try await rest.issuedTransactionNumber(); XCTFail("Incomplete metadata search accepted") } catch {}
     }
 
+    func testDayIndependentDriveLookupFindsRenamedPreIndexReceiptsAndRefusesMissingOrConflictingEvidence() async throws {
+        let s = try sample(), apiHTTP = HTTP()
+        let rest = GoogleBankStore(api:.init(http:apiHTTP,selected:selected,current:{self.selected},token:{_ in "offline"}))
+        let old = BankBinding(version:2,sheetID:selected.sheetID,owner:selected.permissionID,account:account,sourceSHA256:s.0.id,
+            digest:s.2.digest,month:month,downloadDay:day,rowCount:1,sourceID:"original_renamed",manifestID:"legacy_manifest",
+            actionID:"legacy_action",receiptID:"receipt_renamed",receiptMarkerID:s.2.markerID)
+        let key = try old.periodScope
+        let bytes = try JSONSerialization.data(withJSONObject:["kind":"verified","binding":old.object],options:[.sortedKeys,.withoutEscapingSlashes])
+        let tags = ["kittyBankKind":"receipt","kittyBankTerminal":"verified","kittyBankDigest":old.digest,
+                    "kittyBankScope":try old.scope,"kittyBankIntent":old.manifestID]
+        func projection(_ props: [String:String], trashed: Bool = false) -> Object {
+            ["id":old.receiptID,"appProperties":props,"trashed":trashed]
+        }
+        func metadata(_ props: [String:String], trashed: Bool = false) -> Object {
+            ["id":old.receiptID,"name":"Family renamed the receipt.json","mimeType":"application/json","size":String(bytes.count),
+             "appProperties":props,"trashed":trashed,"ownedByMe":true,"owners":[["permissionId":old.owner]],
+             "permissions":[["id":old.owner,"type":"user","role":"owner"]]]
+        }
+        apiHTTP.replies = [try apiHTTP.json(["files":[],"nextPageToken":"migrate"]),try apiHTTP.json(["files":[projection(tags)]]),
+                           try apiHTTP.json(metadata(tags)),.init(statusCode:200,data:bytes)]
+        let found = try await rest.finished(digest:nil,scope:key)
+        XCTAssertEqual(found,old)
+        XCTAssertTrue(apiHTTP.requests.allSatisfy { $0.httpMethod == "GET" })
+        XCTAssertFalse(apiHTTP.requests.contains { $0.url?.path.hasSuffix(old.sourceID) == true })
+        let queries = apiHTTP.requests.compactMap { $0.url.flatMap { URLComponents(url:$0,resolvingAgainstBaseURL:false)?.queryItems } }
+        XCTAssertTrue(queries.contains { $0.contains(URLQueryItem(name:"pageToken",value:"migrate")) })
+        XCTAssertFalse(queries.flatMap { $0 }.contains { $0.name == "q" && ($0.value?.contains("name =") == true) })
+
+        // Another month of the same bytes uses the authenticated legacy route without reopening its JSON.
+        let nextPeriod = try BankBinding.periodScope(sheet:old.sheetID,owner:old.owner,source:old.sourceSHA256,account:old.account,month:"2027-03")
+        apiHTTP.replies = [try apiHTTP.json(["files":[projection(tags)]])]
+        let other = try await rest.finished(digest:nil,scope:nextPeriod)
+        XCTAssertNil(other); XCTAssertEqual(apiHTTP.requests.count,5)
+        // A new index cannot be used as evidence when it contradicts the receipt's immutable approved binding.
+        var wrong = tags; wrong["kittyBankPeriod"] = nextPeriod
+        apiHTTP.replies = [try apiHTTP.json(["files":[projection(wrong)]]),try apiHTTP.json(metadata(wrong)),.init(statusCode:200,data:bytes)]
+        do { _ = try await rest.finished(digest:nil,scope:nextPeriod); XCTFail("A conflicting private period index was accepted") } catch {}
+        apiHTTP.replies = [try apiHTTP.json(["files":[projection(tags,trashed:true)]]),try apiHTTP.json(metadata(tags,trashed:true)),.init(statusCode:200,data:bytes)]
+        do { _ = try await rest.finished(digest:nil,scope:key); XCTFail("Trashing a receipt made the bank file new") } catch {}
+        apiHTTP.replies = [try apiHTTP.json(["files":[projection(tags)]]),try apiHTTP.json([:],code:404)]
+        do { _ = try await rest.finished(digest:nil,scope:key); XCTFail("An unavailable matching receipt was ignored") } catch {}
+        apiHTTP.replies = [try apiHTTP.json(["files":[],"incompleteSearch":true])]
+        do { _ = try await rest.finished(digest:nil,scope:key); XCTFail("An incomplete search was treated as an empty history") } catch {}
+    }
+
     func testGenerationRefusesAnyRemainingArchivedIDOrEntryDecisionAndRequiresAuthenticCompleteEvidence() async throws {
         let store = Memory(), basic = try sample(), scan = SlotScan(selected.sheetID)
         let text = String(decoding:basic.0.bytes,as:UTF8.self) + "03/02/2027,SECOND,Joint,1234,2.50\n"
@@ -442,6 +551,16 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         let receipt = try JSONSerialization.data(withJSONObject:["kind":"verified","binding":old.object],options:[.sortedKeys,.withoutEscapingSlashes])
         store.blobs[old.receiptID] = receipt
         store.held = nil
+        let partial = Sheet(store); partial.writtenIDs = ["T0002"]; store.entryFacts = [Array(row.prefix(7))]
+        let later = "2027-02-28"
+        let previous = try await Journal.recover(owner:owner,api:api,sourceSHA256:source.id,account:account,month:month,
+                                                  downloadDay:later,store:store,observe:partial.observe)
+        XCTAssertEqual(previous?.phase,.needsReview); XCTAssertEqual(previous?.ticket,old.ticket)
+        let partialPlan = try sample("SECOND",cents:2.50,followingPosting:true,issuedFloor:3).1
+        let partialBatch = try PeriodBankAppend(plan:partialPlan,sheetID:selected.sheetID,account:account,original:source,originalSHA256:source.id)
+        let partialReview = service((source,partialPlan,partialBatch),store,observation:partial.observe,reviewDay:later)
+        do { _ = try await partialReview.reserve(partialBatch,owner:owner); XCTFail("Another day hid a partially removed import") } catch {}
+        XCTAssertNil(store.held); XCTAssertEqual(store.generated,1)
         let next = try sample("NEW CAFE"), nextJournal = service(next,store,scanAPI:scanAPI(scan))
         func refused(_ code: String? = nil) async throws {
             do { _ = try await nextJournal.reserve(next.2,owner:owner); XCTFail("Unproved slot reuse was allowed") }
@@ -474,7 +593,7 @@ final class GooglePeriodBankJournalTests: XCTestCase {
         journalStore.loseActionResponse = true
         do { try await a.markDispatched(sample.2,owner:owner); XCTFail("An unknown claim must not dispatch") } catch {}
         do { try await b.markDispatched(sample.2,owner:owner); XCTFail("A second observer must not dispatch") } catch {}
-        let read = try await Journal.lookup(owner:owner,api:api,store:journalStore,digest:nil,scope:try hold.scope,observe:sheet.observe)
+        let read = try await Journal.lookup(owner:owner,api:api,store:journalStore,digest:nil,scope:try hold.periodScope,observe:sheet.observe)
         XCTAssertEqual(read?.phase,.dispatched); XCTAssertEqual(sheet.deliveries,0)
         let originalRead = try await sheet.observe(sample.2,owner,api)
         guard case .batch(let originalDelivery) = try sample.2.next(originalRead,stage:.prepared,freshlyPlanned:sample.2) else { return XCTFail() }
@@ -484,7 +603,7 @@ final class GooglePeriodBankJournalTests: XCTestCase {
                 try sheet.apply(originalDelivery); try sheet.apply(requests)
             })
         XCTAssertEqual(recovered.phase,.verified); XCTAssertEqual(sheet.applied,1); XCTAssertEqual(sheet.deliveries,2); XCTAssertNil(journalStore.held)
-        let historical = try await Journal.lookup(owner:owner,api:api,store:journalStore,digest:nil,scope:try hold.scope,observe:sheet.observe)
+        let historical = try await Journal.lookup(owner:owner,api:api,store:journalStore,digest:nil,scope:try hold.periodScope,observe:sheet.observe)
         XCTAssertEqual(historical?.phase,.verified); XCTAssertEqual(sheet.deliveries,2)
         journalStore.blobs[hold.sourceID] = Data("tampered".utf8)
         do { _ = try await Journal.lookup(owner:owner,api:api,store:journalStore,digest:hold.digest,scope:nil,observe:sheet.observe); XCTFail("Changed archive accepted") } catch {}
