@@ -15,6 +15,7 @@
     const rows = (list, pending) => list.map(r=>'<li><b>'+esc(r.signedAmount)+' '+esc(s.currency)+'</b> · '+esc(r.date)+' · '+esc(r.raw)+
       (pending ? ' · '+esc(r.id)+' · '+esc(r.merchant)+' · '+esc(r.category)+' · '+esc(r.person) : '')+' · source row '+esc(r.line)+'</li>').join("");
     const outside=s.outside.reduce((a,x)=>a+(x.earlier||0)+(x.later||0),0);
+    const outsideRows=s.outside.flatMap(window=>window.rows||[]);
     const detail=(title,content)=>content?'<details><summary>'+esc(title)+'</summary>'+content+'</details>':'';
     const list = a => a.length ? '<ul>'+a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>' : '';
     return '<h3>'+ (s.status==="ready" ? (s.proposedCount?"Review proposed changes":"No new bank entries"):"Check this source before importing") +'</h3>'+
@@ -22,6 +23,7 @@
       '<p>'+(Number.isInteger(s.sourceRows)?esc(s.sourceRows)+' source rows · ':'')+esc(s.proposedCount)+' proposed · '+esc(s.duplicateCount)+' already in this Sheet'+(outside?' · '+esc(outside)+' outside the selected month':'')+'.</p>'+
       (s.rows.length?'<ol>'+rows(s.rows,true)+'</ol>':'')+
       detail('Already in this Sheet ('+s.duplicates.length+')',s.duplicates.length?'<ul>'+rows(s.duplicates,false)+'</ul>':'')+
+      (outsideRows.length?'<details'+(outsideRows.length<=3?' open':'')+'><summary>Outside the selected month ('+esc(outsideRows.length)+')</summary><ul aria-label="Outside the selected month">'+rows(outsideRows,false)+'</ul></details>':'')+
       list(s.faults.concat(s.holds)) + (s.restriction?'<p>'+esc(s.restriction)+'</p>':'')+
       detail('Review notes',list(s.review))+
       (s.checks.length?'<p>'+s.checks.map(c=>esc(c.unchecked?'Balance check: '+c.unchecked:'Closing balance '+c.day+': '+c.printed+' printed, '+c.ledger+' in the ledger')).join('<br>')+'</p>':'')+
@@ -65,8 +67,15 @@
     q("iffile")?.addEventListener("change",e=>{const picked=e.target.files[0];if(picked)receive(()=>browserFile(picked));});
     function details(){return {sourceID:file.id,name:file.name,byteLength:file.byteLength,mimeType:file.mimeType,account:account.value,month:month.value,downloadDay:date.value};}
     function verified(r){return r?.status==="verified" && /^[a-f0-9]{64}$/.test(r.digest);}
+    function revealReview(){
+      const heading=result.querySelector?.("h3");
+      if(!heading)return;
+      heading.tabIndex=-1;heading.style.scrollMarginBlockStart="1rem";
+      heading.focus({preventScroll:true});heading.scrollIntoView({block:"start",behavior:"instant"});
+    }
     function showReceipt(r,s){ if(!verified(r))throw Error("The Sheet receipt has not been verified. Preview the same original to check again.");
-      result.innerHTML='<h3>Verified import</h3><p>'+esc(r.message||"The saved receipt and the exact Sheet rows were checked.")+'</p><p>'+esc(s.duplicateCount)+' already in this Sheet at preview.</p><code style="overflow-wrap:anywhere">'+esc(r.digest)+'</code>'; }
+      result.innerHTML='<h3>Verified import</h3><p>'+esc(r.message||"The saved receipt and the exact Sheet rows were checked.")+'</p><p>'+esc(s.duplicateCount)+' already in this Sheet at preview.</p><details><summary>Verification receipt</summary><code style="overflow-wrap:anywhere">'+esc(r.digest)+'</code></details>';
+      revealReview(); }
     preview.addEventListener("click",async()=>{
       if(busy||!mounted())return;
       stale();const turn=revision;
@@ -86,6 +95,7 @@
         if(!s||Object.entries(request).some(([k,v])=>s[k]!==v)||!Array.isArray(s.rows)||s.rows.length!==s.proposedCount||!Array.isArray(s.duplicates)||s.duplicates.length!==s.duplicateCount)throw Error("The preview does not match this original, account and period. Choose Preview import again.");
         result.innerHTML=summaryHTML(s);
         if(response.mode==="verified"){showReceipt(response.receipt,s);return;}
+        revealReview();
         const explain=document.createElement("p");
         explain.textContent=response.message||(response.mode==="pending"?"A previous import is still being checked.":!host.commit?"This is a preview. No Sheet rows were written.":s.proposedCount===0?"No Sheet rows were written.":"Check the complete preview before saving.");
         result.append(explain);
@@ -98,21 +108,27 @@
           destination.textContent="Your private Google Drive will keep the full original CSV, including duplicates, other columns and rows outside this month, and its import record. The reviewed entries will go into “"+host.title+"”, where anyone with access to that Sheet can read them.";
           result.append(destination);
         }
-        const button=document.createElement("button");button.type="button";button.className="btn";button.textContent=label;result.append(button);
-        button.onclick=async()=>{
+        function addAction(label, ticket, discard){
+          const button=document.createElement("button");button.type="button";button.className=discard?"btn ghost":"btn";button.textContent=label;result.append(button);
+          button.onclick=async()=>{
           if(busy||!mounted()||revision!==turn||JSON.stringify(details())!==JSON.stringify(request))return;
           lock(true);button.disabled=true;
           try{
-            const reply=await (response.mode==="stale"?host.cancel(response.ticket):host.commit(response.ticket));
+            const reply=await (discard?host.cancel(ticket):host.commit(ticket));
             if(!mounted()||revision!==turn)return;
-            if(response.mode==="stale"){
+            if(discard){
               if(verified(reply)){showReceipt(reply,s);return;}
+              if(reply?.status==="needsReview"){result.textContent=reply.message;return;}
               if(reply?.status!=="cancelled")throw Error("Cancellation was not confirmed. Preview the original to check the receipt.");
-              result.textContent="Outdated review discarded. Choose Preview import to check current rows.";
+              result.textContent=reply.message||"Unfinished import discarded. Choose Preview import to check current rows.";
             }else showReceipt(reply,s);
           }catch(e){if(mounted()&&revision===turn)result.textContent=e.message||"No verified receipt yet. Preview this same file to check its status.";}
           finally{lock(false);}
-        };
+          };
+        }
+        addAction(label,response.ticket,response.mode==="stale");
+        if(response.mode!=="stale" && host.cancel && typeof response.discardTicket==="string")
+          addAction("Discard unfinished import",response.discardTicket,true);
       }catch(e){if(mounted()&&turn===revision)result.textContent=e.message||"The import could not be prepared. No new write was requested.";}
       finally{lock(false);}
     });

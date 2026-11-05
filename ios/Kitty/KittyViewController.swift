@@ -17,6 +17,8 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     private let importPicker = ImportFilePicker()
     private let bankImport = NativeBankImport()
     private var pageReady = false
+    private let startupIndicator = UIActivityIndicatorView(style:.medium)
+    private var blockerInstalled = false
     private lazy var google = GoogleConnection(defaults: preferences)
     private var verifiedSheet: GoogleSheetSelection.Verified?
     private var liveSheet: GoogleSheetSelection.Verified?
@@ -61,6 +63,9 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
         configuration.userContentController.addScriptMessageHandler(
             HostMessages(owner: self), contentWorld: .page, name: "kitty")
         webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.isOpaque = false
+        webView.backgroundColor = KittyTokens.background
+        webView.scrollView.backgroundColor = KittyTokens.background
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -76,6 +81,14 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
+        startupIndicator.translatesAutoresizingMaskIntoConstraints = false
+        startupIndicator.color = KittyTokens.text
+        startupIndicator.isAccessibilityElement = true
+        startupIndicator.accessibilityLabel = "Opening The Kitty"
+        view.addSubview(startupIndicator)
+        NSLayoutConstraint.activate([startupIndicator.centerXAnchor.constraint(equalTo:view.centerXAnchor),
+                                     startupIndicator.centerYAnchor.constraint(equalTo:view.centerYAnchor)])
+        startupIndicator.startAnimating()
         NotificationCenter.default.addObserver(self, selector: #selector(environmentChanged),
                                                name: UIContentSizeCategory.didChangeNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(environmentChanged),
@@ -88,15 +101,27 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
         }
         // CSP in the bundle blocks network assets/fetches. A WebKit rule is defense in depth.
         let rules = "[{\"trigger\":{\"url-filter\":\"^https?://\"},\"action\":{\"type\":\"block\"}}]"
-        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "KittyOffline", encodedContentRuleList: rules) { [weak self] list, error in
+        guard let store = WKContentRuleListStore.default() else {
+            showFailure("The Kitty couldn't open its offline resources. Close and reopen the app.")
+            return
+        }
+        let identifier = "KittyBlockRemoteHTTPAndHTTPS-v1"
+        let useRules: (WKContentRuleList?, Error?) -> Void = { [weak self] list, error in
             guard let self else { return }
             guard let list, error == nil else {
                 self.showFailure("The Kitty couldn't prepare its offline page. Close and reopen the app.")
                 return
             }
             self.webView.configuration.userContentController.add(list)
+            self.blockerInstalled = true
             // All resources are inline: no access to sibling files or document directories.
             self.webView.loadFileURL(pageURL, allowingReadAccessTo: pageURL)
+        }
+        // Install the blocker before opening the bundle. WebKit can reuse the compiled
+        // rules across launches instead of recompiling them whenever the app opens.
+        store.lookUpContentRuleList(forIdentifier:identifier) { list, _ in
+            if let list { useRules(list,nil) }
+            else { store.compileContentRuleList(forIdentifier:identifier,encodedContentRuleList:rules,completionHandler:useRules) }
         }
     }
 
@@ -129,6 +154,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     }
 
     private func showFailure(_ message: String) {
+        startupIndicator.stopAnimating()
         let label = UILabel()
         label.textColor = KittyTokens.text
         label.text = message
@@ -167,6 +193,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        startupIndicator.stopAnimating()
         if let reset = shieldNavigation, reset === navigation { shieldNavigation = nil; uncoverLive() }
         pageReady = true
         environmentChanged()
@@ -175,6 +202,9 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         pageReady = false
+        bankImport.clear()
+        importPicker.cancel()
+        guard blockerInstalled else { return }
         let recover = { [weak self] in
             guard let self else { return }
             self.finishExport(HostPolicy.failure("cancelled", "The page restarted. Please export again."))
@@ -262,7 +292,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 guard let self else { return false }
                 return self.liveSession == session && (self.liveSheet?.preferenceID ?? "native-demo") == owner
             },reply:{ reply($0,nil) })
-        case "files.bank-preview", "files.bank-commit", "files.bank-cancel":
+        case "files.bank-preview", "files.bank-commit", "files.bank-cancel", "files.bank-status", "files.bank-manual":
             guard let owner = liveSheet, owner.canImportBankFiles, owner.selection.sheetID != GoogleSheetSelection.demoFileID,
                   !choosingSheet, privacy.permitsLive, shield == nil, google.selection == owner.selection,
                   params["session"] as? String == liveSession.uuidString, params["sheetID"] as? String == owner.selection.sheetID else {
@@ -276,7 +306,10 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             Task { @MainActor in
                 do {
                     let result: [String:Any]
-                    if method == "files.bank-preview" {
+                    if method == "files.bank-status" {
+                        guard Set(params.keys) == ["session","sheetID"] else { throw api.invalid }
+                        result = try await bankImport.outstanding(session:session,owner:owner,api:api)
+                    } else if method == "files.bank-preview" {
                         guard let account = params["account"] as? String, let month = params["month"] as? String,
                               let day = params["downloadDay"] as? String else { throw api.invalid }
                         let original = try importPicker.reviewedOriginal(params:params,scope:owner.preferenceID)
@@ -284,8 +317,12 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                                                                session:session,owner:owner,api:api)
                     } else {
                         guard Set(params.keys) == ["session","sheetID","ticket"], let ticket = params["ticket"] as? String else { throw api.invalid }
-                        result = try await bankImport.finish(ticket:ticket,cancel:method == "files.bank-cancel",session:session,
-                                                             owner:owner,api:api)
+                        if method == "files.bank-manual" {
+                            result = try await bankImport.closeForReview(ticket:ticket,session:session,owner:owner,api:api)
+                        } else {
+                            result = try await bankImport.finish(ticket:ticket,cancel:method == "files.bank-cancel",session:session,
+                                                                 owner:owner,api:api)
+                        }
                     }
                     try api.check(); reply(HostPolicy.reply(result), nil)
                 } catch { reply(googleFailure(error),nil) }

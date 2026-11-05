@@ -12,6 +12,8 @@ The native picker retains the selected bytes in the household’s protected loca
 
 An exclusive hold in Sheets and immutable files in the owner’s Drive coordinate phones. Kitty retrieves the original from Drive, rehashes it and replans under that hold before sending an atomic Sheets batch. The batch writes literal text, numeric amounts and date cells with a unique receipt marker. Kitty rereads the typed cells and receipt before showing success. A later check on another device can recover the same receipt. If the first request never arrived, explicit **Resume verified import** can deliver only the previously approved, fenced batch.
 
+Use **Setup → Check unfinished import** if a phone lost its connection or the original file is no longer in Files. The owner can discard a prepared review or stop an unresolved submission. Google must either return the original saved entries or permanently block that specific delayed batch before Kitty releases the hold. Later edits to a category are identified as edits to a previously verified import. If Google recorded the batch and the underlying entries changed before verification, the owner can **Close for manual review**. That records the discrepancy, preserves the entries and permits other imports.
+
 This path supports ordinary single-account transaction appends. A source that also needs a balance adjustment, transfer repair or another type of write stays in review. Blank signed amounts, an ambiguous literal apostrophe before a spreadsheet formula character and incomplete ledger reads stop confirmation.
 
 ## Reproduce the checks

@@ -1082,6 +1082,32 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       pick:files?()=>files.pick():null,preview:eligible?request=>files.previewBank(request):null,
       commit:eligible?ticket=>files.commitBank(ticket):null,cancel:eligible?ticket=>files.cancelBank(ticket):null});
   }
+  async function checkUnfinishedBankImport() {
+    const selected = S.nativeSheet, files = window.KittyNative?.files;
+    if (!selected?.canImportBankFiles || !files?.outstandingBank) return;
+    openDrawer(h2("Unfinished bank import",esc(selected.title)) + '<p id="bank-recovery" role="status">Checking the saved import in Google…</p><button class="btn sm ghost" id="bank-discard" hidden>Discard unfinished import</button>');
+    const status = $("#bank-recovery"), button = $("#bank-discard");
+    const current = () => status.isConnected && S.nativeSheet?.session === selected.session;
+    try {
+      const response = await files.outstandingBank();
+      if (!current()) return;
+      const details = response.month && response.account ? response.month+" · "+response.account+" · "+response.rowCount+" reviewed rows. " : "";
+      status.textContent = details + (response.message || "Open the original file to check this import.");
+      const manual = response.manualTicket;
+      if (!manual && !response.discardTicket) return;
+      if (manual) button.textContent = "Close for manual review";
+      button.hidden = false;
+      button.onclick = async () => {
+        if (!current() || button.disabled) return;
+        button.disabled = true;
+        try {
+          const reply = manual ? await files.reviewBankManually(manual) : await files.cancelBank(response.discardTicket);
+          if(current()) status.textContent = reply.message || "Check the result in Google.";
+        } catch(e) { if(current()) status.textContent = e.message || "Check the unfinished import again."; }
+        finally { if(current()) button.hidden = true; }
+      };
+    } catch(e) { if(current()) status.textContent = e.message || "Google could not check the saved import."; }
+  }
   function renderNativeSetup() {
     const m = S.m, v = $("#v-setup");
     const live = S.mode === "live" && !!S.nativeSheet;
@@ -1106,6 +1132,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       ${window.KittyNative?.privacy ? `<div class="card"><div class="cardhead"><span class="q">Lock your live Sheet</span></div><p>${googlePicker.lockEnabled ? "On. Leaving Kitty locks the live Sheet. Use Face ID, Touch ID or your device passcode to reopen it." : "Require Face ID, Touch ID or your passcode when you return to your live numbers. The fictional offline demo stays available."}</p><button id="nativelock" class="btn sm ghost" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.lockEnabled ? "Turn off Sheet lock" : "Turn on Sheet lock"}</button><p role="status">${esc(googlePicker.privacyMessage)}</p></div>` : ""}
       <div class="card"><div class="cardhead"><span class="q">Bank imports</span></div><p>${live && S.nativeSheet.canImportBankFiles ? "Choose a bank CSV from Files. Review the entries before saving them to your Sheet." : esc(S.nativeSheet?.bankImportHint || "Preview the file here. To save entries, open a private v2 Sheet you own.")}</p>
         <button class="btn sm" data-import-file>Import a bank file</button>
+        ${live && S.nativeSheet.canImportBankFiles ? `<button class="btn sm ghost" id="checkbank">Check unfinished import</button>` : ""}
         ${!live || S.nativeSheet.isPracticeCopy ? `<button class="btn sm ghost" id="practicesample">Save a sample CSV…</button>` : ""}</div>
       ${appearanceCard(m)}
       <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
@@ -1121,6 +1148,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $("#nativepick", v).addEventListener("click", () => chooseNativeSheet("demo"));
     $("#nativeown", v).addEventListener("click", () => chooseNativeSheet("own"));
     $("#nativepractice", v)?.addEventListener("click", () => chooseNativeSheet("practice"));
+    $("#checkbank", v)?.addEventListener("click", checkUnfinishedBankImport);
     $("#openpractice", v)?.addEventListener("click", () => chooseNativeSheet("practice-open"));
     $("#practicesample", v)?.addEventListener("click", async () => {
       try { await window.KittyNative.files.savePracticeSample(); toast("Sample CSV saved to Files."); }

@@ -11,6 +11,9 @@ struct PeriodBankAppend {
     enum Failure: String, Error { case unsupportedPlan, invalidPlan, invalidSource, ambiguousSourceText, missingSignedAmount, staleLedger, ambiguousWrite, unverifiedRows }
     enum Stage { case prepared, dispatched }
     enum Next { case batch([Object]), waitingForReadback, verified }
+    enum ReceiptState { case absent, current, recategorised, changed, foreign }
+    static let manifestAmountEncoding = "integer-cents-v1"
+    private static let maxCents: Int64 = 100_000_000_000_000
     static let columns = ["Entry ID", "Kind", "Settled at", "Account ID", "Raw text", "Description", "Amount", "Category ID", "Person", "Receipt held", "Note", "Status", "Created at", "Transfer ID", "Transfer account", "Foreign amount", "Foreign currency", "Units", "Unit price", "Source"]
     static let guardKey = "kitty.period.bank.v1"
     let sheetID: String
@@ -19,7 +22,7 @@ struct PeriodBankAppend {
     let firstRow: Int
     let rows: [Row]
     let digest: String
-    let markerID: Int
+    private(set) var markerID: Int
     private let previousID: String?
     private let previousNumber: Int
     var lastRow: Int { firstRow + rows.count - 1 }
@@ -30,22 +33,23 @@ struct PeriodBankAppend {
         fileprivate let cells: [Cell]
     }
     fileprivate enum Cell: Equatable {
-        case blank, text(String), number(Double), date(Int)
+        case blank, text(String), money(Int64), date(Int)
         var entered: Object {
             switch self {
             case .blank: return [:]
             case .text(let text): return ["stringValue": text]
-            case .number(let amount): return ["numberValue": amount]
+            case .money(let cents): return ["numberValue": Double(cents) / 100]
             case .date(let serial): return ["numberValue": serial]
             }
         }
         func matches(_ cell: Object) -> Bool {
+            guard cell["userEnteredValue"] == nil || cell["userEnteredValue"] is Object else { return false }
             let actual = cell["userEnteredValue"] as? Object ?? [:]
             if case .blank = self { return actual.isEmpty || (actual.count == 1 && actual["stringValue"] as? String == "") }
             guard actual.count == 1 else { return false }
             switch self {
-            case .text(let text): return actual["stringValue"] as? String == text
-            case .number(let amount): return PeriodBankAppend.number(actual["numberValue"]) == amount
+            case .text(let text): return (actual["stringValue"] as? String)?.utf8.elementsEqual(text.utf8) == true
+            case .money(let cents): return PeriodBankAppend.cents(actual["numberValue"]) == cents
             case .date(let serial):
                 let format = cell["userEnteredFormat"] as? Object
                 return PeriodBankAppend.number(actual["numberValue"]) == Double(serial) && (format?["numberFormat"] as? Object)?["type"] as? String == "DATE"
@@ -95,9 +99,8 @@ struct PeriodBankAppend {
                         return .date(serial)
                     }
                     if col == 6 {
-                        guard let amount = Self.number(item), abs(amount) <= 1_000_000_000_000,
-                              (amount * 100).rounded() / 100 == amount else { throw Failure.invalidPlan }
-                        return .number(amount)
+                        guard let cents = Self.cents(item) else { throw Failure.invalidPlan }
+                        return .money(cents)
                     }
                     guard var text = item as? String, text.utf8.count <= 50_000 else { throw Failure.invalidPlan }
                     // After source validation, the planner's USER_ENTERED escape can be removed for typed stringValue.
@@ -150,6 +153,74 @@ struct PeriodBankAppend {
         guard let n = raw as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID(), n.doubleValue.isFinite else { return nil }
         return n.doubleValue
     }
+
+    /// New manifests persist integer cents. A legacy Foundation JSON writer emitted the 17-digit
+    /// spelling of a binary Double. NSDecimalNumber.doubleValue can misread even that exact spelling.
+    private static func cents(_ raw: Any?) -> Int64? {
+        guard let n = raw as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() else { return nil }
+        let decimal = n as? NSDecimalNumber
+        let value = decimal.flatMap { Double($0.stringValue) } ?? n.doubleValue
+        guard value.isFinite, abs(value) <= Double(maxCents) / 100 else { return nil }
+        let candidate = Int64((value * 100).rounded(.toNearestOrEven))
+        let dollars = Double(candidate) / 100
+        guard dollars == value else { return nil } // Subcent values cannot pass by rounding.
+        if let decimal, decimal.decimalValue != Decimal(candidate) / 100 {
+            let legacySpelling = String(format: "%.17g", dollars)
+            guard let legacy = Decimal(string: legacySpelling, locale: Locale(identifier: "en_US_POSIX")),
+                  legacy == decimal.decimalValue else { return nil }
+        }
+        return candidate
+    }
+
+    private static func mapAmounts(_ plan: Object, _ transform: (Any) throws -> Any) throws -> Object {
+        guard let writes = plan["writes"] as? [Object], !writes.isEmpty else { throw Failure.invalidPlan }
+        var mapped = plan
+        mapped["writes"] = try writes.map { write -> Object in
+            guard write["tab"] as? String == "Entries", write["op"] as? String == "append",
+                  write["columns"] as? [String] == columns, let rows = write["values"] as? [[Any]] else { throw Failure.invalidPlan }
+            var result = write
+            result["values"] = try rows.map { row -> [Any] in
+                guard row.count == columns.count else { throw Failure.invalidPlan }
+                var cells = row
+                cells[6] = try transform(row[6])
+                return cells
+            }
+            return result
+        }
+        return mapped
+    }
+
+    static func planForManifest(_ plan: Object) throws -> Object {
+        try mapAmounts(plan) { value in
+            guard let minor = cents(value) else { throw Failure.invalidPlan }
+            return minor
+        }
+    }
+
+    static func restoredPlan(_ plan: Object, amountEncoding: Any?) throws -> Object {
+        guard amountEncoding == nil || amountEncoding as? String == manifestAmountEncoding else { throw Failure.invalidPlan }
+        return try mapAmounts(plan) { value in
+            let minor: Int64
+            if amountEncoding == nil {
+                guard let legacy = cents(value) else { throw Failure.invalidPlan }
+                minor = legacy
+            } else {
+                guard let n = value as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID(),
+                      let integral = Int64(exactly: n.doubleValue), (-maxCents...maxCents).contains(integral),
+                      n.decimalValue == Decimal(integral) else { throw Failure.invalidPlan }
+                minor = integral
+            }
+            return Double(minor) / 100
+        }
+    }
+
+    func usingMarkerID(_ explicit: Int?) throws -> Self {
+        guard let explicit else { return self }
+        guard (1...Int(Int32.max)).contains(explicit) else { throw Failure.invalidPlan }
+        var copy = self
+        copy.markerID = explicit
+        return copy
+    }
     private static func integer(_ raw: Any?) -> Int? { number(raw).flatMap(Int.init(exactly:)) }
     private static func transactionNumber(_ id: String) -> Int? {
         guard id.first == "T", !id.dropFirst().isEmpty, id.dropFirst().utf8.allSatisfy({ (48...57).contains($0) }) else { return nil }
@@ -168,6 +239,43 @@ struct PeriodBankAppend {
         let marker: Object?
     }
 
+    /// Use historical mode only after authenticating the immutable terminal receipt. These edits
+    /// describe the household's current classification; they cannot prove an initial append.
+    func inspectReceipt(_ seen: Observation, historical: Bool) throws -> ReceiptState {
+        guard seen.sheetID == sheetID, seen.entriesTabID >= 0, seen.firstRow == firstRow else { throw Failure.staleLedger }
+        guard let marker = seen.marker else { return .absent }
+        let location = marker["location"] as? Object
+        guard Self.integer(marker["metadataId"]) == markerID, marker["metadataKey"] as? String == Self.guardKey,
+              marker["metadataValue"] as? String == digest, marker["visibility"] as? String == "DOCUMENT",
+              location?["spreadsheet"] == nil, location?["dimensionRange"] == nil,
+              location?["locationType"] == nil || location?["locationType"] as? String == "SHEET",
+              Self.integer(location?["sheetId"]) == seen.entriesTabID else { return .foreign }
+        guard seen.headers == Self.columns, seen.ids.first == "Entry ID", seen.ids.allSatisfy({ !$0.isEmpty }),
+              Set(seen.ids).count == seen.ids.count, seen.ids.count >= lastRow,
+              Array(seen.ids[(firstRow - 1)..<lastRow]) == rows.map(\.id), seen.cells.count == rows.count,
+              seen.cells.allSatisfy({ $0.count <= Self.columns.count }) else { return .changed }
+        var edited = false
+        for (row, read) in zip(rows, seen.cells) {
+            for (column, expected) in row.cells.enumerated() {
+                let actual = column < read.count ? read[column] : [:]
+                if expected.matches(actual) { continue }
+                guard historical, Self.allowsClassificationEdit(column: column, cell: actual) else { return .changed }
+                edited = true
+            }
+        }
+        return edited ? .recategorised : .current
+    }
+
+    private static func allowsClassificationEdit(column: Int, cell: Object) -> Bool {
+        guard [5, 7, 8, 9, 10].contains(column), cell["userEnteredValue"] == nil || cell["userEnteredValue"] is Object else { return false }
+        let entered = cell["userEnteredValue"] as? Object ?? [:]
+        if entered.isEmpty { return column != 7 }
+        guard entered.count == 1, let text = entered["stringValue"] as? String, text.utf8.count <= 50_000 else { return false }
+        if column == 7 { return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        if column == 9 { return ["", "Y", "N"].contains(text) }
+        return true // Plain merchant display name, person or note. Raw bank description always remains exact.
+    }
+
     /// Only call with .prepared after Drive has archived the original and persisted the reviewed intent.
     /// Supply the result of re-running the shared planner on a fresh complete Sheet, under the shared hold.
     /// The tail alone cannot reveal an edit to an earlier entry, rule or account.
@@ -177,19 +285,12 @@ struct PeriodBankAppend {
               seen.headers == Self.columns, seen.ids.first == "Entry ID", seen.ids.allSatisfy({ !$0.isEmpty }),
               Set(seen.ids).count == seen.ids.count, seen.cells.count <= rows.count,
               seen.cells.allSatisfy({ $0.count <= Self.columns.count }) else { throw Failure.staleLedger }
-        if let marker = seen.marker {
-            let location = marker["location"] as? Object
-            guard Self.integer(marker["metadataId"]) == markerID, marker["metadataKey"] as? String == Self.guardKey,
-                  marker["metadataValue"] as? String == digest, marker["visibility"] as? String == "DOCUMENT",
-                  Self.integer(location?["sheetId"]) == seen.entriesTabID else { throw Failure.ambiguousWrite }
-            guard seen.ids.count >= lastRow,
-                  Array(seen.ids[(firstRow - 1)..<lastRow]) == rows.map(\.id), seen.cells.count == rows.count else { throw Failure.unverifiedRows }
-            for (row, read) in zip(rows, seen.cells) {
-                for (position, cell) in row.cells.enumerated() where !cell.matches(position < read.count ? read[position] : [:]) {
-                    throw Failure.unverifiedRows
-                }
+        if seen.marker != nil {
+            switch try inspectReceipt(seen, historical: false) {
+            case .current: return .verified
+            case .foreign: throw Failure.ambiguousWrite
+            default: throw Failure.unverifiedRows
             }
-            return .verified
         }
         guard seen.ids.count == firstRow - 1, previousID == (seen.ids.count == 1 ? nil : seen.ids.last),
               (seen.ids.compactMap(Self.transactionNumber).max() ?? 0) == previousNumber,

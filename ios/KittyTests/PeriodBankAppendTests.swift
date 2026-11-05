@@ -69,6 +69,81 @@ final class PeriodBankAppendTests: XCTestCase {
         XCTAssertEqual(p.digest, try compile(fixture()).digest)
     }
 
+    func testCentManifestSurvivesFoundationRoundTripsAndRejectsSubcents() throws {
+        func roundTrip(_ object: Object) throws -> Object {
+            let bytes = try JSONSerialization.data(withJSONObject: object, options: .sortedKeys)
+            return try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? Object)
+        }
+        for minor: Int64 in [-7, 7, 0, 115, -99_999_999_999_999] {
+            let amount = Double(minor) / 100, plan = fixture(amount: amount), before = try compile(plan)
+            let persisted = try roundTrip(PeriodBankAppend.planForManifest(plan))
+            let values = try XCTUnwrap((persisted["writes"] as? [Object])?.first?["values"] as? [[Any]])
+            XCTAssertEqual((values[0][6] as? NSNumber)?.int64Value, minor)
+            let restored = try PeriodBankAppend.restoredPlan(persisted, amountEncoding: PeriodBankAppend.manifestAmountEncoding)
+            let legacy = try PeriodBankAppend.restoredPlan(roundTrip(plan), amountEncoding: nil)
+            XCTAssertEqual(try compile(restored).digest, before.digest)
+            XCTAssertEqual(try compile(legacy).digest, before.digest)
+            let (marker, cells) = try receipt(before)
+            // Fake Google encodes then decodes its actual JSON reply, including seven-cent NSDecimalNumbers.
+            let decoded = try XCTUnwrap(roundTrip(["cells": cells])["cells"] as? [Object])
+            XCTAssertEqual(try before.inspectReceipt(observation(before, ledger + ["T0002"], [decoded], marker), historical: false), .current)
+        }
+        XCTAssertEqual(try compile(fixture(amount: -0.0)).digest, try compile(fixture(amount: 0)).digest)
+        for value in [NSDecimalNumber(string: "0.005"), NSDecimalNumber(string: "-0.007"),
+                      NSDecimalNumber(string: "0.07000000000000003"), NSDecimalNumber(string: "0.070000000000000000001")] {
+            var plan = fixture(), writes = try XCTUnwrap(plan["writes"] as? [Object])
+            var rows = try XCTUnwrap(writes[0]["values"] as? [[Any]])
+            rows[0][6] = value; writes[0]["values"] = rows; plan["writes"] = writes
+            XCTAssertThrowsError(try compile(plan))
+            XCTAssertThrowsError(try PeriodBankAppend.planForManifest(plan))
+            XCTAssertThrowsError(try PeriodBankAppend.restoredPlan(plan, amountEncoding: nil))
+            XCTAssertThrowsError(try PeriodBankAppend.restoredPlan(plan, amountEncoding: PeriodBankAppend.manifestAmountEncoding))
+        }
+        XCTAssertThrowsError(try PeriodBankAppend.restoredPlan(fixture(), amountEncoding: "unknown"))
+    }
+
+    func testHistoricalReceiptRequiresItsMarkerAndImmutableSourceCellsAfterHouseholdEdits() throws {
+        let batch = try compile(fixture()), (marker, original) = try receipt(batch), ids = ledger + ["T0002"]
+        func check(_ cells: [Object], historical: Bool, _ idList: [String]? = nil, _ observedMarker: Object? = nil) throws -> PeriodBankAppend.ReceiptState {
+            try batch.inspectReceipt(observation(batch, idList ?? ids, [cells], observedMarker ?? marker), historical: historical)
+        }
+        var edited = original
+        for (column, text) in [(5, "Merchant display"), (7, "GROCERIES"), (8, "Joint partner"), (9, "Y"), (10, "Household note")] {
+            edited[column] = ["userEnteredValue": ["stringValue": text]]
+        }
+        XCTAssertEqual(try check(edited, historical: true), .recategorised)
+        XCTAssertEqual(try check(edited, historical: false), .changed)
+        XCTAssertThrowsError(try batch.next(observation(batch, ids, [edited], marker), stage: .dispatched))
+        for column in [0, 1, 2, 3, 4, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19] {
+            var changed = edited
+            let replacement: Object = column == 6 ? ["numberValue": -12.35] : ["stringValue": "changed"]
+            changed[column] = ["userEnteredValue": replacement]
+            XCTAssertEqual(try check(changed, historical: true), .changed, PeriodBankAppend.columns[column])
+        }
+        for column in [5, 7, 8, 9, 10] {
+            var changed = edited
+            changed[column] = ["userEnteredValue": ["formulaValue": "=1"]]
+            XCTAssertEqual(try check(changed, historical: true), .changed)
+        }
+        XCTAssertEqual(try check(original, historical: true, ledger), .changed)
+        XCTAssertEqual(try check(original, historical: true, ledger + ["T9999", "T0002"]), .changed)
+        XCTAssertEqual(try check(original, historical: true, ids + ["T0002"]), .changed)
+        XCTAssertEqual(try check(original, historical: true, ids + ["T0003"]), .current)
+        for (key, value): (String, Any) in [("metadataId", 0), ("metadataValue", "elsewhere"), ("metadataKey", "abandoned"),
+                                           ("visibility", "PROJECT"), ("location", ["sheetId": 9])] {
+            var foreign = marker; foreign[key] = value
+            XCTAssertEqual(try check(original, historical: true, nil, foreign), .foreign)
+        }
+        XCTAssertEqual(try batch.inspectReceipt(observation(batch, ledger + ["T0999"]), historical: false), .absent)
+        let chosen = batch.markerID == 15 ? 16 : 15, alternate = try batch.usingMarkerID(chosen)
+        XCTAssertEqual(alternate.digest, batch.digest)
+        XCTAssertEqual(alternate.markerID, chosen)
+        XCTAssertEqual(try alternate.usingMarkerID(nil).markerID, chosen)
+        XCTAssertEqual(try alternate.inspectReceipt(observation(alternate, ids, [original], marker), historical: true), .foreign)
+        XCTAssertThrowsError(try batch.usingMarkerID(0))
+        XCTAssertThrowsError(try batch.usingMarkerID(Int(Int32.max) + 1))
+    }
+
     func testRetainedLiteralApostropheCannotBeMistakenForAPlannerEscape() throws {
         for sign in ["=", "+", "-", "@"] {
             let text = sign + "LITERAL, \"card\"\nsecond line", planned = "'" + text
@@ -170,8 +245,8 @@ final class PeriodBankAppendTests: XCTestCase {
         return [["range": "Kitty!A1:B50", "majorDimension": "ROWS", "values": [["sheet_version", 2]]],
                 ["range": "Entries!A1:T1", "majorDimension": "ROWS", "values": [PeriodBankAppend.columns]],
                 ["range": "Entries!A1:A100", "majorDimension": "ROWS", "values": ids.map { [$0] }],
-                ["spreadsheetId": sheetID, "sheets": [["properties": ["sheetId": 8, "title": "Entries", "gridProperties": ["rowCount": 100, "columnCount": 21]], "data": [block]]]],
-                ["matchedDeveloperMetadata": saved.map { [["developerMetadata": $0.0]] } ?? []]]
+                ["matchedDeveloperMetadata": saved.map { [["developerMetadata": $0.0]] } ?? []],
+                ["spreadsheetId": sheetID, "sheets": [["properties": ["sheetId": 8, "title": "Entries", "gridProperties": ["rowCount": 100, "columnCount": 21]], "data": [block]]]]]
     }
 
     func testReadbackRequiresCurrentEditableSelectionAndExactSheetRange() async throws {
@@ -189,6 +264,23 @@ final class PeriodBankAppendTests: XCTestCase {
         XCTAssertFalse(fake.calls.contains { $0.url!.path.hasSuffix(":batchUpdate") })
         fake.responses = replies(p, start: 2)
         do { _ = try await PeriodBankReadback.read(p, owner: owner, api: api); XCTFail("Shifted grid accepted") } catch {}
+    }
+
+    func testDeletedRowsAndShrunkenGridReturnAManualReviewWithoutRequestingTheOldRange() async throws {
+        let p = try compile(fixture()), fake = Transport(), (marker, _) = try receipt(p)
+        let api = GoogleSheetTools(http: fake, selected: selection, current: { self.selection }, token: { _ in "fixture" })
+        let owner = GoogleSheetSelection.Verified(selection: selection, title: "Fake", canEdit: true)
+        fake.responses = replies(p, start: 3)
+        fake.responses[3] = ["matchedDeveloperMetadata": [["developerMetadata": marker]]]
+        fake.responses[4] = ["spreadsheetId": sheetID, "sheets": [["properties":
+            ["sheetId": 8, "title": "Entries", "gridProperties": ["rowCount": ledger.count, "columnCount": 21]]]]]
+        let seen = try await PeriodBankReadback.read(p, owner: owner, api: api)
+        XCTAssertEqual(try p.inspectReceipt(seen, historical: true), .changed)
+        XCTAssertTrue(seen.cells.isEmpty)
+        let actual = try XCTUnwrap(fake.calls.last?.url).absoluteString.removingPercentEncoding
+        XCTAssertTrue(actual?.contains("ranges=Entries!A1") == true)
+        XCTAssertFalse(actual?.contains(p.destination) == true)
+        XCTAssertFalse(fake.calls.contains { $0.url?.path.hasSuffix(":batchUpdate") == true })
     }
     final class Journal: PeriodBankJournal {
         var stage = PeriodBankAppend.Stage.prepared

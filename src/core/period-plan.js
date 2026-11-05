@@ -397,7 +397,13 @@
         const near = firstDay <= rd.download_day && rd.download_day <= T.addDays(lastDay, 40);
         if (inside.length || gap.length || later.length || rd.bom || (!rd.rows.length && near)) fileLines.push(line);
         else quiet.push(rd.path);
-        outsideWindow.push({ file: rd.path, earlier: earlier.length, later: later.length, gap: gap.length });
+        const outside = { file: rd.path, earlier: earlier.length, later: later.length, gap: gap.length };
+        if (opts.review_outside_rows === true) {
+          outside.rows = rd.rows.filter((r) => !inWindow(r)).map((r) => ({
+            line: r.line, date: r.date, description: r.description, amount_cents: r.amount
+          }));
+        }
+        outsideWindow.push(outside);
         if (gap.length) {
           const g = gaps.get(rd.account) || { rows: 0, files: 0, first: null };
           gaps.set(rd.account, g);

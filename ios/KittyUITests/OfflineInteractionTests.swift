@@ -17,7 +17,10 @@ final class OfflineInteractionTests: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
         XCTAssertTrue(page.waitForExistence(timeout: 15))
-        tap(app.buttons["Ask the Kitty"])
+        // The web-view container can exist while WebKit opens the local bundle.
+        let ask = app.buttons["Ask the Kitty"]
+        XCTAssertTrue(ask.waitForExistence(timeout:30), "The app must finish opening and expose Ask.")
+        tap(ask)
         tap(app.buttons["Groceries last month"])
         XCTAssertTrue(text(containing: "$1,429.05 spent").waitForExistence(timeout: 5))
         let receipts = page.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "See the entries")).firstMatch

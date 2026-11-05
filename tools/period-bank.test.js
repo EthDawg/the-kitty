@@ -55,9 +55,17 @@ test("reselecting the identical source after a committed write gives three match
 test("outside-month rows stay visible and do not hide an all-matched selected month",()=>{
   const text=file.text.trimEnd()+"\n01/02/2027,LATER DAY,JORDAN DAVIES,-41007,3.00\n";
   const f={...file,text,byteLength:Buffer.byteLength(text),id:crypto.createHash("sha256").update(text).digest("hex")};
-  const r=plan(after(plan().plan),f,{...request,downloadDay:"2027-02-01"});
+  const landed=after(plan().plan), downloadDay="2027-02-01";
+  const r=plan(landed,f,{...request,downloadDay});
   assert.equal(r.summary.sourceRows,4);assert.equal(r.summary.duplicateCount,3);assert.equal(r.summary.outside[0].later,1);
+  assert.deepEqual(r.summary.outside[0].rows,[{line:5,date:"2027-02-01",raw:"LATER DAY",amountCents:-300,signedAmount:"-3.00"}]);
   assert.equal(r.summary.allDuplicates,true);assert.equal(r.plan.writes.length,0);
+  const input={months:request.month,sheet:landed,files:[{name:f.name,account:request.account,download_day:downloadDay,text}],
+    inputs:[],options:{as_of:downloadDay,sheet_id:request.sheetID}};
+  const normal=P.plan(input), detailed=P.plan({...input,options:{...input.options,review_outside_rows:true}});
+  assert.equal(normal.outcomes.outside_window[0].rows,undefined);
+  assert.equal(detailed.review_md,normal.review_md);assert.deepEqual(detailed.plan,normal.plan);
+  assert.deepEqual(r.plan,normal.plan);
 });
 test("wrong institution, unsafe source spelling and missing card amount cannot produce an append",()=>{
   assert.equal(plan(sheet,file,{...request,account:"ACC-EVD"}).summary.status,"stopped");
@@ -68,7 +76,7 @@ test("wrong institution, unsafe source spelling and missing card amount cannot p
   assert.throws(()=>plan({...sheet,accounts:sheet.accounts.map(a=>a.account_id==="ACC-CC"?{...a,currency:"JPY"}:a)}),/Australian-dollar/);
 });
 
-function panelFixture(responseMode, remote=true, verifiedOnCancel=false) {
+function panelFixture(responseMode, remote=true, verifiedOnCancel=false, reserved=false) {
   class Element {
     constructor(){this.events={};this.children=[];this.isConnected=true;this.value="";this.textContent="";this.innerHTML="";}
     addEventListener(type,fn){this.events[type]=fn;}
@@ -85,7 +93,7 @@ function panelFixture(responseMode, remote=true, verifiedOnCancel=false) {
   const summary=plan(snapshot).summary, digest="a".repeat(64);
   const receipt={status:"verified",digest,message:"Saved rows and receipt were checked."};
   window.KittyIntake.open({sheet:snapshot,asOf:"2027-01-31",title:"Private practice",sheetID:request.sheetID,current:()=>current,drawer:()=>{},pick:async()=>file,
-    preview:remote?async request=>{calls.preview.push(request);return {mode:responseMode,summary,ticket:"one-use-ticket",...(responseMode==="verified"?{receipt}:{})};}:null,
+    preview:remote?async request=>{calls.preview.push(request);return {mode:responseMode,summary,ticket:"one-use-ticket",...(reserved?{discardTicket:"bound-discard"}:{}),...(responseMode==="verified"?{receipt}:{})};}:null,
     commit:remote?async token=>{calls.commit.push(token);return receipt;}:null,cancel:remote?async token=>{calls.cancel.push(token);return verifiedOnCancel?receipt:{status:"cancelled"};}:null});
   ids.ifaccount.value="ACC-CC";
   return {ids,calls,switchSheet:()=>{current=false;},async preview(){await ids.ifpick.events.click();await ids.ifprepare.events.click();return ids.ifresult;}};
@@ -111,4 +119,12 @@ test("duplicates after a lost response can verify or recover the matching receip
   stale.ids.ifmonth.value="2027-02";stale.ids.ifmonth.events.input();await old.onclick();assert.equal(stale.calls.commit.length,0);
   const completed=panelFixture("stale",true,true), completeBox=await completed.preview();await completeBox.children.at(-1).onclick();
   assert.match(completeBox.innerHTML,/Verified import/);assert.deepEqual(completed.calls.cancel,["one-use-ticket"]);
+});
+test("an unchanged reserved review can be discarded without confirming any rows",async()=>{
+  const ui=panelFixture("confirm",true,false,true), box=await ui.preview();
+  assert.ok(box.children.some(e=>e.textContent==="Confirm import to Private practice"));
+  const discard=box.children.find(e=>e.textContent==="Discard unfinished import");
+  await discard.onclick();
+  assert.deepEqual(ui.calls.cancel,["bound-discard"]); assert.deepEqual(ui.calls.commit,[]);
+  assert.match(box.textContent,/discarded/);
 });

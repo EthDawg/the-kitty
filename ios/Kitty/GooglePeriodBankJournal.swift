@@ -8,13 +8,18 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
     typealias Replan = (SourceDocument, String, String, String) async throws -> PeriodBankAppend
     typealias Observe = (PeriodBankAppend, GoogleSheetSelection.Verified, GoogleSheetTools) async throws -> PeriodBankAppend.Observation
 
-    enum Phase: String { case prepared, dispatched, verified, cancelled, otherPending }
+    enum Phase: String { case prepared, dispatched, verified, cancelled, otherPending, needsReview }
+    enum Evidence: String { case current, recategorised, changed }
     struct Status {
-        var phase: Phase
+        let phase: Phase, evidence: Evidence
         let ticket, digest, originalSHA256, account, month, downloadDay: String
         let rowCount: Int
-        fileprivate init(_ phase: Phase, _ b: BankBinding) {
-            self.phase = phase
+        let canReleaseForReview, manuallyClosed: Bool
+        var canDiscard: Bool { phase == .prepared || phase == .dispatched }
+        fileprivate init(_ phase: Phase, _ b: BankBinding, _ evidence: Evidence = .current,
+                         canReleaseForReview: Bool = false, manuallyClosed: Bool = false) {
+            self.phase = phase; self.evidence = evidence
+            self.canReleaseForReview = canReleaseForReview; self.manuallyClosed = manuallyClosed
             let reveal = phase != .otherPending
             ticket = reveal ? b.ticket : ""; digest = reveal ? b.digest : ""; originalSHA256 = reveal ? b.sourceSHA256 : ""
             account = reveal ? b.account : ""; month = reveal ? b.month : ""; downloadDay = reveal ? b.downloadDay : ""; rowCount = reveal ? b.rowCount : 0
@@ -46,6 +51,28 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
     private static func record(_ kind: String, _ b: BankBinding) throws -> Data {
         try encode(["kind":kind,"binding":b.object])
     }
+    private static func fencedReceipt(_ b: BankBinding, id: Int) throws -> Data {
+        try encode(["kind":"cancelled","binding":b.object,"abandonedMarkerID":id])
+    }
+    private static func manualReceipt(_ b: BankBinding, id: Int, tab: Int) throws -> Data {
+        try encode(["kind":"needs-review","binding":b.object,"postedMarkerID":id,"entriesTabID":tab])
+    }
+    private static func manualTab(_ bytes: Data?, _ b: BankBinding, id: Int) throws -> Int? {
+        guard let bytes else { return nil }
+        guard let value = try JSONSerialization.jsonObject(with:bytes) as? Object else { throw GoogleBankStore.invalid }
+        guard value["kind"] as? String == "needs-review" else { return nil }
+        guard let tab = PeriodBankAppend.number(value["entriesTabID"]).flatMap(Int.init(exactly:)), tab >= 0,
+              bytes == (try manualReceipt(b,id:id,tab:tab)) else { throw GoogleBankStore.invalid }
+        return tab
+    }
+    private static func posted(_ marker: Object?, _ b: BankBinding, id: Int, tab: Int) -> Bool {
+        guard let marker, let location = marker["location"] as? Object else { return false }
+        return PeriodBankAppend.number(marker["metadataId"]) == Double(id) && marker["metadataKey"] as? String == PeriodBankAppend.guardKey &&
+            marker["metadataValue"] as? String == b.digest && marker["visibility"] as? String == "DOCUMENT" &&
+            location["spreadsheet"] == nil && location["dimensionRange"] == nil &&
+            (location["locationType"] == nil || location["locationType"] as? String == "SHEET") &&
+            PeriodBankAppend.number(location["sheetId"]) == Double(tab)
+    }
     private static func checked(_ b: BankBinding, owner: GoogleSheetSelection.Verified, api: GoogleSheetTools) throws {
         try api.check()
         guard b.valid, b.sheetID == api.selected.sheetID, b.owner == api.selected.permissionID,
@@ -70,9 +97,37 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
               try encode(value) == b.data(), let name = saved["originalName"] as? String, !name.isEmpty, name.utf8.count <= 1024,
               let plan = saved["plan"] as? Object else { throw GoogleBankStore.invalid }
         let source = SourceDocument(name: name, mimeType: "text/csv", bytes: bytes)
-        let batch = try PeriodBankAppend(plan: plan, sheetID: b.sheetID, account: b.account, original: source, originalSHA256: b.sourceSHA256)
+        let restored = try PeriodBankAppend.restoredPlan(plan,amountEncoding:saved["amountEncoding"])
+        let batch = try PeriodBankAppend(plan: restored, sheetID: b.sheetID, account: b.account, original: source,
+                                        originalSHA256: b.sourceSHA256).usingMarkerID(b.receiptMarkerID)
         guard batch.digest == b.digest, batch.rows.count == b.rowCount else { throw GoogleBankStore.invalid }
         return (source,batch)
+    }
+    private static func markerID(_ b: BankBinding, store: BankStore) async throws -> Int {
+        if let pinned = b.receiptMarkerID { return pinned }
+        return try await restore(b,store:store).1.markerID
+    }
+    func authorizedBatch(_ batch: PeriodBankAppend, owner: GoogleSheetSelection.Verified) throws -> PeriodBankAppend {
+        let b = try resolved(batch,owner)
+        return try batch.usingMarkerID(b.receiptMarkerID)
+    }
+    private func availableMarker(defaultID: Int, candidate: BankBinding, owner: GoogleSheetSelection.Verified) async throws -> Int {
+        guard defaultID != GoogleBankStore.gateID else { throw GoogleBankStore.invalid }
+        guard let occupied = try await store.marker(defaultID) else { return defaultID }
+        // A cancelled T slot may be valid again. Never remove its fence or choose a different ID around foreign metadata.
+        guard let old = try GoogleBankStore.abandonedOwner(occupied,id:defaultID) else {
+            throw GoogleSheetTools.Failure(code:"import_marker_conflict",message:"The next ledger slot already has a different permanent marker. Check the Entries and their original receipt before importing.")
+        }
+        try Self.checked(old,owner:owner,api:api)
+        guard try await Self.action(old,store:store) == .dispatched,
+              try await Self.markerID(old,store:store) == defaultID,
+              try await store.blob(.receipt,old) == Self.fencedReceipt(old,id:defaultID) else { throw GoogleBankStore.invalid }
+        let hex = SourceDocument.sha256(Data(("kitty.period.bank.generation.v1\u{0}" + candidate.ticket).utf8))
+        guard let n = Int(hex.prefix(8),radix:16) else { throw GoogleBankStore.invalid }
+        let alternative = n & 0x7fff_ffff
+        guard alternative > 0, alternative != defaultID, alternative != GoogleBankStore.gateID,
+              try await store.marker(alternative) == nil else { throw GoogleBankStore.pending }
+        return alternative
     }
     private static func persist(_ kind: BankBlob, _ data: Data, _ b: BankBinding, store: BankStore) async throws {
         let saved = try await store.create(kind,b,data:data)
@@ -88,25 +143,35 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
         var held = try await store.gate()
         if let expectedTicket, let held, held.ticket != expectedTicket { throw GoogleBankStore.pending }
         if held == nil {
-            if let done = try await store.finished(digest: batch.digest, scope: nil) {
+            let fileKey = BankBinding.sourceKey(sheet:batch.sheetID,owner:owner.selection.permissionID,sha:original.id)
+            if try await store.manualSource(fileKey) != nil {
+                throw GoogleSheetTools.Failure(code:"import_needs_review",message:"This original already reached this Sheet and was closed for manual review. Check the existing entries and receipt.")
+            }
+            let sourceScope = try BankBinding.scope(sheet:batch.sheetID,owner:owner.selection.permissionID,source:original.id,account:batch.account,month:month,day:downloadDay)
+            if let done = try await store.finished(digest:nil,scope:sourceScope) {
                 try Self.checked(done, owner: owner, api: api)
                 guard done.account == batch.account, done.sourceSHA256 == original.id, done.month == month, done.downloadDay == downloadDay,
                       let terminal = try await store.blob(.receipt,done) else { throw GoogleBankStore.invalid }
+                if (try JSONSerialization.jsonObject(with:terminal) as? Object)?["kind"] as? String == "needs-review" {
+                    throw GoogleSheetTools.Failure(code:"import_needs_review",message:"This source already reached the Sheet and was closed for manual review. Check its entries and original before making corrections.")
+                }
                 if terminal == (try Self.record("verified",done)), expectedTicket == nil || expectedTicket == done.ticket {
+                    guard done.digest == batch.digest else { throw GoogleBankStore.invalid }
                     _ = try await Self.restore(done,store:store)
                     binding = done; return .dispatched
                 }
-                guard terminal == (try Self.record("cancelled",done)), try await Self.action(done,store:store) == .cancelled
-                else { throw GoogleBankStore.invalid }
+                let previous = try await Self.reconcile(done,owner:owner,api:api,store:store,observe:PeriodBankReadback.read)
+                guard previous.phase == .cancelled else { throw GoogleBankStore.invalid }
             }
             guard expectedTicket == nil else { throw GoogleBankStore.pending }
             try await store.checkNewWrite(owner)
             let ids = try await store.ids()
             guard ids.count == 4 else { throw GoogleBankStore.invalid }
-            let candidate = BankBinding(version: 1, sheetID: batch.sheetID, owner: owner.selection.permissionID,
+            var candidate = BankBinding(version: 2, sheetID: batch.sheetID, owner: owner.selection.permissionID,
                                         account: batch.account, sourceSHA256: original.id, digest: batch.digest,
                                         month: month, downloadDay: downloadDay, rowCount: batch.rows.count,
                                         sourceID: ids[0], manifestID: ids[1], actionID: ids[2], receiptID: ids[3])
+            candidate.receiptMarkerID = try await availableMarker(defaultID:batch.markerID,candidate:candidate,owner:owner)
             guard candidate.valid, batch.markerID != GoogleBankStore.gateID else { throw GoogleBankStore.invalid }
             held = try await store.acquire(candidate)
             // A first device can finish and release between our initial receipt search and a delayed hold creation.
@@ -134,7 +199,8 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
             _ = try await Self.restore(b,store:store); return .dispatched
         case .prepared:
             try await store.checkNewWrite(owner)
-            let manifest = try Self.encode(["kind":"reviewed","binding":b.object,"originalName":original.name,"plan":plan])
+            let manifest = try Self.encode(["kind":"reviewed","binding":b.object,"originalName":original.name,
+                                            "amountEncoding":PeriodBankAppend.manifestAmountEncoding,"plan":PeriodBankAppend.planForManifest(plan)])
             guard manifest.count <= BankBlob.manifest.limit else { throw GoogleBankStore.invalid }
             try await Self.persist(.original,original.bytes,b,store:store)
             // On a second device the same original can have a different local name. Rebuild the first accepted manifest.
@@ -163,25 +229,67 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
     }
     func recordVerified(_ batch: PeriodBankAppend, owner: GoogleSheetSelection.Verified) async throws {
         let b = try resolved(batch,owner)
-        guard try await Self.reconcile(b,owner:owner,api:api,store:store,observe:PeriodBankReadback.read).phase == .verified
+        guard try await Self.reconcile(b,owner:owner,api:api,store:store,observe:PeriodBankReadback.read,observeIfMissing:true).phase == .verified
         else { throw GoogleBankStore.pending }
     }
     private static func reconcile(_ b: BankBinding, owner: GoogleSheetSelection.Verified, api: GoogleSheetTools,
-                                  store: BankStore, observe: Observe) async throws -> Status {
+                                  store: BankStore, observe: Observe, observeIfMissing: Bool = false) async throws -> Status {
         try checked(b,owner:owner,api:api)
+        let terminal = try await store.blob(.receipt,b)
         let phase = try await action(b,store:store)
         if phase == .cancelled {
             try await persist(.receipt,record("cancelled",b),b,store:store)
             try await store.release(b)
             return Status(.cancelled,b)
         }
-        guard phase == .dispatched else { return Status(.prepared,b) }
+        guard phase == .dispatched else {
+            guard terminal == nil else { throw GoogleBankStore.invalid }
+            return Status(.prepared,b)
+        }
+        let id = try await markerID(b,store:store)
+        let marker = try await store.marker(id)
+        let historical = terminal == (try record("verified",b))
+        let abandoned = try fencedReceipt(b,id:id)
+        if let tab = try manualTab(terminal,b,id:id) {
+            // Before releasing, prove the exact terminal receipt is also discoverable from this original on another device.
+            guard posted(marker,b,id:id,tab:tab), try await store.manualSource(b.sourceKey) == b else { return Status(.needsReview,b,.changed) }
+            try await store.release(b)
+            return Status(.needsReview,b,.changed,manuallyClosed:true)
+        }
+        guard terminal == nil || historical || terminal == abandoned else { throw GoogleBankStore.invalid }
+        if marker?["metadataKey"] as? String == GoogleBankStore.abandonedKey {
+            guard let stopped = try? GoogleBankStore.abandonedOwner(marker,id:id), stopped == b, !historical else { return Status(.needsReview,b,.changed) }
+            try await persist(.receipt,abandoned,b,store:store)
+            try await store.release(b)
+            return Status(.cancelled,b)
+        }
+        if terminal == abandoned { return Status(.needsReview,b,.changed) }
+        if let marker, marker["metadataKey"] as? String != PeriodBankAppend.guardKey ||
+            marker["metadataValue"] as? String != b.digest || marker["visibility"] as? String != "DOCUMENT" {
+            return Status(.needsReview,b,.changed)
+        }
+        // Status and discard can identify an unoccupied dispatched fence even when the old range is now stale,
+        // the grid shrank, or the user no longer has the CSV. Do not present that absence as a successful write.
+        if marker == nil && !historical && !observeIfMissing { return Status(.dispatched,b) }
         let (_,batch) = try await restore(b,store:store)
         let seen = try await observe(batch,owner,api)
-        guard case .verified = try batch.next(seen,stage:.dispatched) else { return Status(.dispatched,b) }
-        try await persist(.receipt,record("verified",b),b,store:store)
-        try await store.release(b)
-        return Status(.verified,b)
+        switch try batch.inspectReceipt(seen,historical:historical) {
+        case .absent: return historical ? Status(.needsReview,b,.changed) : Status(.dispatched,b)
+        case .foreign: return Status(.needsReview,b,.changed)
+        case .changed:
+            // An already verified immutable receipt and its genuine permanent marker fence late packets.
+            // Later user edits are visible as a review issue, and don't retain an otherwise completed hold.
+            if historical { try await store.release(b) }
+            return Status(.needsReview,b,.changed,canReleaseForReview:!historical)
+        case .recategorised:
+            guard historical else { return Status(.needsReview,b,.changed) }
+            try await store.release(b)
+            return Status(.verified,b,.recategorised)
+        case .current:
+            if !historical { try await persist(.receipt,record("verified",b),b,store:store) }
+            try await store.release(b)
+            return Status(.verified,b)
+        }
     }
     static func status(owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, expectedDigest: String? = nil) async throws -> Status? {
         try await lookup(owner:owner,api:api,store:GoogleBankStore(api:api),digest:expectedDigest,scope:nil,observe:PeriodBankReadback.read)
@@ -190,7 +298,12 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
                         month: String, downloadDay: String) async throws -> Status? {
         guard BankBinding.hash(sourceSHA256), !account.isEmpty, BankBinding.validDateScope(month,downloadDay) else { throw GoogleBankStore.invalid }
         let scope = try BankBinding.scope(sheet:api.selected.sheetID,owner:api.selected.permissionID,source:sourceSHA256,account:account,month:month,day:downloadDay)
-        return try await lookup(owner:owner,api:api,store:GoogleBankStore(api:api),digest:nil,scope:scope,observe:PeriodBankReadback.read)
+        let store = GoogleBankStore(api:api)
+        let fileKey = BankBinding.sourceKey(sheet:api.selected.sheetID,owner:api.selected.permissionID,sha:sourceSHA256)
+        if let old = try await store.manualSource(fileKey) {
+            return try await reconcile(old,owner:owner,api:api,store:store,observe:PeriodBankReadback.read)
+        }
+        return try await lookup(owner:owner,api:api,store:store,digest:nil,scope:scope,observe:PeriodBankReadback.read)
     }
     /// A fresh human Resume may deliver the *same* immutable atomic batch after an unknown dispatch.
     /// The original and a concurrent retry use the identical permanent metadata ID. Only one can append.
@@ -212,6 +325,8 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
         }
         try checked(b,owner:owner,api:api)
         guard try await action(b,store:store) == .dispatched else { throw GoogleBankStore.pending }
+        let status = try await reconcile(b,owner:owner,api:api,store:store,observe:observe)
+        guard status.phase == .dispatched else { return status }
         let (archived,batch) = try await restore(b,store:store)
         let first = try await observe(batch,owner,api)
         if case .verified = try batch.next(first,stage:.dispatched) {
@@ -229,7 +344,7 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
             try api.check()
             do { try await send(requests) } catch { try api.check() }
         }
-        return try await reconcile(b,owner:owner,api:api,store:store,observe:observe)
+        return try await reconcile(b,owner:owner,api:api,store:store,observe:observe,observeIfMissing:true)
     }
     static func lookup(owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, store: BankStore,
                        digest: String?, scope: String?, observe: Observe) async throws -> Status? {
@@ -250,14 +365,53 @@ final class GooglePeriodBankJournal: PeriodBankJournal {
     static func cancelPrepared(owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, digest: String, ticket: String) async throws -> Status {
         try await cancel(owner:owner,api:api,store:GoogleBankStore(api:api),digest:digest,ticket:ticket,observe:PeriodBankReadback.read)
     }
+    static func discard(owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, digest: String, ticket: String) async throws -> Status {
+        try await cancel(owner:owner,api:api,store:GoogleBankStore(api:api),digest:digest,ticket:ticket,observe:PeriodBankReadback.read,allowFence:true)
+    }
+    /// A separate owner decision: a genuine posted marker won, but the approved typed cells cannot be verified.
+    /// Persist the unresolved evidence and release only this hold. The source remains blocked from a new import.
+    static func releaseForReview(owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, digest: String, ticket: String) async throws -> Status {
+        try await closeForReview(owner:owner,api:api,store:GoogleBankStore(api:api),digest:digest,ticket:ticket,observe:PeriodBankReadback.read)
+    }
+    static func closeForReview(owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, store: BankStore, digest: String,
+                               ticket: String, observe: Observe) async throws -> Status {
+        guard BankBinding.hash(digest), BankBinding.hash(ticket), owner.selection == api.selected else { throw GoogleBankStore.invalid }
+        guard let b = try await store.gate(), b.digest == digest, b.ticket == ticket, b.owner == api.selected.permissionID else {
+            if let done = try await store.finished(digest:digest,scope:nil), done.ticket == ticket {
+                return try await reconcile(done,owner:owner,api:api,store:store,observe:observe)
+            }
+            throw GoogleBankStore.pending
+        }
+        let current = try await reconcile(b,owner:owner,api:api,store:store,observe:observe)
+        guard current.canReleaseForReview else { return current }
+        let (_,batch) = try await restore(b,store:store)
+        let seen = try await observe(batch,owner,api)
+        guard try batch.inspectReceipt(seen,historical:false) == .changed,
+              posted(try await store.marker(batch.markerID),b,id:batch.markerID,tab:seen.entriesTabID),
+              try await store.gate() == b else {
+            return try await reconcile(b,owner:owner,api:api,store:store,observe:observe)
+        }
+        let proposed = try manualReceipt(b,id:batch.markerID,tab:seen.entriesTabID)
+        let saved = try await store.create(.receipt,b,data:proposed)
+        let verified = try record("verified",b)
+        guard saved.bytes == proposed || saved.bytes == verified else { throw GoogleBankStore.invalid }
+        return try await reconcile(b,owner:owner,api:api,store:store,observe:observe)
+    }
     static func cancel(owner: GoogleSheetSelection.Verified, api: GoogleSheetTools, store: BankStore, digest: String, ticket: String,
-                       observe: Observe) async throws -> Status {
+                       observe: Observe, allowFence: Bool = false) async throws -> Status {
         guard BankBinding.hash(digest), BankBinding.hash(ticket), owner.selection == api.selected else { throw GoogleBankStore.invalid }
         if let active = try await store.gate(), active.digest == digest, active.ticket == ticket, active.owner == api.selected.permissionID {
             try checked(active,owner:owner,api:api)
+            if try await store.blob(.receipt,active) != nil {
+                return try await reconcile(active,owner:owner,api:api,store:store,observe:observe)
+            }
             let cancel = try record("cancel",active)
             let chosen = try await store.create(.action,active,data:cancel)
             if chosen.bytes != cancel, chosen.bytes != (try record("dispatch",active)) { throw GoogleBankStore.invalid }
+            if chosen.bytes != cancel, allowFence, try await store.blob(.receipt,active) == nil {
+                let id = try await markerID(active,store:store)
+                guard try await store.fence(active,id:id) != nil else { throw GoogleBankStore.pending }
+            }
             return try await reconcile(active,owner:owner,api:api,store:store,observe:observe)
         }
         if let done = try await store.finished(digest:digest,scope:nil), done.ticket == ticket {

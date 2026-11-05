@@ -214,7 +214,10 @@ test("bank review binds a private editable session and dispatches only its opaqu
   await files.previewBank(metadata);await files.commitBank("opaque");
   assert.deepEqual(h.calls.at(-2),{method:"files.bank-preview",params:{session,sheetID,...metadata}});
   assert.deepEqual(h.calls.at(-1),{method:"files.bank-commit",params:{session,sheetID,ticket:"opaque"}});
+  await files.outstandingBank();
+  assert.deepEqual(h.calls.at(-1),{method:"files.bank-status",params:{session,sheetID}});
   await h.window.KittyNative.google.close();
+  await assert.rejects(files.outstandingBank(),isCode("not_granted"));
   await assert.rejects(files.cancelBank("opaque"),isCode("not_granted"));
   for(const override of [{canEdit:false},{canImportBankFiles:false}, {canImportBankFiles:undefined}]){
     const denied=host(()=>ok({...descriptor,...override}));await denied.window.KittyNative.google.open(sheetID);

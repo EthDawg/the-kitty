@@ -12,7 +12,7 @@ Same input gives the same bytes. `input.files` order never matters.
   files: [ File ] | null,                     // null = no sources folder at all (Stop). [] = nothing to import (ready, empty plan)
   inputs: [ { path, shown?, kind: "overrides"|"valuations"|"payslips", text } ],  // month CSVs, in precedence order; first override per Description wins
   options: { as_of?: "yyyy-mm-dd", loans?: "defer"|"now", sheet_id?, default_sheet_ids?: {v1, v2}, snapshot_label?, sources_label?,
-             generated_at?, history?: [Transactions rows], allow_v1?: false } }
+             generated_at?, history?: [Transactions rows], allow_v1?: false, review_outside_rows?: boolean } }
 ```
 `File`, either binding works; both reach one path `account/download_day/name`:
 ```
@@ -44,13 +44,15 @@ proposed:  { transactions: [Row], loan_lines: [Row], valuations: [{id, month_end
 Row:       { id, date, account, raw_text, merchant, amount_cents, amount, category_id, person, receipt_held, note, transfer_id, transfer_account, source, file, line, identity }
 identity:  JSON array [date, account, amount_cents, ident]; ident = upper-cased, whitespace-folded description. Occurrence is by multiset count, not stored.
 Pair:      { transfer_id, a: {id, date, account, amount_cents, new}, b: {...} }     LoanPair: { transfer_id, loan_row_id, mate: {...}, deferred: bool }
-outcomes:  { taken, already_in_sheet: [{file, line, date, description, amount_cents}], repeated_across_files: [...], outside_window: [{file, earlier, later, gap}] }
+outcomes:  { taken, already_in_sheet: [{file, line, date, description, amount_cents}], repeated_across_files: [...], outside_window: [{file, earlier, later, gap, rows?}] }
 faults:    [{ severity: "stop", code, file, row, what, do, md }]       // what/do/md byte-equal Python's ImportFault
 holds:     [{ code, file, text }]                                      // text byte-equal Python's HOLD line
 review:    string[]   // the "## Review" lines (new merchant, mixed history, set by review, gaps)
 checks:    { closing: [{file, day, printed, ledger, ok, gap_cents} | {file, unchecked: reason}], transfers: [line], loans: [line], valuations: [line], payslips: [line], owners: [line], policies: [line], files: [line] }
 review_md: string     // byte-equal Python review.md, except the "seconds" figure is always 0.0. Show structured fields; this is the audit copy.
 ```
+Bank file review sets `review_outside_rows: true` to include each excluded row's `line`, `date`, `description` and signed `amount_cents` in its file's `outside_window` result.
+
 `plan` is `kitty-write-plan/1`, key for key Python's `write-plan.json`:
 `schema, generated_at (options.generated_at or null), importer, months, status, sheet, assumes, preconditions, writes, deferred, verify, totals`, plus `held_writes` on hold and `not_planned` on stop.
 A write is `{id, tab, op: "append"|"update", range: "Entries!A13:T512", rows, columns?, values, precondition?, note?, why?}`. Rules the host must keep:

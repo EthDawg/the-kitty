@@ -6,7 +6,13 @@ struct BankBinding: Codable, Equatable {
     let sheetID, owner, account, sourceSHA256, digest, month, downloadDay: String
     let rowCount: Int
     let sourceID, manifestID, actionID, receiptID: String
+    // Version 1 derives the fence from the archived plan. New intents pin it before any dispatch.
+    var receiptMarkerID: Int? = nil
     var ticket: String { SourceDocument.sha256(Data((digest + "\u{0}" + manifestID).utf8)) }
+    static func sourceKey(sheet: String, owner: String, sha: String) -> String {
+        SourceDocument.sha256(Data((sheet + "\u{0}" + owner + "\u{0}" + sha).utf8))
+    }
+    var sourceKey: String { Self.sourceKey(sheet:sheetID,owner:owner,sha:sourceSHA256) }
 
     static func hash(_ value: String) -> Bool {
         value.utf8.count == 64 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
@@ -16,7 +22,9 @@ struct BankBinding: Codable, Equatable {
     }
     @MainActor var valid: Bool {
         let ids = [sourceID, manifestID, actionID, receiptID]
-        return version == 1 && GoogleConnection.validSheetID(sheetID) && !owner.isEmpty && owner.utf8.count <= 200 &&
+        let fenceValid = version == 1 ? receiptMarkerID == nil :
+            (version == 2 && receiptMarkerID.map { (1...Int(Int32.max)).contains($0) && $0 != GoogleBankStore.gateID } == true)
+        return fenceValid && GoogleConnection.validSheetID(sheetID) && !owner.isEmpty && owner.utf8.count <= 200 &&
             !account.isEmpty && account.utf8.count <= 160 && Self.hash(digest) && Self.hash(sourceSHA256) &&
             Self.validDateScope(month, downloadDay) && (1...4000).contains(rowCount) &&
             Set(ids).count == 4 && ids.allSatisfy { GoogleConnection.validSheetID($0) && $0.utf8.count <= 100 }
@@ -63,11 +71,14 @@ protocol BankStore {
     func checkNewWrite(_ owner: GoogleSheetSelection.Verified) async throws
     func ids() async throws -> [String]
     func gate() async throws -> BankBinding?
+    func marker(_ id: Int) async throws -> [String:Any]?
+    func fence(_ b: BankBinding, id: Int) async throws -> [String:Any]?
     func acquire(_ b: BankBinding) async throws -> BankBinding
     func release(_ b: BankBinding) async throws
     func blob(_ kind: BankBlob, _ b: BankBinding) async throws -> Data?
     func create(_ kind: BankBlob, _ b: BankBinding, data: Data) async throws -> (createdHere: Bool, bytes: Data)
     func finished(digest: String?, scope: String?) async throws -> BankBinding?
+    func manualSource(_ key: String) async throws -> BankBinding?
 }
 
 @MainActor
@@ -76,6 +87,7 @@ struct GoogleBankStore: BankStore {
     typealias Object = [String: Any]
     static let gateID = 2_017_113_179
     static let gateKey = "kitty.period.bank.hold.v1"
+    static let abandonedKey = "kitty.period.bank.abandoned.v1"
     nonisolated static var invalid: GoogleSheetTools.Failure { .init(code: "import_evidence", message: "The original, import record or shared hold could not be verified. Check this import before continuing.") }
     static var pending: GoogleSheetTools.Failure { .init(code: "import_pending", message: "A bank import is awaiting verification. Check its status before confirming another import.") }
 
@@ -133,18 +145,46 @@ struct GoogleBankStore: BankStore {
         guard b.valid, b.sheetID == api.selected.sheetID, let encoded = String(data: try b.data(), encoding: .utf8) else { throw Self.invalid }
         return encoded
     }
-    func gate() async throws -> BankBinding? {
-        let lookup: Object = ["metadataId": Self.gateID]
+    func marker(_ id: Int) async throws -> Object? {
+        guard (1...Int(Int32.max)).contains(id) else { throw Self.invalid }
+        let lookup: Object = ["metadataId":id]
         let found = try await api.request(path: "/developerMetadata:search", method: "POST", body: ["dataFilters":[["developerMetadataLookup":lookup]]])
         guard found["matchedDeveloperMetadata"] == nil || found["matchedDeveloperMetadata"] is [Object] else { throw Self.invalid }
         let rows = found["matchedDeveloperMetadata"] as? [Object] ?? []
         if rows.isEmpty { return nil }
-        guard rows.count == 1, let record = rows[0]["developerMetadata"] as? Object,
-              record["metadataId"] as? Int == Self.gateID, record["metadataKey"] as? String == Self.gateKey,
+        guard rows.count == 1, let record = rows[0]["developerMetadata"] as? Object, PeriodBankAppend.number(record["metadataId"]) == Double(id) else { throw Self.invalid }
+        return record
+    }
+    func gate() async throws -> BankBinding? {
+        guard let record = try await marker(Self.gateID) else { return nil }
+        guard record["metadataKey"] as? String == Self.gateKey,
               record["visibility"] as? String == "DOCUMENT", (record["location"] as? Object)?["spreadsheet"] as? Bool == true,
               let raw = record["metadataValue"] as? String, raw.utf8.count < 4000,
               let b = try? JSONDecoder().decode(BankBinding.self, from: Data(raw.utf8)), try value(b) == raw else { throw Self.invalid }
         return b
+    }
+    static func tombstone(_ b: BankBinding, id: Int) throws -> Object {
+        guard b.valid, (1...Int(Int32.max)).contains(id), id != gateID, b.receiptMarkerID == nil || b.receiptMarkerID == id else { throw invalid }
+        return ["metadataId":id,"metadataKey":abandonedKey,"metadataValue":String(decoding:try b.data(),as:UTF8.self),
+                "visibility":"DOCUMENT","location":["spreadsheet":true]]
+    }
+    static func abandonedOwner(_ record: Object?, id: Int) throws -> BankBinding? {
+        guard let record, record["metadataKey"] as? String == abandonedKey else { return nil }
+        guard PeriodBankAppend.number(record["metadataId"]) == Double(id), record["visibility"] as? String == "DOCUMENT",
+              (record["location"] as? Object)?["spreadsheet"] as? Bool == true,
+              let raw = record["metadataValue"] as? String, raw.utf8.count < 4000,
+              let b = try? JSONDecoder().decode(BankBinding.self,from:Data(raw.utf8)), b.valid,
+              (try tombstone(b,id:id))["metadataValue"] as? String == raw else { throw invalid }
+        return b
+    }
+    func fence(_ b: BankBinding, id: Int) async throws -> Object? {
+        guard b.owner == api.selected.permissionID, b.sheetID == api.selected.sheetID, try await gate() == b else { throw Self.pending }
+        if let existing = try await marker(id) { return existing }
+        let stop = try Self.tombstone(b,id:id)
+        do { _ = try await api.request(path:":batchUpdate",method:"POST",body:["requests":[["createDeveloperMetadata":["developerMetadata":stop]]]]) }
+        catch { try api.check() }
+        // Create-only at the *original* permanent ID. A delayed financial batch and the stop cannot both win Google.
+        return try await marker(id)
     }
     func acquire(_ b: BankBinding) async throws -> BankBinding {
         let metadata: Object = ["metadataId":Self.gateID, "metadataKey":Self.gateKey,"metadataValue":try value(b),
@@ -197,8 +237,9 @@ struct GoogleBankStore: BankStore {
         var tags = try properties(kind,b)
         if kind == .receipt {
             guard let record = try JSONSerialization.jsonObject(with:data) as? Object, let terminal = record["kind"] as? String,
-                  ["verified","cancelled"].contains(terminal) else { throw Self.invalid }
+                  ["verified","cancelled","needs-review"].contains(terminal) else { throw Self.invalid }
             tags["kittyBankTerminal"] = terminal
+            if terminal == "needs-review" { tags["kittyBankManualSource"] = b.sourceKey }
         }
         let meta: Object = ["id":id,"name":kind.name(b),"mimeType":kind.mime,"appProperties":tags]
         let boundary = "kitty-" + UUID().uuidString
@@ -221,8 +262,15 @@ struct GoogleBankStore: BankStore {
         let filter = digest ?? scope ?? ""
         guard (digest == nil) != (scope == nil), BankBinding.hash(filter) else { throw Self.invalid }
         let key = digest == nil ? "kittyBankScope" : "kittyBankDigest"
+        return try await findTerminal(key:key,filter:filter)
+    }
+    func manualSource(_ key: String) async throws -> BankBinding? {
+        guard BankBinding.hash(key) else { throw Self.invalid }
+        return try await findTerminal(key:"kittyBankManualSource",filter:key)
+    }
+    private func findTerminal(key: String, filter: String) async throws -> BankBinding? {
         let q = "trashed = false and appProperties has { key='kittyBankKind' and value='receipt' } and appProperties has { key='\(key)' and value='\(filter)' }"
-        var page: String?, seen = Set<String>(), verified: String?, cancelled: String?
+        var page: String?, seen = Set<String>(), verified: String?, manual: String?, cancelled: String?
         repeat {
             var query = ["q":q,"fields":"nextPageToken,incompleteSearch,files(id,appProperties)","spaces":"drive","corpora":"user","pageSize":"100","orderBy":"createdTime desc"]
             if let page { query["pageToken"] = page }
@@ -232,8 +280,11 @@ struct GoogleBankStore: BankStore {
                 guard let id = f["id"] as? String, let tags = f["appProperties"] as? [String:String] else { throw Self.invalid }
                 switch tags["kittyBankTerminal"] {
                 case "verified":
-                    guard verified == nil else { throw Self.invalid }
+                    guard verified == nil, manual == nil else { throw Self.invalid }
                     verified = id
+                case "needs-review":
+                    guard verified == nil, manual == nil else { throw Self.invalid }
+                    manual = id
                 case "cancelled": if cancelled == nil { cancelled = id }
                 default: throw Self.invalid
                 }
@@ -241,17 +292,25 @@ struct GoogleBankStore: BankStore {
             page = result["nextPageToken"] as? String
             if let page, !seen.insert(page).inserted || seen.count > 100 { throw Self.invalid }
         } while page != nil
-        guard let id = verified ?? cancelled else { return nil }
+        guard let id = verified ?? manual ?? cancelled else { return nil }
         guard GoogleConnection.validSheetID(id) else { throw Self.invalid }
         let metadata = try json(await drive("/drive/v3/files/" + id, query: ["fields":fileFields]))
         try privateFile(metadata, expectedID: id)
         let response = try await drive("/drive/v3/files/" + id, query: ["alt":"media"], limit: BankBlob.receipt.limit)
         guard response.statusCode == 200, let record = try JSONSerialization.jsonObject(with: response.data) as? Object,
-              record["kind"] as? String == (id == verified ? "verified" : "cancelled"), let binding = record["binding"] as? Object else { throw Self.invalid }
+              record["kind"] as? String == (id == verified ? "verified" : (id == manual ? "needs-review" : "cancelled")), let binding = record["binding"] as? Object else { throw Self.invalid }
         let b = try JSONDecoder().decode(BankBinding.self, from: JSONSerialization.data(withJSONObject: binding))
-        let actualScope = try b.scope
+        let expected: String
+        switch key {
+        case "kittyBankDigest": expected = b.digest
+        case "kittyBankScope": expected = try b.scope
+        case "kittyBankManualSource":
+            guard record["kind"] as? String == "needs-review" else { throw Self.invalid }
+            expected = b.sourceKey
+        default: throw Self.invalid
+        }
         guard b.valid, b.receiptID == id, b.owner == api.selected.permissionID, b.sheetID == api.selected.sheetID,
-              digest == nil || b.digest == digest, scope == nil || actualScope == scope,
+              expected == filter,
               try await blob(.receipt,b) == response.data else { throw Self.invalid }
         return b
     }

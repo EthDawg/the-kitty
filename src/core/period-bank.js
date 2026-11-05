@@ -92,7 +92,7 @@
     // Unknown formats still flow to the canonical planner for its institution-specific repair instructions.
     const count=bank.validateBankOriginal(file.text);
     const result=period.plan({months:month,sheet,files:[{name:file.name,account,download_day:downloadDay,text:file.text}],
-      inputs:[],options:{as_of:downloadDay,sheet_id:sheetID}});
+      inputs:[],options:{as_of:downloadDay,sheet_id:sheetID,review_outside_rows:true}});
     const duplicates=result.outcomes.already_in_sheet, repeated=result.outcomes.repeated_across_files;
     const row = r => ({
       line:r.line,date:r.date,raw:r.raw_text ?? r.description,amountCents:r.amount_cents,signedAmount:period.text.plus2(r.amount_cents),
@@ -102,7 +102,8 @@
       account,accountName:acct.account || account,currency,month,downloadDay,sourceRows:count,proposedCount:result.proposed.transactions.length,
       duplicateCount:duplicates.length,allDuplicates:result.status==="ready" && duplicates.length>0 && duplicates.length+result.outcomes.outside_window.reduce((n,o)=>n+o.earlier+o.later,0)===count && !result.plan.writes.length,
       rows:result.proposed.transactions.map(row),duplicates:duplicates.map(row),repeated:repeated.map(row),
-      outside:result.outcomes.outside_window,faults:result.faults.map(x=>[x.what,x.do].filter(Boolean).join(". ")),
+      outside:result.outcomes.outside_window.map(window=>({...window,rows:window.rows.map(row)})),
+      faults:result.faults.map(x=>[x.what,x.do].filter(Boolean).join(". ")),
       holds:result.holds.map(x=>x.text),review:result.review,checks:result.checks.closing,writes:result.plan.writes,deferred:result.plan.deferred};
     return {plan:result.plan,summary};
   }

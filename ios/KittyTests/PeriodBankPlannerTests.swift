@@ -65,6 +65,30 @@ final class PeriodBankPlannerTests: XCTestCase {
         XCTAssertEqual(p.batch?.destination,"Entries!A3:T4")
         XCTAssertEqual(net.requests.count,2)
     }
+    func testSignedSevenCentAndZeroOriginalsRestoreTheReviewedPlannerDigest() async throws {
+        let (owner, api) = context(Transport(sheetID: selected.sheetID))
+        let document = SourceDocument(name: "small-card.csv", mimeType: "text/csv", bytes: Data("""
+            Date,Description,Card Member,Account #,Amount
+            02/02/2027,SMALL CHARGE,Joint,1234,0.07
+            03/02/2027,SMALL REFUND,Joint,1234,-0.07
+            04/02/2027,PRINTED ZERO,Joint,1234,0.00
+            """.utf8))
+        let preview = try await PeriodBankPlanner.prepare(original: document, account: "ACC-CC", month: "2027-02",
+                                                           downloadDay: "2027-02-28", owner: owner, api: api)
+        let reviewed = try XCTUnwrap(preview.batch)
+        let summaryRows = try XCTUnwrap(preview.summary["rows"] as? [Object])
+        XCTAssertEqual(summaryRows.compactMap { $0["signedAmount"] as? String }, ["-0.07", "+0.07", "+0.00"])
+        for encoding in [nil, PeriodBankAppend.manifestAmountEncoding] {
+            let stored = encoding == nil ? preview.plan : try PeriodBankAppend.planForManifest(preview.plan)
+            let bytes = try JSONSerialization.data(withJSONObject: stored)
+            let decoded = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? Object)
+            let plan = try PeriodBankAppend.restoredPlan(decoded, amountEncoding: encoding)
+            let batch = try PeriodBankAppend(plan: plan, sheetID: selected.sheetID, account: "ACC-CC",
+                                             original: document, originalSHA256: document.id)
+            XCTAssertEqual(batch.digest, reviewed.digest)
+            XCTAssertEqual(batch.markerID, reviewed.markerID)
+        }
+    }
     func testLeadingSourceApostrophesReachLiteralGoogleCellsAndReplayWithoutNewEntries() async throws {
         let net = Transport(sheetID:selected.sheetID), (owner,api) = context(net)
         let original = SourceDocument(name:"card-2027-02.csv",mimeType:"text/csv",bytes:Data("""

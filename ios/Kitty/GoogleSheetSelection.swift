@@ -6,7 +6,7 @@ import CryptoKit
 @MainActor
 struct GoogleSheetSelection {
     // The public example may be read, but never receives a bank file.
-    static let demoFileID = "16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA"
+    nonisolated static let demoFileID = "16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA"
     static let driveFields = "id,name,mimeType,trashed,ownedByMe,capabilities(canEdit),permissions(id,type,role,deleted),appProperties"
     struct Verified {
         let selection: GoogleConnection.Selection
