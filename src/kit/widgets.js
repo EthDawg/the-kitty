@@ -49,9 +49,11 @@
     let x = 0, y = y0 || 0;
     return items.map((it) => { if (x + it.w > COLS) { x = 0; y += 1; } const out = { ...it, x, y }; x += it.w; if (x >= COLS) { x = 0; y += 1; } return out; });
   };
-  // The page as drawn: reading order, wrapped into rows, with a row's last widget taking up the slack when it has a size that fills it.
+  // Reading order at the widths a person asked for. This is what gets saved and edited; K.flow's fill is drawing only and must never come back here.
+  K.order = (items) => K.pack(items.slice().sort((a, b) => a.y - b.y || a.x - b.x));
+  // The page as drawn: the order above, with a row's last widget taking up the slack when it has a size that fills it.
   K.flow = (items) => {
-    const out = K.pack(items.slice().sort((a, b) => a.y - b.y || a.x - b.x)); const rows = new Map();
+    const out = K.order(items); const rows = new Map();
     for (const it of out) rows.set(it.y, (rows.get(it.y) || []).concat(it));
     for (const row of rows.values()) { const last = row[row.length - 1], w = byId.get(last.id), left = COLS - row.reduce((t, i) => t + i.w, 0); if (w && left > 0 && w.sizes.some((s) => s.w === last.w + left)) last.w += left; }
     return out;

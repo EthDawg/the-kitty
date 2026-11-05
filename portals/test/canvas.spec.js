@@ -150,3 +150,39 @@ test("the header fits the narrowest phone, live label included", async ({ page }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   const search = await page.locator("#topsearch").boundingBox(); expect(search.x + search.width).toBeLessThanOrEqual(308);
 });
+
+test("Narrower twice puts two neighbours side by side, and a reload keeps it", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Review narrower" }).click();
+  await expect(page.locator("#toast")).toContainText("fills its row");
+  await expect(page.getByRole("button", { name: "Make Review wider" })).toBeFocused();
+  await page.getByRole("button", { name: "Make What needs you narrower" }).click();
+  const check = async () => {
+    const r = await cell(page, "review").boundingBox(), n = await cell(page, "needs").boundingBox();
+    expect(Math.abs(r.y - n.y)).toBeLessThan(2); expect(n.x).toBeGreaterThan(r.x + r.width - 1);
+    expect(Math.abs(r.width - n.width)).toBeLessThan(2);
+  };
+  await check(); await open(page); await check();
+  const items = (await prefs(page)).layout.items; expect(items.find((i) => i.id === "review").w).toBe(6); expect(items.find((i) => i.id === "needs").w).toBe(6);
+});
+
+test("a drop keeps every other widget's chosen width", async ({ page }) => {
+  await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Review narrower" }).click(); await mounted(page);
+  await cell(page, "contracts").scrollIntoViewIfNeeded();
+  const box = await cell(page, "contracts").boundingBox(), to = await cell(page, "shares").boundingBox();
+  await page.mouse.move(box.x + 120, box.y + 80); await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + 120, box.y + 80 + (to.y - box.y - 60) * i / 12);
+  await page.mouse.up(); await mounted(page);
+  await expect.poll(async () => (await prefs(page)).layout.items.find((i) => i.id === "review").w).toBe(6);
+});
+
+test.describe("a phone on its side", () => {
+  test.use({ viewport: { width: 956, height: 440 }, hasTouch: true, isMobile: true });
+  test("stays a phone: one column and no GridStack", async ({ page }) => {
+    await open(page); await expect(page.locator("#canvas")).toHaveClass(/phone/);
+    await page.locator("#arrangebtn").click(); await expect(page.locator(".arrangebar .btn")).toBeFocused();
+    await expect(page.locator("#canvas.grid-stack")).toHaveCount(0);
+    const a = await cell(page, "property").boundingBox(), b = await cell(page, "super").boundingBox(); expect(b.y).toBeGreaterThan(a.y + a.height - 1);
+  });
+});

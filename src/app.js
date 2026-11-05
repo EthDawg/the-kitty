@@ -356,7 +356,8 @@
   }
   // ----- Home is the canvas: widgets from the kit, laid out per person. The page is always a plain CSS grid, so spacing never depends on
   // measuring. GridStack mounts only while arranging, on the grid's own geometry; a blocked script costs dragging, not the page. -----
-  const isPhone = () => window.matchMedia("(max-width:819px)").matches;
+  const PHONE = window.matchMedia("(max-width:819px), (pointer:coarse) and (max-height:540px)");   // a phone on its side is still a phone
+  const isPhone = () => PHONE.matches;
   const fixedLayout = () => FLAGS.get("layout") === "default";   // ?layout=default for screenshots: no saved layout, nothing written
   const WID = (m) => Kit.eligible(m, E.signals(m));
   const savedLayout = () => (fixedLayout() ? null : S.prefs.layout || null);
@@ -374,11 +375,11 @@
     return lay;
   }
   function canvasHTML(lay) {
-    const m = S.m; const a = !!S.arrange, phone = isPhone();
+    const m = S.m; const a = !!S.arrange, phone = isPhone(); const asked = new Map(lay.items.map((i) => [i.id, i.w]));
     const cell = (it, i, n) => {
-      const w = Kit.widget(it.id), variant = Kit.variant(w, it.w), sized = !phone && w.sizes.length > 1 ? Kit.nextSize(w, it.w) : null;
+      const w = Kit.widget(it.id), variant = Kit.variant(w, it.w), sized = !phone && w.sizes.length > 1 ? Kit.nextSize(w, asked.get(it.id)) : null;
       const body = w.core ? w.render(w.data(m), variant) : `<div class="card">${w.render(w.data(m), variant)}</div>`;
-      const tools = a ? `<div class="wtools"><span class="whandle" aria-hidden="true">⠿</span><span class="wname">${esc(w.title)}</span><button class="wbtn" data-wmove="${esc(it.id)}:-1" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(w.title)} up">↑</button><button class="wbtn" data-wmove="${esc(it.id)}:1" ${i === n - 1 ? "disabled" : ""} aria-label="Move ${esc(w.title)} down">↓</button>${sized ? `<button class="wbtn" data-wsize="${esc(it.id)}" aria-label="Make ${esc(w.title)} ${sized > it.w ? "wider" : "narrower"}">${sized > it.w ? "Wider" : "Narrower"}</button>` : ""}<button class="wbtn" data-whide="${esc(it.id)}" aria-label="Hide ${esc(w.title)}">Hide</button></div>` : "";
+      const tools = a ? `<div class="wtools"><span class="whandle" aria-hidden="true">⠿</span><span class="wname">${esc(w.title)}</span><button class="wbtn" data-wmove="${esc(it.id)}:-1" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(w.title)} up">↑</button><button class="wbtn" data-wmove="${esc(it.id)}:1" ${i === n - 1 ? "disabled" : ""} aria-label="Move ${esc(w.title)} down">↓</button>${sized ? `<button class="wbtn" data-wsize="${esc(it.id)}" aria-label="Make ${esc(w.title)} ${sized > asked.get(it.id) ? "wider" : "narrower"}">${sized > asked.get(it.id) ? "Wider" : "Narrower"}</button>` : ""}<button class="wbtn" data-whide="${esc(it.id)}" aria-label="Hide ${esc(w.title)}">Hide</button></div>` : "";
       return `<div class="wcell grid-stack-item" data-wid="${esc(it.id)}" gs-id="${esc(it.id)}" gs-x="${it.x}" gs-y="${it.y}" gs-w="${it.w}" gs-h="1" gs-min-w="${Math.min(...w.sizes.map((s) => s.w))}" style="--ww:${it.w};--i:${Math.min(i, 5)}"><div class="grid-stack-item-content"><div class="wbox">${tools}${body}</div></div></div>`;
     };
     const bar = `<div class="arrangebar">${a ? `${lay.hiddenOn.length ? `<span class="sub">Hidden:</span>${Kit.Tray(lay.hiddenOn.map((id) => ({ id, title: Kit.widget(id).title })))}` : ""}<button class="linkbtn" data-wreset>Back to the default</button><button class="btn sm" data-arrange>Done</button>` : `<button class="linkbtn" data-arrange>Arrange this page</button>`}</div>`;
@@ -394,21 +395,21 @@
     el.classList.add("grid-stack");
     try {
       S.grid = window.GridStack.init({ column: 12, cellHeight: CELL, margin: 8, float: false, animate: false, resizable: { handles: "e" }, alwaysShowResizeHandle: true, cancel: ".wbtn" }, el);
-      S.grid.on("dragstop resizestop", () => {
-        const items = S.grid.engine.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w: Kit.snapWidth(Kit.widget(n.id), n.w).w })).sort((a, b) => a.y - b.y || a.x - b.x);
-        saveLayout(Kit.pack(items)); setTimeout(renderHome);
+      S.grid.on("dragstop resizestop", (ev, item) => {   // the drawn widths include fill: only the widget being resized takes a new one
+        const asked = new Map(currentItems().map((i) => [i.id, i.w])), resized = ev.type === "resizestop" ? item.getAttribute("gs-id") : null;
+        saveLayout(Kit.order(S.grid.engine.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w: n.id === resized ? Kit.snapWidth(Kit.widget(n.id), n.w).w : asked.get(n.id) || n.w })))); setTimeout(renderHome);
       });
     } catch (e) { console.error("canvas", e); S.grid = null; el.classList.remove("grid-stack"); }
   }
   function setArrange(on) { S.arrange = on; const b = $("#arrangebtn"); if (b) b.setAttribute("aria-pressed", String(on)); renderHome(); const d = on ? $(".arrangebar .btn") : b; if (d && !d.hidden) d.focus({ preventScroll: true }); }
   // the reading order, for the phone's handle and for the arrows
-  const currentItems = () => Kit.flow(Kit.layout(WID(S.m), savedLayout()).items);
+  const currentItems = () => Kit.order(Kit.layout(WID(S.m), savedLayout()).items);
   function applyOrder(items) { saveLayout(Kit.pack(items)); renderHome(); }
   function bindCanvas(v) {
     $$("[data-arrange]", v).forEach((b) => b.addEventListener("click", () => setArrange(!S.arrange)));
     $$("[data-wreset]", v).forEach((b) => b.addEventListener("click", () => { const ws = WID(S.m); savePrefs({ layout: { items: Kit.layout(ws, null).items, hidden: [], seen: ws.filter((w) => !w.core).map((w) => w.id) } }); renderHome(); toast("Back to the default page"); }));
     $$("[data-wmove]", v).forEach((b) => b.addEventListener("click", () => { const [id, d] = b.dataset.wmove.split(":"); applyOrder(Kit.reorder(currentItems(), id, +d)); toast(`${Kit.widget(id).title} moved ${+d < 0 ? "up" : "down"}`, 1400); const n = $(`[data-wmove="${id}:${d}"]`); if (n && !n.disabled) n.focus(); }));
-    $$("[data-wsize]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wsize, w = Kit.widget(id); applyOrder(currentItems().map((i) => (i.id === id ? { ...i, w: Kit.nextSize(w, i.w) } : i))); const n = $(`[data-wsize="${id}"]`); if (n) n.focus(); }));
+    $$("[data-wsize]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wsize, w = Kit.widget(id); applyOrder(currentItems().map((i) => (i.id === id ? { ...i, w: Kit.nextSize(w, i.w) } : i))); const c = $(`.wcell[data-wid="${id}"]`), n = $(`[data-wsize="${id}"]`); if (n) n.focus(); if (c && +c.getAttribute("gs-w") !== currentItems().find((i) => i.id === id).w) toast(`${w.title} fills its row until a neighbour joins it`, 2600); }));
     $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; writeLayout({ items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] }); renderHome(); const d = $(".arrangebar .btn"); if (d) d.focus(); }));
     $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); writeLayout({ items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] }); renderHome(); const d = $(`[data-whide="${id}"]`); if (d) d.focus(); }));
     // the phone reorders by a handle: drag it past a neighbour and the cells swap, keeping the reading order as the only state
@@ -1345,7 +1346,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   // worth_it_min is a Kitty-tab key (default 40); written once if the sheet lacks it, so the threshold has a sheet owner
   async function ensureWorthKey() { if (!canWriteSheet() || S.m.sheetVersion < 2 || S.m.kitty.worth_it_min != null && S.m.kitty.worth_it_min !== "" || S.wroteWorthKey) return; S.wroteWorthKey = true; try { await writeKitty("worth_it_min", 40); S.m.kitty.worth_it_min = "40"; } catch (e) { /* the default stands */ } }
   async function boot() {
-    window.matchMedia("(max-width:819px)").addEventListener("change", () => { if (S.m) renderHome(); });
+    PHONE.addEventListener("change", () => { if (S.m) renderHome(); });
     const saved = window.__KIT_GALLERY__ ? "home" : store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
     if (SNAP) { setModel(demoModel()); renderAll(); }
     if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);
