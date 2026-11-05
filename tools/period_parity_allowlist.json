@@ -1,5 +1,5 @@
 {
- "about": "Every case where src/core deliberately differs from period-close/. Keyed by test name. Each is a Python behaviour that is wrong by the importer's own promise; none was copied and none was fixed in Python. tools/period_parity.py fails if a listed case stops differing.",
+ "about": "Every case where src/core deliberately differs from period-close/. Keyed by test name. Each is a Python behaviour that is wrong by the importer's own promise; none was copied and none was fixed in Python. tools/period_parity.py fails if a listed case stops differing. An entry with runs or only covers just those runs and output files of its test.",
  "cases": {
   "test_amount_nan": {
    "bug": "PY-1",
@@ -149,31 +149,58 @@
    "bug": "PY-13",
    "input": "a bank repayment and its loan line in one run",
    "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
-   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs",
+   "only": [
+    "write-plan.json"
+   ]
   },
   "test_the_loan_statement_pairs_the_repayment_and_values_the_loan": {
    "bug": "PY-13",
    "input": "the same, the existing period-close scenario",
    "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
-   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs",
+   "only": [
+    "write-plan.json"
+   ],
+   "runs": [
+    1
+   ]
   },
   "test_repayment_without_mate_and_regex_mate": {
    "bug": "PY-13",
    "input": "the same, mate by description",
    "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
-   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs",
+   "only": [
+    "write-plan.json"
+   ],
+   "runs": [
+    1
+   ]
   },
   "test_second_run_plans_nothing_with_pairs_loans_payslips": {
    "bug": "PY-13",
    "input": "the same, first run",
    "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
-   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs",
+   "only": [
+    "write-plan.json"
+   ],
+   "runs": [
+    1
+   ]
   },
   "test_verify_edges": {
    "bug": "PY-13",
    "input": "the same, in the verify fixture",
    "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
-   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs",
+   "only": [
+    "write-plan.json"
+   ],
+   "runs": [
+    1
+   ]
   },
   "test_newest_first_loan_values_the_latest": {
    "bug": "PY-14",
@@ -233,13 +260,19 @@
    "bug": "PY-20",
    "input": "last Entries row with a blank ID, preflight reads ZZZ",
    "python": "the precondition expects null and same() treats null as 'leave alone', so anything passes",
-   "js": "null in expect means blank; ZZZ fails"
+   "js": "null in expect means blank; ZZZ fails",
+   "runs": [
+    2
+   ]
   },
   "test_verify_preconditions_on_held": {
    "bug": "PY-21",
    "input": "verify --preconditions on a plan with status hold",
    "python": "the status check sits after the preconditions branch, so it prints 'preconditions hold: write', exit 0",
-   "js": "refuses any plan that is not ready"
+   "js": "refuses any plan that is not ready",
+   "runs": [
+    2
+   ]
   },
   "test_sheet_numeric_raw_text": {
    "bug": "PY-22",

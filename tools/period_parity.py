@@ -13,7 +13,8 @@ because they cannot match by design: plan generated_at, plan importer, and the s
 Canonical JSON: sorted keys, UTF-8, and a float with no fraction written as an integer (JS has one number type).
 
 Expected differences live in tools/period_parity_allowlist.json: each is a Python bug the port does not copy, with a reason. An
-allowlisted case that no longer differs is itself a failure, so the list cannot go stale.
+allowlisted case that no longer differs is itself a failure, so the list cannot go stale. An entry may name `runs` and `only`, so
+that one expected difference in a test cannot hide another.
 """
 import argparse
 import concurrent.futures as cf
@@ -80,6 +81,18 @@ def compare_dirs(py, js):
     return diffs
 
 
+def allowed(name, diffs):
+    """An entry covers one test, and, with `runs` and `only`, just those runs of it and those output files: a test with an
+    allowlisted import still has its other runs and files compared. A case that names neither is covered whole."""
+    entry = ALLOW.get(name.split('#')[0].split('.')[-1])
+    if not entry:
+        return False
+    seq = int(name.split('#')[1]) if '#' in name else 1
+    if 'runs' in entry and seq not in entry['runs']:
+        return False
+    return 'only' not in entry or all(d.split(' ')[0] in entry['only'] for d in diffs)
+
+
 class Ledger:
     def __init__(self):
         self.cases = {}
@@ -101,8 +114,7 @@ class Ledger:
             s['cases'] += 1
             if c['status'] in s:
                 s[c['status']] += 1
-            allowed = ALLOW.get(name.split('#')[0].split('.')[-1])
-            if c['diffs'] and allowed:
+            if c['diffs'] and allowed(name, c['diffs']):
                 s['allowlisted'] += 1
             elif c['diffs']:
                 s['differing'] += 1
@@ -112,7 +124,7 @@ class Ledger:
         seen = {}
         for name, c in self.cases.items():
             k = name.split('#')[0].split('.')[-1]
-            seen[k] = seen.get(k, False) or bool(c['diffs'])
+            seen[k] = seen.get(k, False) or (bool(c['diffs']) and allowed(name, c['diffs']))
         stale = [k for k in ALLOW if k in seen and not seen[k]]
         return stats, unexplained, stale
 
