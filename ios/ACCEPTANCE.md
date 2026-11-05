@@ -39,3 +39,8 @@ Sheet, and reads its Drive metadata and v2 marker. It reports the actual file
 permission, without changing rows or labelling snapshot numbers Live. Eighteen
 injected-response tests cover OAuth, secure storage, bounded HTTP, stale accounts,
 wrong files and ambiguous versions. They do not prove live Google consent.
+
+The shared ledger reader preserves physical row numbers across empty Sheets
+pages. A fictional regression places an entry on row 5,003 and finds it at that
+exact address; a populated Entries or Decisions row without its ID fails the
+read. These checks do not enable native ledger writes.

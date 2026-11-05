@@ -137,10 +137,17 @@
     const rows = sh && sh.properties.gridProperties ? sh.properties.gridProperties.rowCount : 0;
     if (!rows || rows <= CHUNK) return values(`${tab}!A1:${lastCol}`, refresh);
     const header = await values(`${tab}!A1:${lastCol}1`, refresh);
-    const tasks = []; for (let a = 2; a <= rows; a += CHUNK) { const b = Math.min(rows, a + CHUNK - 1); tasks.push(() => values(`${tab}!A${a}:${lastCol}${b}`, refresh)); }
-    const parts = []; let i = 0; const worker = async () => { while (i < tasks.length) { const k = i++; parts[k] = await tasks[k](); } };
+    const parts = [{ first: 1, last: 1, rows: header }];
+    for (let first = 2; first <= rows; first += CHUNK) parts.push({ first, last: Math.min(rows, first + CHUNK - 1) });
+    let next = 1;
+    const worker = async () => {
+      while (next < parts.length) {
+        const part = parts[next++];
+        part.rows = await values(`${tab}!A${part.first}:${lastCol}${part.last}`, refresh);
+      }
+    };
     await Promise.all([worker(), worker(), worker()]);
-    const out = header.concat(...parts); while (out.length > 1 && !(out[out.length - 1] || [])[0]) out.pop(); return out;
+    return E.joinGridPages(parts);
   }
   async function loadLive(refresh) {
     if (!S.mcp) return false;
@@ -166,6 +173,7 @@
   const rowOf = (grid, col0) => { const i = (grid || []).findIndex((r) => r && String(r[0]).trim() === col0); return i < 0 ? null : i + 1; };
   async function writeCells(range, rows) {
     if (!S.mcp) throw { code: "no_mcp" };
+    if (S.mode !== "live" || S.loading || S.liveErr) throw { code: "tool_error", message: "Refresh the Sheet successfully before saving changes." };
     const res = await S.mcp.callTool(GS, "update_values", { spreadsheetId: sheetId(), range, values: rows });
     try { await S.mcp.invalidate(GS, "get_values"); } catch (e) { /* older shell */ }
     return res;

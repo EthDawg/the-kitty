@@ -91,6 +91,22 @@
   const HEAD = { metrics: "Metric ID", compliance: "Check", networth: "Month end", savings: "Opportunity", budget: "Category", settings: "Setting", kitty: "Key", accounts: "Account ID", category_list: "Category ID", goals: "Goal", subscriptions: "Service", loans: "Loan ID", assets: "Item ID", transactions: "Txn ID", payslips: "Pay date",
     entries: "Entry ID", balances: "Month end", contracts: "Contract ID", decisions: "Decision ID", rules: "Rule ID" };
   const blank = (r) => !r || r.every((v) => v == null || v === "");
+  // Sheets omits trailing empty rows from each values response. Place each page at its
+  // requested address: Entries row numbers are also the addresses used for category writes.
+  E.joinGridPages = (pages) => {
+    const grid = []; let next = 1;
+    for (const { first, last, rows } of pages) {
+      if (first !== next || !Number.isSafeInteger(last) || last < first || !Array.isArray(rows) ||
+          rows.length > last - first + 1 || rows.some(r => !Array.isArray(r))) {
+        throw new Error("Sheets returned an invalid row range.");
+      }
+      rows.forEach((r, i) => { if (!blank(r)) grid[first - 1 + i] = r; });
+      next = last + 1;
+    }
+    return grid;
+  };
+  const ledgerTables = new Set(["entries", "balances", "contracts", "decisions", "rules", "transactions"]);
+  const requiredRowKeys = new Set(["entries", "decisions", "rules"]);
   function gridTable(grid, head, opts = {}) {
     if (!Array.isArray(grid)) return [];
     const hi = grid.findIndex((r) => r && String(r[0]).trim() === head);
@@ -99,7 +115,11 @@
     const out = [];
     for (let i = hi + 1; i < grid.length; i++) {
       const r = grid[i];
-      if (blank(r) || r[0] === "" || r[0] == null) { if (opts.all) continue; break; }
+      if (blank(r)) { if (opts.all) continue; break; }
+      if (r[0] == null || String(r[0]).trim() === "") {
+        if (opts.keyed) throw new Error(`Missing ${head} on row ${i + 1}.`);
+        if (opts.all) continue; break;
+      }
       const o = {}; keys.forEach((k, j) => { if (k) o[k] = r[j] == null || r[j] === "" ? null : r[j]; }); out.push(o);
     }
     return out;
@@ -112,7 +132,7 @@
   function gridAfter(grid, title, head) { const i = grid.findIndex((r) => r && r[0] === title); return i < 0 ? [] : gridTable(grid.slice(i + 1), head); }
   E.fromConnector = (g) => {
     const s = {};
-    for (const [k, head] of Object.entries(HEAD)) s[k] = gridTable(g[k], head, { all: k === "budget" });
+    for (const [k, head] of Object.entries(HEAD)) s[k] = gridTable(g[k], head, { all: k === "budget" || ledgerTables.has(k), keyed: requiredRowKeys.has(k) });
     s.budget = s.budget.filter((r) => r.category !== "Total");
     s.compliance = s.compliance.filter((r) => r.status);
     s.savings = s.savings.filter((r) => r.type === "Recurring" || r.type === "One-off");
