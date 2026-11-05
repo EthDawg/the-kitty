@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.0 cutover
+- Live reads now reach every Accounts column. The short range hid valuation method and status, so a live page reconciled 7 of 18 accounts and treated beta accounts as active. Bundled data was never affected.
 - The published page moves to the v2 ledger sheet. `staging_url` is gone; the page's QR code and "Copy the sheet" follow the v2 sheet, which must be shared as anyone-with-link Viewer before publishing.
 - Verified live on the v2 sheet, 4 November 2026: the fortune cookie proposed rule `R0086` for T0687, which wrote the rule, the category and decision `D0019`. Not exercised live: a plain category pick on T0761.
 - Known and harmless: `data/snapshot-v2.json` predates those three writes, so the bundled demo still shows T0687 for review.

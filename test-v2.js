@@ -91,7 +91,11 @@ test("connector grids for the ledger tabs read back the same model as the snapsh
   g.category_list = [["Category ID", "Category", "Group", "Flow", "Monthly budget ($)", "Essential", "Tax treatment", "ATO label"]].concat(live.category_list.map((c) => [c.category_id, c.category, c.group, c.flow, c.monthly_budget ? money(c.monthly_budget) : "-", c.essential || "", c.tax_treatment || "", c.ato_label || ""]));
   g.settings = [["Setting", "Value", "Note"]].concat(live.settings.map((s) => [s.setting, dmy(s.value), s.note || ""]));
   g.kitty = [["Key", "Value", "Note"]].concat(live.kitty.map((k) => [k.key, String(k.value), k.note || ""]));
+  // clip each tab to the range the page really asks for: a short range silently drops columns the model needs
+  const src = fs.readFileSync(path.join(__dirname, "src", "app.js"), "utf8"); const width = (c) => [...c].reduce((n, x) => n * 26 + x.charCodeAt(0) - 64, 0);
+  for (const k of Object.keys(H)) { const r = src.match(new RegExp(`${k}: "[^!]+!A1:([A-Z]+)"`)); assert.ok(r, k); g[k] = g[k].map((row) => row.slice(0, width(r[1]))); }
   const m1 = E.model(live), m2 = E.model(E.fromConnector(g));
+  assert.ok(E.reconcile(m2).filter((r) => r.account).every((r) => r.ok), "every account reconciles on a live read");
   assert.equal(m2.sheetVersion, 2); assert.equal(m2.entries.length, m1.entries.length); assert.equal(m2.balances.length, m1.balances.length); assert.equal(m2.contracts.length, m1.contracts.length); assert.equal(m2.rules.length, m1.rules.length);
   for (const a of m1.accounts) { const b = m2.acctById[a.id]; assert.ok(b, a.id); assert.equal(b.method, a.method); assert.equal(b.status, a.status); near(E.balanceAt(b, m2.asOf), E.balanceAt(a, m1.asOf), 0.01); }
   assert.deepEqual(E.signals(m2), E.signals(m1));
