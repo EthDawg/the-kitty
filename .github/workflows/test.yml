@@ -38,6 +38,7 @@ jobs:
         working-directory: portals
       - name: the simulator still builds the portals' data
         run: python3 portals/build-data.py --out /tmp/months.json
+      - run: python3 build.py --v2
       - run: npx playwright install --with-deps chromium
         working-directory: portals
       - name: sign in, download every shape, import, reconcile, repeat appends nothing
@@ -46,3 +47,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: portals/playwright-report, retention-days: 7 }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: kit-screenshots, path: docs/screenshots/kit/ci, if-no-files-found: ignore, retention-days: 7 }

@@ -3,6 +3,8 @@ const { defineConfig } = require("@playwright/test");
 module.exports = defineConfig({
   testDir: "./test",
   testMatch: /.*\.spec\.js/,
+  snapshotPathTemplate: "{testDir}/../../docs/screenshots/kit/ci/{arg}{ext}",   // baselines come from a CI run: fonts differ on a Mac
+  updateSnapshots: "missing",
   timeout: 180000,
   expect: { timeout: 10000 },
   fullyParallel: false,

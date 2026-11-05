@@ -21,7 +21,9 @@ Version 1.1, shipped. Verified live on 3 November 2026: live read and write thro
 connector, the onboarding's writes, Ask the Kitty, two month-end closes through the import pipeline, light and
 dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the end of this file.
 
-**2.0, phase B (the row and the review), 4 November 2026, on branch `v2-row`:** Activity on `EntryRow` with monograms and
+**2.0, phase C (widgets, signals, the canvas, the kit gallery), 5 November 2026:** Home is widgets the sheet switches on, arranged per person, on GridStack. The published 1.1 page has not been cut over: that waits on the phase B checks on the staging artifact. See `CHANGELOG.md`.
+
+**2.0, phase B (the row and the review), 4 November 2026:** Activity on `EntryRow` with monograms and
 brand icons, the merchant dictionary, the Review queue with its sheet writes, the fortune cookie that proposes rules, and
 "Worth it?"; verified on a private staging artifact against the v2 sheet. See `CHANGELOG.md`.
 
@@ -37,6 +39,7 @@ reading the original sheet until phase C cuts over. `python3 build.py --v2` buil
 | `src/engine.js` | Every number: parsing of connector strings and snapshot values, the model, verdict, upcoming, goals, leaks, search. Pure functions; `node --test test.js` runs them with the sheet as oracle. |
 | `src/app.js` | The page: Home, Activity, Insights, Goals, Setup; onboarding; drawers; the three writes; Ask the Kitty. |
 | `src/kit/entry-row.js` | The kit: `EntryRow` (monogram, brand category icon, clean name, signed amount, badges), `EntryList` grouped by day, `ReviewCard`, `WorthRow`. Pure functions from the model to HTML; the page binds the clicks. |
+| `src/kit/widgets.js` | The widgets: manifests, what switches them on, and the layout logic, pure and tested in node. `src/app.js` mounts them on GridStack (`src/vendor/` holds its stylesheet). `python3 build.py --v2` also writes `dist/kit.html`, the component gallery. |
 | `merchants/` | The merchant dictionary (370 Australian merchants and generic descriptors with patterns, categories, hues, websites) and the category-to-icon map; `README.md` records the miss rate. |
 | `src/style.css`, `src/shell.html` | Tokens (light and dark, four accents), components; the brand sprite (`brand/icons/sprite.svg`) is inlined at build. |
 | `src/data-sources.json` | How a household gets bank data in, by country and institution, with the landing rules. Rendered on Setup. |
@@ -176,7 +179,7 @@ the data pipeline and the deploy notes.
 - Bank export paths for the real banks are documented from product knowledge, not yet verified on each bank's site; the skill stamps them as it verifies. The parody portals' paths are the first verified entries (`demo` in `src/data-sources.json`).
 - The import pipeline is Python on a laptop; a scheduled, supervised version is the next real step.
 - Tested with a 925-row sheet; reads are chunked for larger ones but not yet exercised past a few thousand rows.
-- Verified on Chrome, Safari (iOS) and the Claude apps. Not tested on Firefox.
+- Verified on Chrome, Safari (iOS) and the Claude apps. Not tested on Firefox. The 2.0 canvas is verified in Chromium only, phones by emulation; phones skip GridStack and use a handle and arrows.
 
 ## Decisions (why this shape)
 
