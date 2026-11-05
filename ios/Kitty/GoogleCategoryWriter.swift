@@ -103,7 +103,7 @@ final class GoogleCategoryWriter {
             throw conflict("This entry was already reviewed. Refresh to see the saved decision.")
         }
         let decisionID = "D-" + UUID().uuidString.lowercased()
-        let today = String(ISO8601DateFormatter().string(from: Date()).prefix(10))
+        let today = GoogleSheetDay.name(zone:owner.timeZone)
         let intent = Intent(entry:id, old:old, category:category, row:n+1, identity:try identity(row),
                             decision:[decisionID,"entry",id,"categorise",category,"The Kitty on iPhone",today,""],
                             header:audit.header, stage:.prepared)
@@ -144,9 +144,10 @@ final class GoogleCategoryWriter {
                 do { _ = try await api.appendDecision(slot,row:i.decision) } catch { try api.check() }
                 audit = try await decisions(api)
             }
-            guard let n = audit.ids[i.decision[0]], padded(audit.rows[n],to:8) == i.decision,
+            guard let n = audit.ids[i.decision[0]],
                   !(audit.rows.dropFirst(n+1).contains { $0.count >= 4 && $0[1] == "entry" && $0[2] == i.entry && ["categorise","confirm","merge_duplicate","match_transfer","split"].contains($0[3]) }),
                   try await entry(i,api) == i.category else { throw pendingError }
+            try await verifyRecord(i.decision,at:n+1,api:api)
             try api.check()
             try FileManager.default.removeItem(at:file(owner))
             result = ["spreadsheetId":api.selected.sheetID, "updates":["spreadsheetId":api.selected.sheetID,
@@ -154,5 +155,17 @@ final class GoogleCategoryWriter {
         default: throw api.invalid
         }
         return ["payload":result, "cache":["storedAt":Int64(Date().timeIntervalSince1970*1000)]]
+    }
+
+    func verifyRecord(_ decision: [String], at row: Int, api: GoogleSheetTools) async throws {
+        guard decision.count == 8, row > 1, let serial = GoogleSheetDay.serial(decision[6]) else { throw api.invalid }
+        let value = try await api.values("Decisions!A\(row):J\(row)",render:"UNFORMATTED_VALUE")
+        guard let rows = value["values"] as? [[Any]], rows.count == 1, let r = rows.first, r.count == 10,
+              [0,1,2,3,4,5,7].allSatisfy({ (r[$0] as? String) == decision[$0] }),
+              let day = r[6] as? NSNumber, day.doubleValue == Double(serial),
+              let latest = r[8] as? NSNumber, CFGetTypeID(latest) == CFBooleanGetTypeID(), latest.boolValue,
+              r[9] as? String == decision[2] + "|" + decision[3] else {
+            throw Failure(code:"write_pending",message:"The Sheet has not confirmed this decision as Latest with the expected date and Key. Do not submit it again.")
+        }
     }
 }

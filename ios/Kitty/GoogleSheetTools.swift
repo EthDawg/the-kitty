@@ -18,7 +18,7 @@ struct GoogleSheetTools {
     nonisolated static let lastColumns = ["Settings": 3, "Accounts": 16, "Categories": 8, "Goals": 10, "Subscriptions": 17,
         "Loans": 11, "Assets": 4, "Metrics": 8, "Compliance Checks": 7, "Net Worth": 9, "Cash Flow": 20,
         "Budget": 9, "Savings Finder": 7, "Mortgage Scenarios": 8, "Tax Forecast": 6, "Transactions": 10,
-        "Payslips": 7, "Kitty": 3, "Entries": 21, "Balances": 6, "Contracts": 17, "Decisions": 8, "Rules": 10]
+        "Payslips": 7, "Kitty": 3, "Entries": 21, "Balances": 6, "Contracts": 17, "Decisions": 10, "Rules": 10]
 
     struct Rect {
         let tab: String, firstCol: Int, firstRow: Int, lastCol: Int, lastRow: Int?
@@ -63,9 +63,9 @@ struct GoogleSheetTools {
         switch tool {
         case "get_spreadsheet":
             let fields = ["sheets.properties.title", "sheets.properties.gridProperties.rowCount"]
-            guard let requested = input["fields"] as? [String], Set(requested) == Set(fields),
-                  requested.count == fields.count else { throw invalid }
-            data = try await request(query: ["fields": "spreadsheetId,sheets(properties(title,gridProperties(rowCount)))"])
+            guard let requested = input["fields"] as? [String], [Set(fields),Set(fields + ["properties.timeZone"])].contains(Set(requested)),
+                  requested.count == Set(requested).count else { throw invalid }
+            data = try await request(query: ["fields": "spreadsheetId,properties(timeZone),sheets(properties(title,gridProperties(rowCount)))"])
             guard data["spreadsheetId"] as? String == selected.sheetID, data["sheets"] is [[String: Any]] else { throw invalid }
         case "get_values":
             guard let range = input["range"] as? String else { throw invalid }
@@ -119,10 +119,14 @@ struct GoogleSheetTools {
         // values.append infers a table and can land after helper columns. Insert only A:H at the
         // verified address, then fill that slot in the same atomic Google request. A concurrent
         // writer's just-added row is shifted, never overwritten; I onward do not move.
-        let cells = row.map { ["userEnteredValue":["stringValue":$0]] }
+        guard let dayCell = GoogleSheetDay.cell(row[6]) else { throw invalid }
+        var cells: [[String:Any]] = row.map { ["userEnteredValue":["stringValue":$0]] }
+        cells[6] = dayCell
+        var daySlot = slot; daySlot["startColumnIndex"] = 6; daySlot["endColumnIndex"] = 7
         let requests: [[String:Any]] = [
             ["insertRange":["range":slot,"shiftDimension":"ROWS"]],
-            ["updateCells":["range":slot,"fields":"userEnteredValue","rows":[["values":cells]]]]
+            ["updateCells":["range":slot,"fields":"userEnteredValue","rows":[["values":cells]]]],
+            ["repeatCell":["range":daySlot,"fields":"userEnteredFormat.numberFormat","cell":["userEnteredFormat":["numberFormat":GoogleSheetDay.numberFormat]]]]
         ]
         return try await request(path:":batchUpdate",method:"POST",body:["requests":requests])
     }

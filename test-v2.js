@@ -9,6 +9,12 @@ const load = (p) => JSON.parse(fs.readFileSync(path.join(__dirname, p), "utf8"))
 const live = load("data/snapshot-v2.json"), everyday = load("fixtures/everyday-only.json"), property = load("fixtures/everyday+property.json");
 const near = (a, b, tol = 0.01) => assert.ok(a != null && b != null && Math.abs(a - b) < tol, `${a} vs ${b}`);
 
+test("a real decision uses the Sheet's day across UTC midnight, independently of the fictional as-of date", () => {
+  const instant = new Date("2026-11-04T16:30:00Z");
+  assert.equal(E.auditDay(instant,"Australia/Melbourne"),"2026-11-05");
+  assert.equal(E.auditDay(instant,"America/Los_Angeles"),"2026-11-04");
+});
+
 test("a trimmed Sheets page never moves a later entry to an earlier write address", () => {
   const entries = E.joinGridPages([
     { first: 1, last: 1, rows: [["Entry ID", "Category ID"]] },

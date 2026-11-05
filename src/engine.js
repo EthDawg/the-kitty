@@ -46,6 +46,11 @@
     return null;
   };
   E.dateOrder = "dmy";   // set from the Kitty tab's country before a model is built; US and some others show month first
+  E.auditDay = (instant, zone) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {timeZone: zone || undefined, calendar:"gregory",
+      year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(instant);
+    const p = Object.fromEntries(parts.map(x => [x.type,x.value])); return p.year + "-" + p.month + "-" + p.day;
+  };
   E.month = (v) => { const d = E.date(v); return d ? d.slice(0, 7) + "-01" : null; };
   E.key = (h) => String(h == null ? "" : h).toLowerCase().replace(/\(.*?\)/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 

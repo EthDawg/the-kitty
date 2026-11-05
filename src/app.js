@@ -138,7 +138,7 @@
   const CHUNK = 2500;
   async function loadBig(tab, lastCol, refresh, read) {
     // one read for a household-sized tab; chunks of 2,500 rows past that, three at a time, so a 20,000-row Transactions or Entries tab still opens
-    read.metadata ||= call("get_spreadsheet", { spreadsheetId: read.id, fields: ["sheets.properties.title", "sheets.properties.gridProperties.rowCount"] }, refresh, read);
+    read.metadata ||= call("get_spreadsheet", { spreadsheetId: read.id, fields: ["sheets.properties.title", "sheets.properties.gridProperties.rowCount", "properties.timeZone"] }, refresh, read);
     const meta = await read.metadata;
     const sh = ((meta && meta.sheets) || []).find((x) => x.properties && x.properties.title === tab);
     const rows = sh && sh.properties.gridProperties ? sh.properties.gridProperties.rowCount : 0;
@@ -175,7 +175,9 @@
       snap.fetchedAt = null;
       const m = E.model(snap);
       if (!m.accounts.length) throw { code: "invalid_response" };
-      S.grids = grids; setModel(m); S.mode = "live"; S.liveErr = null;
+      const metadata = await read.metadata;
+      if (!read.current()) return false;
+      S.auditZone = metadata?.properties?.timeZone; S.grids = grids; setModel(m); S.mode = "live"; S.liveErr = null;
       S.kittyRows = grids.kitty; S.settingsRows = grids.settings;
       renderAll();
       return true;
@@ -602,7 +604,9 @@
 
   // ----- the review queue's writes: a category is a cell plus a Decisions row; everything else is a Decisions row -----
   const byName = () => (S.userName || pref("greeting", "") || "the page").slice(0, 60);
-  const nowDate = () => new Date().toISOString().slice(0, 10);
+  // The audit date records the actual save in the Sheet's zone. The fixture's future as-of
+  // date belongs to forecasts, and UTC midnight is not a local household's midnight.
+  const nowDate = () => E.auditDay(new Date(), S.auditZone);
   const nextId = (grid, prefix, width) => { let mx = 0; for (const r of grid || []) { const mm = /^([A-Z])(\d+)$/.exec(String(r && r[0] || "").trim()); if (mm && mm[1] === prefix) mx = Math.max(mx, +mm[2]); } return prefix + String(mx + 1).padStart(width, "0"); };
   const lastRow = (grid) => { let n = 0; (grid || []).forEach((r, i) => { if (r && r[0] !== "" && r[0] != null) n = i + 1; }); return n; };
   function entryRowNumber(id) { const g = S.grids && S.grids.entries; if (!g) return null; const i = g.findIndex((r) => r && String(r[0]).trim() === id); return i < 0 ? null : i + 1; }

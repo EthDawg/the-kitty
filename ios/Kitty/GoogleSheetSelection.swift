@@ -11,6 +11,7 @@ struct GoogleSheetSelection {
         let selection: GoogleConnection.Selection
         let title: String
         let canEdit: Bool
+        var timeZone: TimeZone = TimeZone(secondsFromGMT:0)!
         var summary: [String: Any] {
             ["sheetID": selection.sheetID, "title": title, "sheetVersion": 2, "canEdit": canEdit]
         }
@@ -54,8 +55,10 @@ struct GoogleSheetSelection {
 
         let base = "/v4/spreadsheets/" + selection.sheetID
         let metadata = try await read(selection, host: "sheets.googleapis.com", path: base,
-                                      query: ["fields": "spreadsheetId,sheets(properties(title))"])
+                                      query: ["fields": "spreadsheetId,properties(timeZone),sheets(properties(title))"])
         guard metadata["spreadsheetId"] as? String == selection.sheetID,
+              let props = metadata["properties"] as? [String:Any], let tz = props["timeZone"] as? String,
+              let zone = TimeZone(identifier:tz),
               let sheets = metadata["sheets"] as? [[String: Any]] else { throw Failure.wrongFile }
         let titles = sheets.compactMap { ($0["properties"] as? [String: Any])?["title"] as? String }
         guard Set(["Kitty", "Accounts", "Entries", "Decisions", "Categories"]).isSubset(of: Set(titles))
@@ -70,7 +73,7 @@ struct GoogleSheetSelection {
         guard rows.count == 1, rows[0].count == 2,
               String(describing: rows[0][1]) == "2" else { throw Failure.wrongVersion }
         guard current() == selection else { throw Failure.changed }
-        return Verified(selection: selection, title: String(name.prefix(250)), canEdit: canEdit)
+        return Verified(selection: selection, title: String(name.prefix(250)), canEdit: canEdit, timeZone:zone)
     }
 
     #if DEBUG

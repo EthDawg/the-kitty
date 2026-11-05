@@ -26,7 +26,7 @@ final class GoogleSheetSelectionTests: XCTestCase {
         t.answers = [
             ["id": selected.sheetID, "name": "Digital Davies test", "mimeType": "application/vnd.google-apps.spreadsheet",
              "trashed": false, "capabilities": ["canEdit": false]],
-            ["spreadsheetId": selected.sheetID, "sheets": ["Kitty", "Accounts", "Entries", "Decisions", "Categories"].map { ["properties": ["title": $0]] }],
+            ["spreadsheetId": selected.sheetID, "properties":["timeZone":"Australia/Melbourne"], "sheets": ["Kitty", "Accounts", "Entries", "Decisions", "Categories"].map { ["properties": ["title": $0]] }],
             ["range": "Kitty!A1:B1000", "values": [["key","value"],["sheet_version",2]]]
         ]
         return t
