@@ -41,6 +41,74 @@ class Hostile(TI.Base):
             (d / f'{k}.csv').write_text(v)
         return '--inputs', str(d)
 
+    # ---------- line review: bugs both importers shared
+    def test_new_mate_precondition(self):
+        self.file('ACC-EVD', '2027-03-01', WESTPAC, [westpac(1, 'HOME LOAN REPAYMENT', debit='3000.00', balance='7000.00')], name='D.csv')
+        self.file('LN-HOME', '2027-03-01', WESTPAC, [westpac(1, 'REPAYMENT RECEIVED', credit='3000.00', balance='-597000.00')], name='L.csv')
+        self.go()
+
+    def test_newest_first_loan_values_the_latest(self):
+        self.file('LN-HOME', '2027-03-01', WESTPAC, [westpac(28, 'INTEREST CHARGED', debit='2500.00', balance='-599500.00'), westpac(3, 'REPAYMENT', credit='3000.00', balance='-597000.00')], name='L.csv')
+        self.go()
+
+    def test_newest_first_bank_closes_on_the_latest(self):
+        self.file('ACC-EVD', '2027-03-01', WESTPAC, [westpac(20, 'B', debit='5.00', balance='8000.00'), westpac(3, 'A', debit='5.00', balance='9995.00')], name='D.csv')
+        self.go()
+
+    def test_loan_blank_balance(self):
+        self.file('LN-HOME', '2027-03-01', WESTPAC, [westpac(28, 'INTEREST CHARGED', debit='2500.00', balance='')], name='L.csv')
+        self.go()
+
+    def test_payslip_blank_cells(self):
+        self.file('payslips', '2027-03-02', PAYSLIPS, [['2027-02-18', 'Mia', 'B', '', '', '', '']], name='p.csv')
+        self.go()
+
+    def test_valuation_huge(self):
+        (self.root / 'sources').mkdir()
+        self.go(*self.inputs(valuations='Month end,Item ID,Value\n2027-02-28,RENTAL,1e21\n'))
+
+    def test_loan_balance_huge(self):
+        self.file('LN-HOME', '2027-03-01', WESTPAC, [westpac(28, 'INTEREST CHARGED', debit='2500.00', balance='1e21')], name='L.csv')
+        self.go()
+
+    def test_mate_already_in_a_transfer(self):
+        self.sheet_tx = [LAST, {'txn_id': 'T0002', 'date': '2027-02-03', 'account_id': 'ACC-EVD', 'bank_description': 'HOME LOAN REPAYMENT', 'merchant': 'Harbour', 'amount': -3000.0, 'category_id': 'MORTGAGE', 'person': 'Joint', 'transfer_id': 'X0007', 'transfer_account': 'ACC-SAV'}]
+        self.file('LN-HOME', '2027-03-01', WESTPAC, [westpac(3, 'REPAYMENT RECEIVED', credit='3000.00', balance='-597000.00')], name='L.csv')
+        self.go()
+
+    def test_row_left_for_review_stays_unpaired(self):
+        self.file('ACC-EVD', '2027-03-01', WESTPAC, [westpac(2, 'TRANSFER TO SAVER', debit='500.00', balance='9500.00')], name='D.csv')
+        self.file('ACC-SAV', '2027-03-01', BANK, [['03/02/2027', 'TRANSFER FROM EVERYDAY', '500.00', '', '601.00'], ['04/02/2027', 'TRANSFER FROM EVERYDAY', '500.00', '', '1101.00']])
+        self.go()
+
+    def test_verify_blank_last_id(self):
+        self.extra = {'entries': [dict(TI.entry(LAST), entry_id=None)]}
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2)])
+        _, _, out, _ = self.go()
+        (out / 'pre.json').write_text(json.dumps([{'range': 'Entries!A2:A3', 'values': [['ZZZ']]}]))
+        TI.subprocess.run([sys.executable, str(HERE / 'verify.py'), str(out / 'write-plan.json'), str(out / 'pre.json'), '--preconditions'], capture_output=True, text=True)
+
+    def test_verify_preconditions_on_held(self):
+        self.file('ACC-SAV', '2027-03-01', BANK, [['02/02/2027', 'A', '1.00', '', '999.00']])
+        _, _, out, _ = self.go()
+        (out / 'pre.json').write_text(json.dumps([{'range': 'Entries!A2:A3', 'values': [['T0001']]}]))
+        TI.subprocess.run([sys.executable, str(HERE / 'verify.py'), str(out / 'write-plan.json'), str(out / 'pre.json'), '--preconditions'], capture_output=True, text=True)
+
+    def test_sheet_numeric_raw_text(self):
+        self.sheet_tx = [LAST, {'txn_id': 'T0002', 'date': '2027-02-03', 'account_id': 'ACC-EVD', 'bank_description': 12345, 'merchant': 'Harbour', 'amount': -3000.0, 'category_id': 'SUBS', 'person': 'Joint'}]
+        self.file('LN-HOME', '2027-03-01', WESTPAC, [westpac(3, 'REPAYMENT RECEIVED', credit='3000.00', balance='-597000.00')], name='L.csv')
+        self.go()
+
+    def test_sheet_serial_date(self):
+        self.sheet_tx = [LAST, {'txn_id': 'T0002', 'date': 46421, 'account_id': 'ACC-EVD', 'bank_description': 'X', 'merchant': 'X', 'amount': -5.0, 'category_id': 'TRANSFER', 'person': 'Joint'}]
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2)])
+        self.go()
+
+    def test_sheet_missing_date(self):
+        self.sheet_tx = [LAST, {'txn_id': 'T0002', 'date': None, 'account_id': 'ACC-EVD', 'bank_description': 'X', 'merchant': 'X', 'amount': -5.0, 'category_id': 'TRANSFER', 'person': 'Joint'}]
+        self.file('ACC-CC', '2027-03-01', CARD, [card(2)])
+        self.go()
+
     # ---------- reordered files
     def test_names_reorder_overlaps(self):
         self.file('ACC-CC', '2027-03-05', CARD, [card(3, 'ALDI', '50.00'), card(4, 'COLES', '20.00')], name='a.csv')

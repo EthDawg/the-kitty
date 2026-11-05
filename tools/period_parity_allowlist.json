@@ -1,31 +1,324 @@
 {
  "about": "Every case where src/core deliberately differs from period-close/. Keyed by test name. Each is a Python behaviour that is wrong by the importer's own promise; none was copied and none was fixed in Python. tools/period_parity.py fails if a listed case stops differing.",
  "cases": {
-  "test_amount_nan": {"bug": "PY-1", "input": "Southern Card row with Amount nan", "python": "crashes in cents(): ValueError, no review, no fault", "js": "bad_amount stop naming file and row"},
-  "test_amount_inf": {"bug": "PY-1", "input": "Amount inf", "python": "crashes: OverflowError", "js": "bad_amount stop"},
-  "test_amount_neg_inf": {"bug": "PY-1", "input": "Amount -Infinity", "python": "crashes: OverflowError", "js": "bad_amount stop"},
-  "test_amount_huge_exp": {"bug": "PY-1", "input": "Amount 1e400", "python": "crashes: OverflowError", "js": "bad_amount stop"},
-  "test_valuation_comma_value": {"bug": "PY-2", "input": "valuations.csv Value \"771,000\"", "python": "fnum() swallows the ValueError and plans a valuation of 0.00, exit 0", "js": "bad_value stop"},
-  "test_valuation_blank_value": {"bug": "PY-2", "input": "valuations.csv blank Value", "python": "plans a valuation of 0.00, exit 0", "js": "bad_value stop"},
-  "test_payslip_input_comma_amount": {"bug": "PY-2", "input": "payslips.csv Gross pay \"3,090.00\"", "python": "plans gross 0.00, exit 0", "js": "bad_value stop"},
-  "test_valuation_impossible_month_end": {"bug": "PY-3", "input": "valuations.csv Month end 2027-02-30", "python": "the regex passes; in a one-month run the string falls after the month end, so the row is silently dropped, exit 0; in a range such as 2027-01..2027-02 a 2027-01-32 falls inside and the impossible date is planned", "js": "bad_month_end stop"},
-  "test_valuation_impossible_month_end_in_range": {"bug": "PY-3", "input": "valuations.csv Month end 2027-01-32 in a 2027-01..2027-02 run", "python": "plans a valuation dated 2027-01-32, exit 0", "js": "bad_month_end stop"},
-  "test_two_equal_repayments_same_day": {"bug": "PY-4", "input": "two 3000.00 repayments on one day, two matching bank rows", "python": "both loan lines take the same mate: loan-pair-T0002 is written twice, X0001 is overwritten, T0003 is never paired", "js": "each bank row is a mate once"},
-  "seed33": {"bug": "PY-4", "input": "fuzz seed 33: a duplicated repayment line in a loan statement, one bank row", "python": "both lines take the one bank row as mate", "js": "the second is left unpaired for a person"},
-  "test_one_point_one_without_valuations": {"bug": "PY-5", "input": "1.1 snapshot with no valuations key plus a loan statement", "python": "crashes: len(None) at the Valuations append", "js": "plan note, nothing written for valuations. allow_v1 path only"},
-  "test_override_missing_column": {"bug": "PY-6", "input": "overrides.csv without Category ID or Person", "python": "crashes: KeyError", "js": "bad_value stop"},
-  "test_policy_impossible_date": {"bug": "PY-7", "input": "policy PDF with 31 Feb 2027", "python": "crashes: ValueError in long_date, escaping the needs-a-person path", "js": "pdf_needs_person stop"},
-  "test_oversize_field": {"bug": "PY-8", "input": "an unterminated quote swallowing over 131072 characters", "python": "crashes: _csv.Error", "js": "csv_unreadable stop"},
-  "test_nul_byte": {"bug": "PY-8", "input": "a NUL byte in a CSV", "python": "below 3.11 crashes: _csv.Error; 3.11 and later keeps the NUL in the description", "js": "csv_unreadable stop on every version"},
-  "test_reversed_month_range": {"bug": "PY-9", "input": "2027-02..2027-01", "python": "silently imports 2027-02 alone", "js": "PeriodInputError, a host bug and no plan"},
-  "test_amount_zero": {"bug": "PY-10", "input": "card Amount 0.00", "python": "-0.0 reaches the review line as (-0.00); the sheet value is the same", "js": "(+0.00): integer cents have no negative zero"},
-  "test_amount_blank": {"bug": "PY-12", "input": "card Amount blank", "python": "money() reads a blank as 0.0, so a truncated file plans a 0.00 row, exit 0", "js": "bad_amount stop: a blank cell cannot establish an amount; an explicit 0.00 stays valid"},
-  "test_amount_space": {"bug": "PY-12", "input": "card Amount spaces", "python": "money() reads a blank as 0.0, so a truncated file plans a 0.00 row, exit 0", "js": "bad_amount stop: a blank cell cannot establish an amount; an explicit 0.00 stays valid"},
-  "test_leading_apostrophe_formula": {"bug": "PY-11", "input": "card description '=LITERAL", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
-  "test_leading_apostrophe_word": {"bug": "PY-11", "input": "card description 'PLAIN WORD", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
-  "test_formula_like_text": {"bug": "PY-11", "input": "card description 'QUOTED", "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry", "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"},
-  "test_amount_huge": {"bug": "JS-LIMIT", "input": "Amount 1e15", "python": "plans a 1,000,000,000,000,000.00 charge", "js": "bad_amount stop: past safe-integer cents, by contract"},
-  "test_non_ascii_digits": {"bug": "JS-LIMIT", "input": "a date in Arabic-Indic digits", "python": "reads it, as \\d and int() take any Unicode digit", "js": "bad_date stop: ASCII digits only, no shape delivers others"}
+  "test_amount_nan": {
+   "bug": "PY-1",
+   "input": "Southern Card row with Amount nan",
+   "python": "crashes in cents(): ValueError, no review, no fault",
+   "js": "bad_amount stop naming file and row"
+  },
+  "test_amount_inf": {
+   "bug": "PY-1",
+   "input": "Amount inf",
+   "python": "crashes: OverflowError",
+   "js": "bad_amount stop"
+  },
+  "test_amount_neg_inf": {
+   "bug": "PY-1",
+   "input": "Amount -Infinity",
+   "python": "crashes: OverflowError",
+   "js": "bad_amount stop"
+  },
+  "test_amount_huge_exp": {
+   "bug": "PY-1",
+   "input": "Amount 1e400",
+   "python": "crashes: OverflowError",
+   "js": "bad_amount stop"
+  },
+  "test_valuation_comma_value": {
+   "bug": "PY-2",
+   "input": "valuations.csv Value \"771,000\"",
+   "python": "fnum() swallows the ValueError and plans a valuation of 0.00, exit 0",
+   "js": "bad_value stop"
+  },
+  "test_valuation_blank_value": {
+   "bug": "PY-2",
+   "input": "valuations.csv blank Value",
+   "python": "plans a valuation of 0.00, exit 0",
+   "js": "bad_value stop"
+  },
+  "test_payslip_input_comma_amount": {
+   "bug": "PY-2",
+   "input": "payslips.csv Gross pay \"3,090.00\"",
+   "python": "plans gross 0.00, exit 0",
+   "js": "bad_value stop"
+  },
+  "test_valuation_impossible_month_end": {
+   "bug": "PY-3",
+   "input": "valuations.csv Month end 2027-02-30",
+   "python": "the regex passes; in a one-month run the string falls after the month end, so the row is silently dropped, exit 0; in a range such as 2027-01..2027-02 a 2027-01-32 falls inside and the impossible date is planned",
+   "js": "bad_month_end stop"
+  },
+  "test_valuation_impossible_month_end_in_range": {
+   "bug": "PY-3",
+   "input": "valuations.csv Month end 2027-01-32 in a 2027-01..2027-02 run",
+   "python": "plans a valuation dated 2027-01-32, exit 0",
+   "js": "bad_month_end stop"
+  },
+  "test_two_equal_repayments_same_day": {
+   "bug": "PY-4",
+   "input": "two 3000.00 repayments on one day, two matching bank rows",
+   "python": "both loan lines take the same mate: loan-pair-T0002 is written twice, X0001 is overwritten, T0003 is never paired",
+   "js": "each bank row is a mate once"
+  },
+  "test_one_point_one_without_valuations": {
+   "bug": "PY-5",
+   "input": "1.1 snapshot with no valuations key plus a loan statement",
+   "python": "crashes: len(None) at the Valuations append",
+   "js": "plan note, nothing written for valuations. allow_v1 path only"
+  },
+  "test_override_missing_column": {
+   "bug": "PY-6",
+   "input": "overrides.csv without Category ID or Person",
+   "python": "crashes: KeyError",
+   "js": "bad_value stop"
+  },
+  "test_policy_impossible_date": {
+   "bug": "PY-7",
+   "input": "policy PDF with 31 Feb 2027",
+   "python": "crashes: ValueError in long_date, escaping the needs-a-person path",
+   "js": "pdf_needs_person stop"
+  },
+  "test_oversize_field": {
+   "bug": "PY-8",
+   "input": "an unterminated quote swallowing over 131072 characters",
+   "python": "crashes: _csv.Error",
+   "js": "csv_unreadable stop"
+  },
+  "test_nul_byte": {
+   "bug": "PY-8",
+   "input": "a NUL byte in a CSV",
+   "python": "below 3.11 crashes: _csv.Error; 3.11 and later keeps the NUL in the description",
+   "js": "csv_unreadable stop on every version"
+  },
+  "test_reversed_month_range": {
+   "bug": "PY-9",
+   "input": "2027-02..2027-01",
+   "python": "silently imports 2027-02 alone",
+   "js": "PeriodInputError, a host bug and no plan"
+  },
+  "test_amount_zero": {
+   "bug": "PY-10",
+   "input": "card Amount 0.00",
+   "python": "-0.0 reaches the review line as (-0.00); the sheet value is the same",
+   "js": "(+0.00): integer cents have no negative zero"
+  },
+  "test_amount_blank": {
+   "bug": "PY-12",
+   "input": "card Amount blank",
+   "python": "money() reads a blank as 0.0, so a truncated file plans a 0.00 row, exit 0",
+   "js": "bad_amount stop: a blank cell cannot establish an amount; an explicit 0.00 stays valid"
+  },
+  "test_amount_space": {
+   "bug": "PY-12",
+   "input": "card Amount spaces",
+   "python": "money() reads a blank as 0.0, so a truncated file plans a 0.00 row, exit 0",
+   "js": "bad_amount stop: a blank cell cannot establish an amount; an explicit 0.00 stays valid"
+  },
+  "test_leading_apostrophe_formula": {
+   "bug": "PY-11",
+   "input": "card description '=LITERAL",
+   "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry",
+   "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"
+  },
+  "test_leading_apostrophe_word": {
+   "bug": "PY-11",
+   "input": "card description 'PLAIN WORD",
+   "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry",
+   "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"
+  },
+  "test_formula_like_text": {
+   "bug": "PY-11",
+   "input": "card description 'QUOTED",
+   "python": "writes the text unescaped, so USER_ENTERED consumes the source's own apostrophe: '=X lands as =X, the same cell as a real =X, and a re-import plans a second entry",
+   "js": "doubles the leading apostrophe, so the cell keeps the source's text and a re-import finds it"
+  },
+  "test_amount_huge": {
+   "bug": "JS-LIMIT",
+   "input": "Amount 1e15",
+   "python": "plans a 1,000,000,000,000,000.00 charge",
+   "js": "bad_amount stop: past safe-integer cents, by contract"
+  },
+  "test_non_ascii_digits": {
+   "bug": "JS-LIMIT",
+   "input": "a date in Arabic-Indic digits",
+   "python": "reads it, as \\d and int() take any Unicode digit",
+   "js": "bad_date stop: ASCII digits only, no shape delivers others"
+  },
+  "test_new_mate_precondition": {
+   "bug": "PY-13",
+   "input": "a bank repayment and its loan line in one run",
+   "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+  },
+  "test_the_loan_statement_pairs_the_repayment_and_values_the_loan": {
+   "bug": "PY-13",
+   "input": "the same, the existing period-close scenario",
+   "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+  },
+  "test_repayment_without_mate_and_regex_mate": {
+   "bug": "PY-13",
+   "input": "the same, mate by description",
+   "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+  },
+  "test_second_run_plans_nothing_with_pairs_loans_payslips": {
+   "bug": "PY-13",
+   "input": "the same, first run",
+   "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+  },
+  "test_verify_edges": {
+   "bug": "PY-13",
+   "input": "the same, in the verify fixture",
+   "python": "import_month.py gives the loan-pair update on a bank row planned in the same run a precondition on that row, then copies it into plan.preconditions; the row is unwritten at preflight, so verify.py --preconditions always fails on it",
+   "js": "no precondition on a row the plan itself appends; rows on the sheet keep theirs"
+  },
+  "test_newest_first_loan_values_the_latest": {
+   "bug": "PY-14",
+   "input": "Harbour-shape loan statement delivered newest first, 28 Feb then 3 Feb",
+   "python": "takes the last row by position because the shape is declared oldest-first: values the loan at the 3 Feb balance, -597,000.00",
+   "js": "values it at the latest date, -599,500.00"
+  },
+  "test_newest_first_bank_closes_on_the_latest": {
+   "bug": "PY-14",
+   "input": "newest-first Harbour bank file, latest balance wrong",
+   "python": "checks the oldest row, which reconciles, so a wrong closing balance passes, exit 0",
+   "js": "checks the latest date and holds"
+  },
+  "test_newest_first_harbour_is_accepted": {
+   "bug": "PY-14",
+   "input": "newest-first Harbour bank file with a correct latest balance",
+   "python": "checks the oldest row against the ledger to that day and holds a good file, exit 2",
+   "js": "checks the latest date, ready"
+  },
+  "test_loan_blank_balance": {
+   "bug": "PY-15",
+   "input": "loan statement row with a blank Balance",
+   "python": "money('') is 0.0, so plans a month-end loan valuation of 0.00, exit 0",
+   "js": "bad_amount stop"
+  },
+  "test_payslip_blank_cells": {
+   "bug": "PY-16",
+   "input": "payroll export row with blank pay cells",
+   "python": "money('') is 0.0, so plans a payslip of zeros, exit 0",
+   "js": "bad_amount stop; an explicit 0.00 is still fine"
+  },
+  "test_valuation_huge": {
+   "bug": "PY-17",
+   "input": "valuations.csv Value 1e21",
+   "python": "no bound on a typed value: plans 1e+21 as a real figure, exit 0",
+   "js": "bad_value stop: past safe-integer cents"
+  },
+  "test_loan_balance_huge": {
+   "bug": "PY-17",
+   "input": "loan statement Balance 1e21",
+   "python": "no bound on a typed value: plans 1e+21 as a real figure, exit 0",
+   "js": "bad_amount stop: past safe-integer cents"
+  },
+  "test_mate_already_in_a_transfer": {
+   "bug": "PY-18",
+   "input": "a loan repayment whose only matching bank row already carries X0007",
+   "python": "the mate pool ignores transfer_id, so the deferred pair overwrites X0007 with a new id and breaks the existing pair",
+   "js": "that row is not a mate; the repayment is left unpaired for a person"
+  },
+  "test_row_left_for_review_stays_unpaired": {
+   "bug": "PY-19",
+   "input": "one -500.00 row with two +500.00 mates, on later days",
+   "python": "the review says 'left for review', then the mate's own turn finds one candidate and pairs it anyway, X0001",
+   "js": "the row stays unpaired and the mate says so"
+  },
+  "test_verify_blank_last_id": {
+   "bug": "PY-20",
+   "input": "last Entries row with a blank ID, preflight reads ZZZ",
+   "python": "the precondition expects null and same() treats null as 'leave alone', so anything passes",
+   "js": "null in expect means blank; ZZZ fails"
+  },
+  "test_verify_preconditions_on_held": {
+   "bug": "PY-21",
+   "input": "verify --preconditions on a plan with status hold",
+   "python": "the status check sits after the preconditions branch, so it prints 'preconditions hold: write', exit 0",
+   "js": "refuses any plan that is not ready"
+  },
+  "test_sheet_numeric_raw_text": {
+   "bug": "PY-22",
+   "input": "Entries raw_text 12345 (a number) on a repayment candidate outside the loan category",
+   "python": "crashes: m['desc'].upper() on an int",
+   "js": "reads it as text"
+  },
+  "test_sheet_serial_date": {
+   "bug": "PY-22",
+   "input": "Entries settled_at 46421 (a serial)",
+   "python": "crashes: TypeError comparing str and int",
+   "js": "bad_sheet_row stop naming the tab and row"
+  },
+  "test_sheet_missing_date": {
+   "bug": "PY-22",
+   "input": "Entries settled_at blank",
+   "python": "crashes: TypeError comparing str and None",
+   "js": "bad_sheet_row stop naming the tab and row"
+  },
+  "seed38": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Bark file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed121": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Bark file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed134": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Bark file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed222": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Bark file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed306": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Bark file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed137": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Harbour file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed185": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Harbour file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed298": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Harbour file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed219": {
+   "bug": "PY-14",
+   "input": "fuzz: lines swapped so a Harbour loan file runs against its shape's usual sequence",
+   "python": "reads the closing row by position from the shape's declared sequence, so it reads the earlier date",
+   "js": "reads the latest date"
+  },
+  "seed17": {
+   "bug": "PY-16",
+   "input": "fuzz: a payroll export row with a blank pay cell",
+   "python": "reads the blank as 0.00, so this file adds no fault",
+   "js": "bad_amount stop for that row, alongside the same header fault"
+  }
  },
  "notes": {
   "matched, worth a decision": [

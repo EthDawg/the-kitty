@@ -57,6 +57,8 @@ A write is `{id, tab, op: "append"|"update", range: "Entries!A13:T512", rows, co
 - Read every `preconditions[]` range first, call `verify(plan, preflight, {preconditions:true})`; refuse to write unless ok. Then write `writes[]` in order by explicit range with
   `update_values` (USER_ENTERED), **never append**. Then re-read every range and `verify(plan, reread)`.
 - `null` in an update means leave that cell alone; `""` means blank. Leading `= + - @` text is already apostrophe-escaped. Appends are already chunked at 500 rows.
+- `preconditions` cover rows on the sheet now, nothing else. A deferred pair on a row this plan appends carries none: check that row once it lands.
+- A `null` in `expect` means the cell was blank and must still be. `verify` refuses preflight on any plan that is not `ready`.
 - On hold or stop, `writes` and `deferred` are empty. `deferred` waits for a person or phase D and is re-planned each run; `--loans now` is `options.loans = "now"`.
 - `generated_at`, `totals.seconds` (always 0) and `importer` are the only fields that differ from Python.
 
@@ -66,6 +68,7 @@ A plan with status other than ready fails, as in Python. `lines` matches verify.
 ## Stop fault, hold, review item
 - **Stop** (`exit 1`, nothing planned): the importer cannot trust a file or the setup. Every file is read first so all file faults show together; a later-stage stop (`id_collision`, `unknown_category`, `unlinked_property`, valuation row faults) arrives alone.
   Codes: `sources_missing unknown_account no_adapter_account not_a_download_folder file_outside_download_folder nested_folder pdf_no_adapter file_type csv_in_policy empty_file not_utf8 csv_unreadable unknown_shape header_mismatch wrong_institution wrong_loan_shape wrong_lender wrong_owner_shape wrong_payslip_shape bad_date two_digit_year bad_month no_such_day bad_amount bad_value bad_columns implausible_date after_download after_as_of before_opening out_of_order pdf_needs_person policy_wrong_folder id_collision unknown_category unlinked_property unknown_valuation_item bad_month_end`.
+  Added since: `duplicate_file` (two files reach one path; neither is read), `bad_sheet_row` (a ledger date that is not yyyy-mm-dd, or an amount past safe cents; the file is the tab, the row its sheet row).
   Python has no fault codes, only text and exit 1: codes are new, the text is identical. `csv_unreadable` and `bad_value` cover inputs where Python crashes or silently writes 0.00 (see the allowlist).
 - **Hold** (`exit 2`, rows retained in `proposed`, `plan.held_writes` set, `writes` empty, `rows_payload`/`entries_payload` still populated for `*.held.json`): a source and the ledger disagree and a person chooses.
   Codes: `closing_mismatch valuation_conflict payslip_conflict owner_unmatched`.
@@ -77,6 +80,11 @@ A plan with status other than ready fails, as in Python. `lines` matches verify.
 value, so `1.005` is 1.00 as in Python. Plan values and `amount` are `cents / 100`, the same double Python's `round(x, 2)` gives. JS prints `3090` where Python prints `3090.0`:
 same JSON number, and the parity tool compares them as equal. Text renders as Python's `:,.2f`, `:+.2f` and `repr`. An amount past `Number.MAX_SAFE_INTEGER` cents is a `bad_amount` stop. Dates and amounts take ASCII digits only.
 `-0.0` does not exist here: a zero card row reads `+0.00` in a review line where Python reads `-0.00`.
+
+## Known limits: not provable without a live Sheet
+USER_ENTERED may turn text that looks like a number into a number: `000123` would land as 123, `verify` would pass it (numbers compare by value), and the next run would see a new identity and plan the row again.
+The same applies to text that looks like a date or a percentage. Not escaped, because no run here can show what the API does and normal rows must not change.
+A description is stripped on read, but a merchant from a rule or override may start with a space: whether ` =1+1` stays text under USER_ENTERED is unproven, and it is not escaped. Both need one live check.
 
 ## Proof
 `python3 tools/period_parity.py` and `node --test tools/period-core.test.js`. Every deliberate difference from Python is listed, with its reason, in `tools/period_parity_allowlist.json`.

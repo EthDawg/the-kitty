@@ -259,6 +259,130 @@ test("runs as browser scripts, with no require, process or Buffer", () => {
   }
 });
 
+// ---------- line review fixes ----------
+const repay = [f("ACC-EVD/2027-03-01/d.csv", WESTPAC + "033,03/02/2027,HOME LOAN REPAYMENT,3000.00,,7000.00,,\n"), f("LN-HOME/2027-03-01/l.csv", WESTPAC + "033,03/02/2027,R,,3000.00,-597000.00,,\n")];
+
+test("1: a deferred pair on a planned row has no precondition, so preflight can pass", () => {
+  const r = plan(repay);
+  assert.deepEqual(r.plan.preconditions.map((c) => c.range), ["Entries!A2:A3"]);
+  assert.equal(P.verify(r.plan, [{ range: "Entries!A2:A3", values: [["T0001"]] }], { preconditions: true }).exit, 0);
+  const inSheet = sheet({ entries: [entry(), entry({ entry_id: "T0002", settled_at: "2027-02-03", account_id: "ACC-EVD", raw_text: "HOME LOAN REPAYMENT", amount: -3000, category_id: "MORTGAGE" })] });
+  const existing = P.plan({ months: "2027-02", sheet: inSheet, files: [repay[1]] });
+  assert.ok(existing.plan.preconditions.some((c) => c.range === "Entries!A3" && c.expect[0][0] === "T0002"), "a row on the sheet keeps its check");
+});
+
+test("2: duplicate files stop, whichever comes first, and tree faults do not depend on input order", () => {
+  const a = f("ACC-CC/2027-03-01/a.csv", CARD + card(2)), b = f("ACC-CC/2027-03-01/a.csv", CARD + card(3)), c = { name: "a.csv", account: "ACC-CC", download_day: "2027-03-01", text: "not even a table" };
+  assert.equal(stop([a, b], "duplicate_file").faults[0].file, "ACC-CC/2027-03-01/a.csv");
+  const x = plan([a, c, f("z.csv", "x"), f("b.csv", "x")]), y = plan([f("b.csv", "x"), f("z.csv", "x"), c, a]);
+  assert.equal(JSON.stringify(x), JSON.stringify(y));
+  assert.deepEqual(x.faults.map((q) => q.code), ["duplicate_file", "file_outside_download_folder", "file_outside_download_folder"]);
+  assert.equal(plan([a, f("ACC-CC/2027-03-01/b.csv", CARD + card(2))]).status, "ready", "same day, different names, is an overlap");
+});
+
+test("3: the closing balance is the latest date's, whichever way the file runs", () => {
+  const loan = plan([f("LN-HOME/2027-03-01/l.csv", WESTPAC + "033,28/02/2027,I,2500.00,,-599500.00,,\n033,03/02/2027,R,,3000.00,-597000.00,,\n")]);
+  assert.equal(loan.proposed.valuations[0].value, -599500);
+  const bank = plan([f("ACC-EVD/2027-03-01/d.csv", WESTPAC + "033,20/02/2027,B,5.00,,8000.00,,\n033,03/02/2027,A,5.00,,9995.00,,\n")]);
+  assert.equal(bank.status, "hold"); assert.equal(bank.checks.closing[0].day, "2027-02-20");
+  const rows = [{ date: "2027-02-01", balance: 1 }, { date: "2027-02-01", balance: 2 }];
+  assert.equal(P.adapters.latestRow(rows, "Harbour Bank").balance, 2); assert.equal(P.adapters.latestRow(rows, "Bark Bank").balance, 1);
+});
+
+test("4: a blank loan balance or payslip cell is a fault, an explicit 0.00 is not", () => {
+  stop([f("LN-HOME/2027-03-01/l.csv", WESTPAC + "033,28/02/2027,I,2500.00,,,,\n")], "bad_amount");
+  const pay = (cells) => f("payslips/2027-03-02/p.csv", `Pay date,Person,Employer,Gross pay,Tax withheld,Super (employer),Net pay\n2027-02-18,Mia,B,${cells}\n`);
+  stop([pay(",,,")], "bad_amount"); stop([pay("100.00,0.00,,90.00")], "bad_amount");
+  assert.equal(plan([pay("100.00,0.00,0.00,100.00")]).status, "ready");
+  assert.equal(plan([f("LN-HOME/2027-03-01/l.csv", WESTPAC + "033,28/02/2027,I,2500.00,,0.00,,\n")]).status, "ready");
+});
+
+test("5: 1e21 is refused, never a null in the plan", () => {
+  assert.equal(plan([], { inputs: [{ path: "v", kind: "valuations", text: "Month end,Item ID,Value\n2027-02-28,RENTAL,1e21\n" }] }).faults[0].code, "bad_value");
+  stop([f("LN-HOME/2027-03-01/l.csv", WESTPAC + "033,28/02/2027,I,2500.00,,1e21,,\n")], "bad_amount");
+  stop([f("ACC-SAV/2027-03-01/t.csv", BANK + "02/02/2027,A,1.00,,1e21\n")], "bad_amount");
+});
+
+test("6: long runs stay linear", () => {
+  const started = process.hrtime.bigint();
+  const spaced = "a" + " ".repeat(600000) + "b";
+  assert.equal(T.strip(spaced), spaced); assert.equal(T.ident(spaced), "A B");
+  assert.equal(T.pyFloat("1".repeat(600000) + "x"), null); assert.equal(T.pyFloat("1_".repeat(300000) + "x"), null);
+  assert.equal(P.adapters.money("(".repeat(600000) + "5", "f", 2), 5);
+  const r = plan([f("ACC-CC/2027-03-01/a.csv", CARD + card(2, "a" + " ".repeat(100000) + "b"))]);
+  assert.equal(r.status, "ready");
+  assert.ok(Number(process.hrtime.bigint() - started) / 1e9 < 2, "quadratic scans would take minutes here");
+  assert.equal(T.pyFloat("1_000.5e1"), 10005); assert.equal(T.pyFloat("1__0"), null); assert.equal(T.pyFloat("1_"), null); assert.equal(T.pyFloat("12.34.5"), null);
+});
+
+test("7: nothing long or nameless escapes as an exception", () => {
+  const n = 200000, cells = [["Date", "Description", "Card Member", "Account #", "Amount"]];
+  for (let i = 0; i < n; i++) cells.push([`${String(1 + Math.floor((i / n) * 28)).padStart(2, "0")}/02/2027`, `S${i}`, "J", "-41007", "1.00"]);
+  const r = plan([{ path: "ACC-CC/2027-03-01/a.csv", rows: cells }]);
+  assert.equal(r.status, "ready"); assert.equal(r.proposed.transactions.length, n); assert.equal(r.review.length, n);
+  for (const bad of [f("", "x"), { path: "///", text: "x" }, {}, null, { name: null }]) assert.equal(plan([bad]).faults[0].code, "file_outside_download_folder");
+});
+
+test("8: the input stays pure: frozen, edited, or planned twice", () => {
+  const frozen = (o) => { if (o && typeof o === "object") { Object.values(o).forEach(frozen); Object.freeze(o); } return o; };
+  const input = frozen({ months: "2027-02", sheet: sheet(), files: [f("ACC-CC/2027-03-01/a.csv", CARD + card(2)), { path: "ACC-SAV/2027-03-01/t.csv", rows: T.readCsv(BANK + "02/02/2027,A,1.00,,102.00\n") }] });
+  assert.equal(P.plan(input).status, "ready");
+  const live = f("ACC-CC/2027-03-01/a.csv", CARD + card(2)), keys = Object.getOwnPropertyNames(live).join();
+  assert.equal(plan([live]).proposed.transactions[0].date, "2027-02-02");
+  live.text = CARD + card(3);
+  assert.equal(plan([live]).proposed.transactions[0].date, "2027-02-03");
+  assert.equal(Object.getOwnPropertyNames(live).join(), keys);
+});
+
+test("9: a loan repayment never takes a bank row already in a transfer", () => {
+  const s = sheet({ entries: [entry(), entry({ entry_id: "T0002", settled_at: "2027-02-03", account_id: "ACC-EVD", raw_text: "HOME LOAN REPAYMENT", amount: -3000, category_id: "MORTGAGE", transfer_id: "X0007", transfer_account: "ACC-SAV" })] });
+  const r = P.plan({ months: "2027-02", sheet: s, files: [repay[1]] });
+  assert.deepEqual(r.proposed.loan_pairs, []);
+  assert.ok(r.checks.loans.some((l) => /left unpaired/.test(l)));
+});
+
+test("10: a row left for review is not paired on its mate's turn", () => {
+  const r = plan([f("ACC-EVD/2027-03-01/d.csv", WESTPAC + "033,02/02/2027,TRANSFER TO SAVER,500.00,,9500.00,,\n"), f("ACC-SAV/2027-03-01/t.csv", BANK + "03/02/2027,TRANSFER FROM EVERYDAY,500.00,,601.00\n04/02/2027,TRANSFER FROM EVERYDAY,500.00,,1101.00\n")]);
+  assert.deepEqual(r.proposed.transfers, []);
+  assert.ok(r.checks.transfers[0].endsWith("left for review") && /2 possible mates/.test(r.checks.transfers[0])); // period-plan's ambiguous branch
+  assert.match(r.checks.transfers[1], /its only mate T\d+ is left for review/);
+  assert.ok(r.entries_payload.every((e) => e[13] === ""));
+});
+
+test("11: verify refuses a changed cell where the last ID was blank, and any preflight on a plan that is not ready", () => {
+  const s = sheet({ entries: [entry({ entry_id: null })] });
+  const { plan: p } = P.plan({ months: "2027-02", sheet: s, files: [f("ACC-CC/2027-03-01/a.csv", CARD + card(2))] });
+  assert.deepEqual(p.preconditions[0].expect, [[null], []]);
+  assert.equal(P.verify(p, [{ range: "Entries!A2:A3", values: [["ZZZ"]] }], { preconditions: true }).exit, 1);
+  assert.equal(P.verify(p, [{ range: "Entries!A2:A3", values: [[""]] }], { preconditions: true }).exit, 0);
+  const held = plan([f("ACC-SAV/2027-03-01/t.csv", BANK + "02/02/2027,A,1.00,,999.00\n")]).plan;
+  const v = P.verify(held, [{ range: "Entries!A2:A3", values: [["T0001"]] }], { preconditions: true });
+  assert.equal(v.exit, 1); assert.match(v.lines[0], /plan status is 'hold'/);
+  const stopped = stop([f("ACC-NEW/2027-03-01/a.csv", "x")], "unknown_account").plan;
+  assert.equal(P.verify(stopped, [], { preconditions: true }).exit, 1);
+});
+
+test("12: an untyped sheet cell is a fault, not a TypeError", () => {
+  const go = (e) => P.plan({ months: "2027-02", sheet: sheet({ entries: [entry(), entry({ entry_id: "T0002", settled_at: "2027-02-03", account_id: "ACC-EVD", amount: -3000, ...e })] }), files: [repay[1]] });
+  assert.equal(go({ raw_text: 12345 }).status, "ready");
+  const repayment = go({ raw_text: 700123, category_id: "MORTGAGE" });
+  assert.equal(repayment.proposed.loan_pairs[0].mate.id, "T0002", "numeric text reads as text");
+  for (const settled_at of [46421, null, undefined, "2027-02-30", "03/02/2027"]) {
+    const r = go({ settled_at });
+    assert.equal(r.faults[0].code, "bad_sheet_row"); assert.equal(r.faults[0].row, 3); assert.equal(r.faults[0].file, "Entries");
+  }
+  assert.equal(go({ amount: 1e21 }).faults[0].code, "bad_sheet_row");
+  assert.equal(P.plan({ months: "2027-02", sheet: { accounts, transactions: [{ txn_id: "T1", date: 5, amount: 1 }] }, files: [], options: { allow_v1: true } }).faults[0].file, "Transactions");
+});
+
+test("verify: numbers read against planned text, and rows the plan does not know", () => {
+  assert.ok(W.same("2027-02-03", T.dayNumber("2027-02-03") - T.dayNumber("1899-12-30")), "a serial reads back as the planned date");
+  assert.ok(!W.same("2027-02-03", 46421.5)); assert.ok(!W.same("2027-02-03", 1));
+  assert.ok(W.same("1,250.50", 1250.5)); assert.ok(!W.same("1,250.50", 1250.6)); assert.ok(!W.same("SHOP", 5));
+  assert.deepEqual(W.compare([["a"]], [["a"], ["", ""], ["extra"]]), { i: 2, j: 0, planned: "", actual: "extra" });
+  assert.equal(W.compare([["a"]], [["a"], ["", ""]]), null);
+});
+
 const JSC = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/Current/Helpers/jsc";
 test("runs on JavaScriptCore, the engine under WKWebView", { skip: !fs.existsSync(JSC) }, () => {
   const load = SCRIPTS.map((s) => path.join(CORE, s));

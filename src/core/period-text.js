@@ -11,10 +11,14 @@
   // str.isspace and regex \s in Python. JS \s also takes U+FEFF and misses U+001C-1F and U+0085.
   const WS = "\\t\\n\\x0b\\f\\r\\x1c-\\x1f \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
   const WORD = "\\p{L}\\p{N}_"; // regex \w in Python
-  const STRIP = new RegExp(`^[${WS}]+|[${WS}]+$`, "g");
+  const isSpace = (n) => n === 32 || (n >= 9 && n <= 13) || (n >= 0x1c && n <= 0x1f) || n === 0x85 || n === 0xa0 || n === 0x1680 || (n >= 0x2000 && n <= 0x200a) || n === 0x2028 || n === 0x2029 || n === 0x202f || n === 0x205f || n === 0x3000;
   const RUNS = new RegExp(`[${WS}]+`, "g");
   T.WS = WS; T.WORD = WORD;
-  T.strip = (s) => String(s).replace(STRIP, "");
+  // By scanning, not a regex: an anchored [ws]+$ is quadratic on a long run of spaces inside a cell.
+  T.rstrip = (v) => { const s = String(v); let b = s.length; while (b > 0 && isSpace(s.charCodeAt(b - 1))) b--; return s.slice(0, b); };
+  T.strip = (v) => { const s = T.rstrip(v); let a = 0; while (a < s.length && isSpace(s.charCodeAt(a))) a++; return s.slice(a); };
+  // str.strip('()')
+  T.stripParens = (s) => { let a = 0, b = s.length; const paren = (c) => c === "(" || c === ")"; while (a < b && paren(s[a])) a++; while (b > a && paren(s[b - 1])) b--; return s.slice(a, b); };
   T.split = (s) => T.strip(s).split(RUNS).filter((x) => x !== "");
 
   const NOT_WORD_BEFORE = `(?<![${WORD}])`, NOT_WORD_AFTER = `(?![${WORD}])`;
@@ -67,7 +71,7 @@
   T.str = (v) => (v === null || v === undefined ? "None" : v === true ? "True" : v === false ? "False" : String(v));
 
   // ---------- numbers ----------
-  const FLOAT = /^[+-]?(?:\d+(?:_\d+)*\.?(?:\d+(?:_\d+)*)?|\.\d+(?:_\d+)*)(?:[eE][+-]?\d+(?:_\d+)*)?$/;
+  const FLOAT = /^[+-]?(?:\d+(?:_\d+)*(?:\.(?:\d+(?:_\d+)*)?)?|\.\d+(?:_\d+)*)(?:[eE][+-]?\d+(?:_\d+)*)?$/; // one way to read any digit run
   const NAMED = /^([+-]?)(inf(?:inity)?|nan)$/i;
   // float(str): the double, or null where Python raises ValueError. NaN and infinities come back as such; callers refuse them.
   T.pyFloat = (raw) => {

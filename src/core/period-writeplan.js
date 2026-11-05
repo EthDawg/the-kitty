@@ -135,14 +135,15 @@
     if (plan.schema !== W.SCHEMA) throw new Error(`plan schema ${T.repr(plan.schema)}, this verifier reads ${W.SCHEMA}`);
     const reread = loadReread(rereadDoc);
     const done = (ok, lines, mismatches) => ({ ok, exit: ok ? 0 : 1, lines, mismatches: mismatches || [] });
+    if (plan.status !== "ready") return done(false, [`plan status is ${T.repr(plan.status)}: nothing should have been written`]);
     if (o.preconditions) {
-      const pre = (plan.preconditions || []).map((c) => [c.range, c.expect || [], c.why]);
+      // In an update null means "leave alone"; expected here it means the cell was blank and must still be.
+      const pre = (plan.preconditions || []).map((c) => [c.range, (c.expect || []).map((row) => row.map((v) => (v === null ? "" : v))), c.why]);
       if (!pre.length) return done(true, ["no preconditions in the plan"]);
       const r = check(pre, reread);
       return done(r.ok, r.lines.concat(r.ok ? "preconditions hold: write in the order the plan lists" : "preconditions FAIL: the sheet moved since the snapshot; refresh it and re-run the importer"), r.mismatches);
     }
     const writes = (plan.writes || []).concat(o.include_deferred ? plan.deferred || [] : []);
-    if (plan.status !== "ready") return done(false, [`plan status is ${T.repr(plan.status)}: nothing should have been written`]);
     if (!writes.length) return done(true, ["the plan has no writes; nothing to verify"]);
     const r = check(writes.map((w) => [w.range, w.values, w.note]), reread);
     const rows = writes.reduce((s, w) => s + w.rows, 0);
@@ -154,7 +155,7 @@
     if (!out.length) out.push("- nothing to write");
     if ((plan.deferred || []).length) {
       out.push("", "Deferred (not written until a person or a later phase says so):");
-      for (const w of plan.deferred) out.push(`- \`${w.range}\`: ${w.rows} row${plural(w.rows)} (${w.op}, ${w.tab}). ${w.why || ""}`.replace(/\s+$/, ""));
+      for (const w of plan.deferred) out.push(T.rstrip(`- \`${w.range}\`: ${w.rows} row${plural(w.rows)} (${w.op}, ${w.tab}). ${w.why || ""}`));
     }
     return out;
   };

@@ -23,6 +23,7 @@
 
   const nextId = (prefix, last) => `${prefix}${String(last + 1).padStart(4, "0")}`;
   const idNumber = (s, prefix) => { const m = new RegExp(`^${prefix}(\\d+)$`).exec(s === null || s === undefined ? "" : String(s)); return m ? Number(m[1]) : 0; };
+  const pushAll = (to, list) => { for (const x of list) to.push(x); return to; }; // a spread into push overflows the stack on a long list
   const highest = (list, f) => list.reduce((m, x) => Math.max(m, f(x)), 0);
   const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   const by = (...keys) => (x, y) => { for (const k of keys) { const c = cmp(k(x), k(y)); if (c) return c; } return 0; };
@@ -49,6 +50,14 @@
     for (const l of doc.loans || []) if (l.loan_id) s.valuationItems.add(l.loan_id);
     s.id = opts.sheet_id || (doc.source || {}).sheet || (s.version === 2 ? (opts.default_sheet_ids || {}).v2 : (opts.default_sheet_ids || {}).v1) || null;
     s.fetched = doc.fetchedAt === undefined ? null : doc.fetchedAt;
+    // The sheet is typed: a ledger date is yyyy-mm-dd, an amount fits in cents. Every comparison below depends on it, so a cell that is not stops the run.
+    s.faults = [];
+    const typed = (tab, row, date, amount) => {
+      if (typeof date !== "string" || !T.isIsoDate(date)) s.faults.push(new ImportFault("bad_sheet_row", tab, `date ${repr(date)} is not yyyy-mm-dd`, "read the sheet with typed values, or fix the cell on the sheet; a ledger row without a date can't be counted", row));
+      const n = T.sheetFloat(amount);
+      if (!Number.isFinite(n) || !Number.isSafeInteger(T.toCents(n))) s.faults.push(new ImportFault("bad_sheet_row", tab, `amount ${repr(amount)} does not fit in cents`, "fix the cell on the sheet", row));
+    };
+    const words = (v) => (v ? String(v) : "");
     if (s.version === 2) {
       const entries = doc.entries || [];
       s.rows = entries.length;
@@ -56,7 +65,8 @@
       s.tx = []; s.valuations = [];
       entries.forEach((e, i) => {
         const kind = (e.kind || "transaction").toLowerCase();
-        if (kind === "transaction") s.tx.push({ id: e.entry_id, date: e.settled_at, account: e.account_id, raw: e.raw_text || "", merchant: e.description || "", amount: T.sheetCents(e.amount),
+        if (kind === "transaction" || kind === "valuation") typed("Entries", i + 2, e.settled_at, e.amount);
+        if (kind === "transaction") s.tx.push({ id: e.entry_id, date: e.settled_at, account: e.account_id, raw: words(e.raw_text), merchant: e.description || "", amount: T.sheetCents(e.amount),
           category: e.category_id || "UNCAT", person: e.person || "Joint", transfer_id: e.transfer_id || "", row: i + 2 });
         else if (kind === "valuation") s.valuations.push({ account: e.account_id, month_end: e.settled_at, value: T.sheetCents(e.amount), row: i + 2 });
       });
@@ -66,7 +76,8 @@
       s.allIds = new Set(entries.map((e) => e.entry_id));
     } else {
       const tx = doc.transactions || [];
-      s.tx = tx.map((t, i) => ({ id: t.txn_id, date: t.date, account: t.account_id, raw: t.bank_description || "", merchant: t.merchant || "", amount: T.sheetCents(t.amount),
+      tx.forEach((t, i) => typed("Transactions", i + 2, t.date, t.amount));
+      s.tx = tx.map((t, i) => ({ id: t.txn_id, date: t.date, account: t.account_id, raw: words(t.bank_description), merchant: t.merchant || "", amount: T.sheetCents(t.amount),
         category: t.category_id || "UNCAT", person: t.person || "Joint", transfer_id: "", row: i + 2 }));
       s.rows = tx.length;
       s.lastEntryId = tx.length ? tx[tx.length - 1].txn_id : null;
@@ -102,13 +113,19 @@
   const tree = (files) => {
     const accounts = new Map();
     const faults = [];
-    const pathOf = (f) => {
-      if (f.path !== undefined) return String(f.path);
-      if (f.account === undefined || f.download_day === undefined) return String(f.name);
-      return `${f.account}/${f.download_day}/${f.name}`;
+    const nameOf = (v) => (v === null || v === undefined ? "" : String(v));
+    const partsOf = (f) => {
+      if (!f || typeof f !== "object") return [];
+      const p = f.path !== undefined && f.path !== null ? nameOf(f.path) : f.account === undefined || f.download_day === undefined ? nameOf(f.name) : `${f.account}/${f.download_day}/${nameOf(f.name)}`;
+      return p.split("/").filter((x) => x !== "");
     };
+    const seen = new Map();
+    for (const f of files) { if (f && !f.is_dir) { const k = partsOf(f).join("/"); seen.set(k, (seen.get(k) || 0) + 1); } }
+    for (const [k, n] of seen) if (n > 1 && k) faults.push(new ImportFault("duplicate_file", k, `${n} files share this name, account and download day`, "keep one, or put the other under its own download folder; neither was read, because the rows of one would be lost"));
     for (const f of files) {
-      const parts = pathOf(f).split("/").filter((p) => p !== "");
+      const parts = partsOf(f);
+      if (!parts.length) { faults.push(new ImportFault("file_outside_download_folder", "(no name)", "a file with no name, account or download date", "the host gave no path for this file; choose it again")); continue; }
+      if (!f.is_dir && seen.get(parts.join("/")) > 1) continue;
       if (parts.length === 1 && !f.is_dir) {
         if (!parts[0].startsWith(".")) faults.push(new ImportFault("file_outside_download_folder", parts[0], "a file with no account or download date", "files live in sources/<account id>/<yyyy-mm-dd>/; move it into the folder of its account, named for the day it was downloaded"));
         continue;
@@ -118,11 +135,12 @@
       if (parts.length === 1) continue;
       const entry = acct.get(parts[1]) || { name: parts[1], isDir: false, children: new Map() };
       acct.set(parts[1], entry);
-      if (parts.length === 2) { entry.isDir = !!f.is_dir; if (!f.is_dir) entry.file = f; continue; }
+      if (parts.length === 2) { if (f.is_dir) entry.isDir = true; else entry.file = f; continue; }
       entry.isDir = true;
-      const child = { name: parts[2], file: f, isDir: !!f.is_dir || parts.length > 3 };
-      entry.children.set(parts[2], child);
+      const prior = entry.children.get(parts[2]);
+      entry.children.set(parts[2], { name: parts[2], file: f, isDir: !!(prior && prior.isDir) || !!f.is_dir || parts.length > 3 });
     }
+    faults.sort(by((x) => x.file, (x) => x.what));
     return { accounts, faults };
   };
   const sortedKeys = (m) => Array.from(m.keys()).sort(cmp);
@@ -152,7 +170,7 @@
       if (!A.BANK_SHAPES.includes(shape) || !A.SHAPES[shape].balance) throw new ImportFault("wrong_loan_shape", rel, `a ${shape} file in the loan folder ${acct}`, "a loan statement comes in the lender's transaction columns with a running balance (the Westpac shape here); download the loan's CSV export");
       const expected = sheet.institution(acct);
       if (A.BANK_SHAPES.includes(expected) && shape !== expected) throw new ImportFault("wrong_lender", rel, `a ${shape} file for ${acct}, whose lender is ${expected}`, "the file is in the wrong folder, or the Accounts tab names the wrong lender");
-      rows = A.readRows(cells, rel, shape, w);
+      rows = A.readRows(cells, rel, shape, { ...w, require_balance: true });
     } else if (kind === "owner") {
       if (shape !== "Owner statement") throw new ImportFault("wrong_owner_shape", rel, `a ${shape} file in the property folder ${acct}`, "a property folder takes the agent's owner statement lines (Date, Description, Rental schedule line, Money in, Money out, Handled by); bank files go under the bank account");
       rows = A.readRows(cells, rel, shape, { download_day: w.download_day, as_of: w.as_of });
@@ -276,7 +294,7 @@
   // A typed input number: what Python's fnum reads, except that a value it would turn into 0.00 is a fault here (see the parity allowlist).
   const typedCents = (v, label, file, row) => {
     const n = v === null || T.strip(v) === "" ? null : T.pyFloat(v);
-    if (n === null || !Number.isFinite(n)) throw new ImportFault("bad_value", file, `${label} ${repr(v)} is not a number`, "write it as plain digits, for example 1250000.00; a blank or a thousands comma would read as zero", row);
+    if (n === null || !Number.isSafeInteger(Number.isFinite(n) ? T.toCents(n) : NaN)) throw new ImportFault("bad_value", file, `${label} ${repr(v)} is not a number`, "write it as plain digits, for example 1250000.00; a blank or a thousands comma would read as zero", row);
     return T.toCents(n);
   };
 
@@ -300,7 +318,7 @@
       }
       if (!inWindow.length) continue;
       if (!opening.has(rd.account)) { lines.push(`- ${rd.path}: not checked, ${rd.account} is not on the Accounts tab`); checks.push({ file: rd.path, unchecked: "not on the Accounts tab" }); continue; }
-      const last = shape.sequence === "oldest-first" ? inWindow[inWindow.length - 1] : inWindow[0];
+      const last = A.latestRow(inWindow, rd.shape);
       const day = last.date, printed = last.balance;
       const worked = (book.get(rd.account) || []).reduce((s, [d, a]) => (d <= day ? s + a : s), opening.get(rd.account));
       const gap = money(worked) - printed, ok = Math.abs(gap) < TOL;
@@ -351,6 +369,7 @@
     const hold = (code, file, text) => { held = true; holdLines.push(text); holds.push({ code, file, text }); };
 
     try {
+      if (sheet.faults.length) throw new Stop(sheet.faults);
       const overrides = new Map();
       for (const o of ofKind("overrides")) {
         const t = table(o);
@@ -408,14 +427,18 @@
         const cands = rows.filter((r) => sheet.flow.get(r.cat) === "Transfer").map((r) => ({ ref: r, isNew: true, date: r.date, acct: r.acct, amount: r.amount, id: r.id }))
           .concat(sheet.tx.filter((t) => sheet.flow.get(t.category) === "Transfer" && !t.transfer_id && lo <= t.date && t.date <= hi).map((t) => ({ ref: t, isNew: false, date: t.date, acct: t.account, amount: t.amount, id: t.id })));
         cands.sort(by((c) => c.date, (c) => c.acct));
-        const done = new Set();
+        const done = new Set(), left = new Set(); // left: a row sent to a person stays with the person, on its mate's turn too
         const says = (c) => `${c.id} ${c.date} ${c.acct} ${plus2(c.amount)}`;
         cands.forEach((a, i) => {
           if (done.has(i)) return;
           let matches = [];
           cands.forEach((b, j) => { if (j !== i && !done.has(j) && b.amount === -a.amount && b.acct !== a.acct && T.daysApart(a.date, b.date) <= TRANSFER_DAYS) matches.push([j, b]); });
           if (matches.length > 1) { const same = matches.filter(([, b]) => b.date === a.date); if (same.length === 1) matches = same; }
-          if (matches.length === 1) {
+          if (matches.length === 1 && left.has(matches[0][0])) {
+            const [, b] = matches[0];
+            left.add(i);
+            if (a.isNew || b.isNew) transferLines.push(`- ${says(a)}: its only mate ${b.id} is left for review; left for review`);
+          } else if (matches.length === 1) {
             const [j, b] = matches[0];
             if (!a.isNew && !b.isNew) return;
             nextX += 1;
@@ -429,7 +452,10 @@
             transferLines.push(`- ${xid}: ${says(a)} with ${says(b)}`);
             const side = (c) => ({ id: c.id, date: c.date, account: c.acct, amount_cents: c.amount, new: c.isNew });
             pairs.push({ transfer_id: xid, a: side(a), b: side(b) });
-          } else if (matches.length) transferLines.push(`- ${says(a)}: ${matches.length} possible mates (${matches.map(([, b]) => b.id).join(", ")}); left for review`);
+          } else if (matches.length) {
+            left.add(i);
+            transferLines.push(`- ${says(a)}: ${matches.length} possible mates (${matches.map(([, b]) => b.id).join(", ")}); left for review`);
+          }
           else if (a.isNew) transferLines.push(`- ${says(a)}: no mate in this run or the sheet; left unpaired (its mate may come with the next file)`);
         });
       }
@@ -456,8 +482,8 @@
         if (r.amount < 0) { loanTx.push(line); continue; }
         const pool = rows.map((x) => ({ isNew: true, ref: x, date: x.date, acct: x.acct, amount: x.amount, cat: x.cat, desc: x.desc, id: x.id }))
           .concat(sheet.tx.map((t) => ({ isNew: false, ref: t, date: t.date, acct: t.account, amount: t.amount, cat: t.category, desc: t.raw, id: t.id })));
-        const mates = pool.filter((m) => m.amount === -r.amount && m.acct !== rd.account && !usedMates.has(m.id) && T.daysApart(m.date, r.date) <= TRANSFER_DAYS
-          && (m.cat === category || /LOAN|REPAY|MORTGAGE/.test(m.desc.toUpperCase())));
+        const mates = pool.filter((m) => m.amount === -r.amount && m.acct !== rd.account && !m.ref.transfer_id && !usedMates.has(m.id) && T.daysApart(m.date, r.date) <= TRANSFER_DAYS
+          && (m.cat === category || /LOAN|REPAY|MORTGAGE/.test(String(m.desc).toUpperCase())));
         mates.sort(by((m) => (m.cat !== category ? 1 : 0), (m) => T.daysApart(m.date, r.date)));
         const mate = mates[0] || null;
         if (mate) usedMates.add(mate.id);
@@ -470,7 +496,7 @@
         for (const m of months) {
           const inM = rd.rows.filter((r) => r.date.slice(0, 7) === m);
           if (!inM.length) continue;
-          const last = A.SHAPES[rd.shape].sequence === "oldest-first" ? inM[inM.length - 1] : inM[0];
+          const last = A.latestRow(inM, rd.shape);
           loanVals.push({ month_end: T.monthEnd(m), acct: rd.account, value: T.toCents(last.balance), source: "statement", raw: "Loan statement", desc: `Closing balance from ${sheet.accounts.get(rd.account).institution || "lender"} statement`, from: rd.path });
         }
       }
@@ -616,7 +642,7 @@
       const c = closingChecks(sheet, rows, readings, months);
       balanceLines = c.lines; closing = c.checks;
       held = held || c.held;
-      holds.push(...c.holds);
+      pushAll(holds, c.holds);
     } catch (s) {
       if (s instanceof ImportFault) s = new Stop([s]);
       if (!(s instanceof Stop)) throw s;
@@ -651,7 +677,7 @@
         if (mate.isNew && loansNow) { mate.ref.transfer_id = xid; mate.ref.transfer_account = r.acct; mate.ref.cat = "TRANSFER"; }
         else {
           const mrow = mate.isNew ? rowOf.get(mate.id) : mate.ref.row;
-          loanPairs.push(W.updateWrite(`loan-pair-${mate.id}`, "Entries", mrow, 8, ["TRANSFER", null, null, null, null, null, xid, r.acct], { range: W.a1("Entries", mrow, 1), expect: [[mate.id]] },
+          loanPairs.push(W.updateWrite(`loan-pair-${mate.id}`, "Entries", mrow, 8, ["TRANSFER", null, null, null, null, null, xid, r.acct], mate.isNew ? null : { range: W.a1("Entries", mrow, 1), expect: [[mate.id]] }, // a planned row is not on the sheet at preflight
             `${mate.id} (${mate.date} ${mate.acct} ${plus2(mate.amount)}) becomes the transfer that repaid ${r.acct}, category TRANSFER`));
         }
         loanLines.push(`- ${xid}: ${r.id} ${r.date} ${r.acct} ${plus2(r.amount)} repayment received, mate ${mate.id} ${mate.date} ${mate.acct} ${plus2(mate.amount)}`);
@@ -671,23 +697,23 @@
       if (mainRows.length) {
         plan.preconditions.push(W.precondition("Entries", sheet.rows ? sheet.rows + 1 : null, sheet.lastEntryId));
         const note = `${rows.length} transactions${valuations.length ? `, ${valuations.length} valuations` : ""}${loansNow && loanTx.length ? `, ${loanTx.length} loan statement lines` : ""}`;
-        plan.writes.push(...W.appendWrites("entries", "Entries", ENTRY_COLS, mainRows, firstEntryRow, note));
+        pushAll(plan.writes, W.appendWrites("entries", "Entries", ENTRY_COLS, mainRows, firstEntryRow, note));
       }
-      plan.writes.push(...pairUpdates);
-      if (loansNow) plan.writes.push(...loanPairs);
-      plan.writes.push(...contractUpdates);
+      pushAll(plan.writes, pairUpdates);
+      if (loansNow) pushAll(plan.writes, loanPairs);
+      pushAll(plan.writes, contractUpdates);
     } else {
       plan.assumes = { transactions_rows: sheet.rows, last_transaction_row: sheet.rows + 1, last_txn_id: sheet.lastEntryId, last_ids: { T: `T${pad4(sheet.lastT)}` }, payslips_rows: sheet.payslips.length, valuations_rows: sheet.valuations === null ? null : sheet.valuations.length };
       const txnRows = rows.map((r) => [r.id, r.date, r.acct, r.desc, r.merchant, money(r.amount), r.cat, r.person, r.receipt, r.note]);
       if (txnRows.length) {
         plan.preconditions.push(W.precondition("Transactions", sheet.rows ? sheet.rows + 1 : null, sheet.lastEntryId));
-        plan.writes.push(...W.appendWrites("transactions", "Transactions", TXN_COLS, txnRows, sheet.rows + 2));
+        pushAll(plan.writes, W.appendWrites("transactions", "Transactions", TXN_COLS, txnRows, sheet.rows + 2));
       }
       if (valuations.length && sheet.valuations === null) planNotes.push("Valuations are planned only for a sheet with a Valuations tab; this 1.1 snapshot has none, so they are listed above and not written.");
       else if (valuations.length) {
         const vs = sheet.valuations;
         plan.preconditions.push(W.precondition("Valuations", vs.length ? vs.length + 1 : null, vs.length ? vs[vs.length - 1].month_end : null));
-        plan.writes.push(...W.appendWrites("valuations", "Valuations", VALUATION_COLS, valuations.map((v) => [v.month_end, v.acct, money(v.value)]), vs.length + 2));
+        pushAll(plan.writes, W.appendWrites("valuations", "Valuations", VALUATION_COLS, valuations.map((v) => [v.month_end, v.acct, money(v.value)]), vs.length + 2));
       }
       if (loanTx.length || loanPairs.length) {
         planNotes.push("Loan statement lines are planned only for a ledger sheet (sheet_version 2); this is a 1.1 sheet, so they are listed above and not written.");
@@ -698,7 +724,7 @@
     if (payslips.length) {
       const ps = sheet.payslips;
       plan.preconditions.push(W.precondition("Payslips", ps.length ? ps.length + 1 : null, ps.length ? ps[ps.length - 1].pay_date : null));
-      plan.writes.push(...W.appendWrites("payslips", "Payslips", PAYSLIP_COLS, payslipRows, ps.length + 2));
+      pushAll(plan.writes, W.appendWrites("payslips", "Payslips", PAYSLIP_COLS, payslipRows, ps.length + 2));
     }
     if (loanEntryRows.length && ledger) {
       const why = "Phase D decides: pairing the repayment takes it out of spending (the Cash Flow figures the oracle pins) and makes the interest charged the expense; "
@@ -719,29 +745,32 @@
 
     // ---- review.md
     const body = [`# ${label} import review`, ""];
-    if (stopped) body.push(`**STOPPED: nothing was planned.** ${stopLines.length} file problem${plural(stopLines.length)} need${stopLines.length === 1 ? "s" : ""} a person before this run can go on.`, "", ...stopLines, "");
-    else if (held) body.push("**HOLD: do not append.** The ledger and a source disagree, so the rows wait in rows.held.json and entries.held.json, the plan's writes are under held_writes, and rows.json and entries.json are empty.", "", ...holdLines, "");
+    const section = (head, lines) => { if (head) body.push(head); pushAll(body, lines); body.push(""); };
+    if (stopped) body.push(`**STOPPED: nothing was planned.** ${stopLines.length} file problem${plural(stopLines.length)} need${stopLines.length === 1 ? "s" : ""} a person before this run can go on.`, "");
+    if (stopped) section(null, stopLines);
+    else if (held) { body.push("**HOLD: do not append.** The ledger and a source disagree, so the rows wait in rows.held.json and entries.held.json, the plan's writes are under held_writes, and rows.json and entries.json are empty.", ""); section(null, holdLines); }
     body.push(`${rows.length} rows to append${rows.length ? `, T${pad4(sheet.lastT + 1)} to T${pad4(sheet.lastT + rows.length)}` : ""}; ${skipped.length} already in the sheet`
       + (repeated.length ? `; ${repeated.length} repeated across overlapping files` : "") + (valuations.length ? `; ${valuations.length} valuations` : "") + (payslips.length ? `; ${payslips.length} payslips` : "")
       + (loanTx.length ? `; ${loanTx.length} loan statement lines` : "") + (contractUpdates.length ? `; ${contractUpdates.length} contract update${plural(contractUpdates.length)}` : "") + `. ${T.floatRepr(totals.seconds)} s.`, "");
     const named = ([rd, r]) => `- ${rd.path}: ${r.date} ${r.description} ${plus2(r.amount)}`;
     const capped = (list) => list.slice(0, 40).map(named).concat(list.length > 40 ? [`- … and ${list.length - 40} more`] : []);
     if (!stopped) {
-      body.push("## Files", ...(fileLines.length ? fileLines : ["- no bank files in this window"]), "");
-      body.push("## Closing balances", ...(balanceLines.length ? balanceLines : ["- No file printed a balance for this window."]), "");
-      if (transferLines.length) body.push("## Transfers", ...transferLines, "");
-      if (loanLines.length) body.push("## Loan statements", ...loanLines, "");
-      if (valLines.length) body.push("## Valuations", ...valLines, "");
-      if (payLines.length) body.push("## Payslips", ...payLines, "");
-      if (ownerLines.length) body.push("## Owner statements", ...ownerLines, "");
-      if (policyLines.length) body.push("## Insurance", ...policyLines, "");
-      body.push("## Review", ...(review.length ? review : ["Nothing to review."]), "");
-      if (skipped.length) body.push("## Already in the sheet (not appended)", ...capped(skipped), "");
-      if (repeated.length) body.push("## Repeated across overlapping files (taken once)", ...capped(repeated), "");
-      body.push("## Write plan", ...planNotes, ...W.summary(plan), "",
+      section("## Files", (fileLines.length ? fileLines : ["- no bank files in this window"]));
+      section("## Closing balances", (balanceLines.length ? balanceLines : ["- No file printed a balance for this window."]));
+      if (transferLines.length) section("## Transfers", transferLines);
+      if (loanLines.length) section("## Loan statements", loanLines);
+      if (valLines.length) section("## Valuations", valLines);
+      if (payLines.length) section("## Payslips", payLines);
+      if (ownerLines.length) section("## Owner statements", ownerLines);
+      if (policyLines.length) section("## Insurance", policyLines);
+      section("## Review", (review.length ? review : ["Nothing to review."]));
+      if (skipped.length) section("## Already in the sheet (not appended)", capped(skipped));
+      if (repeated.length) section("## Repeated across overlapping files (taken once)", capped(repeated));
+      pushAll(pushAll(pushAll(body, ["## Write plan"]), planNotes), W.summary(plan));
+      body.push("",
         "Three steps, never a fourth: (1) this plan; (2) the agent reads each precondition range, then writes each range under `writes` with the Sheets connector `update_values`, in order, by explicit range, never `append_values`; (3) the agent re-reads every range it wrote, saves the responses, and runs `python3 period-close/verify.py write-plan.json reread.json`. Then the snapshot is refreshed and this month is closed.");
     }
-    const reviewMd = body.join("\n").replace(/\s+$/, "") + "\n";
+    const reviewMd = T.rstrip(body.join("\n")) + "\n";
 
     const rowOut = (r) => ({ id: r.id, date: r.date, account: r.acct, raw_text: r.desc, merchant: r.merchant, amount_cents: r.amount, amount: money(r.amount), category_id: r.cat, person: r.person,
       receipt_held: r.receipt, note: r.note, transfer_id: r.transfer_id, transfer_account: r.transfer_account, source: r.source, file: r.file, line: r.line, identity: [r.date, r.acct, r.amount, ident(r.desc)] });

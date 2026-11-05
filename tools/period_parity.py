@@ -355,7 +355,7 @@ def fuzz_one(item):
             'ACC-EVD/2027-03-01/Data.csv': 'Bank Account,Date,Narrative,Debit Amount,Credit Amount,Balance,Categories,Serial\n033,02/02/2027,TRANSFER TO SAVER,500.00,,9500.00,,\n033,05/02/2027,HOME LOAN REPAYMENT,3000.00,,6500.00,,\n',
             'ACC-SAV/2027-03-01/Transactions.csv': 'Date,Description,Credit,Debit,Balance\n02/02/2027,TRANSFER FROM EVERYDAY,500.00,,601.00\n28/02/2027,INTEREST CREDIT,0.33,,601.33\n',
             'ACC-OLD/2027-03-02/CSVData.csv': '28/02/2027,"+0.05","CREDIT INTEREST","+996.05"\r\n03/02/2027,"-4.00","MONTHLY ACCOUNT FEE","+996.00"\r\n',
-            'LN-HOME/2027-03-01/Loan.csv': 'Bank Account,Date,Narrative,Debit Amount,Credit Amount,Balance,Categories,Serial\n033,05/02/2027,REPAYMENT RECEIVED,,3000.00,-597000.00,,\n033,28/02/2027,INTEREST CHARGED,2500.00,,-599500.00,,\n',
+            'LN-HOME/2027-03-01/Loan.csv': 'Bank Account,Date,Narrative,Debit Amount,Credit Amount,Balance,Categories,Serial\n033,05/02/2027,REPAYMENT RECEIVED,,3100.00,-596900.00,,\n033,28/02/2027,INTEREST CHARGED,2500.00,,-599500.00,,\n',
             'RENTAL/2027-03-01/Owner.csv': 'Date,Description,Rental schedule line,Money in,Money out,Handled by\n05/02/2027,RENT FEB,Gross rent,2470.00,,PM\n',
             'payslips/2027-03-02/p.csv': 'Pay date,Person,Employer,Gross pay,Tax withheld,Super (employer),Net pay\n2027-02-18,Mia,Bayview Health,3090.00,632.00,370.80,2458.00\n'}
     alphabet = ['"', ',', '\n', '\r', ' ', '.', '-', '/', '(', ')', '$', 'A', '0', '9', 'e', '_', '\u00a0', 'É', '\t', '""', '\r\n']
@@ -416,6 +416,10 @@ MUTATIONS = [
     ('IDs start one too high', 'period-plan.js', 'r.id = nextId("T", sheet.lastT + i);', 'r.id = nextId("T", sheet.lastT + i + 1);'),
     ('the csv reader stops honouring a doubled quote', 'period-text.js', 'if (c === \'"\') { add(c); state = IN_QUOTED; }', 'if (c === \'"\') { state = IN_QUOTED; }'),
     ('verify accepts a one-cent difference', 'period-writeplan.js', 'W.same = (planned, actual, tolerance = 0.005)', 'W.same = (planned, actual, tolerance = 0.02)'),
+    ('a deferred pair on a planned row checks it at preflight', 'period-plan.js', 'mate.isNew ? null : { range: W.a1("Entries", mrow, 1), expect: [[mate.id]] },', '{ range: W.a1("Entries", mrow, 1), expect: [[mate.id]] },'),
+    ('the closing row is by position again', 'period-adapters.js', 'return first.date > last.date || (first.date === last.date && A.SHAPES[shape].sequence === "newest-first") ? first : last;', 'return A.SHAPES[shape].sequence === "newest-first" ? first : last;'),
+    ('preflight runs on a held plan', 'period-writeplan.js', '    if (plan.status !== "ready") return done(false, [`plan status is ${T.repr(plan.status)}: nothing should have been written`]);\n    if (o.preconditions) {', '    if (!o.preconditions && plan.status !== "ready") return done(false, [`plan status is ${T.repr(plan.status)}: nothing should have been written`]);\n    if (o.preconditions) {'),
+    ('a blank expected cell passes anything', 'period-writeplan.js', 'row.map((v) => (v === null ? "" : v))', 'row'),
     ('a fault word changes', 'period-adapters.js', 'is not a month. This shape', 'is no month. This shape'),
 ]
 
@@ -433,7 +437,7 @@ def mutate():
         (d / file).write_text(text.replace(old, new))
         env = dict(os.environ, KITTY_CORE=str(d))
         r = REAL_RUN([sys.executable, __file__, '--only', 'scenarios,hostile', '--quiet'], capture_output=True, text=True, env=env)  # a crash prints no sections: n stays 0, NOT CAUGHT
-        n = sum(int(x) for x in re.findall(r'differing (\d+)', r.stdout))
+        n = sum(int(x) for x in re.findall(r'differing (\d+)', r.stdout)) + r.stdout.count('STALE allowlist')  # undoing a fix brings Python's answer back: its case goes stale
         results.append((what, 'caught' if r.returncode != 0 and n > 0 else 'NOT CAUGHT', n))
     return results
 

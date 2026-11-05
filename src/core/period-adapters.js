@@ -46,7 +46,7 @@
     const s = strip(T.str(v).replace(/\$/g, "").replace(/,/g, "").replace(/A/g, ""));
     if (!s) return 0;
     const neg = s.startsWith("(") && s.endsWith(")");
-    const n = T.pyFloat(s.replace(/^[()]+|[()]+$/g, ""));
+    const n = T.pyFloat(T.stripParens(s));
     if (n === null || !Number.isFinite(n)) throw new ImportFault("bad_amount", file, `"${v}" is not an amount`, "the column is not what the adapter expects; check the header and the shape", row);
     return neg ? -n : n;
   };
@@ -76,14 +76,10 @@
   const ASCII_SPACE = new Set([9, 10, 11, 12, 13, 32]);
   // The file's cells once, and whether it carried a byte order mark. Faults: nothing in it, not UTF-8, a table the csv reader refuses.
   A.loadCells = (file, rel) => {
-    if (file._cells) return file._cells;
     const empty = () => new ImportFault("empty_file", rel, "empty file (zero bytes)",
       "download it again. A dormant account still exports its header row; the CommBank shape has none, so if this account truly had no movement, delete the file and say so in the close note");
     let text, bom = !!file.bom;
-    if (file.rows) {
-      Object.defineProperty(file, "_cells", { value: { rows: file.rows, bom }, enumerable: false, configurable: true });
-      return file._cells;
-    }
+    if (file.rows) return { rows: file.rows, bom };
     if (file.bytes) {
       const b = file.bytes;
       if (b.every((x) => ASCII_SPACE.has(x))) throw empty();
@@ -102,8 +98,7 @@
       if (!(e instanceof T.CsvError)) throw e;
       throw new ImportFault("csv_unreadable", rel, `not a readable table: ${e.message}`, "the download is corrupt or truncated; download it again, never edit the file");
     }
-    Object.defineProperty(file, "_cells", { value: { rows, bom }, enumerable: false, configurable: true });
-    return file._cells;
+    return { rows, bom };
   };
 
   // The shape name from the first line. Faults when no shape matches.
@@ -129,6 +124,7 @@
   // Every row of a delivered file: date, description, amount (cents), balance (printed double or null), line. Checks the header, the
   // date order, the sequence and the window. opening date: a file ending by it, before the months imported, is history, not a fault.
   A.readRows = (rows, path, shape, w) => {
+    const window = w || {};
     const { head: expected, order, sequence } = A.SHAPES[shape];
     let body = rows, firstLine = 1;
     if (expected) {
@@ -145,12 +141,19 @@
       // A blank cell can't establish an amount, and an explicit 0.00 can. Debit and credit shapes need one of the pair. Runs after the shape's
       // own column and date checks, so a row that is wrong in a more specific way still says so.
       const hasAmount = (...cs) => { if (!cs.some((c) => strip(T.str(r[c])))) throw new ImportFault("bad_amount", path, `row ${line} has no amount`, "a truncated download; download again", line); };
+      // A printed balance has to fit in cents like any amount. A loan's is the valuation it becomes, so there a blank is a fault, not a zero.
+      const balance = (c) => {
+        if (window.require_balance && !strip(T.str(r[c]))) throw new ImportFault("bad_amount", path, `row ${line} has no balance`, "a loan statement's balance is its closing valuation; a truncated download, download again", line);
+        const x = money(r[c], line);
+        cents(x, r[c], path, line);
+        return x;
+      };
       if (shape === "Harbour Bank") {
         columns(r, 8, path, line, "a comma inside an unquoted narrative, or a truncated download; download again");
         const date = A.parseDate(r[1], order, path, line);
         hasAmount(3, 4);
         const amount = cents(money(r[4], line) - money(r[3], line), r[4] || r[3], path, line);
-        out.push({ date, description: strip(r[2]), amount, balance: money(r[5], line), line, account_number: strip(r[0]) });
+        out.push({ date, description: strip(r[2]), amount, balance: balance(5), line, account_number: strip(r[0]) });
       } else if (shape === "Southern Card") {
         columns(r, 5, path, line, TRUNCATED);
         const date = A.parseDate(r[0], order, path, line);
@@ -161,13 +164,13 @@
         const date = A.parseDate(r[0], order, path, line);
         hasAmount(2, 3);
         const amount = cents(money(r[2], line) + money(r[3], line), r[2] || r[3], path, line);
-        out.push({ date, description: strip(r[1]), amount, balance: money(r[4], line), line });
+        out.push({ date, description: strip(r[1]), amount, balance: balance(4), line });
       } else if (shape === "Bark Bank") {
         if (r.length !== 4 || !BARK_DATE.test(strip(r[0]))) throw new ImportFault("bad_columns", path, `not a CommBank line: ${repr(r.slice(0, 4))}`, "the headerless shape is Date, Amount, Description, Balance; download again", line);
         const date = A.parseDate(r[0], order, path, line);
         hasAmount(1);
         const amount = cents(money(r[1], line), r[1], path, line);
-        out.push({ date, description: strip(r[2]), amount, balance: money(r[3], line), line });
+        out.push({ date, description: strip(r[2]), amount, balance: balance(3), line });
       } else if (shape === "Owner statement") {
         columns(r, 6, path, line, "a truncated download; download again");
         hasAmount(3, 4);
@@ -176,13 +179,20 @@
       } else {
         columns(r, 7, path, line, "a truncated download; download again");
         const date = A.parseDate(r[0], order, path, line);
-        const [gross, tax, sup, net] = [3, 4, 5, 6].map((c) => cents(money(r[c], line), r[c], path, line));
+        const [gross, tax, sup, net] = [3, 4, 5, 6].map((c) => { hasAmount(c); return cents(money(r[c], line), r[c], path, line); });
         out.push({ date, person: strip(r[1]), employer: strip(r[2]), gross, tax, super: sup, net, description: `${strip(r[1])} ${strip(r[2])}`, amount: net, balance: null, line });
       }
     });
-    A.checkWindow(path, out, w || {});
+    A.checkWindow(path, out, window);
     A.checkSequence(path, out, sequence);
     return out;
+  };
+
+  // The balance the file shows last in time. Rows run one way (checkSequence), though a shape may deliver either way; when every row
+  // shares a day the shape's usual sequence settles it.
+  A.latestRow = (rows, shape) => {
+    const first = rows[0], last = rows[rows.length - 1];
+    return first.date > last.date || (first.date === last.date && A.SHAPES[shape].sequence === "newest-first") ? first : last;
   };
 
   A.checkWindow = (path, rows, w) => {
