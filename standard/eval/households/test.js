@@ -1395,3 +1395,20 @@ test("an authorisation in an early download gives way to the posting when a late
   add(late, "2026-03-22", "OTHER", -100); add(pdf, "2026-03-22", "OTHER", -100); add(late, "2026-03-31", "MID", -100); add(late, "2026-04-02", "WISHPAW MARKET US USD 78.00", -12240); add(late, "2026-04-10", "CLOSE", -100);
   assert.equal(run(h).events.filter((e) => /WISHPAW/.test(e.description)).length, 1);
 });
+
+test("a balance in another currency is not dollars: with no rate it stays out of every headline and says so, and a dated rate brings it in", () => {
+  const build = (rate) => {
+    const h = household("rupee").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-01-01" }).account("INR", "savings", "cash", [["a", 10000]], { currency: "INR", opening_balance_cents: 270000000, opened_on: "2026-01-01" }).rule("SCHOOL", "SHOPPING").rule("FD INTEREST", "INTEREST");
+    h.line("BANK", "2026-06-01", "SHOPS", 0).line("INR", "2026-06-05", "SCHOOL FEES", -400000000).line("INR", "2026-06-06", "FD INTEREST", 5000000);
+    if (rate) h.obs("fx_rate", { base: "INR", quote: "AUD", as_at: "2026-05-31", rate });
+    return run(h);
+  };
+  const L = build(null), m = L.cash.find((x) => x.month === "2026-06");
+  assert.equal(m.spending, 0, "four million rupees is not four million dollars");
+  assert.equal(m.income, 0);
+  assert.equal(L.netWorth.find((r) => r.month === "2026-05").total, 100000);
+  assert.ok(L.review.some((r) => r.kind === "foreign_currency" && /left out/.test(r.what)));
+  const R = build("0.0185"), n = R.cash.find((x) => x.month === "2026-06");
+  assert.equal(n.spending, 7400000, "at the dated rate");
+  assert.equal(R.netWorth.find((r) => r.month === "2026-06").total, 100000 + Math.round((270000000 - 400000000 + 5000000) * 0.0185));
+});

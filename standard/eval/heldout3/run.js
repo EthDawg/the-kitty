@@ -188,9 +188,9 @@ function judge(trap, ctx) {
     notes.push(`economic lens ${x.month} ${x.category}: want ${x.atLeast ? "about " : ""}${money(x.cents)}, got ${money(got)}`);
     if (!ok) { outcomes.push("silently wrong"); cents += Math.abs(got - x.cents); }
   }
-  /* what the engine holds out of a group: the sum of the accounts' balances less the group's line in net worth */
+  /* what the engine holds out of a group: the sum of the accounts' balances less the group's line in net worth. A sterling balance with no rate is left out on both sides, so its figure never reads as this trap's. */
   if (p.excluded) for (const x of p.excluded) {
-    const row = L.netWorth.find((n) => n.month === x.month), accts = x.accounts === "cash" ? [...R.cashAcct] : x.accounts, sum = accts.reduce((t, a) => t + R.balance(a, x.month), 0), got = sum - ((row && row.groups && row.groups[x.group]) || 0), gap = Math.abs(got - x.want);
+    const row = L.netWorth.find((n) => n.month === x.month), accts = (x.accounts === "cash" ? [...R.cashAcct] : x.accounts).filter((a) => !["GBP"].includes((L.accounts.find((k) => k.account_id === a) || {}).currency)), sum = accts.reduce((t, a) => t + R.balance(a, x.month), 0), got = sum - ((row && row.groups && row.groups[x.group]) || 0), gap = Math.abs(got - x.want);
     notes.push(`${x.month}: ${money(got)} held out of ${x.group} in net worth, truth ${money(x.want)}`);
     if (gap > (x.tolerance || 0)) { const o = lawBad(x.named) ? "flagged" : "silently wrong"; outcomes.push(o); if (o === "flagged") flaggedCents = Math.max(flaggedCents, gap); else cents = Math.max(cents, gap); }
   }

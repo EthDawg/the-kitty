@@ -446,7 +446,7 @@ debt or a receivable, because a buy between trade and settlement has raised hold
 settlement is well past with no cash line, it is a question and leaves the headline. `clearing:transit` is a transfer that
 has left one account and not reached the other. A household holds what its members own on the day, so a joiner's accounts
 count from their membership date, whatever their year-end papers reach back to, and a joint owner who leaves takes their
-share. An account held in another currency counts at face value and says so until a dated rate exists. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
+share. An account held in another currency converts at the latest dated rate. With no rate it stays out of income, spending and net worth, and says so: a wrong headline is worse than a missing one. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
 company) is not counted beside a balance held outside it that stands for the wrapper. Where nothing else stands for it, the
 wrapper's own accounts are the only place those dollars are, and they count. Look-through is a view.
 

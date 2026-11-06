@@ -934,7 +934,7 @@ class Resolver {
     }
     // A file can read clean in another currency. Nothing here converts it, so it is counted at face value and says so.
     const base = (this.setup.household && this.setup.household[0] && this.setup.household[0].base_currency) || "AUD";
-    for (const a of this.setup.account || []) if (a.currency && a.currency !== base) this.review.push({ kind: "foreign_currency", ref: a.account_id, amount_cents: null, what: `${a.name} is held in ${a.currency} and no rate is held. Net worth counts it at face value.`, do: "Add a dated rate. Until then this balance is not in dollars." });
+    for (const a of this.setup.account || []) if (a.currency && a.currency !== base) this.review.push({ kind: "foreign_currency", ref: a.account_id, amount_cents: null, what: `${a.name} is held in ${a.currency}. It is left out of income, spending and net worth wherever no dated rate is held.`, do: "Add a dated rate." });
     return this;
   }
 }

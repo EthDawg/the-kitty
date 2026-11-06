@@ -19,7 +19,7 @@ function cashLens(L, opts = {}) {
   const posted = (L.households || []).some((h) => h.budget_date === "posted");
   const when = (e) => (posted ? e.occurred_on : e.charged_on || e.occurred_on);
   // An account held wholly for someone else earns and spends nothing of the household's.
-  const heldShare = heldBy(L), ours = new Map();
+  const heldShare = heldBy(L), ours = new Map(), fx = fxBy(L);
   const isOurs = (account, m) => { const k = `${account}|${m}`; if (!ours.has(k)) ours.set(k, heldShare(account, monthEnd(m)) > 0); return ours.get(k); };
   const months = new Map();
   const bucket = (m) => { if (!months.has(m)) months.set(m, { month: m, income: 0, spending: 0, unexplained: 0, net: 0, byCategory: {} }); return months.get(m); };
@@ -29,11 +29,14 @@ function cashLens(L, opts = {}) {
     const cat = X.categories.get(e.category_id);
     const m = bucket(monthOf(when(e)));
     if (!isOurs(p.account_id, m.month)) continue;
+    const rate = fx(p.account_id, monthEnd(m.month));
+    if (rate == null) continue;
+    const amount = rate === 1 ? p.amount_cents : Math.round(p.amount_cents * rate);
     // Money in that nobody has explained is neither income nor a refund. It is shown on its own until a person says.
-    if (e.unexplained) { m.unexplained += p.amount_cents; continue; }
+    if (e.unexplained) { m.unexplained += amount; continue; }
     if (!cat || cat.kind === "transfer" || cat.kind === "capital" || cat.cash_lens === false) { continue; }
-    m.byCategory[e.category_id] = (m.byCategory[e.category_id] || 0) + p.amount_cents;
-    if (cat.kind === "income") m.income += p.amount_cents; else m.spending -= p.amount_cents;
+    m.byCategory[e.category_id] = (m.byCategory[e.category_id] || 0) + amount;
+    if (cat.kind === "income") m.income += amount; else m.spending -= amount;
   }
   for (const m of months.values()) m.net = m.income - m.spending + m.unexplained;
   return [...months.values()].sort((a, b) => cmp(a.month, b.month));
@@ -86,6 +89,26 @@ function balances(L) {
   const lastMonth = months[months.length - 1];
   return { months, rows, table, at: (account, month) => (table.get(account) ? table.get(account).get(month > lastMonth ? lastMonth : month) ?? 0 : 0) };
 }
+// A balance in another currency is not dollars. It converts at the latest dated rate, and with no rate it counts for nothing: a wrong headline is worse than a missing one.
+function fxBy(L) {
+  const base = ((L.households || [])[0] || {}).base_currency || "AUD";
+  const accounts = new Map(L.accounts.map((a) => [a.account_id, a]));
+  const rows = (L.observations || []).filter((o) => o.kind === "fx_rate").map((o) => o.payload);
+  const series = new Map();
+  for (const p of rows) {
+    const r = Number(p.rate), cur = p.quote === base ? p.base : p.base === base ? p.quote : null;
+    if (!cur || !r) continue;
+    if (!series.has(cur)) series.set(cur, []);
+    series.get(cur).push({ on: p.as_at, rate: p.quote === base ? r : 1 / r });
+  }
+  for (const list of series.values()) list.sort((a, b) => cmp(a.on, b.on));
+  return (account, on) => {
+    const a = accounts.get(account);
+    if (!a || !a.currency || a.currency === base) return 1;
+    const list = (series.get(a.currency) || []).filter((x) => x.on <= on);
+    return list.length ? list[list.length - 1].rate : null;
+  };
+}
 // A household holds what its members own on the day: the share of an account that is theirs. A joiner's account counts from the day they join, whatever their
 // papers reach back to, and a joint owner who leaves takes their share with them.
 function heldBy(L) {
@@ -110,7 +133,7 @@ function netWorth(L, opts = {}) {
   const X = L.index;
   const inScope = opts.accounts ? new Set(opts.accounts) : null;
   const wrapped = wrappedAccounts(L);
-  const heldShare = heldBy(L);
+  const heldShare = heldBy(L), fx = fxBy(L);
   // A trade whose cash never met it stops being a debt once settlement is well past. It is a question by then.
   const stale = L.events.filter((e) => e.unsettled);
   const out = [];
@@ -124,7 +147,9 @@ function netWorth(L, opts = {}) {
       if (inScope && !inScope.has(account) && !unsettled) continue;
       const share = heldShare(account, row.month_end);
       if (!share) continue;
-      const v = Math.round(L.balances.at(account, m) * share);
+      const rate = fx(account, row.month_end);
+      if (rate == null) continue;
+      const v = Math.round(L.balances.at(account, m) * share * rate);
       row.total += v;
       const group = unsettled ? "unsettled" : a.reporting_group;
       row.groups[group] = (row.groups[group] || 0) + v;
