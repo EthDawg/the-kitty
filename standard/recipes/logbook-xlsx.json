@@ -1,0 +1,67 @@
+{
+ "id": "logbook-xlsx",
+ "tier": "table",
+ "container": "xlsx",
+ "table": {
+  "sheet": "Logbook",
+  "header": 5,
+  "skip_tail": 1
+ },
+ "values": {
+  "person": {
+   "at": [
+    2,
+    1
+   ]
+  },
+  "fy": {
+   "at": [
+    3,
+    1
+   ]
+  },
+  "total": {
+   "at": [
+    -1,
+    3
+   ],
+   "as": "int"
+  }
+ },
+ "emit": [
+  {
+   "kind": "work_log",
+   "fields": {
+    "person_ref": {
+     "value": "person"
+    },
+    "fy": {
+     "value": "fy"
+    },
+    "period_end": {
+     "col": "Week ending",
+     "as": "excel_date"
+    },
+    "log_kind": {
+     "const": "car_logbook"
+    },
+    "km": {
+     "col": "Business km",
+     "as": "int"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "kind_sum",
+   "kind": "work_log",
+   "field": "km",
+   "equals": "total"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:31413146a655579ca73b7bcd"
+ ]
+}

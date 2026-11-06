@@ -1,0 +1,56 @@
+{
+ "id": "energy-bill-eml",
+ "match": [
+  "^Your electricity bill is ready"
+ ],
+ "tier": "document",
+ "container": "eml",
+ "defaults": {
+  "date": "dmony"
+ },
+ "values": {
+  "issuer_ref": {
+   "find": "^(.+), a fictional retailer"
+  },
+  "subject_ref": {
+   "find": "^Account: (.+)$"
+  },
+  "reference": {
+   "find": "^Account: (.+)$"
+  },
+  "bill_date": {
+   "find": "^Bill date: (.+)$",
+   "as": "date"
+  },
+  "due_on": {
+   "find": "^Due date: (.+)$",
+   "as": "date"
+  },
+  "period_start": {
+   "find": "^Supply from: (.+)$",
+   "as": "date"
+  },
+  "period_end": {
+   "find": "^Supply to: (.+)$",
+   "as": "date"
+  },
+  "gst_cents": {
+   "find": "^GST included: (.+)$",
+   "as": "cents"
+  },
+  "amount_cents": {
+   "find": "^Amount due: (.+)$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "bill",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:25985edf9be2188bbc5b59ee"
+ ]
+}

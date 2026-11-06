@@ -11,7 +11,7 @@ const { World, TABLES } = require("./lib/world");
 const REPO = path.resolve(__dirname, "..", "..");
 const OUT = path.join(REPO, "standard", ".build", "world");
 
-const DOMAINS = ["setup", "banks", "payroll", "loans", "property", "rates", "agency", "super", "broker", "rsu", "crypto", "rental2", "tax"];
+const DOMAINS = ["setup", "banks", "payroll", "loans", "property", "rates", "agency", "super", "broker", "rsu", "crypto", "rental2", "tax", "bills", "things", "valuations"];
 
 function buildWorld() {
   const base = JSON.parse(fs.readFileSync(path.join(REPO, "portals", "data", "months.json"), "utf8"));

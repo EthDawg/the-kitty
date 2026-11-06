@@ -1,0 +1,61 @@
+{
+ "id": "littlepaws-statement-html",
+ "match": [
+  "^Statement of account$"
+ ],
+ "tier": "document",
+ "container": "html",
+ "defaults": {
+  "date": "dmony"
+ },
+ "values": {
+  "provider_ref": {
+   "find": "^Provider: (.+)$"
+  },
+  "child_ref": {
+   "find": "^Child: (.+)$"
+  },
+  "period_start": {
+   "right": "^Period start$",
+   "as": "date"
+  },
+  "period_end": {
+   "right": "^Period end$",
+   "as": "date"
+  },
+  "gross_fee_cents": {
+   "right": "^Gross fee$",
+   "as": "cents"
+  },
+  "subsidy_cents": {
+   "right": "^Child Care Subsidy$",
+   "as": "cents",
+   "abs": true
+  },
+  "gap_cents": {
+   "right": "^Gap you pay$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "childcare_statement",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "childcare_statement",
+   "terms": [
+    "+gross_fee_cents",
+    "-subsidy_cents",
+    "-gap_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:e17b51a25e8797a239990b40"
+ ]
+}

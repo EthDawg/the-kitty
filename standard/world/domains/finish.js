@@ -17,6 +17,8 @@ function monthTotals(rows, opening) {
 
 function run(w) {
   const lines = w.baseLines, truth = {};
+  require("./banks").cardStatements(w);
+  stream(w, "ACC-CC-STMT", "Card statement", "statement", "account", "ACC-CC", "monthly", "2020-06-14", { issuer_party_id: "SOUTHERN", grace_days: 10 });
   // ACC-OLD: base lines plus anything the domains added, in date order, base lines first within a day
   const extra = (w.lines["ACC-OLD"] || []);
   const old = [...lines["ACC-OLD"].map((r, i) => ({ ...r, seq: i })), ...extra.map((r, i) => ({ ...r, seq: 100000 + i }))].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.seq - b.seq));

@@ -1,0 +1,39 @@
+{
+ "id": "pawprice-estimates-csv",
+ "tier": "table",
+ "container": "csv",
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1
+ },
+ "emit": [
+  {
+   "kind": "valuation",
+   "fields": {
+    "subject_ref": {
+     "col": "Subject"
+    },
+    "as_at": {
+     "col": "As At",
+     "as": "date"
+    },
+    "value_cents": {
+     "col": "Estimate",
+     "as": "cents"
+    },
+    "method": {
+     "col": "Method"
+    },
+    "valuer": {
+     "col": "Provider"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:95b5b1711a968efc6ea91f64"
+ ]
+}

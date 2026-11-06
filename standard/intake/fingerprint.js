@@ -45,7 +45,7 @@ function structure(decoded) {
   }
   const out = { c, seq };
   if (c === "eml") out.parts = (m.parts || []).map((p) => p.type);
-  if (c === "html") out.title = tokens(m.title || "").split(" ").slice(0, 4).join(" ");
+  if (c === "html") out.title = tokens(m.title || "").split(" ").filter((t) => !/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*$/.test(t) && !/^fy$/.test(t)).slice(0, 4).join(" ");
   return out;
 }
 

@@ -1,0 +1,56 @@
+{
+ "id": "gas-bill-html",
+ "match": [
+  "^Gas bill$"
+ ],
+ "tier": "document",
+ "container": "html",
+ "defaults": {
+  "date": "dmony"
+ },
+ "values": {
+  "issuer_ref": {
+   "right": "^Retailer$"
+  },
+  "subject_ref": {
+   "right": "^Account$"
+  },
+  "reference": {
+   "right": "^Account$"
+  },
+  "bill_date": {
+   "right": "^Bill date$",
+   "as": "date"
+  },
+  "due_on": {
+   "right": "^Due date$",
+   "as": "date"
+  },
+  "period_start": {
+   "right": "^Period from$",
+   "as": "date"
+  },
+  "period_end": {
+   "right": "^Period to$",
+   "as": "date"
+  },
+  "gst_cents": {
+   "right": "^GST included$",
+   "as": "cents"
+  },
+  "amount_cents": {
+   "right": "^Amount due$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "bill",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:a843f97d50aa9590c89a68a9"
+ ]
+}

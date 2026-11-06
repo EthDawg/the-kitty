@@ -7,7 +7,7 @@ const BLOCK = new Set(["p", "div", "h1", "h2", "h3", "h4", "h5", "li", "dt", "dd
 const clean = (s) => unescapeXml(s).replace(/\s+/g, " ").trim();
 
 function fromText(text) {
-  const body = text.replace(/<!--[\s\S]*?-->/g, "").replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, "");
+  const body = text.replace(/<!--[\s\S]*?-->/g, "").replace(/<!doctype[^>]*>/i, "").replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, "");
   const lines = [], tables = []; let meta = {}; let buf = "", cells = null, cell = null, table = null, idx = 0;
   const flush = () => { const t = clean(buf); buf = ""; if (t) { lines.push({ text: t, cells: [t], page: 1, y: lines.length }); } };
   const re = /<\/?([a-zA-Z0-9]+)\b[^>]*>|([^<]+)/g; let m;

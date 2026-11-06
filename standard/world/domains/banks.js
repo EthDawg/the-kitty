@@ -66,4 +66,26 @@ function run(w, repo) {
   }
 }
 
-module.exports = { run, SHEETED, harbourCsv, wattleCsv, southernCsv, barkCsv, money };
+/* Amewx's statement PDF, closing on the 14th: every line again, a second witness to the activity files, and a table that wraps pages. */
+function cardStatements(w) {
+  const { Doc, MUTED, period } = require("../lib/pdf");
+  const { addDays, fmtDate, money: m, aud } = require("../lib/util");
+  const BRAND = { name: "Amewx", tagline: "Don't leave home without your whiskers.", color: "#0b5cab" };
+  const rows = w.baseLines["ACC-CC"], periods = [];
+  let from = "2020-06-01";
+  for (const ym of monthRange("2020-06", "2027-03")) { const to = `${ym}-14`; if (to < from) continue; periods.push([from, to]); from = addDays(to, 1); }
+  let bal = 0;
+  for (const [a, b] of periods) {
+    const list = rows.filter((r) => r.date >= a && r.date <= b), opening = -bal, charges = -list.filter((r) => r.cents < 0).reduce((s, r) => s + r.cents, 0), credits = list.filter((r) => r.cents > 0).reduce((s, r) => s + r.cents, 0);
+    bal += list.reduce((s, r) => s + r.cents, 0);
+    const closing = -bal, d = new Doc({ brand: BRAND, title: "Card statement", kicker: period(a, b), deflate: w.deflate, rowH: 24 });
+    d.h1("Rewards credit card");
+    d.kv([["Card member", "JORDAN DAVIES"], ["Account", "Card ending 41007"], ["Previous balance", aud(opening)], ["New balance", aud(closing)], ["Payments and credits", aud(credits)], ["New charges", aud(charges)]], 3);
+    d.h2("Transactions");
+    d.table([{ label: "Date", w: 68 }, { label: "Description", w: 292 }, { label: "Amount", w: 80, align: "right" }], list.map((r) => [fmtDate(r.date), r.desc, m(-r.cents)]), { foot: ["", "New balance", m(closing)] });
+    if (!list.length) d.para("No transactions in this period.", { color: MUTED });
+    w.file({ stream_id: "ACC-CC-STMT", download_date: addDays(b, 2), name: `Amewx-Statement-${b}.pdf`, bytes: d.finish(), family: "amewx-statement-pdf", container: "pdf", expect: { txn_line: list.length, statement: 1 }, origin: "portal", issued_on: b, witness_of: "ACC-CC" });
+  }
+}
+
+module.exports = { run, cardStatements, SHEETED, harbourCsv, wattleCsv, southernCsv, barkCsv, money };

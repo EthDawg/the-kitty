@@ -1,0 +1,83 @@
+{
+ "id": "receipt-eml",
+ "match": [
+  "^Thanks for shopping at "
+ ],
+ "tier": "document",
+ "container": "eml",
+ "defaults": {
+  "date": "dmony"
+ },
+ "values": {
+  "merchant_ref": {
+   "find": "^Thanks for shopping at (.+)\\.$"
+  },
+  "date": {
+   "find": "^Order date: (.+)$",
+   "as": "date"
+  },
+  "name": {
+   "find": "^Item: (.+)$"
+  },
+  "asset_kind": {
+   "find": "^Product type: (.+)$"
+  },
+  "serial": {
+   "find": "^Serial number: (.+)$"
+  },
+  "warranty_until": {
+   "find": "^Warranty until: (.+)$",
+   "as": "date"
+  },
+  "payment_ref": {
+   "find": "^Paid with: (.+)$"
+  },
+  "gst_cents": {
+   "find": "^GST included: (.+)$",
+   "as": "cents"
+  },
+  "total_cents": {
+   "find": "^Total: (.+)$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "receipt",
+   "from_values": true
+  },
+  {
+   "kind": "asset_fact",
+   "fields": {
+    "asset_ref": {
+     "value": "name"
+    },
+    "name": {
+     "value": "name"
+    },
+    "asset_kind": {
+     "value": "asset_kind"
+    },
+    "acquired_on": {
+     "value": "date"
+    },
+    "cost_cents": {
+     "value": "total_cents"
+    },
+    "serial": {
+     "value": "serial"
+    },
+    "warranty_until": {
+     "value": "warranty_until"
+    },
+    "merchant_ref": {
+     "value": "merchant_ref"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:25985edf9be2188bbc5b59ee"
+ ]
+}
