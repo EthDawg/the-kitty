@@ -43,7 +43,7 @@ It is not called `Kitty`, because the v2 page reads that tab with another layout
 
 **Grids are sized.** About 25,000 cells on day one, against 1.07M for 41 default tabs. They grow when a write needs it.
 
-**Category and Tax Map start empty.** SPEC 13 makes them shared data, read through a household's overrides, so copying them in would be a small fork. A rebuild overlays `defaults.json`. Finding R-009.
+**Category, Tax Map and Recipe start empty, and a blank household still has all three.** SPEC 13 makes them shared data, read through a household's overrides, so copying them in would be a small fork and an update would never arrive. `rebuildAt` overlays `defaults.json` and `add` reads the public recipes on every open, so a blank Kitty's first interest lands on label 10 with no row of its own. A household's row wins for its own key and the rest stay shared. Read `view.setup`, never the raw tabs: a reader of the Category tab alone sees only the overrides. Finding R-009.
 
 **People belong from before the first file.** Membership, ownership and aliases start 1900-01-01, whatever the signing-up date. Dated from today, three months of backfilled statements belonged to nobody, and net worth read $0.00.
 
@@ -95,7 +95,7 @@ Davies-sized: 2,369 files, 10,513 observations, 14,008 postings. Chromium 156, h
 | Bundle hash, Node and Chromium | `07a1336af73ccd9b`, the same as `standard/eval/run.js` |
 | Hash over every table, Node and Chromium | the same |
 
-The tests were audited by breaking the code on purpose: 34 mutations, each removing one safety (the commit, the dedupe, the hash compare, the guard, the readback, each clock filter, each refusal, and so on). All 34 turn a test red. The first pass found one survivor, `as_of` passing `today`, which is why a post-dated line has its own test.
+The tests were audited by breaking the code on purpose: 39 mutations, each removing one safety (the commit, the dedupe, the hash compare, the guard, the readback, each clock filter, each refusal, the shared data overlay, and so on). All 39 turn a test red. The first pass found one survivor, `as_of` passing `today`, which is why a post-dated line has its own test.
 
 ## Not proved
 

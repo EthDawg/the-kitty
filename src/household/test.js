@@ -89,6 +89,41 @@ for (const [kind, make] of Object.entries(stores)) {
   });
 }
 
+for (const [kind, make] of Object.entries(stores)) {
+  test(`shared data on a blank ${kind} store: interest and rent reach their labels, read through, with nothing copied in`, async () => {
+    const s = await renter(make, "2026-09-01");
+    await K.add(s, [bankFile([["2026-07-01", "CREDIT INTEREST", 1234], ["2026-07-05", "RENT FROM TENANT", 50000], ["2026-08-02", "CREDIT INTEREST", 321], ["2026-08-03", "WOOLWORTHS 1 CARLTON", -555]])], { today: "2026-09-01" });
+    await K.decide(s, { target_ref: "ACC-6789|2026-07-05|50000|1", verb: "categorise", value: { category_id: "RENT-INC" } }, { today: "2026-09-01" });
+    const held = async () => [await count(s, "category"), await count(s, "tax_map"), await count(s, "recipe")];
+    const label = (L, id) => (L.tax.items.find((i) => i.party_id === "SAM" && i.fy === "FY2027" && i.label === id) || {}).amount_cents;
+    const { L, view } = await K.rebuildAt(s, { today: "2026-09-01" });
+    assert.equal(label(L, "10"), 1555, "interest, on label 10, from the shared tax map");
+    assert.equal(label(L, "21P"), 50000, "rent, on label 21P, from the shared tax map");
+    assert.ok(L.events.some((e) => e.category_id === "GROCERIES"), "the shared dictionary and chart of categories");
+    assert.equal(view.setup.category.length, 57);
+    assert.equal(view.setup.tax_map.length, 13);
+    assert.deepEqual(await held(), [0, 0, 0], "and none of it is a household row, so an update reaches this household on open");
+
+    // An update to the shared map reaches a household holding no copy of it.
+    const shared = K.base().defaults.tax_map, was = [...shared];
+    shared.push({ selector_type: "category", selector: "GROCERIES", label: "D5", treatment: "deduction", basis: "person", valid_from: "2018-07-01" });
+    try { assert.equal(label((await K.rebuildAt(s, { today: "2026-09-01" })).L, "D5"), 555, "the next open reads the new map"); }
+    finally { shared.splice(0, shared.length, ...was); }
+
+    // A household's own row wins, for that selector only. The rest stay shared.
+    await K.record(s, "tax_map", [{ selector_type: "category", selector: "INTEREST", label: "24", treatment: "income", basis: "ownership", valid_from: "2018-07-01" }], { today: "2026-09-01" });
+    await K.record(s, "category", [{ category_id: "GROCERIES", name: "Food", kind: "expense", cash_lens: true, economic_lens: true }]);
+    const mine = await K.rebuildAt(s, { today: "2026-09-01" });
+    assert.equal(label(mine.L, "10"), undefined);
+    assert.equal(label(mine.L, "24"), 1555);
+    assert.equal(label(mine.L, "21P"), 50000);
+    assert.equal(mine.view.setup.tax_map.length, 13, "replaced, not added to");
+    assert.equal(mine.view.setup.category.length, 57);
+    assert.equal(mine.view.setup.category.find((c) => c.category_id === "GROCERIES").name, "Food");
+    assert.deepEqual(await held(), [1, 1, 0]);
+  });
+}
+
 test("every answer ends: after the last question the step is that you are up to date", async () => {
   const s = await renter(stores.folder);
   await K.add(s, [bankFile([["2026-07-01", "WOOLWORTHS 1 CARLTON", -1000]])], { today: "2026-07-02" });
