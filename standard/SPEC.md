@@ -20,7 +20,8 @@ Machine-readable schema: [`schema/`](schema/). Everything generated from it: [`g
    are derived and can be deleted at any time. Rebuilding is always safe, and is the test.
 2. **Recognise once, clear everywhere.** One economic fact is usually witnessed by several documents. Exactly one
    witness recognises it (the income, the expense, the asset). Every other witness clears against it. Double counting
-   is not filtered out later; it has no way in.
+   is not filtered out later: it has to get past a clearing account. Where two witnesses cannot be paired, the second stays a
+   question, and that question is the honest limit of this rule.
 3. **Every balance moves through a balanced entry.** Postings on an event sum to zero. Money between your own accounts,
    and every fact witnessed on two sides, passes through a clearing account that must return to zero. An unmatched side
    shows as an open item, never as spending or income.

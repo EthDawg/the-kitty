@@ -1,0 +1,275 @@
+[
+ {
+  "term_id": "TERM-001",
+  "subject_type": "contract",
+  "subject_id": "CON-CARLOAN",
+  "term": "interest_rate",
+  "value": "10.95",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-002",
+  "subject_type": "contract",
+  "subject_id": "CON-CARLOAN",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-003",
+  "subject_type": "contract",
+  "subject_id": "CON-CARLOAN",
+  "term": "repayment_cents",
+  "value": "38600",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-004",
+  "subject_type": "contract",
+  "subject_id": "CON-CARLOAN",
+  "term": "repayment_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-005",
+  "subject_type": "contract",
+  "subject_id": "CON-MUM",
+  "term": "interest_rate",
+  "value": "0",
+  "unit": "pct",
+  "valid_from": "2024-09-09",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-006",
+  "subject_type": "contract",
+  "subject_id": "CON-MUM",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2024-09-09",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-007",
+  "subject_type": "contract",
+  "subject_id": "CON-MUM",
+  "term": "repayment_cents",
+  "value": "10000",
+  "unit": "cents",
+  "valid_from": "2024-11-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-008",
+  "subject_type": "contract",
+  "subject_id": "CON-MUM",
+  "term": "repayment_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2024-11-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-009",
+  "subject_type": "contract",
+  "subject_id": "CON-BNPL",
+  "term": "interest_rate",
+  "value": "0",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-010",
+  "subject_type": "contract",
+  "subject_id": "CON-BNPL",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-011",
+  "subject_type": "contract",
+  "subject_id": "CON-RENT-1",
+  "term": "rent_cents",
+  "value": "84000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2024-01-08"
+ },
+ {
+  "term_id": "TERM-012",
+  "subject_type": "contract",
+  "subject_id": "CON-RENT-1",
+  "term": "rent_cents",
+  "value": "88000",
+  "unit": "cents",
+  "valid_from": "2024-01-08",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-013",
+  "subject_type": "contract",
+  "subject_id": "CON-RENT-1",
+  "term": "rent_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-014",
+  "subject_type": "contract",
+  "subject_id": "CON-RENT-2",
+  "term": "rent_cents",
+  "value": "132000",
+  "unit": "cents",
+  "valid_from": "2024-09-14",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-10-06"
+ },
+ {
+  "term_id": "TERM-015",
+  "subject_type": "contract",
+  "subject_id": "CON-RENT-2",
+  "term": "rent_cents",
+  "value": "138000",
+  "unit": "cents",
+  "valid_from": "2025-10-06",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-016",
+  "subject_type": "contract",
+  "subject_id": "CON-RENT-2",
+  "term": "rent_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2024-09-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-017",
+  "subject_type": "contract",
+  "subject_id": "CON-BLUEGUM",
+  "term": "base_salary_cents",
+  "value": "3000000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-018",
+  "subject_type": "contract",
+  "subject_id": "CON-BLUEGUM",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-019",
+  "subject_type": "contract",
+  "subject_id": "CON-BANKSIA",
+  "term": "base_salary_cents",
+  "value": "3400000",
+  "unit": "cents",
+  "valid_from": "2025-02-10",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-020",
+  "subject_type": "contract",
+  "subject_id": "CON-BANKSIA",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2025-02-10",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-021",
+  "subject_type": "contract",
+  "subject_id": "CON-RIVERBEND",
+  "term": "base_salary_cents",
+  "value": "680000",
+  "unit": "cents",
+  "valid_from": "2025-03-10",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-022",
+  "subject_type": "contract",
+  "subject_id": "CON-RIVERBEND",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2025-03-10",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-023",
+  "subject_type": "contract",
+  "subject_id": "CON-COUNCIL",
+  "term": "base_salary_cents",
+  "value": "420000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-024",
+  "subject_type": "contract",
+  "subject_id": "CON-COUNCIL",
+  "term": "pay_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-025",
+  "subject_type": "contract",
+  "subject_id": "CON-MOTOR",
+  "term": "premium_cents",
+  "value": "9600",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-04-01"
+ },
+ {
+  "term_id": "TERM-026",
+  "subject_type": "contract",
+  "subject_id": "CON-MOTOR",
+  "term": "premium_cents",
+  "value": "8400",
+  "unit": "cents",
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-027",
+  "subject_type": "contract",
+  "subject_id": "CON-MOTOR",
+  "term": "premium_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

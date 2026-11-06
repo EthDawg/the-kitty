@@ -1,0 +1,21 @@
+[
+ {
+  "party_id": "PTY-RENEE",
+  "role": "adult",
+  "valid_from": "1986-05-17",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-KOBI",
+  "role": "dependant",
+  "valid_from": "2007-04-12",
+  "valid_to": "2025-04-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-AVA",
+  "role": "dependant",
+  "valid_from": "2017-08-03",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]
