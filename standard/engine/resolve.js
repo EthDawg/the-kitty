@@ -236,7 +236,10 @@ class Resolver {
         if (d.verb === "assign_person") cls.person = v.person;
         if (d.verb === "exclude") line.excluded = d.decision_id;
       }
-      const m = Engine.merchant(line.desc, this.merchantModel);
+      let m = Engine.merchant(line.desc, this.merchantModel);
+      // A rule learned later does not rewrite history: outside its dates it does not apply, and the line reads as if it were not there.
+      const hit = m.source === "rule" && m.rule && m.rule._r;
+      if (hit && ((hit.valid_from && line.date < hit.valid_from) || (hit.valid_to && line.date >= hit.valid_to))) m = Engine.merchant(line.desc, { rules: [], merMemo: new Map() });
       cls.merchant = cls.merchant || m.name;
       if (!cls.category_id && m.source === "rule" && m.rule) {
         cls.category_id = m.cat; cls.via = "rule";

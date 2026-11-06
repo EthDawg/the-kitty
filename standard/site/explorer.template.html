@@ -1,0 +1,247 @@
+<title>Digital Davies Standard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* A record you can open. The brand of The Kitty, with one idea: every figure is a door. Long page, one column of argument, wide figures. */
+:root{--bg:#F7F4EE;--surface:#FFFFFF;--surface2:#F1EDE5;--ink:#17122B;--ink2:#443D5C;--muted:#6E6785;--line:#E5DFD4;--accent:#5B3DF5;--accent-soft:#ECE8FF;--good:#17986A;--good-soft:#DFF5E9;--warn:#D6404A;--warn-soft:#FCE6E7;--amber:#C27306;--amber-soft:#FFF0D2;--hero:#17122B;--hero-ink:#F7F4EE;--hero-muted:rgba(247,244,238,.68);--hero-line:rgba(247,244,238,.16);--lime:#D9F94B;--display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;--body:"DM Sans","Avenir Next",system-ui,sans-serif;--mono:"DM Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#120E21;--surface:#1B1630;--surface2:#231D3B;--ink:#F3F0FA;--ink2:#C9C3DC;--muted:#958EAD;--line:#2F2849;--accent:#9C8AFF;--accent-soft:#2B2452;--good:#3FCB98;--good-soft:#14342A;--warn:#F27C83;--warn-soft:#3A1C22;--amber:#EBAB4B;--amber-soft:#35280F;--hero:#0C0917;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#120E21;--surface:#1B1630;--surface2:#231D3B;--ink:#F3F0FA;--ink2:#C9C3DC;--muted:#958EAD;--line:#2F2849;--accent:#9C8AFF;--accent-soft:#2B2452;--good:#3FCB98;--good-soft:#14342A;--warn:#F27C83;--warn-soft:#3A1C22;--amber:#EBAB4B;--amber-soft:#35280F;--hero:#0C0917;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;overflow-x:clip}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.02em;line-height:1.08}
+p{margin:0;max-width:65ch}
+.mono,code{font-family:var(--mono);font-size:.86em;font-variant-numeric:tabular-nums}
+.hero{background:var(--hero);color:var(--hero-ink);padding-block:clamp(36px,6vw,72px) clamp(28px,4vw,48px)}
+.hero .eyebrow{font-size:14px;color:var(--hero-muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hero h1{font-size:clamp(38px,7.4vw,76px);font-weight:800;margin-top:14px;max-width:15ch}
+.hero .lede{font-size:clamp(17px,2.2vw,20px);color:var(--hero-muted);margin-top:16px;max-width:58ch}
+.figure{margin-top:30px;border-top:1px solid var(--hero-line);padding-top:22px}
+.figure .lab{font-size:14px;color:var(--hero-muted)}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(44px,9vw,92px);letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;margin-top:4px}
+section{padding-block:clamp(36px,6vw,64px);border-bottom:1px solid var(--line)}
+section h2{font-size:clamp(28px,4.4vw,42px);font-weight:800;max-width:22ch}
+section .sub{color:var(--ink2);margin-top:12px;font-size:17px}
+.drill{margin-top:16px;display:grid;gap:6px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--hero-line);padding:10px 2px;color:inherit;font:inherit;cursor:pointer}
+.row:hover .nm{text-decoration:underline;text-underline-offset:3px}
+.row:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+.row .nm{min-width:0;overflow-wrap:anywhere}
+.row .amt{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:15px;white-space:nowrap}
+.lvl1{padding-left:16px;border-left:2px solid var(--hero-line)}
+.lvl2{padding-left:16px;border-left:2px solid var(--hero-line)}
+.lvl3{margin:6px 0 12px;padding:12px 14px;background:rgba(247,244,238,.07);border-radius:10px;font-size:14px;display:grid;gap:8px;min-width:0}
+.lvl3 .h{font-family:var(--mono);font-size:12px;color:var(--hero-muted)}
+.leg{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;font-family:var(--mono);font-size:13px}
+.leg span:first-child{overflow-wrap:anywhere;min-width:0}
+.wit{font-family:var(--mono);font-size:12.5px;color:var(--lime);overflow-wrap:anywhere}
+.stats{display:flex;flex-wrap:wrap;gap:0;margin-top:22px;align-items:stretch}
+.stat{padding:6px 22px 6px 0;margin-right:22px;border-right:1px solid var(--line);min-width:0}
+.stat:last-child{border-right:0}
+.stat b{display:block;font-family:var(--display);font-size:clamp(26px,3.6vw,36px);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span{font-size:14px;color:var(--muted)}
+.score{margin-top:24px;display:grid;gap:2px}
+.sc{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(60px,1fr) 88px;gap:14px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.sc .bar{height:8px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.sc .bar i{display:block;height:100%;background:var(--good)}
+.sc .bar i.part{background:var(--amber)}
+.sc .n{text-align:right;font-family:var(--mono);font-size:13px;color:var(--ink2)}
+.note{font-size:14px;color:var(--muted);margin-top:14px}
+.rungs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:28px;margin-top:24px}
+.rungs h3{font-size:18px;margin-bottom:8px}
+.rung{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:15px;align-items:baseline}
+.tag{font-family:var(--mono);font-size:12px;padding:2px 7px;border-radius:6px;text-align:center;background:var(--surface2);color:var(--ink2)}
+.tag.pass{background:var(--good-soft);color:var(--good)}.tag.fail{background:var(--warn-soft);color:var(--warn)}.tag.gap{background:var(--amber-soft);color:var(--amber)}.tag.open{background:var(--accent-soft);color:var(--accent)}
+.planes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:22px;margin-top:26px}
+.plane h3{font-size:19px}.plane p{font-size:14px;color:var(--muted);margin-top:2px}
+.plane .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:3px 8px;border-radius:7px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.docline{margin-top:18px;min-height:3.2em;font-size:15px;color:var(--ink2);border-left:3px solid var(--accent);padding-left:14px}
+.time{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;margin-top:26px;align-items:start}
+@media (max-width:760px){.time{grid-template-columns:minmax(0,1fr)}}
+.time svg{width:100%;height:auto;display:block}
+.ctl{display:grid;gap:14px}
+.ctl label{display:grid;gap:4px;font-size:14px;color:var(--ink2)}
+.ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.answer{font-family:var(--display);font-size:clamp(38px,6vw,58px);font-weight:800;letter-spacing:-.02em}
+.tbl{overflow-x:auto;margin-top:18px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:13px}
+th,td{padding:7px 12px 7px 0;border-top:1px solid var(--line);vertical-align:baseline}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:13px;white-space:nowrap}
+.laws{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:0 28px;margin-top:22px}
+.law{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
+.law b{font-weight:600}.law p{color:var(--muted);font-size:13.5px}
+.exp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px;margin-top:22px}
+.exp article{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:8px;align-content:start}
+.exp h3{font-size:18px}.exp .pill{justify-self:start;font-size:12px;font-family:var(--mono);background:var(--amber-soft);color:var(--amber);padding:2px 8px;border-radius:6px}
+.exp ul{margin:0;padding-left:18px;font-size:14px;color:var(--ink2)}
+pre{background:var(--surface2);border-radius:10px;padding:14px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.5;margin:14px 0 0}
+footer{padding-block:28px;color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:no-preference){.sc .bar i{transition:width .6s cubic-bezier(.2,.8,.2,1)}}
+</style>
+<header class="hero"><div class="wrap">
+  <div class="eyebrow"><span>household-standard/1</span><span>Fictional household</span><span>Open source</span></div>
+  <h1>Every number can be opened.</h1>
+  <p class="lede">An open data model for a household's whole financial life. It stores claims, says who made each one, and checks them against each other. This is the fictional Davies family, rebuilt from nothing but their files.</p>
+  <div class="figure"><div class="lab" id="nwlab"></div><div class="big" id="nw"></div><div class="drill" id="drill"></div></div>
+</div></header>
+<main>
+<section><div class="wrap">
+  <h2>Blow it away. Get the same answer.</h2>
+  <p class="sub">Three things are original: what sources said, what people decided, and who and what exists. Everything else is deleted and rebuilt. This is that run.</p>
+  <div class="stats" id="stats"></div>
+  <div class="score" id="score"></div>
+  <p class="note" id="scorenote"></p>
+</div></section>
+<section><div class="wrap">
+  <h2>The household did not change, so the answer must not.</h2>
+  <p class="sub">The ladder mangles how the same facts are delivered, and the bundle hash must not move. Then it breaks one thing at a time, and the right alarm must ring in the right place.</p>
+  <div class="rungs"><div><h3>Same household, same hash</h3><div id="rungsP"></div></div><div><h3>One thing breaks</h3><div id="rungsS"></div></div></div>
+</div></section>
+<section><div class="wrap">
+  <h2>Changing a rate must not change the past.</h2>
+  <p class="sub">A loan has no interest rate. It has a history of rates, and a history of when each was known. Every view answers two dates: the day the question is about, and the day it is asked. In 2025 the lender cut the rate, then backdated the cut by a week. Move the dates.</p>
+  <div class="time"><div id="timeplot"></div><div class="ctl">
+    <label for="von">The rate on <b id="vonl" class="mono"></b><input id="von" type="range" min="0" max="100" value="60"></label>
+    <label for="kat">as known on <b id="katl" class="mono"></b><input id="kat" type="range" min="0" max="100" value="55"></label>
+    <div><div class="answer" id="ans"></div><p class="note" id="ansn"></p></div>
+  </div></div>
+</div></section>
+<section><div class="wrap">
+  <h2>Forty-one tables, seven planes.</h2>
+  <p class="sub">Choose a table to see what it is for. Everything else, from SQL to MongoDB validators to the Sheet's tabs, is generated from one schema.</p>
+  <div class="planes" id="planes"></div>
+  <p class="docline" id="doc">Choose a table.</p>
+</div></section>
+<section><div class="wrap">
+  <h2>Accuracy is what cannot be false at once.</h2>
+  <p class="sub">Numbers in a table are claims. These are the laws that check them. A gap is missing evidence. A fail is evidence contradicting evidence. No law catches a wrong category, because a wrong category conserves perfectly. The eval's truth catches that here; on a real household only review does.</p>
+  <div class="laws" id="laws"></div>
+</div></section>
+<section><div class="wrap">
+  <h2>Containers are code. Institutions are data.</h2>
+  <p class="sub">No per-bank adapters. A recipe is a small piece of data a cheap model can write from a few rows, cached by the shape of the file, so the second household pays nothing. The gate does not care who wrote it: money is conserved, and misreading it breaks conservation.</p>
+  <div class="stats" id="cold"></div>
+  <pre id="recipe"></pre>
+</div></section>
+<section><div class="wrap">
+  <h2>A return is history. A draft is a draft.</h2>
+  <p class="sub">Lodged returns are evidence. The derived draft is checked against them, label by label, using the law of that year. This is never advice, and the lodged figure is the record.</p>
+  <div class="tbl"><table id="tax"></table></div>
+</div></section>
+<section><div class="wrap">
+  <h2>What is not finished, and says so.</h2>
+  <p class="sub">The data model is the job. These sit around it. Each has a real baseline and a list of what is undecided, and the page labels them.</p>
+  <div class="exp" id="exp"></div>
+</div></section>
+</main>
+<footer><div class="wrap"><span id="foot"></span></div></footer>
+<script>/*DATA*/</script>
+<script>
+"use strict";
+(function () {
+  const V = window.DD.view, D = window.DD, $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const money = (c, dp = 0) => { if (c == null) return ""; const v = Math.abs(c / 100).toLocaleString("en-AU", { minimumFractionDigits: dp, maximumFractionDigits: dp }); return `${c < 0 ? "-" : ""}$${v}`; };
+  const monthName = (m) => new Date(`${m}-15`).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+  const groupName = { cash: "Cash", property: "Property", super: "Super", shares: "Shares", crypto: "Crypto", vehicle: "Vehicles", device: "Devices", loans: "Loans" };
+
+  // ---------- open a number ----------
+  $("nwlab").textContent = `Net worth, end of ${monthName(V.drill.month)}. Open it.`;
+  $("nw").textContent = money(V.drill.total_cents);
+  const drill = $("drill");
+  function evRow(e) {
+    const box = document.createElement("div");
+    const b = document.createElement("button"); b.className = "row"; b.setAttribute("aria-expanded", "false");
+    b.innerHTML = `<span class="nm">${esc(e.date)}  ${esc(e.description)}</span><span class="amt">${money(e.amount_cents, 2)}</span>`;
+    const inner = document.createElement("div"); inner.className = "lvl3"; inner.hidden = true;
+    inner.innerHTML = `<div class="h">${esc(e.kind)} · graded ${esc(e.grade)}</div>` + e.postings.map((p) => `<div class="leg"><span>${esc(p.target)}</span><span>${money(p.amount_cents, 2)}</span></div>`).join("") + `<div class="h">Witnesses</div>` + (e.witnesses.length ? e.witnesses.map((w) => `<div class="wit">${esc(w.role)}: ${esc(w.file)}, ${esc(w.locator)}</div>`).join("") : `<div class="wit">No file: a stated opening.</div>`);
+    b.onclick = () => { inner.hidden = !inner.hidden; b.setAttribute("aria-expanded", String(!inner.hidden)); };
+    box.append(b, inner); return box;
+  }
+  function acctRow(a) {
+    const box = document.createElement("div");
+    const b = document.createElement("button"); b.className = "row"; b.setAttribute("aria-expanded", "false");
+    b.innerHTML = `<span class="nm">${esc(a.name)}</span><span class="amt">${money(a.balance_cents)}</span>`;
+    const inner = document.createElement("div"); inner.className = "lvl2"; inner.hidden = true;
+    a.recent.forEach((e) => inner.append(evRow(e)));
+    b.onclick = () => { inner.hidden = !inner.hidden; b.setAttribute("aria-expanded", String(!inner.hidden)); };
+    box.append(b, inner); return box;
+  }
+  V.drill.groups.forEach((g, i) => {
+    const box = document.createElement("div");
+    const b = document.createElement("button"); b.className = "row"; b.setAttribute("aria-expanded", i === 0 ? "true" : "false");
+    b.innerHTML = `<span class="nm"><b>${esc(groupName[g.group] || g.group)}</b></span><span class="amt">${money(g.total_cents)}</span>`;
+    const inner = document.createElement("div"); inner.className = "lvl1"; inner.hidden = i !== 0;
+    g.accounts.forEach((a) => inner.append(acctRow(a)));
+    b.onclick = () => { inner.hidden = !inner.hidden; b.setAttribute("aria-expanded", String(!inner.hidden)); };
+    box.append(b, inner); drill.append(box);
+  });
+
+  // ---------- replay ----------
+  const g = V.generated;
+  $("stats").innerHTML = [[g.files.toLocaleString(), "files"], [g.observations.toLocaleString(), "observations"], [g.events.toLocaleString(), "events"], [g.postings.toLocaleString(), "postings"], [`${g.seconds}s`, "to rebuild it all"]].map(([a, b]) => `<div class="stat"><b>${a}</b><span>${b}</span></div>`).join("");
+  $("score").innerHTML = V.proof.sections.map((r) => `<div class="sc"><span>${esc(r.name)}</span><span class="bar"><i class="${r.pct === 100 ? "" : "part"}" style="width:${r.pct}%"></i></span><span class="n">${r.exact.toLocaleString()} / ${r.checked.toLocaleString()}</span></div>`).join("");
+  $("scorenote").textContent = `Sheet oracle figures were computed by Google Sheets formulas, not by this engine. ${D.sheet ? `The generated workbook's live formulas, recalculated in LibreOffice, match the engine on ${D.sheet.exact.toLocaleString()} of ${D.sheet.checked.toLocaleString()} cells.` : ""} Bundle ${g.bundle_hash}.`;
+
+  // ---------- ladder ----------
+  const rung = (r, word) => `<div class="rung"><span class="tag ${r.ok ? "pass" : "fail"}">${r.ok ? word : "breaks"}</span><span>${esc(r.name)}</span></div>`;
+  $("rungsP").innerHTML = D.ladder.filter((r) => r.kind === "presentation").map((r) => rung(r, "same")).join("");
+  $("rungsS").innerHTML = D.ladder.filter((r) => r.kind === "semantic").map((r) => rung(r, "rang")).join("");
+
+  // ---------- time ----------
+  const T = V.rate_history;
+  const lo = "2025-08-01", hi = "2025-10-01";
+  const day = (d) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  const iso = (t) => new Date(t).toISOString().slice(0, 10);
+  const span = day(hi) - day(lo);
+  const at = (pct) => iso(day(lo) + (span * pct) / 100);
+  const lookup = (on, known) => { const hit = T.filter((r) => r.valid_from <= on && (r.valid_to == null || on < r.valid_to) && r.recorded_at <= known && (r.superseded_at == null || known < r.superseded_at)); return hit.length ? hit[hit.length - 1].value : null; };
+  const W = 520, H = 330, M = 44;
+  function plot(von, kat) {
+    const n = 60; let cells = "";
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const v = lookup(at((i + .5) * 100 / n), at((j + .5) * 100 / n));
+      const low = T.length && v != null && Number(v) === Math.min(...T.map((r) => Number(r.value)));
+      cells += `<rect x="${M + (i * (W - M - 8)) / n}" y="${H - M - ((j + 1) * (H - M - 8)) / n}" width="${(W - M - 8) / n + .6}" height="${(H - M - 8) / n + .6}" fill="${low ? "var(--good)" : "var(--accent)"}" fill-opacity="${low ? .55 : .3}"/>`;
+    }
+    const x = M + (von * (W - M - 8)) / 100, y = H - M - (kat * (H - M - 8)) / 100;
+    $("timeplot").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Rate by the day it applies to and the day it was known">${cells}<circle cx="${x}" cy="${y}" r="7" fill="var(--ink)" stroke="var(--bg)" stroke-width="2"/><text x="${M}" y="${H - 22}" fill="var(--muted)" font-size="12" font-family="var(--body)">${lo}</text><text x="${W - 8}" y="${H - 22}" fill="var(--muted)" font-size="12" text-anchor="end" font-family="var(--body)">${hi}</text><text x="${(W + M) / 2}" y="${H - 6}" text-anchor="middle" fill="var(--ink2)" font-size="12.5" font-family="var(--body)">The day it applies to</text><text transform="translate(13 ${(H - M) / 2}) rotate(-90)" text-anchor="middle" fill="var(--ink2)" font-size="12.5" font-family="var(--body)">The day we knew</text></svg>`;
+  }
+  function renderTime() {
+    const a = +$("von").value, b = +$("kat").value, on = at(a), known = at(b);
+    $("vonl").textContent = on; $("katl").textContent = known;
+    const v = lookup(on, known);
+    $("ans").textContent = v == null ? "Unknown" : `${Number(v).toFixed(2)}%`;
+    const now = lookup(on, "9999-01-01");
+    $("ansn").textContent = v != null && now != null && now !== v ? `Today we know it was ${Number(now).toFixed(2)}%. Interest actually charged never moves: it is evidence.` : "Nothing is edited. Corrections are new rows.";
+    plot(a, b);
+  }
+  $("von").oninput = renderTime; $("kat").oninput = renderTime;
+  if (T.length) renderTime(); else $("ans").textContent = "";
+
+  // ---------- planes ----------
+  const doc = $("doc");
+  $("planes").innerHTML = V.model.planes.map((p) => `<div class="plane"><h3>${esc(p.id[0].toUpperCase() + p.id.slice(1))}</h3><p>${esc(p.about)}</p><div class="chips">${p.tables.map((t) => `<button class="chip" aria-pressed="false" data-doc="${esc(t.doc)}" data-t="${esc(t.temporal)}">${esc(t.name)}</button>`).join("")}</div></div>`).join("");
+  $("planes").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (!c) return; document.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", "false")); c.setAttribute("aria-pressed", "true"); doc.innerHTML = `<b class="mono">${esc(c.textContent)}</b> · ${esc(c.dataset.t)}. ${esc(c.dataset.doc)}`; });
+
+  // ---------- laws ----------
+  $("laws").innerHTML = V.proof.laws.map((l) => `<div class="law"><span class="tag ${esc(l.status)}">${esc(l.status)}</span><div><b>${esc(l.id)} ${esc(l.name)}</b><p>${esc(l.claim)}</p></div></div>`).join("");
+
+  // ---------- importers ----------
+  const c = D.cold;
+  $("cold").innerHTML = (c ? [[`${c.passed} of ${c.families}`, `families read by ${c.model}, cold`], [(c.tokens_in + c.tokens_out).toLocaleString(), "tokens, first household"], ["0", "tokens, second household"], [`$${c.usd}`, "to read a household's formats"]] : [[`${D.recipes}`, "recipes"], [`${D.families}`, "file families"], ["0", "lines of per-bank code"]]).map(([a, b]) => `<div class="stat"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("");
+  $("recipe").textContent = D.recipe;
+
+  // ---------- tax ----------
+  const rows = V.years.flatMap((y) => y.people.filter((p) => p.lodged).map((p) => ({ fy: y.fy, ...p })));
+  $("tax").innerHTML = rows.length ? `<thead><tr><th>Year</th><th>Person</th><th class="num">Lodged taxable income</th><th class="num">Derived</th><th class="num">Gap</th><th class="num">Result</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${esc(r.fy)}</td><td>${esc(r.name)}${r.lodged.version > 1 ? " (amended)" : ""}</td><td class="num">${money(r.lodged.taxable_income_cents)}</td><td class="num">${r.derived ? money(r.derived.taxable_income_cents) : ""}</td><td class="num">${r.tie && r.tie.gap != null ? money(r.tie.gap) : ""}</td><td class="num">${money(r.lodged.result_cents, 2)}</td></tr>`).join("")}</tbody>` : "<tbody><tr><td>Returns land with the tax domain.</td></tr></tbody>";
+
+  // ---------- experimental ----------
+  $("exp").innerHTML = V.experimental.map((x) => `<article><span class="pill">Experimental · ${esc(x.status)}</span><h3>${esc(x.title)}</h3><p>${esc(x.today)}</p><ul>${x.open.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></article>`).join("");
+  $("foot").textContent = `Generated from a replay of the fictional Davies household. Every person, account and institution is invented. Not tax advice. ${g.standard_version}.`;
+})();
+</script>
