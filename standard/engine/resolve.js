@@ -5,6 +5,7 @@ const { byKey, groupBy, cmp, addDays, daysBetween, monthOf, monthEnd, fyOf, fyRa
 const { collapse, similarity } = require("./lines");
 const { indexTerms, termAt, timeline, activeOn } = require("./temporal");
 const Engine = require("../../src/engine.js");
+const VOCAB = require("../schema/observations.json");
 
 const dollarsToCents = (v) => Math.round(Number(v) * 100);
 const nz = (v) => (v == null ? 0 : v);
@@ -32,6 +33,17 @@ class Resolver {
     this.aliasRows = ctx.setup.alias || [];
     const active = new Set((ctx.sources || []).filter((s) => s.status === "active").map((s) => s.source_id));
     this.obs = (ctx.observations || []).filter((o) => o.status === "active" && (!ctx.sources || active.has(o.source_id)));
+    // An observation missing a required field stays in evidence and out of the ledger, with a question. It never crashes a rebuild.
+    const required = new Map(Object.entries(VOCAB.kinds).map(([k, v]) => [k, v.fields.filter((f) => f.endsWith("*")).map((f) => f.slice(0, -1))]));
+    this.incomplete = [];
+    this.obs = this.obs.filter((o) => {
+      const need = required.get(o.kind);
+      if (!need && !String(o.kind).startsWith("x_")) { this.incomplete.push({ o, why: `kind ${o.kind} is not in the vocabulary` }); return false; }
+      const miss = (need || []).filter((f) => o.payload == null || o.payload[f] === undefined || o.payload[f] === null || o.payload[f] === "");
+      if (miss.length) { this.incomplete.push({ o, why: `no ${miss.join(", ")}` }); return false; }
+      return true;
+    });
+    for (const x of this.incomplete) this.review.push({ kind: "unreadable_observation", ref: x.o.obs_id, amount_cents: null, what: `${x.o.kind} at ${x.o.locator}: ${x.why}.`, do: "The file's format may have changed. It stays out of the ledger until it is read." });
     const replaced = new Set(this.obs.map((o) => o.supersedes_obs_id).filter(Boolean));
     this.obs = this.obs.filter((o) => !replaced.has(o.obs_id));
     this.byKind = groupBy(this.obs, (o) => o.kind);

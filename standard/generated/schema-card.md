@@ -33,7 +33,7 @@ help_balance: person_ref* as_at* balance_cents* indexation_cents repayment_cents
 work_log: person_ref* fy* period_end* log_kind* hours km label amount_cents
 depreciation_schedule: asset_ref* issued_on* items*
 asset_fact: asset_ref* name* asset_kind* acquired_on* cost_cents serial warranty_until merchant_ref
-settlement: asset_ref* settled_on* price_cents* duty_cents legal_cents other_costs_cents adjustments_cents loan_drawn_cents loan_ref cash_paid_cents* side selling_costs_cents loan_payout_cents
+settlement: asset_ref* settled_on* price_cents* duty_cents legal_cents other_costs_cents adjustments_cents loan_drawn_cents loan_ref cash_paid_cents side selling_costs_cents loan_payout_cents
 corporate_action: instrument_ref* effective_on* action* ratio cash_per_unit_cents
 super_line: account_ref* posting_date* line_type* description* amount_cents* balance_after_cents reference release_ref
 ato_line: person_ref* posting_date* effective_date description* amount_cents* balance_after_cents fy reference ato_account role parent_ref

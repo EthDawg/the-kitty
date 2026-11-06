@@ -501,7 +501,7 @@
         "adjustments_cents",
         "loan_drawn_cents",
         "loan_ref",
-        "cash_paid_cents*",
+        "cash_paid_cents",
         "side",
         "selling_costs_cents",
         "loan_payout_cents"

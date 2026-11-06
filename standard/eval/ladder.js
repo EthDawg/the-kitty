@@ -27,7 +27,8 @@ const csvFiles = (fs_) => fs_.filter((f) => /\.csv$/i.test(f.name) && /sources\/
 
 function rebuildFiles(files, extra = {}) {
   const intake = I.ingestFiles(files, { recipes, vocab, inflate, manifest: extra.manifest ?? null });
-  const L = rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions: extra.decisions ?? decisions, rules, schema, reference });
+  const receipts = (intake.files || []).map((f) => { const parts = f.path.split("/"); return { stream_id: parts[1], day: parts[2] }; });
+  const L = rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions: extra.decisions ?? decisions, rules, schema, reference, receipts });
   return { L, intake };
 }
 const baseline = rebuildFiles(base);
