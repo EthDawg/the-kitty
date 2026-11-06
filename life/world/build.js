@@ -35,7 +35,7 @@ function build(opts = {}) {
   const sim = new Life(script, cast).run();
   if (sim.notes.length) throw new Error(`${family}: the plot does not hold: ${sim.notes.slice(0, 5).join("; ")}`);
   const F = renderAll(sim), files = F.list; heldFrom(files);
-  const setup = buildSetup(sim, script), truth = buildTruth(script, sim, files, setup), mess = buildMess(script, sim, files);
+  const setup = buildSetup(sim, script), truth = buildTruth(script, sim, files), mess = buildMess(script, sim, files);
   truth.mess = mess.chapters;
   const answers = answerKey(cast, files);
   if (opts.write === false) return { root, sim, files, setup, truth, mess, answers };

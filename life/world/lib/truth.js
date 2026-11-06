@@ -1,7 +1,7 @@
 /* Truth is read from the book, never from the engine: the true balance of every account at every month end, income and spending by person, net worth, the law that was assumed,
    the traps as they fell for this family, and for each chapter what a correct household should show. */
 "use strict";
-const { monthRange, monthEnd, fyEnd } = require("./std");
+const { monthRange, monthEnd } = require("./std");
 
 const ymOf = (d) => d.slice(0, 7);
 
@@ -68,21 +68,23 @@ function childInterest(sim) {
   return out;
 }
 
-function chapterTruth(script, sim, accts, income, spending, nw, files, setup, law) {
-  const out = {}, C = sim.cast;
+/* What a correct household shows at a chapter: only what it holds. Each account stands at the last month end its held files speak for; income, spending and net worth cover those accounts at the last month they all reach. */
+function chapterTruth(script, sim, accts, files) {
+  const out = {}, C = sim.cast, end = (ym) => monthEnd(ym);
   const id = (r) => (r === "A" ? C.A.id : r === "B" ? C.B.id : (sim.kids.find((k) => k.role === r) || {}).id);
   for (const c of script.chapters) {
-    const lastMonth = monthRange("2026-07", c.today.slice(0, 7)).filter((m) => monthEnd(m) <= c.today).pop();
-    const held = files.filter((f) => f.held_from != null && f.held_from <= c.chapter);
-    const streams = [...new Set(held.map((f) => f.stream))].sort();
-    const accounts = [...new Set(held.map((f) => f.account).filter(Boolean))].sort();
-    const row = { chapter: c.chapter, title: c.title, today: c.today, status: c.status, who: c.who, household: c.household.map(id).filter(Boolean), last_whole_month: lastMonth, streams, files_held: held.length, files_a_public_recipe_reads: held.filter((f) => f.family && !/^life-/.test(f.family)).length, simplified: c.simplified || null };
-    if (c.status === "full") {
-      row.show = { balances: Object.fromEntries(accounts.filter((a) => accts[a] && accts[a].months[lastMonth] != null).map((a) => [a, accts[a].months[lastMonth]])), income: income[lastMonth] || null, spending: spending[lastMonth] || null, net_worth: nw[lastMonth] || null, net_worth_note: "Truth across everything the family has, whether or not this chapter's household holds it yet. A correct household shows only what it holds, and says what it does not." };
+    const own = c.status !== "full", held = files.filter((f) => f.held_from != null && (own ? f.held_from === c.chapter : f.held_from <= c.chapter));
+    const row = { chapter: c.chapter, title: c.title, today: c.today, status: c.status, who: c.who, household: c.household.map(id).filter(Boolean), traps: c.traps, streams: [...new Set(held.map((f) => f.stream))].sort(), files_held: held.length, files_a_public_recipe_reads: held.filter((f) => f.family && !/^life-/.test(f.family)).length, simplified: c.simplified || null };
+    if (held.length) {
+      const reach = {};
+      for (const f of held) { if (!f.account || !accts[f.account]) continue; const to = f.window ? f.window.to : f.issued_on; if (to <= c.today && (!reach[f.account] || to > reach[f.account])) reach[f.account] = to; }
+      const lastOf = (to) => monthRange("2026-07", to.slice(0, 7)).filter((m) => end(m) <= to).pop(), balances = {};
+      for (const [a, to] of Object.entries(reach)) { const m = lastOf(to); if (m && accts[a].months[m] != null) balances[a] = { month: m, cents: accts[a].months[m] }; }
+      const cash = Object.keys(balances).filter((a) => /^ACC-/.test(a)), common = cash.map((a) => balances[a].month).sort()[0], lines = sim.lines.filter((l) => cash.includes(l.acct) && ymOf(l.date) === common);
+      row.show = { balances, month: common || null, income_cents: lines.filter((l) => l.lens === "income").reduce((t, l) => t + l.cents, 0), spending_cents: -lines.filter((l) => l.lens === "spending").reduce((t, l) => t + l.cents, 0), net_worth_cents: Object.values(balances).reduce((t, b) => t + b.cents, 0), note: "Only what this household holds. The whole family's truth is in accounts, income, spending and net_worth." };
     }
     out[c.chapter] = row;
   }
-  void setup; void law; void fyEnd;
   return out;
 }
 
@@ -113,7 +115,7 @@ function behaviourTraps(script, sim, files) {
   if (salt) sim.note("T9-MEMO-TO-REAL", { first_deposit: { account: salt.acct, date: salt.date, cents: salt.cents }, memo: "the pocket money balance held since chapter 6" });
 }
 
-function buildTruth(script, sim, files, setup) {
+function buildTruth(script, sim, files) {
   const accounts = accountsTruth(sim), { income, spending, economic } = flows(sim), net_worth = netWorth(sim, accounts);
   behaviourTraps(script, sim, files);
   sim.note("T6-CHILD-INTEREST-OWNER", { by_fy: childInterest(sim) });
@@ -124,7 +126,7 @@ function buildTruth(script, sim, files, setup) {
     people: { [sim.cast.A.id]: { role: "A", name: sim.cast.A.name, born: sim.cast.A.born }, [sim.cast.B.id]: { role: "B", name: sim.cast.B.name, born: sim.cast.B.born }, ...Object.fromEntries(sim.kids.map((k) => [k.id, { role: k.role, name: k.name, born: k.born }])) },
     accounts, income, spending, economic, net_worth, tax: taxTruth(sim), health: phiTruth(sim), cgt: { value_day: sim.rsu.mv, disposal: sim.rsu.gain, status: "unconfirmed: Act 49 of 2026 read from search extracts, see research.md" },
     help: sim.help.full, loan: sim.loan ? sim.loan.rows : [], child_interest: childInterest(sim), memo: memoTruth(script, sim), assumed_law: sim.law.list(),
-    chapters: chapterTruth(script, sim, accounts, income, spending, net_worth, files, setup, sim.law), traps: sim.traps,
+    chapters: chapterTruth(script, sim, accounts, files), traps: sim.traps,
   };
 }
 

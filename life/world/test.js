@@ -58,6 +58,9 @@ for (const [name, r] of [["the Davies", davies], ...variants.map((v, i) => [`var
   test(`${name}: truth adds up and marks what it assumed`, () => {
     const T = r.world.truth;
     for (const c of script.chapters) assert.ok(T.chapters[c.chapter], `chapter ${c.chapter}`);
+    assert.deepStrictEqual(Object.keys(T.chapters[1].show.balances), ["ACC-A-EVERY"], "chapter 1 shows the one account she holds");
+    assert.strictEqual(T.chapters[1].show.month, "2026-12");
+    assert.ok(T.chapters[3].show.balances["ACC-JOINT"], "chapter 3 shows the joint account");
     assert.ok(T.assumed_law.some((a) => a.series === "resident_tax_brackets" && a.to >= "2035-01-01"));
     assert.strictEqual(T.tax.FY2030[r.world.sim.cast.A.id].assumed, true);
     assert.strictEqual(T.tax.FY2027[r.world.sim.cast.A.id].assumed, false);

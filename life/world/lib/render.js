@@ -176,19 +176,19 @@ function superFiles(fs) {
       for (const ym of monthRange("2026-07", last)) {
         const rows = f.rows.filter((l) => ymOf(l.date) === ym);
         const text = csvLines([["Effective Date", "Category", "Narrative", "Amount (AUD)", "Running Balance", "Reference"], ...rows.map((l, i) => [l.date, V2[l.type], l.desc, fix(l.cents), fix(l.bal), `PN${l.date.replace(/-/g, "")}${pad(i + 1, 3)}`])]);
-        fs.add({ stream, brand: "purrannuation", person: who, visible_to: vis, delivered_on: `${nextMonth(ym)}-05`, name: `Purrannuation-Activity-${ym}.csv`, text, family: "purrannuation-csv-v2", container: "csv", origin: "portal", issued_on: monthEnd(ym), account: stream });
+        fs.add({ stream, brand: "purrannuation", person: who, visible_to: vis, delivered_on: `${nextMonth(ym)}-05`, name: `Purrannuation-Activity-${ym}.csv`, text, family: "purrannuation-csv-v2", container: "csv", origin: "portal", issued_on: monthEnd(ym), account: stream, window: { from: `${ym}-01`, to: monthEnd(ym) } });
       }
-      for (let fy = 2027; fyEnd(fy) < s.end; fy++) fs.add({ stream: stmt, brand: "purrannuation", person: who, visible_to: vis, delivered_on: `${fy}-08-20`, name: `Purrannuation-Annual-Statement-FY${fy}.pdf`, bytes: fundDoc(fs, key, f, fyStart(fy), fyEnd(fy), "Annual member statement", "band", C), family: "fund-statement-pdf", container: "pdf", origin: "portal", issued_on: `${fy}-08-20`, account: stream });
+      for (let fy = 2027; fyEnd(fy) < s.end; fy++) fs.add({ stream: stmt, brand: "purrannuation", person: who, visible_to: vis, delivered_on: `${fy}-08-20`, name: `Purrannuation-Annual-Statement-FY${fy}.pdf`, bytes: fundDoc(fs, key, f, fyStart(fy), fyEnd(fy), "Annual member statement", "band", C), family: "fund-statement-pdf", container: "pdf", origin: "portal", issued_on: `${fy}-08-20`, account: stream, window: { from: fyStart(fy), to: fyEnd(fy) } });
     } else {
       const quarters = monthRange("2026-07", last).filter((ym) => ["03", "06", "09", "12"].includes(ym.slice(5)));
       for (const ym of quarters) {
         const b = monthEnd(ym), a = `${prevMonth(prevMonth(ym))}-01`, rows = f.rows.filter((l) => l.date >= a && l.date <= b), before = f.rows.filter((l) => l.date < a), opening = before.length ? before[before.length - 1].bal : f.open;
         const doc = { schema: "hestabby.app/2", member: { number: p.member, name: p.name }, period: { from: a, to: b }, balance: { opening: num(opening), closing: num(rows[rows.length - 1].bal) }, transactions: rows.map((l) => ({ date: l.date, code: CODE[l.type], label: l.desc, amount: num(l.cents), balanceAfter: num(l.bal) })) };
-        fs.add({ stream, brand: "hestabby", person: who, visible_to: vis, delivered_on: addDays(b, 6), name: `HESTAbby-app-export-${b}.json`, text: `${JSON.stringify(doc, null, 2)}\n`, family: "hestabby-app-json", container: "json", origin: "connector", issued_on: addDays(b, 6), account: stream });
+        fs.add({ stream, brand: "hestabby", person: who, visible_to: vis, delivered_on: addDays(b, 6), name: `HESTAbby-app-export-${b}.json`, text: `${JSON.stringify(doc, null, 2)}\n`, family: "hestabby-app-json", container: "json", origin: "connector", issued_on: addDays(b, 6), account: stream, window: { from: a, to: b } });
       }
       for (let y = 2026; y <= 2035; y++) for (const [a, b] of [[`${y}-01-01`, `${y}-06-30`], [`${y}-07-01`, `${y}-12-31`]]) {
         if (a < "2026-07-01" || b > s.end) continue;
-        fs.add({ stream: stmt, brand: "hestabby", person: who, visible_to: vis, delivered_on: addDays(b, 45), name: `HESTAbby-Statement-${b}.pdf`, bytes: fundDoc(fs, key, f, a, b, "Half-yearly statement", "plain", C), family: "fund-statement-plain-pdf", container: "pdf", origin: "portal", issued_on: addDays(b, 45), account: stream });
+        fs.add({ stream: stmt, brand: "hestabby", person: who, visible_to: vis, delivered_on: addDays(b, 45), name: `HESTAbby-Statement-${b}.pdf`, bytes: fundDoc(fs, key, f, a, b, "Half-yearly statement", "plain", C), family: "fund-statement-plain-pdf", container: "pdf", origin: "portal", issued_on: addDays(b, 45), account: stream, window: { from: a, to: b } });
       }
     }
   }
