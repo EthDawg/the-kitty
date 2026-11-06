@@ -3,7 +3,7 @@
 ![test](https://github.com/EthDawg/the-kitty/actions/workflows/test.yml/badge.svg)
 
 A money page for one household, built the way a neobank would build it and kept the way a spreadsheet is
-kept. One Google Sheet owns every number; one published page reads it, says what needs a person, shows
+kept. One Google Sheet holds every number and owns every original; one published page reads it, says what needs a person, shows
 where the money went, tracks goals as money ("$11k of $12k"), installs on a phone, and answers questions
 as a planner's note. No server, no database, no telemetry, nothing to pay for.
 
@@ -177,7 +177,9 @@ the data pipeline and the deploy notes.
 3. Open the page, Setup → Make it yours → paste your sheet ID. It reads live from then on.
 4. Export the last three months from each account (Setup → Getting your data in, or the skill), run
    `period-close/import_month.py`, settle the review, append, move the As-of date.
-5. For real money, build with `--no-snapshot` and publish your own private copy.
+5. For real money you can stay on the public page, which reads your sheet through your own connector and stores only your
+   preferences. If you would rather run a page you published yourself, build with `--no-snapshot` and publish it unedited.
+   That is a pin, not a fork: rebuild to update. An edited page stops receiving updates.
 
 ## Known limits (what is still a tinker)
 
@@ -191,6 +193,6 @@ the data pipeline and the deploy notes.
 ## Decisions (why this shape)
 
 Recorded on the page's Setup tab under "Why this, not that", and in the commit history. The short
-version: the sheet is the only owner of numbers; the page is disposable; writes are few, narrow and
+version: the sheet holds every number and owns every original, and a household depends on the base and never copies its logic; the page is disposable; writes are few, narrow and
 reread; demo data is bundled because it is fictional and real data never is; charts are hand-drawn
-SVG with d3 for layout maths only.
+SVG with d3 for layout maths only. The tax model and engine live here, tested on fictional households only. Real returns stay private.
