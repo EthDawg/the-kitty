@@ -19,7 +19,7 @@ p{margin:0}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .2s}
 header.top.scrolled{border-bottom-color:var(--line)}
 .topbar{display:flex;align-items:center;gap:10px;padding-block:10px;min-height:60px}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.02em;border-radius:14px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.02em;border-radius:14px;flex:none;white-space:nowrap}
 .brand .paw{width:36px;height:36px;border-radius:12px;background:var(--glow);display:grid;place-items:center;color:#fff;transform:rotate(-8deg);box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 35%,transparent);transition:transform .5s var(--spring)}
 .brand:hover .paw{transform:rotate(6deg) scale(1.06)}
 .topbar .spacer{flex:1}
