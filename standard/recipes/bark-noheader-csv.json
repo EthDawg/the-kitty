@@ -1,0 +1,62 @@
+{
+ "id": "bark-noheader-csv",
+ "version": 1,
+ "tier": "table",
+ "container": "csv",
+ "fingerprints": [
+  "fp1:02f9d9695d04f3ea54f8c15c"
+ ],
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "columns": [
+   "Date",
+   "Amount",
+   "Description",
+   "Balance"
+  ],
+  "order": "newest_first"
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "posting_date": {
+     "col": "Date",
+     "as": "date"
+    },
+    "description": {
+     "col": "Description"
+    },
+    "amount_cents": {
+     "col": "Amount",
+     "as": "cents"
+    },
+    "balance_after_cents": {
+     "col": "Balance",
+     "as": "cents"
+    },
+    "value_date": {
+     "col": "Description",
+     "regex": "Value Date: (\\d{2}/\\d{2}/\\d{4})",
+     "as": "date"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "chain"
+ },
+ "controls": [
+  {
+   "law": "balance_chain"
+  },
+  {
+   "law": "family_chain"
+  }
+ ]
+}

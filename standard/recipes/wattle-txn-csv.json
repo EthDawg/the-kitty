@@ -1,0 +1,58 @@
+{
+ "id": "wattle-txn-csv",
+ "version": 1,
+ "tier": "table",
+ "container": "csv",
+ "fingerprints": [
+  "fp1:7813f06105ac672362a6eb50"
+ ],
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "posting_date": {
+     "col": "Date",
+     "as": "date"
+    },
+    "description": {
+     "col": "Description"
+    },
+    "amount_cents": {
+     "sum": [
+      {
+       "col": "Credit"
+      },
+      {
+       "col": "Debit"
+      }
+     ]
+    },
+    "balance_after_cents": {
+     "col": "Balance",
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "chain"
+ },
+ "controls": [
+  {
+   "law": "balance_chain"
+  },
+  {
+   "law": "family_chain"
+  }
+ ]
+}
