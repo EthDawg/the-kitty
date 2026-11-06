@@ -99,11 +99,14 @@
   // ---------- the review card: one entry, why it is here, and its actions in one or two taps ----------
   K.suggestions = (item, ctx) => {
     const m = ctx.m, e = item.entry; const out = []; const seen = new Set();
-    const push = (id) => { if (id && m.catById[id] && !seen.has(id) && id !== "UNCAT") { seen.add(id); out.push(m.catById[id]); } };
+    // On a household's page a suggestion runs the way the money did: nothing received for money going out.
+    const fits = (id) => !ctx.household || !m.catById[id] || (e.amount < 0 ? m.catById[id].flow !== "Income" : m.catById[id].flow !== "Expense");
+    const push = (id) => { if (id && m.catById[id] && !seen.has(id) && id !== "UNCAT" && fits(id)) { seen.add(id); out.push(m.catById[id]); } };
     if (e.mer && e.mer.dict) push(e.mer.dict.category_id);
     for (const c of E.candidates(e.raw || e.desc, 3)) push(c.category_id);
     if (e.cat && e.cat !== "UNCAT") push(e.cat);
     if (out.length < 3) { const counts = new Map(); for (const t of m.tx) if (t.flow === "Expense" && t.acct === e.acct) counts.set(t.cat, (counts.get(t.cat) || 0) + 1); for (const [id] of [...counts.entries()].sort((a, b) => b[1] - a[1])) { if (out.length >= 3) break; push(id); } }
+    if (ctx.household) for (const id of e.amount < 0 ? ["GROCERIES", "DINING", "SHOPPING"] : ["SALARY", "SALARY-ALLOW"]) if (out.length < 3) push(id);
     return out.slice(0, 3);
   };
   K.ReviewCard = (item, ctx, o = {}) => {

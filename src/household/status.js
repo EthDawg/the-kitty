@@ -28,7 +28,8 @@ function scopeFacts(view) {
   for (const s of view.setup.scope) last.set(scopeKey(s), s);
   const states = { has: 0, none: 0, partial: 0, unknown: 0 }, said = new Map();
   for (const s of last.values()) { states[s.state] += 1; said.set(s.domain, s.state); }
-  const types = new Set(view.setup.account.map((a) => a.type)), not_asked = [];
+  // A loan typed in by hand is a car or a debt until someone says it is the home loan, and then a scope row says so.
+  const types = new Set(view.setup.account.filter((a) => !(a.type === "loan" && a.fidelity === "snapshot")).map((a) => a.type)), not_asked = [];
   for (const d of DOMAINS) {
     if (said.has(d.domain)) continue;
     if (d.types.some((t) => types.has(t))) { states.has += 1; said.set(d.domain, "has"); } else not_asked.push(d.domain);
@@ -44,6 +45,17 @@ function reachOf(L, view) {
   for (const s of view.sources) { const st = view.setup.stream.find((x) => x.stream_id === s.stream_id); if (st && st.subject_type === "account") stretch(st.subject_id, dayOf(s.captured_at)); }
   return reach;
 }
+/* What stops a month closing, in plain words. One sentence for Records, Home and close itself, so they can't disagree. */
+const nameOf = (L, id) => (L.index.accounts.get(id) || {}).name || id;
+function closeBlock(m, L, month) {
+  if (!m) return `There are no lines in ${monthYear(month)} to close.`;
+  if (!m.ended) return `${monthYear(month)} is not over yet.`;
+  if (m.short.length) return `The file for ${list(m.short.map((a) => nameOf(L, a)))} stops before the end of ${monthYear(month)}.`;
+  if (!m.confirmed) return `${list(m.unconfirmed.map((a) => nameOf(L, a)))} ${m.unconfirmed.length === 1 ? "has" : "have"} no stated balance in ${monthYear(month)}.`;
+  const broken = L.checks.filter((c) => c.law === "L3" && c.status === "fail" && m.touched.includes(c.scope)).map((c) => c.scope);
+  if (broken.length) return `The balances for ${list(broken.map((a) => nameOf(L, a)))} do not add up, so ${monthYear(month)} can't close.`;
+  return null;
+}
 function monthFacts(L, view, today, scope, reach) {
   const lines = L.lines || [], seen = [...new Set(lines.map((l) => monthOf(l.date)))].sort();
   const status = new Map(closeStatus(L).map((c) => [c.period_id, c])), periods = new Map(view.setup.period.map((p) => [p.period_id, p]));
@@ -55,20 +67,75 @@ function monthFacts(L, view, today, scope, reach) {
     const touched = [...new Set(lines.filter((l) => monthOf(l.date) === month).map((l) => l.account))];
     const short = touched.filter((a) => (reach.get(a) || "") < end);
     const ended = !today || today > end, whole = ended && !short.length, confirmed = !c.unconfirmed.length;
-    const state = p && ["closed", "locked"].includes(p.status) ? p.status : whole && confirmed ? "ready" : "open";
     // A pay with no payslip keeps a month provisional. A household that says it has none has answered that.
     const can_lock = whole && confirmed && !waiting.has(month) && (c.status === "lockable" || (provisional.has(month) && !otherThanPay.has(month) && scope.said.payroll === "none"));
-    return { month, end, state, ended, whole, confirmed, unconfirmed: c.unconfirmed, touched, short, provisional: provisional.has(month), waiting: waiting.has(month), can_lock };
+    const facts = { month, end, ended, whole, confirmed, unconfirmed: c.unconfirmed, touched, short, provisional: provisional.has(month), waiting: waiting.has(month), can_lock };
+    const why = closeBlock(facts, L, month), state = p && ["closed", "locked"].includes(p.status) ? p.status : why ? "open" : "ready";
+    const left = [facts.waiting ? "lines still need an answer" : null, facts.provisional && !can_lock ? "a pay is waiting on its payslip" : null].filter(Boolean);
+    return { ...facts, state, why, left };
   });
 }
-function lawFacts(L) {
+// A law's scope is an id or a clearing path. A person gets the name at the end of it.
+function scopeName(L, scope) {
+  const tail = String(scope).split(" ")[0].split(":").pop(), party = L.parties.find((p) => p.party_id === tail);
+  return (L.index.accounts.get(tail) || {}).name || (party && party.name) || tail;
+}
+const LAW_WORDS = {
+  L1: (x) => `An entry for ${x} does not balance.`,
+  L2: (x) => `Two sides of the same money have not met: ${x}.`,
+  L3: (x) => `The balances for ${x} do not add up.`,
+  L5: (x) => `A payslip for ${x} does not add up.`,
+  L6: (x) => `The interest on ${x} is not what its rate says.`,
+  L7: (x) => `The holdings in ${x} do not match the statement.`,
+  L8: () => "What your files say you hold does not match what the ledger adds up to.",
+  L9: (x) => `The owners of ${x} do not add up to 100%.`,
+  L10: (x) => `${x} has two values for the same day.`,
+  L11: (x) => `A tax return does not match what we worked out: ${x}.`,
+  L12: (x) => `${x} was locked, and something now changes it.`,
+  L14: (x) => `Super on a payslip did not reach the fund: ${x}.`,
+  L15: () => "A number has no file behind it.",
+  L17: (x) => `A decision has lost the line it was about: ${x}.`,
+  other: (x) => `Two things in your files disagree: ${x}.`,
+};
+function lawFacts(L, unmet) {
   const counts = { pass: 0, fail: 0, gap: 0, open: 0, skip: 0, accepted: 0 };
   for (const c of L.checks) counts[c.status] += 1;
-  return { ...counts, ran: L.checks.length - counts.skip, failing: L.checks.filter((c) => c.status === "fail").map((c) => ({ law: c.law, scope: c.scope, detail: c.detail })) };
+  const say = (c) => (c.law === "L2" && /transfer/.test(c.scope) ? (unmet.length ? `${money(unmet.reduce((n, u) => n + u.cents, 0))} went to accounts we haven't met yet.` : `${money(Math.abs(c.gap_cents || 0))} moved, and we can only see one side of it.`) : (LAW_WORDS[c.law] || LAW_WORDS.other)(scopeName(L, c.scope)));
+  return { ...counts, ran: L.checks.length - counts.skip, failing: L.checks.filter((c) => c.status === "fail").map((c) => ({ law: c.law, scope: c.scope, detail: c.detail, gap_cents: c.gap_cents, say: say(c) })) };
+}
+/* Money in from one payer, again and again, that nobody has placed. It is the first thing a person came to see, so it is asked first, as what it is. */
+function incomeQuestions(L) {
+  const by = new Map();
+  for (const r of L.review) {
+    if (r.kind !== "uncategorised" || !(r.amount_cents > 0)) continue;
+    if (!by.has(r.question)) by.set(r.question, []);
+    by.get(r.question).push(r);
+  }
+  return [...by.values()].filter((rows) => rows.length > 1).map((rows) => {
+    const same = rows.every((r) => r.amount_cents === rows[0].amount_cents), total = rows.reduce((n, r) => n + r.amount_cents, 0), question = rows[0].question;
+    return { question, item: rows[0].item_id, lines: rows.length, cents: total, say: same ? `${money(rows[0].amount_cents)} has come in ${rows.length} times from ${question}.` : `${money(total)} has come in over ${rows.length} payments from ${question}.` };
+  }).sort((a, b) => b.cents - a.cents);
+}
+/* Money that left for somewhere we haven't met, by the bank's own words, biggest first. It is what "an account we haven't met" means, so it is named. */
+function unmetFacts(L) {
+  const by = new Map();
+  for (const r of L.review) {
+    if (r.kind !== "unpaired_transfer" || !(r.amount_cents < 0)) continue;
+    const k = r.question || r.what, e = by.get(k) || by.set(k, { words: k, cents: 0, lines: 0 }).get(k);
+    e.cents -= r.amount_cents; e.lines += 1;
+  }
+  return [...by.values()].sort((a, b) => b.cents - a.cents);
+}
+/* What a household holds. The headline is cash: bank accounts less what is owed on a card, the money it can move. Everything else is net worth, and is named. */
+function heldFacts(L, view, accounts, nw) {
+  if (!nw) return null;
+  const inCash = accounts.filter((a) => a.reporting_group === "cash"), others = accounts.filter((a) => a.reporting_group !== "cash").map((a) => a.name);
+  const firsts = inCash.map((a) => (L.linesByAccount.get(a.account_id) || []).map((l) => monthOf(l.date)).sort()[0]).filter(Boolean).sort(), since = firsts[firsts.length - 1] || null;
+  return { cash_cents: (nw.groups && nw.groups.cash) || 0, cash_accounts: inCash.length, net_cents: nw.total, others, since };
 }
 function readiness({ L, view, clock }) {
   const today = clock.today, accounts = view.setup.account.filter((a) => ACCOUNT_CLASSES.has(a.class) && a.in_scope !== false);
-  const scope = scopeFacts(view), reach = reachOf(L, view), months = monthFacts(L, view, today, scope, reach), laws = lawFacts(L);
+  const scope = scopeFacts(view), reach = reachOf(L, view), months = monthFacts(L, view, today, scope, reach), unmet = unmetFacts(L), laws = lawFacts(L, unmet);
   const coverage = { expected: L.coverage.reduce((n, c) => n + c.expected, 0), held: L.coverage.reduce((n, c) => n + c.have, 0), streams: L.coverage.map((c) => ({ stream_id: c.stream_id, name: c.name, expected: c.expected, held: c.have, missing: c.missing })) };
   const hasObs = new Set(view.observations.map((o) => o.source_id));
   const sources = { held: view.sources.length, read: 0, unread: 0, refused: 0, quiet: 0, bytes: { held: 0, on_device: 0, not_held: 0, unknown: 0 } };
@@ -76,6 +143,10 @@ function readiness({ L, view, clock }) {
   const open = L.review.filter((r) => r.kind === "uncategorised");
   const review = { items: L.review.length, uncategorised: open.length, uncategorised_cents: open.reduce((n, r) => n + Math.abs(r.amount_cents || 0), 0), by_kind: L.review.reduce((m, r) => { m[r.kind] = (m[r.kind] || 0) + 1; return m; }, {}) };
   const noBalance = accounts.filter((a) => !L.stated.some((s) => s.account === a.account_id) && (L.linesByAccount.get(a.account_id) || []).length).map((a) => a.account_id);
+  const stated = accounts.filter((a) => a.fidelity === "snapshot").map((a) => { const said = L.stated.filter((x) => x.account === a.account_id).sort((x, y) => (x.date < y.date ? 1 : -1))[0]; return said && { account_id: a.account_id, name: a.name, type: a.type, cents: Math.abs(said.cents), as_at: said.date }; }).filter(Boolean);
+  const attached = (ref) => { const tail = String(ref).replace(/[^0-9]/g, ""); return view.setup.alias.some((x) => x.subject_type === "account" && (x.value === ref || (tail.length >= 4 && String(x.value).replace(/[^0-9]/g, "").endsWith(tail)))) || view.setup.account.some((a) => a.account_id === ref) || scope.said[`account:${ref}`] === "none"; };
+  const seenRefs = new Set(), unattached = [];
+  for (const o of view.observations) { const ref = o.kind === "payslip" && o.payload.account_ref; if (!ref || seenRefs.has(ref)) continue; seenRefs.add(ref); if (!attached(ref)) unattached.push({ ref, from: (view.sources.find((x) => x.source_id === o.source_id) || {}).name || "A payslip" }); }
   const nw = L.netWorth[L.netWorth.length - 1] || null, cash = L.cash.filter((c) => months.some((m) => m.month === c.month));
   const lastWhole = [...months].reverse().find((m) => m.whole), shown = (lastWhole && cash.find((c) => c.month === lastWhole.month)) || cash[cash.length - 1] || null;
   const unknown = [];
@@ -88,13 +159,13 @@ function readiness({ L, view, clock }) {
   if (missing) unknown.push(`${plural(missing, "period")} expected and not held.`);
   if (clock.tax_assumed_years.length) unknown.push(`Tax for ${list(clock.tax_assumed_years)} uses the last law read, ${dayYear(clock.tax_verified_at)}, and is assumed.`);
   return {
-    accounts_known: accounts.length, people: view.setup.party.filter((p) => p.kind === "person").length, scope, coverage, months, months_closed: months.filter((m) => ["closed", "locked"].includes(m.state)).length, months_locked: months.filter((m) => m.state === "locked").length, laws, review, sources, no_balance: noBalance, reach: Object.fromEntries(reach), unknown,
-    net_worth: nw && { cents: nw.total, month: nw.month, of_accounts: accounts.length }, cash: shown && { month: shown.month, income_cents: shown.income, spending_cents: shown.spending, unexplained_cents: shown.unexplained, unplaced_cents: Math.abs(shown.byCategory.UNCAT || 0) },
+    accounts_known: accounts.length, people: view.setup.party.filter((p) => p.kind === "person").length, scope, coverage, months, months_closed: months.filter((m) => ["closed", "locked"].includes(m.state)).length, months_locked: months.filter((m) => m.state === "locked").length, laws, review, sources, no_balance: noBalance, reach: Object.fromEntries(reach), unknown, income: incomeQuestions(L), unmet, stated, unattached, held: heldFacts(L, view, accounts, nw),
+    net_worth: nw && { cents: nw.total, month: nw.month, of_accounts: accounts.length }, cash: shown && { month: shown.month, income_cents: shown.income, spending_cents: shown.spending, unexplained_cents: shown.unexplained, unplaced_cents: Math.min(Math.abs(shown.byCategory.UNCAT || 0), Math.max(0, shown.spending)) },
   };
 }
 function words(s) {
   const r = s.readiness, out = [`${s.household.name}. ${s.clock.as_of ? `Your files reach ${dayYear(s.clock.as_of)}.` : "No files yet."}`];
-  if (r.net_worth) out.push(`${money(r.net_worth.cents)} across the ${plural(r.accounts_known, "account")} we know about.`);
+  if (r.held) { out.push(`${money(r.held.cash_cents)} across the ${plural(r.held.cash_accounts, "account")} we know about.`); if (r.held.others.length) out.push(`Net worth ${money(r.held.net_cents)}, with ${list(r.held.others)}.`); }
   if (r.cash) out.push(`${monthYear(r.cash.month)}: ${money(r.cash.income_cents)} in, ${money(r.cash.spending_cents)} out${r.cash.unplaced_cents ? `, ${money(r.cash.unplaced_cents)} of it not placed yet` : ""}${r.cash.unexplained_cents ? `, and ${money(r.cash.unexplained_cents)} came in that nobody has explained` : ""}.`);
   if (r.months.length) out.push(`${plural(r.months_closed, "month")} closed of ${r.months.length}. ${r.laws.pass} of the ${r.laws.ran} checks that could run pass.`);
   if (r.coverage.expected) out.push(`${r.coverage.held} of the ${plural(r.coverage.expected, "period")} we expected ${r.coverage.expected === 1 ? "is" : "are"} covered.`);
@@ -106,4 +177,4 @@ async function status(store, { today, built } = {}) {
   const out = { household: { id: hh.household_id, name: hh.name, standard_version: m.standard_version }, clock: b.clock, bundle_hash: b.L.bundleHash, readiness: r };
   return { ...out, words: words(out) };
 }
-module.exports = { status, readiness, DOMAINS };
+module.exports = { status, readiness, closeBlock, DOMAINS };

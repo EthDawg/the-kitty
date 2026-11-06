@@ -44,7 +44,10 @@ function readTable(rows) {
   // No name to go on: every way of reading the number columns. The balance chain tells them apart.
   if (!ways.length) for (const a of figures) { const others = figures.filter((c) => c !== a); if (others.length) for (const b of others) ways.push({ amount: a, balance: b }); else ways.push({ amount: a }); }
   if (!ways.length) return null;
-  return { named, names, body, date, text, ways, dates: dateStyles(body.map((r) => cell(r, date.i))) };
+  // A column that says which account, the same on every row, is how a file names itself. It comes before anything a person is asked.
+  const held = named ? cols.find((c) => c !== date && c !== text && /account|acct/i.test(c.name) && !/name/i.test(c.name)) : null, numbers = held ? [...new Set(body.map((r) => cell(r, held.i)))] : [];
+  const account = held && numbers.length === 1 && /\d{4}/.test(numbers[0]) ? { name: held.name, number: numbers[0] } : null;
+  return { named, names, body, date, text, ways, account, dates: dateStyles(body.map((r) => cell(r, date.i))) };
 }
 function avgLength(rows, i) { return rows.reduce((n, r) => n + cell(r, i).length, 0) / (rows.length || 1); }
 function ordersOf(t, style) {
@@ -54,7 +57,7 @@ function ordersOf(t, style) {
 }
 function recipeFor(t, fp, container, style, order, way) {
   const money = way.credit ? { credit: way.credit.name, debit: way.debit.name } : { col: way.amount.name, as: "cents" };
-  const fields = { account_ref: { stream: true }, posting_date: { col: t.date.name, as: "date" }, description: { col: t.text.name }, amount_cents: money, ...(way.balance ? { balance_after_cents: { col: way.balance.name, as: "cents" } } : {}) };
+  const fields = { account_ref: t.account ? { col: t.account.name } : { stream: true }, posting_date: { col: t.date.name, as: "date" }, description: { col: t.text.name }, amount_cents: money, ...(way.balance ? { balance_after_cents: { col: way.balance.name, as: "cents" } } : {}) };
   return { id: `read-by-columns-${String(fp).slice(-8)}`, version: 1, tier: "table", container, fingerprints: [fp], defaults: { date: style }, table: { order, ...(t.named ? { header: 1 } : { columns: t.names }) }, emit: [{ kind: "txn_line", fields }], ...(way.balance ? { statement: { from: "chain" }, controls: [{ law: "balance_chain" }, { law: "family_chain" }] } : { controls: [] }) };
 }
 function opened(file) {
@@ -98,7 +101,7 @@ function proposeRecipe(file) {
   if (!passed.length) return { ...meta, status: "refused", tried, why: why || "No reading passed." };
   const best = passed.find((p) => p.proved) || passed[0], rival = passed.find((p) => p.style !== best.style && p.proved === best.proved);
   const understood = { date: t.date.name, date_style: best.style, description: t.text.name, ...(best.way.credit ? { money_in: best.way.credit.name, money_out: best.way.debit.name } : { amount: best.way.amount.name }), balance: best.way.balance ? best.way.balance.name : null, order: best.order, header: t.named };
-  return { ...meta, status: best.proved ? "proposed" : "unproved", recipe: best.recipe, understood, rows: best.rows, lines: best.lines, from: best.from, to: best.to, tried, ambiguous_dates: !!rival, also: rival ? rival.recipe : null, says: saysOf(understood, best, !!rival) };
+  return { ...meta, status: best.proved ? "proposed" : "unproved", recipe: best.recipe, number: t.account ? t.account.number : null, understood, rows: best.rows, lines: best.lines, from: best.from, to: best.to, tried, ambiguous_dates: !!rival, also: rival ? rival.recipe : null, says: saysOf(understood, best, !!rival) };
 }
 const STYLE = { dmy: "day first", dmy2: "day first", mdy: "month first", mdy2: "month first", ymd: "year first", iso: "year first", yyyymmdd: "year first", dmony: "written out" };
 function saysOf(u, best, ambiguous) {

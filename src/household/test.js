@@ -729,7 +729,7 @@ test("decide writes what the standard offers, and refuses what it does not", asy
   assert.equal(d.target_ref, "ACC-6789|2026-07-02|-120000|1");
   assert.equal(d.verb, "categorise");
   assert.equal(r.pattern, "RENT TO AGENT");
-  assert.equal(r.valid_from, "2026-07-02", "a rule learned now does not rewrite what came before");
+  assert.equal(r.valid_from, undefined, "an answer covers every line like it, older ones included. A locked month is pinned line by line, and has its own test");
   await K.add(s, [bankFile([["2026-08-20", "RENT TO AGENT", -120000]], 265000)], { today: "2026-08-21" });
   assert.equal((await K.rebuildAt(s, { today: "2026-08-21" })).L.review.filter((x) => x.question === "RENT TO AGENT").length, 0, "and it is not asked twice");
   await assert.rejects(K.decide(s, { check: "L3|ACC-6789" }, { today: TODAY }), /needs a reason/);
@@ -834,4 +834,192 @@ test("the command line, on a brand new folder, end to end", () => {
   const bad = spawnSync("node", [path.join(root, "tools", "kitty.js"), "nonsense"], { encoding: "utf8" });
   assert.equal(bad.status, 2);
   fs.rmSync(dir, { recursive: true });
+});
+
+// ---------- what the first blind actor found. A fictional renter, a public hospital for an employer, and nothing here is tuned to that run's numbers. ----------
+const OUT = (text, cents, dates) => dates.map((d) => [d, text, -cents]);
+const IN = (text, cents, dates) => dates.map((d) => [d, text, cents]);
+const PAYDAYS = ["2026-07-02", "2026-07-16", "2026-07-30"];
+const hospitalPay = [...IN("ELMWOOD DISTRICT HOSPITAL 0042", 250000, PAYDAYS), ...OUT("BPAY BIG BILL", 90000, ["2026-07-20"]), ["2026-08-03", "BPAY BIG BILL", -1000]].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+const uncat = (L) => L.review.filter((r) => r.kind === "uncategorised");
+const july = async (s, today = TODAY) => (await K.status(s, { today })).readiness.cash;
+
+test("pay from a hospital is pay: the bank's own word beats the employer's name", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile(IN("SALARY ELMWOOD DISTRICT HOSPITAL", 250000, PAYDAYS).concat([["2026-08-03", "BPAY BIG BILL", -1000]]))], { today: TODAY });
+  const c = await july(s);
+  assert.equal(c.income_cents, 750000);
+  assert.ok(c.spending_cents >= 0, "money out is never negative because pay came in");
+});
+test("a public dictionary does not decide money coming in: a payer who repeats is a question, on the first screen, and nothing comes off spending", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile(hospitalPay)], { today: TODAY });
+  const b = await K.rebuildAt(s, { today: TODAY }), f = (await K.status(s, { today: TODAY })).readiness;
+  assert.equal(uncat(b.L).filter((r) => r.amount_cents > 0).length, 3, "every one of them is in the review list");
+  assert.equal(f.cash.spending_cents, 90000, "and none of them came off what went out");
+  assert.equal(f.cash.income_cents, 0);
+  assert.equal(f.income.length, 1);
+  assert.equal(f.income[0].say, "$2,500.00 has come in 3 times from ELMWOOD DISTRICT HOSPITAL.");
+  const step = await K.next(s, { today: TODAY });
+  assert.equal(step.say, "$2,500.00 has come in 3 times from ELMWOOD DISTRICT HOSPITAL. What is it?");
+  assert.ok(step.action.choices.some((c) => c.id === "SALARY"), "it offers what money coming in can be");
+  assert.ok(!step.action.choices.some((c) => c.id === "HEALTH"));
+});
+test("one answer covers every line like it, in this file and in an older one added later, and nothing is asked twice", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile(hospitalPay)], { today: TODAY });
+  const step = await K.next(s, { today: TODAY });
+  await K.decide(s, { item: step.action.args.item, category_id: "SALARY", always: true }, { today: TODAY });
+  assert.equal((await july(s)).income_cents, 750000, "all three, from one answer");
+  assert.equal((await K.status(s, { today: TODAY })).readiness.income.length, 0);
+  const [r] = (await s.tables.read("rule")).filter((x) => x.category_id === "SALARY");
+  assert.equal(r.valid_from, undefined, "an answer has no start date, so an older file cannot undo it");
+  const older = bankFile(IN("ELMWOOD DISTRICT HOSPITAL 0042", 250000, ["2026-06-04", "2026-06-18"]), 50000, "733-123 456789");
+  older.name = "Older.csv";
+  await K.add(s, [older], { today: TODAY });
+  const { L } = await K.rebuildAt(s, { today: TODAY });
+  assert.equal(L.cash.find((c) => c.month === "2026-06").income, 500000, "the older file comes in right");
+  assert.equal(uncat(L).filter((x) => x.amount_cents > 0).length, 0, "with nothing asked twice");
+});
+test("a changed mind replaces the old answer for every line like it", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile(hospitalPay)], { today: TODAY });
+  const item = (await K.next(s, { today: TODAY })).action.args.item;
+  await K.decide(s, { item, category_id: "SALARY-ALLOW", always: true }, { today: TODAY });
+  const line = (await K.rebuildAt(s, { today: TODAY })).L.lines.find((l) => l.date === "2026-07-16");
+  await K.decide(s, { item: line.key, category_id: "SALARY", always: true }, { today: TODAY });
+  assert.equal((await K.rebuildAt(s, { today: TODAY })).L.lines.find((l) => l.date === "2026-07-30").cls.category_id, "SALARY");
+});
+test("an answer leaves a locked month exactly as it was", async () => {
+  const today = "2026-09-05", s = await renter(stores.fake, today);
+  await K.add(s, [bankFile([...JULY, ["2026-09-02", "WOOLWORTHS 1234 CARLTON", -700]])], { today });
+  await K.decide(s, { scope: { domain: "payroll", state: "none" } }, { today });
+  for (const r of uncat((await K.rebuildAt(s, { today })).L)) await K.decide(s, { item: r.item_id, category_id: "SHOPPING" }, { today });
+  assert.equal((await K.close(s, "2026-07", { today })).status, "locked");
+  const before = (await K.rebuildAt(s, { today })).L.lines.find((l) => l.date === "2026-07-03");
+  assert.equal(before.cls.via, "dictionary", "the line in the locked month was never answered, so nothing but the seal protects it");
+  await K.decide(s, { item: (await K.rebuildAt(s, { today })).L.lines.find((l) => l.date === "2026-09-02").key, category_id: "SUBS", always: true }, { today });
+  const { L } = await K.rebuildAt(s, { today });
+  assert.equal(L.lines.find((l) => l.date === "2026-07-03").cls.category_id, "GROCERIES", "the locked month keeps what it said");
+  assert.equal(L.lines.find((l) => l.date === "2026-08-03").cls.category_id, "SUBS", "the open one takes the answer");
+  assert.ok(!L.checks.some((c) => c.law === "L12" && c.status === "fail"), "and the seal holds");
+});
+test("a refund with evidence stays placed: the line says so, or the household paid them that much", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile([["2026-07-01", "CHEMIST WAREHOUSE CARLTON", -9000], ["2026-07-03", "CHEMIST WAREHOUSE CARLTON", 4000], ["2026-07-30", "PAY ELMWOOD", 1], ["2026-08-03", "BPAY BIG BILL", -1000]])], { today: TODAY });
+  const { L } = await K.rebuildAt(s, { today: TODAY });
+  assert.equal(uncat(L).filter((r) => /CHEMIST/.test(r.question)).length, 0);
+});
+const CARD_HEAD = "Date,Description,Card Member,Account #,Amount\n";
+const cardFile = (rows, name = "activity.csv") => ({ name, bytes: enc(`${CARD_HEAD}${rows.map(([d, t, c]) => `${dmy(d)},${t},SAM SMITH,-77123,${(c / 100).toFixed(2)}`).join("\n")}\n`) });
+async function statement(s, account_ref, p, today) {
+  const obs = { obs_id: "obs-statement-one", source_id: "src-statement-one", locator: "page 1", kind: "statement", occurred_on: p.period_end, amount_cents: p.closing_cents, currency: "AUD", subject_ref: account_ref, payload: { account_ref, ...p }, importer: "test", confidence: "1", status: "active" };
+  await s.tables.appendNew("observation", [obs]);
+  await s.tables.appendNew("source", [{ source_id: obs.source_id, sha256: "f".repeat(64), name: "Statement.pdf", origin: "manual", mime: "application/pdf", bytes: 1, stream_id: null, captured_at: `${today}T00:00:00Z`, status: "active", uri: "not-held:Statement.pdf" }]);
+}
+test("a card's balance: charges older than its first statement are inside that statement's opening, not on top of it", async () => {
+  const s = await renter(stores.fake, "2027-02-14");
+  await K.add(s, [cardFile([["2026-12-03", "SOME SHOP", 6000], ["2026-12-20", "SOME SHOP", 2500]])], { today: "2027-02-14" });
+  await statement(s, "-77123", { period_start: "2026-12-15", period_end: "2027-01-14", opening_cents: -10000, closing_cents: -12500, credits_cents: 0, debits_cents: 2500 }, "2027-02-14");
+  const { L, view } = await K.rebuildAt(s, { today: "2027-02-14" }), id = view.setup.account[0].account_id;
+  assert.equal(L.balances.at(id, "2027-01"), -12500, "what the statement closed on");
+  assert.equal(L.checks.find((c) => c.law === "L3" && c.scope === id).status, "pass");
+});
+const SUPER_HEAD = "Effective Date,Category,Narrative,Amount (AUD),Running Balance,Reference\n";
+const superFile = () => ({ name: "Fund.csv", bytes: enc(`${SUPER_HEAD}2026-07-01,FEE-ADMIN,Administration fee,-10.00,44990.00,X1\n2026-07-31,EARNINGS,Investment earnings,250.00,45240.00,X2\n`) });
+test("a file that needs only an account name has not failed anything: it is one question, and the answer brings it in", async () => {
+  const s = await renter(stores.fake);
+  const r = await K.add(s, [superFile()], { today: TODAY });
+  assert.equal(r.needs_account.length, 1);
+  const step = await K.next(s, { today: TODAY });
+  assert.equal(step.say, "Which account is Fund.csv for?");
+  assert.doesNotMatch(step.why, /failed|checks|again/);
+  const f = (await K.status(s, { today: TODAY })).readiness;
+  assert.equal(f.sources.refused, 0);
+  assert.equal(f.sources.unread, 1);
+  const again = await K.add(s, [superFile()], { today: TODAY, account: "Super", name: "Super" });
+  assert.equal(again.added.length, 1);
+  assert.notEqual((await K.next(s, { today: TODAY })).id, "no_account");
+});
+test("a file that yields a balance and no lines says what it read, and never says nothing became a line", async () => {
+  const s = await renter(stores.fake);
+  const r = await K.add(s, [superFile()], { today: TODAY, account: "Super", name: "Super" }), built = await K.rebuildAt(s, { today: TODAY });
+  const w = K.fileWords(built, r.added[0].source_id);
+  assert.equal(w.say, "Your super: $45,240.00 at 31 July 2026.");
+  assert.equal(w.stated, true);
+});
+test("a card file makes a card: Not asked yet stops asking, and a statement corrects an account first read as a bank's", async () => {
+  const s = await renter(stores.fake, "2027-02-14");
+  const r = await K.add(s, [cardFile([["2026-12-03", "SOME SHOP", 6000]])], { today: "2027-02-14" });
+  assert.equal(r.accounts_created[0].type, "credit_card");
+  const f = (await K.status(s, { today: "2027-02-14" })).readiness;
+  assert.ok(!f.scope.not_asked.includes("credit_card"));
+  assert.doesNotMatch(f.unknown.join(" "), /a credit card/);
+});
+test("a debt or balance with no file: typed in, dated, shown as stated, in net worth and out of cash", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile(JULY)], { today: TODAY });
+  const made = await K.decide(s, { stated: { kind: "help_debt", cents: 3114062, as_at: "2026-07-31" } }, { today: TODAY });
+  await K.decide(s, { stated: { kind: "car_loan", cents: 1250000, as_at: "2026-07-31" } }, { today: TODAY });
+  await K.decide(s, { stated: { kind: "super", cents: 8000000, as_at: "2026-07-31" } }, { today: TODAY });
+  const { L, view } = await K.rebuildAt(s, { today: TODAY }), f = (await K.status(s, { today: TODAY })).readiness;
+  const help = view.setup.account.find((a) => a.account_id === made.account_id);
+  assert.equal(help.fidelity, "snapshot");
+  assert.equal(help.class, "liability");
+  assert.equal(L.balances.at(help.account_id, "2026-08"), -3114062);
+  assert.equal(f.held.cash_cents, 265000, "the headline is cash");
+  assert.equal(f.held.cash_accounts, 1);
+  assert.equal(f.held.net_cents, 265000 - 3114062 - 1250000 + 8000000, "and the rest is net worth");
+  assert.deepEqual(f.held.others, ["HELP debt", "Car loan", "Super"]);
+  assert.deepEqual(f.stated.map((x) => [x.name, x.cents, x.as_at]), [["HELP debt", 3114062, "2026-07-31"], ["Car loan", 1250000, "2026-07-31"], ["Super", 8000000, "2026-07-31"]]);
+  assert.ok(!f.scope.not_asked.includes("help_debt"));
+  assert.ok(!f.scope.not_asked.includes("super"));
+  assert.ok(f.scope.not_asked.includes("home_loan"), "a car loan says nothing about a home loan");
+  await K.decide(s, { stated: { account_id: help.account_id, cents: 3000000, as_at: "2026-08-02" } }, { today: TODAY });
+  assert.equal((await K.rebuildAt(s, { today: TODAY })).L.balances.at(help.account_id, "2026-08"), -3000000, "a newer figure replaces it");
+  assert.equal((await K.status(s, { today: TODAY })).readiness.stated.find((x) => x.account_id === help.account_id).cents, 3000000);
+});
+test("a month says what stops it closing, the same words close gives, and it can be reopened with a reason", async () => {
+  const today = "2026-09-05", s = await renter(stores.fake, today);
+  await K.add(s, [bankFile([...JULY, ["2026-09-02", "WOOLWORTHS 1234 CARLTON", -700]])], { today });
+  const months = (await K.status(s, { today })).readiness.months, july2 = months.find((m) => m.month === "2026-07"), sept = months.find((m) => m.month === "2026-09");
+  assert.equal(july2.state, "ready");
+  assert.equal(july2.why, null);
+  assert.deepEqual(july2.left, ["lines still need an answer", "a pay is waiting on its payslip"]);
+  assert.equal(sept.state, "open");
+  assert.equal(sept.why, "September 2026 is not over yet.");
+  assert.equal((await K.close(s, "2026-09", { today })).say, sept.why);
+  assert.equal((await K.close(s, "2026-07", { today })).status, "closed");
+  await assert.rejects(K.decide(s, { reopen: "2026-07" }, { today }), /needs a reason/);
+  await K.decide(s, { reopen: "2026-07", reason: "A line was wrong." }, { today });
+  assert.equal((await K.status(s, { today })).readiness.months.find((m) => m.month === "2026-07").state, "ready");
+});
+test("every failed check has a name a person can read, and money to an account we haven't met says which and how much", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile([...JULY, ["2026-07-10", "TFR TO SAVER", -40000], ["2026-07-24", "TFR TO SAVER", -60000]].sort((a, b) => (a[0] < b[0] ? -1 : 1)))], { today: TODAY });
+  const f = (await K.status(s, { today: TODAY })).readiness, step = await K.next(s, { today: TODAY });
+  assert.deepEqual(f.unmet, [{ words: "TFR TO SAVER", cents: 100000, lines: 2 }]);
+  assert.equal(f.laws.failing[0].say, "$1,000.00 went to accounts we haven't met yet.");
+  assert.equal(step.say, "Some of your money went to an account we haven't met yet.");
+  assert.match(step.why, /^\$1,000\.00 went out as TFR TO SAVER\. /);
+});
+test("a payslip that names an account we can't place is asked about, and the answer holds", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile(JULY)], { today: TODAY });
+  await s.tables.appendNew("observation", [{ obs_id: "obs-slip", source_id: "src-slip", locator: "page 1", kind: "payslip", occurred_on: "2026-07-01", amount_cents: 300000, currency: "AUD", subject_ref: "Sam", payload: { account_ref: "1111", person_ref: "Sam", employer_ref: "Acme", pay_date: "2026-07-01", period_start: "2026-06-18", period_end: "2026-07-01", gross_cents: 400000, tax_cents: 100000, net_cents: 300000, super_cents: 40000 }, importer: "test", confidence: "1", status: "active" }]);
+  await s.tables.appendNew("source", [{ source_id: "src-slip", sha256: "e".repeat(64), name: "Slip.pdf", origin: "manual", mime: "application/pdf", bytes: 1, captured_at: `${TODAY}T00:00:00Z`, status: "active", uri: "not-held:Slip.pdf" }]);
+  const f = (await K.status(s, { today: TODAY })).readiness;
+  assert.deepEqual(f.unattached, [{ ref: "1111", from: "Slip.pdf" }]);
+  await K.decide(s, { attach: { ref: "1111", account_id: "ACC-6789" } }, { today: TODAY });
+  assert.deepEqual((await K.status(s, { today: TODAY })).readiness.unattached, []);
+});
+test("once every account is met, the headline stops talking about strangers", async () => {
+  const s = await renter(stores.fake);
+  await K.add(s, [bankFile(JULY)], { today: TODAY });
+  const built = await K.rebuildAt(s, { today: TODAY });
+  built.L.checks.push({ law: "L2", scope: "clearing:transfer", status: "fail", gap_cents: -92999, detail: "Open 35 days." });   // a payment from before a card's first file: one side, and no stranger
+  assert.equal(K.readiness(built).unmet.length, 0);
+  const step = K.pick(built);
+  assert.equal(step.say, "$929.99 moved, and we can only see one side of it.");
+  assert.doesNotMatch(`${step.say} ${step.why}`, /haven't met/);
 });

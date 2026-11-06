@@ -17,7 +17,7 @@ const { ready, slug, stamp, fail, SINCE } = require("./init");
 const SAMPLE_ROWS = 6, SAMPLE_LINES = 14;
 const STATES = { "blob:": "held", "device:": "on_device", "not-held:": "not_held" };
 const bytesState = (s) => { const k = Object.keys(STATES).find((p) => String(s.uri || "").startsWith(p)); return k ? STATES[k] : "unknown"; };
-const readState = (s) => (s.status === "quarantined" ? "refused" : /^unread:/.test(s.note || "") ? "unread" : "read");
+const readState = (s) => (/^unread:/.test(s.note || "") ? "unread" : s.status === "quarantined" ? "refused" : "read");
 const CASH_LINES = new Set(["txn_line", "statement", "balance"]);
 const OTHER_LINES = { loan_statement: { class: "liability", type: "loan", reporting_group: "loans" }, super_statement: { class: "asset", type: "super", reporting_group: "super" }, super_line: { class: "asset", type: "super", reporting_group: "super" } };
 const refOf = (o) => o.payload && o.payload.account_ref;
@@ -35,11 +35,17 @@ const accountKind = (found) => {
   const card = found.card || (found.closing != null && found.closing < 0);
   return card ? { class: "liability", type: "credit_card", reporting_group: "cash" } : { class: "asset", type: "transaction", reporting_group: "cash" };
 };
+// Who owns what a file brought in: everyone adult, equally, until someone says otherwise. Shared with an account a person typed in.
+function ownershipRows(id, adults, today) {
+  const out = [];
+  for (const basis of ["legal", "beneficial", "tax"]) for (const s of allocate(10000, adults.map((p) => ({ key: p, weight: 1 })))) out.push({ subject_type: "account", subject_id: id, party_id: s.key, basis, share_bps: s.cents, valid_from: SINCE, recorded_at: stamp(today), note: adults.length > 1 ? "Assumed equal until someone says otherwise." : null });
+  return out;
+}
 /* A file can name an account nobody has set up. The engine would hold its lines out and ask for an alias, which is the wrong first thing to ask someone
    who has just dropped in their bank file. So a bank, card, loan or super account comes into being here, from the file, for whoever is in the
    household, equally until someone says otherwise. Anything else stays unresolved and is asked about: a broker's holding needs a person. */
 function materialise(setup, sources, observations, { today, name, type }) {
-  const out = { account: [], alias: [], ownership: [], stream: [] }, unresolved = new Map(), used = new Set(setup.account.map((a) => a.account_id));
+  const out = { account: [], alias: [], ownership: [], stream: [], retype: [] }, unresolved = new Map(), used = new Set(setup.account.map((a) => a.account_id));
   const adults = setup.membership.filter((m) => m.role === "adult").map((m) => m.party_id).filter((id, i, a) => a.indexOf(id) === i).sort();
   const found = new Map();
   for (const o of observations) {
@@ -49,12 +55,18 @@ function materialise(setup, sources, observations, { today, name, type }) {
     f.kinds.add(o.kind);
     if (dateOf(o) && dateOf(o) < f.first) f.first = dateOf(o);
     if (o.kind === "statement") { f.closing = o.payload.closing_cents; if (o.payload.minimum_due_cents != null || o.payload.amount_due_cents != null) f.card = true; }
+    if (o.payload.card_member) f.card = true;   // only a card's file names a card member
     if (OTHER_LINES[o.kind]) f.other = OTHER_LINES[o.kind];
   }
   for (const f of found.values()) {
     const R = new Resolver({ setup: { ...setup, account: [...setup.account, ...out.account], alias: [...setup.alias, ...out.alias], stream: [...setup.stream, ...out.stream] }, sources, observations: [], decisions: [], rules: [], eventSchema: base().schema.events });
     const src = observations.find((o) => refOf(o) === f.ref);
-    if (R.accountOf(src, f.ref, f.first)) continue;
+    const hit = R.accountOf(src, f.ref, f.first);
+    if (hit) {   // first read as a bank's, and now a file says it is a card
+      const a = setup.account.find((x) => x.account_id === hit);
+      if (a && f.card && a.type === "transaction") out.retype.push({ ...a, ...accountKind(f) });
+      continue;
+    }
     if (![...f.kinds].some((k) => CASH_LINES.has(k) || OTHER_LINES[k])) { unresolved.set(f.ref, { ref: f.ref, kinds: [...f.kinds] }); continue; }
     const tail = digits(f.ref).slice(-4) || slug(f.ref).slice(0, 8);
     let id = `ACC-${tail}`;
@@ -63,8 +75,26 @@ function materialise(setup, sources, observations, { today, name, type }) {
     const kind = { ...accountKind(f), ...(type ? { type } : {}) };
     out.account.push({ account_id: id, name: name || `Account ending ${tail}`, ...kind, currency: "AUD", in_scope: true, fidelity: "ledger", note: "Made from the first file. Rename it any time." });
     out.alias.push({ subject_type: "account", subject_id: id, scheme: "account_number", value: f.ref, valid_from: SINCE, recorded_at: stamp(today) });
-    if (adults.length) for (const basis of ["legal", "beneficial", "tax"]) for (const s of allocate(10000, adults.map((p) => ({ key: p, weight: 1 })))) out.ownership.push({ subject_type: "account", subject_id: id, party_id: s.key, basis, share_bps: s.cents, valid_from: SINCE, recorded_at: stamp(today), note: adults.length > 1 ? "Assumed equal until someone says otherwise." : null });
+    if (adults.length) out.ownership.push(...ownershipRows(id, adults, today));
     out.stream.push({ stream_id: id, name: name || `Account ending ${tail}`, doc_kind: "statement", subject_type: "account", subject_id: id, cadence: "monthly", valid_from: f.first, grace_days: 14, recorded_at: stamp(today) });
+  }
+  // A person's name on a file. One adult in the household means it is them, however the file spells it: the engine can't post a payslip for nobody. Finding R-013.
+  const R = new Resolver({ setup: { ...setup, account: [...setup.account, ...out.account], alias: [...setup.alias, ...out.alias], stream: [...setup.stream, ...out.stream] }, sources, observations: [], decisions: [], rules: [], eventSchema: base().schema.events });
+  const said = new Set();
+  for (const o of observations) {
+    const ref = o.payload && o.payload.person_ref;
+    if (!ref || said.has(ref)) continue;
+    said.add(ref);
+    if (!R.partyOf(ref, dateOf(o)) && adults.length === 1) out.alias.push({ subject_type: "party", subject_id: adults[0], scheme: "name", value: ref, valid_from: SINCE, recorded_at: stamp(today) });
+  }
+  // HELP lives on a government page with no account number, and the engine reads it against a debt its person owns. So the debt comes into being here too.
+  for (const o of observations.filter((x) => x.kind === "help_balance")) {
+    const who = R.partyOf(o.payload.person_ref, o.payload.as_at) || (adults.length === 1 ? adults[0] : null), id = who && `HELP-${who}`;
+    const owns = (a) => a.type === "help_debt" && setup.ownership.some((w) => w.subject_id === a.account_id && w.party_id === who);
+    if (!who || used.has(id) || setup.account.some(owns)) continue;
+    used.add(id);
+    out.account.push({ account_id: id, name: "HELP debt", class: "liability", type: "help_debt", reporting_group: "loans", currency: "AUD", in_scope: true, fidelity: "ledger", note: "Made from your HELP page." });
+    out.ownership.push(...ownershipRows(id, [who], today));
   }
   return { ...out, unresolved: [...unresolved.values()] };
 }
@@ -89,6 +119,7 @@ async function add(store, files, opts = {}) {
   const known = latest("source", sourceRows), bySha = new Map(known.map((s) => [s.sha256, s]));
   const delivered = new Set(deliveryRows.map((d) => `${d.stream_id}|${d.day}|${d.source_id}`));
   const result = { added: [], already: [], needs_recipe: [], needs_agent: [], needs_account: [], refused: [], accounts_created: [], unresolved: [], warnings: [] };
+  const waiting = new Set();
 
   const todo = [], repeats = [];
   for (const f of files) {
@@ -113,10 +144,12 @@ async function add(store, files, opts = {}) {
     const noAccount = !f.stream && faults.some((x) => /account_ref/.test(`${x.what || ""}${x.code || ""}`));
     if (u && u.reason === "no_recipe") { s.note = `unread:no_recipe:${u.fingerprint}`; result.needs_recipe.push({ name: f.name, sha256: f.sha, fingerprint: u.fingerprint, container: u.container, sample: sampleOf(f.bytes, b.inflate), ask: `${f.name} is a ${u.container} file The Kitty has not met. Nothing from it is in your numbers yet. An agent can write a recipe for it from these sample rows; the gate decides if it reads the file right. See standard/RECIPES.md.` }); }
     else if (u && u.reason === "agent_tier") { s.note = `unread:agent_tier:${u.fingerprint}`; result.needs_agent.push({ name: f.name, sha256: f.sha, fingerprint: u.fingerprint, ask: `${f.name} is ${u.detail}. No recipe can read it. An agent can read it and write observations with a quote and a locator.` }); }
-    else if (noAccount) { s.status = "quarantined"; s.note = "refused: This file does not say which account it is for."; result.needs_account.push({ name: f.name, sha256: f.sha, ask: `${f.name} does not say which account it is for. Add it again and name the account.` }); }
+    // Nothing is wrong with it. It is one question, and it waits unread until someone answers.
+    else if (noAccount) { s.status = "active"; s.note = "unread:no_account"; waiting.add(s.source_id); result.needs_account.push({ name: f.name, sha256: f.sha, ask: `${f.name} does not say which account it is for. Add it again and name the account.` }); }
     else if (s.status === "quarantined") { const why = faults.find((x) => x.code !== "file_refused") || faults[0] || {}; s.note = `refused: ${f.name} failed its checks and was not imported. ${why.what || why.code || ""}`.trim(); result.refused.push({ name: f.name, sha256: f.sha, why: s.note.replace(/^refused: /, ""), faults: faults.slice(0, 5) }); }
     else delete s.note;
   }
+  res.observations = res.observations.filter((o) => !waiting.has(o.source_id));
   const made = materialise(setup, res.sources, res.observations, { today, name: opts.name, type: opts.type });
   result.unresolved = made.unresolved;
   result.accounts_created = made.account.map((a) => ({ account_id: a.account_id, name: a.name, type: a.type }));
@@ -147,12 +180,13 @@ async function add(store, files, opts = {}) {
   for (const e of res.files.filter((x) => x.duplicate_of)) { const f = byPath.get(e.path); note(f, fresh.get(e.source_id) || known.find((s) => s.source_id === e.source_id)); result.already.push({ name: f.name, source_id: e.source_id }); }
 
   for (const t of ["account", "alias", "ownership", "stream"]) await store.tables.appendNew(t, made[t]);
+  for (const a of made.retype) await store.tables.change("account", a);
   await store.tables.appendNew("observation", res.observations);
   await store.tables.appendNew("x_delivery", deliveries);
   const before = new Map(known.map((s) => [s.source_id, s]));
   await store.tables.appendNew("source", res.sources.filter((s) => !before.has(s.source_id)));
   for (const s of res.sources.filter((x) => before.has(x.source_id))) { const was = before.get(s.source_id); if (was.status !== s.status || (was.note || "") !== (s.note || "")) await store.tables.change("source", s); }
-  for (const s of res.sources) { const e = logged.get(s.source_id); if (e && e.recipe && s.status === "active") result.added.push({ name: s.name, source_id: s.source_id, recipe: e.recipe, observations: e.observations, by_kind: e.by_kind, bytes: bytesState(s) }); }
+  for (const s of res.sources) { const e = logged.get(s.source_id); if (e && e.recipe && s.status === "active" && !waiting.has(s.source_id)) result.added.push({ name: s.name, source_id: s.source_id, recipe: e.recipe, observations: e.observations, by_kind: e.by_kind, bytes: bytesState(s) }); }
   return result;
 }
 /* The other half of a recipe request. A recipe from anyone goes through the gate over the files it claims. It passes, and it is stored and the
@@ -172,4 +206,4 @@ async function addRecipe(store, recipe, opts = {}) {
   await store.tables.appendNew("recipe", [{ recipe_id: recipe.id, fingerprint: recipe.fingerprints[0], family: recipe.family || recipe.id, spec: recipe, author, tokens_in, tokens_out, gate_status: "passed", created_at: stamp(today) }]);
   return { status: "passed", verdict, read: await add(store, family.map(({ name, bytes, stream, download_date }) => ({ name, bytes, stream, download_date })), { today, account: opts.account, name: opts.name, type: opts.type, on_device: opts.on_device }) };
 }
-module.exports = { add, addRecipe, bytesState, readState, sampleOf };
+module.exports = { add, addRecipe, bytesState, readState, sampleOf, ownershipRows };

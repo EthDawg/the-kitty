@@ -16,5 +16,8 @@ take the `todo` off and it stays passed. The runtime's workaround, if any, is na
 | R-008 | `rebuild` writes on the observations it is handed | The runtime copies them first |
 | R-009 | Default categories and the tax map live inside the Davies world | Copied to `defaults.json`, with a drift test |
 | R-010 | `scope.domain` has no vocabulary | The runtime uses the Davies world's words |
+| R-011 | An opening from a statement sits on top of lines older than it, which it already holds. Blind run F043 | `clock.js` moves the opening back in a second rebuild. Patch: `R-011.patch` |
+| R-012 | A public dictionary match decides money coming in. Blind run F007 to F009 | `clock.js` blanks the line for a second rebuild, so it reaches review. Patch: `R-012.patch` |
+| R-013 | A payslip for someone who is not a party stops the whole rebuild | `add.js` aliases the name to a household's one adult. Two adults still throws |
 
 A claim here was once retracted. Lines on an unresolved account were written down as dropped in silence; the fixture passed, because the engine raises `unresolved_account` and L4 fails. The fixture is the test of the finding, not the prose.

@@ -11,30 +11,9 @@ const nameOf = (L, id) => (L.index.accounts.get(id) || {}).name || id;
 const choices = (view, out) => view.setup.category.filter((c) => (out ? ["expense", "pass_through", "transfer"] : ["income", "pass_through", "transfer"]).includes(c.kind)).filter((c) => c.category_id !== "UNCAT").map((c) => ({ id: c.category_id, name: c.name }));
 
 const lastLine = (L, account) => { const rows = (L.linesByAccount.get(account) || []).map((l) => l.date).sort(); return rows[rows.length - 1] || null; };
-// A law's scope is an id or a clearing path. A person gets the name at the end of it.
-function scopeName(L, scope) {
-  const tail = String(scope).split(" ")[0].split(":").pop(), party = L.parties.find((p) => p.party_id === tail);
-  return (L.index.accounts.get(tail) || {}).name || (party && party.name) || tail;
-}
 const SPOKEN = new Set(["uncategorised", "deposit_without_payslip", "open_item", "file_refused", "unresolved_account", "unpaired_transfer"]);
 // A payslip newer than the last bank line is a file still to come, not a question. The stale step asks for that file.
 const stillToCome = (L, r) => { if (r.kind !== "payslip_without_deposit") return false; const on = (/\d{4}-\d{2}-\d{2}/.exec(r.what) || [])[0], lines = (L.lines || []).map((l) => l.date).sort(); return !!on && on > (lines[lines.length - 1] || ""); };
-const LAW_WORDS = {
-  L1: (x) => `An entry for ${x} does not balance.`,
-  L2: (x) => `Two sides of the same money have not met: ${x}.`,
-  L3: (x) => `The balances for ${x} do not add up.`,
-  L5: (x) => `A payslip for ${x} does not add up.`,
-  L6: (x) => `The interest on ${x} is not what its rate says.`,
-  L7: (x) => `The holdings in ${x} do not match the statement.`,
-  L8: () => "What your files say you hold does not match what the ledger adds up to.",
-  L9: (x) => `The owners of ${x} do not add up to 100%.`,
-  L10: (x) => `${x} has two values for the same day.`,
-  L11: (x) => `A tax return does not match what we worked out: ${x}.`,
-  L14: (x) => `Super on a payslip did not reach the fund: ${x}.`,
-  L15: () => "A number has no file behind it.",
-  L17: (x) => `A decision has lost the line it was about: ${x}.`,
-  other: (x) => `Two things in your files disagree: ${x}.`,
-};
 const steps = {
   handEdit({ view }) {
     const hashOf = (d) => (d.value || {}).found_hash;
@@ -45,6 +24,17 @@ const steps = {
   unread({ view }) {
     const s = view.sources.find((x) => /^unread:no_recipe/.test(x.note || ""));
     return s && { id: "needs_recipe", say: `We can't read ${s.name} yet.`, why: "Nothing from that file is in your numbers. It is held safe until we can.", action: { verb: "recipe", label: "Ask your agent to write a recipe for it", args: { source_id: s.source_id, fingerprint: s.note.split(":").slice(2).join(":") } } };
+  },
+  // Nothing is wrong with a file that doesn't name its account. It is the one thing to ask, and it is not a failure.
+  noAccount({ view }) {
+    const s = view.sources.find((x) => /^unread:no_account/.test(x.note || ""));
+    return s && { id: "no_account", say: `Which account is ${s.name} for?`, why: "The file doesn't say, and nothing from it is in your numbers until you do.", action: { verb: "account", label: "Read it into this account", args: { source_id: s.source_id } } };
+  },
+  attach({ view, facts }) {
+    const u = facts.unattached[0];
+    if (!u) return null;
+    const cash = view.setup.account.filter((a) => a.reporting_group === "cash").map((a) => ({ id: a.account_id, name: a.name }));
+    return { id: "attach", say: `Your pay goes to an account ending ${String(u.ref).slice(-4)}. Which account is that?`, why: `${u.from} says so, and we haven't met that number. Say which it is and every file with it lands there.`, action: { verb: "decide", label: "Which account?", args: { attach: { ref: u.ref } }, needs: ["account_id"], choices: [...cash, { id: "", name: "None of these" }] } };
   },
   scan({ view }) {
     const s = view.sources.find((x) => /^unread:agent_tier/.test(x.note || ""));
@@ -68,10 +58,17 @@ const steps = {
   lawFails({ L, facts }) {
     const f = facts.laws.failing.find((x) => x.law !== "L12");
     // A transfer whose other side is an account we have not met is the commonest thing a first file shows, and not a fault in anything.
-    if (f && f.law === "L2" && /transfer/.test(f.scope)) return { id: "other_side", say: "Some of your money went to an account we haven't met yet.", why: "It isn't counted as spending. Add that account's file and the two sides meet.", action: { verb: "add", label: "Add that account's file", args: { check: `${f.law}|${f.scope}` } } };
-    return f && { id: "does_not_add_up", say: (LAW_WORDS[f.law] || LAW_WORDS.other)(scopeName(L, f.scope)), why: f.detail || "A number you can't trust is worse than a number you don't have.", action: { verb: "review", label: "Look at it, then add the missing file, or accept it with a reason", args: { check: `${f.law}|${f.scope}` } } };
+    if (f && f.law === "L2" && /transfer/.test(f.scope)) {
+      // Every account is met and something still has one side: a payment from before an account's first file. It says that, and stops talking about strangers.
+      if (!facts.unmet.length) return { id: "other_side", say: f.say, why: "It is usually a card payment from before your card's first file. Add the older file and the two sides meet, or look and accept it with a reason.", action: { verb: "review", label: "Look at it", args: { check: `${f.law}|${f.scope}` } } };
+      const top = facts.unmet[0], more = facts.unmet.length - 1, named = top ? `${money(top.cents)} went out as ${top.words}${more ? `, and ${more === 1 ? "one other" : `${more} others`} like it` : ""}. ` : "";
+      return { id: "other_side", say: "Some of your money went to an account we haven't met yet.", why: `${named}It isn't counted as spending. Add that account's file and the two sides meet.`, action: { verb: "add", label: top ? `Add the file for ${top.words}` : "Add that account's file", args: { check: `${f.law}|${f.scope}` } } };
+    }
+    return f && { id: "does_not_add_up", say: f.say, why: f.detail || "A number you can't trust is worse than a number you don't have.", action: { verb: "review", label: "Look at it, then add the missing file, or accept it with a reason", args: { check: `${f.law}|${f.scope}` } } };
   },
-  categorise({ L, view }) {
+  categorise({ L, view, facts }) {
+    const q = facts.income[0];
+    if (q) return { id: "categorise", say: `${q.say} What is it?`, why: "Money that keeps coming in from one place is usually pay or a benefit. Answer once and every one of them goes with it, in the files you add later too.", action: { verb: "decide", label: "What is it?", args: { item: q.item }, needs: ["category_id"], choices: choices(view, false) } };
     const r = L.review.find((x) => x.kind === "uncategorised");
     if (!r) return null;
     const [, date] = r.ref.split("|"), out = r.amount_cents < 0, left = L.review.filter((x) => x.kind === "uncategorised").length;
@@ -122,7 +119,7 @@ const steps = {
 };
 // A missing file comes before a broken law: most laws fail because a file is missing. Evidence comes before judgement for the same reason.
 // Payslips are asked before a close, so a month locks the first time instead of being closed and then locked.
-const ORDER = ["handEdit", "unread", "refused", "firstFile", "changedSeal", "unresolved", "missingMonth", "lawFails", "categorise", "otherReview", "noBalance", "stale", "payslips", "closeMonth", "scan", "askScope", "clear"];
+const ORDER = ["handEdit", "unread", "noAccount", "refused", "firstFile", "changedSeal", "unresolved", "missingMonth", "lawFails", "categorise", "otherReview", "noBalance", "stale", "payslips", "closeMonth", "attach", "scan", "askScope", "clear"];
 
 function pick(built) {
   const facts = readiness(built);

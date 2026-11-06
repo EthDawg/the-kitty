@@ -5,7 +5,7 @@
 "use strict";
 const { rebuild } = require("../../standard/engine/rebuild");
 const { allMetrics } = require("../../standard/engine/metrics");
-const { fyOf, fyRange } = require("../../standard/engine/util");
+const { fyOf, fyRange, daysBetween } = require("../../standard/engine/util");
 const { base, verifiedAt } = require("./base");
 const { TABS, pkOf } = require("./tabs");
 
@@ -58,7 +58,7 @@ function viewOf(o, today) {
   const held = new Set(sources.map((s) => s.source_id));
   const observations = o.observation.filter((x) => held.has(x.source_id)).map((x) => ({ ...x }));
   const decisions = o.decision.filter((d) => !today || dayOf(d.at) <= today);
-  const rules = latest("rule", knownOn(o.rule, today));
+  const rules = latest("rule", knownOn(o.rule, today)).filter((r) => !r.superseded_at);   // a changed mind: the old answer is kept in the Sheet and no longer read
   const deliveries = o.x_delivery.filter((d) => !today || d.day <= today);
   const receipts = [...sources.filter((s) => s.stream_id).map((s) => ({ stream_id: s.stream_id, day: dayOf(s.captured_at) })), ...deliveries.map((d) => ({ stream_id: d.stream_id, day: d.day }))];
   const faults = sources.filter((s) => s.status === "quarantined").map((s) => ({ code: "file_refused", path: s.uri || s.name, what: String(s.note || `${s.name} failed its checks and was not imported.`).replace(/^refused: /, "") }));
@@ -81,10 +81,41 @@ function assumedYears(L, today) {
   if (today) years.add(fyOf(today));
   return [...years].filter((fy) => fyRange(fy).start > verified).sort();
 }
+/* Two things the engine gets wrong today, put right from outside it until findings R-011 and R-012 land. Each is read off a first rebuild and held in memory for a second one, so
+   nothing is stored, a later file changes the answer by itself, and a household with neither, the Davies world among them, takes exactly one rebuild and keeps its hash. */
+const REFUND_WORDS = /REFUND|REVERSAL|CHARGEBACK|RETURN/i;
+const payeeOf = (l) => String(l.cls.merchant || l.desc).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).slice(0, 2).join(" ");
+// R-012. Money in that a public dictionary filed under an expense, with nothing from the household behind it, goes to review. A payer who repeats is never a refund.
+function creditsToAsk(L) {
+  const guessed = L.events.filter((e) => e.kind === "refund" && e.rule === "dictionary" && e.line).map((e) => e.line);
+  if (!guessed.length) return [];
+  const times = new Map();
+  for (const l of guessed) times.set(l.cls.norm, (times.get(l.cls.norm) || 0) + 1);
+  const paid = (l) => (L.lines || []).filter((x) => x.cents < 0 && x.date <= l.date && payeeOf(x) === payeeOf(l) && daysBetween(x.date, l.date) <= 365).reduce((n, x) => n - x.cents, 0);
+  const evidence = (l) => times.get(l.cls.norm) === 1 && (REFUND_WORDS.test(l.desc) || paid(l) >= l.cents);
+  return [...new Set(guessed.filter((l) => !evidence(l)).map((l) => l.cls.norm))].map((norm) => ({ rule_id: `ask-${norm}`, pattern: norm, match: "normalised", direction: "credit", provenance: "asked of a person", status: "accepted" }));
+}
+// R-011. An opening states where an account stood on its day, so lines from before that day are already in it. The opening moves back to the first line, and takes them out.
+function openingsToMove(L) {
+  const out = new Map();
+  for (const e of L.events) {
+    if (e.kind !== "opening_balance" || e.rule !== "first_evidence") continue;
+    const earlier = (L.linesByAccount.get(e.refs.account) || []).filter((l) => l.date <= e.occurred_on);
+    if (earlier.length) out.set(e.refs.account, { opening_balance_cents: e.amount_cents - earlier.reduce((n, l) => n + l.cents, 0), opening_date: earlier.map((l) => l.date).sort()[0] });
+  }
+  return out;
+}
 async function rebuildAt(store, { today, originals } = {}) {
-  const o = originals || (await loadOriginals(store)), b = base(), view = viewOf(o, today);
+  const o = originals || (await loadOriginals(store)), b = base();
+  let view = viewOf(o, today);
   const evidence = horizon(view.observations), asOf = asOfFor(today, evidence);
-  const L = rebuild({ setup: view.setup, sources: view.sources, observations: view.observations, decisions: view.decisions, rules: view.rules, schema: { events: b.schema.events }, reference: b.reference, receipts: view.receipts, faults: view.faults, asOf });
+  const read = (setup, rules) => rebuild({ setup, sources: view.sources, observations: view.observations, decisions: view.decisions, rules, schema: { events: b.schema.events }, reference: b.reference, receipts: view.receipts, faults: view.faults, asOf });
+  let L = read(view.setup, view.rules);
+  const asked = creditsToAsk(L), moved = openingsToMove(L);
+  if (asked.length || moved.size) {
+    view = viewOf(o, today);   // rebuild writes on what it is handed. Finding R-008.
+    L = read({ ...view.setup, account: view.setup.account.map((a) => (moved.has(a.account_id) ? { ...a, ...moved.get(a.account_id) } : a)) }, [...view.rules, ...asked]);
+  }
   // Metrics need a month to read. A household with nothing in it yet has none, and that is a state, not an error. Finding R-001.
   if (L.balances.months.length) L.metrics = allMetrics(L, b.schema.metrics);
   const assumed = assumedYears(L, today);

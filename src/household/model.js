@@ -209,6 +209,8 @@ function modelFromStandard(L, view, { E = Engine, asOf } = {}) {
 /* The review queue the page draws, from the standard's own list, not from the sheet-era rules in E.review: the standard already asked its dictionary, and says what it
    could not place. Only lines the page can show go here. The rest of the list, open items and refused files, is what next.js speaks. */
 function reviewFrom(L, m) {
+  const times = new Map();
+  for (const r of L.review || []) if (r.kind === "uncategorised" && r.amount_cents > 0) times.set(r.question, (times.get(r.question) || 0) + 1);
   delete m.catById.UNPLACED;   // a name for what the ledger holds out, not an answer a person can pick
   m.cats = m.cats.filter((c) => c.id !== "UNPLACED");
   const items = [], counts = { uncategorised: 0, unresolved: 0, duplicate: 0, unpaired: 0, first_big: 0 };
@@ -216,9 +218,10 @@ function reviewFrom(L, m) {
     const e = r.kind === "uncategorised" ? m.entryById[r.ref] : null;   // an unexplained credit is asked as uncategorised too
     if (!e) continue;
     counts.uncategorised += 1;
-    items.push({ id: e.id, entry: e, item_id: r.item_id, reasons: ["uncategorised"], dupOf: null, why: "needs a category" });
+    const repeats = r.amount_cents > 0 && times.get(r.question) > 1;
+    items.push({ id: e.id, entry: e, item_id: r.item_id, reasons: ["uncategorised"], dupOf: null, repeats, why: repeats ? "keeps coming in. Is it pay?" : "needs a category" });
   }
-  items.sort((a, b) => (a.entry.date < b.entry.date ? 1 : a.entry.date > b.entry.date ? -1 : 0));
+  items.sort((a, b) => Number(b.repeats) - Number(a.repeats) || (a.entry.date < b.entry.date ? 1 : a.entry.date > b.entry.date ? -1 : 0));
   return { items, counts, byId: new Set(items.map((i) => i.id)), hasRule: () => false };
 }
 module.exports = { modelFromStandard, snapshotFromStandard, UNSTATED };
