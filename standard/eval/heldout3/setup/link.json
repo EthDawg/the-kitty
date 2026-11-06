@@ -1,0 +1,69 @@
+[
+ {
+  "relation": "secures",
+  "from_type": "contract",
+  "from_id": "CON-BRIDGE",
+  "to_type": "asset",
+  "to_id": "AST-UNIT",
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-05-30"
+ },
+ {
+  "relation": "funds_purpose",
+  "from_type": "contract",
+  "from_id": "CON-BRIDGE",
+  "to_type": "asset",
+  "to_id": "AST-UNIT",
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "share_bps": 10000,
+  "valid_to": "2025-05-30"
+ },
+ {
+  "relation": "serves",
+  "from_type": "account",
+  "from_id": "ACC-SAVER",
+  "to_type": "asset",
+  "to_id": "AST-PORTLAND",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "charged_to",
+  "from_type": "account",
+  "from_id": "ACC-CARD",
+  "to_type": "account",
+  "to_id": "ACC-EVERY",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-HOME-INS",
+  "to_type": "asset",
+  "to_id": "AST-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-05-30"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-HOME-INS",
+  "to_type": "asset",
+  "to_id": "AST-UNIT",
+  "valid_from": "2025-05-30",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-PORTLAND-INS",
+  "to_type": "asset",
+  "to_id": "AST-PORTLAND",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

@@ -1,0 +1,11 @@
+[
+ {
+  "activity_id": "ACT-PORTLAND",
+  "kind": "rental",
+  "name": "The Portland lets",
+  "asset_id": "AST-PORTLAND",
+  "owner_party_id": "PTY-SALMA",
+  "valid_from": "2019-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]
