@@ -39,6 +39,9 @@ for (const [id, s] of Object.entries(series)) for (const r of s.rows) {
   const v = (verified[twin[id] || id] || { rows: [] }).rows.find((x) => x.valid_from <= r.valid_from && (x.valid_to == null || r.valid_from < x.valid_to));
   if (v && v.value != null) { r.confidence = v.confidence; r.source_url = v.source_url; }
 }
+// Series no one has typed here: taken whole from the independent read, with its own confidence on each row.
+const CARRIED = ["div293_threshold", "phi_rebate_percent", "phi_rebate_income_tiers", "medicare_levy_surcharge", "medicare_levy_low_income_thresholds", "help_indexation_rates", "sg_max_contribution_base", "non_concessional_cap", "transfer_balance_cap"];
+for (const id of CARRIED) if (verified[id]) series[id] = verified[id];
 const out = { _about: "Dated Australian parameters. Ranges are half-open. Reconciled against au-verified.json, the independent read from primary pages. Confidence says how far each row has been checked. Not tax advice.", jurisdiction: "AU", verified_at: null, series };
 fs.writeFileSync(path.join(__dirname, "..", "reference", "au.json"), JSON.stringify(out, null, 1) + "\n");
 console.log(`${Object.keys(series).length} series.`);

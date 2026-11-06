@@ -945,6 +945,1273 @@
      "confidence": "secondary"
     }
    ]
+  },
+  "div293_threshold": {
+   "unit": "AUD",
+   "meaning": "Division 293 threshold: Div 293 income plus low-tax contributions above this level attract an extra 15% tax on concessional contributions.",
+   "rows": [
+    {
+     "valid_from": "2018-07-01",
+     "valid_to": null,
+     "value": 250000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/division-293-tax",
+     "confidence": "verified",
+     "note": "ATO Table 7 (last updated 7 Aug 2026): '2017-18 onwards $250,000'; '2012-13 to 2016-17 $300,000'. So the level took effect 1 July 2017 and has not changed or been indexed since (including 2026-27). Row starts 2018-07-01 to match requested coverage. Div 293 tax rate is 15% of the lesser of the excess over the threshold and the Div 293 super contributions."
+    }
+   ]
+  },
+  "phi_rebate_percent": {
+   "unit": "percent (published percentage points, e.g. 24.608 means 24.608% of the premium), by age band of the oldest person covered and income tier; tier3 is always 0",
+   "meaning": "Australian Government private health insurance rebate percentage by age of the oldest person on the policy and income tier, re-set every 1 April by the Rebate Adjustment Factor, income and age tested, and claimable either as a premium reduction from the insurer or as a refundable offset in the tax return (any difference is reconciled at assessment).",
+   "rows": [
+    {
+     "valid_from": "2018-04-01",
+     "valid_to": "2019-04-01",
+     "value": {
+      "under_65": {
+       "base": 25.415,
+       "tier1": 16.943,
+       "tier2": 8.471,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 29.651,
+       "tier1": 21.18,
+       "tier2": 12.707,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 33.887,
+       "tier1": 25.415,
+       "tier2": 16.943,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/income-thresholds-and-rates-for-the-phi-rebate-2019",
+     "confidence": "verified",
+     "note": "Rate for 1 Jul 2018 to 31 Mar 2019 read on this ATO 2018-19 page (Table 2). The 1 Apr 2018 to 30 Jun 2018 portion (same figures, 25.415% under 65 base) is Table 3 of the ATO 'rebate 2018' page https://www.ato.gov.au/api/public/content/0-9c3f39d0-890c-4e19-95ff-8cf93749c68c, which also shows the preceding 1 Jul 2017 to 31 Mar 2018 rate was 25.934% base under 65. 1 Apr 2018 was a decrease."
+    },
+    {
+     "valid_from": "2019-04-01",
+     "valid_to": "2020-04-01",
+     "value": {
+      "under_65": {
+       "base": 25.059,
+       "tier1": 16.706,
+       "tier2": 8.352,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 29.236,
+       "tier1": 20.883,
+       "tier2": 12.529,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 33.413,
+       "tier1": 25.059,
+       "tier2": 16.706,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.health.gov.au/news/phi-circulars/phi-0819-private-health-insurance-rebate-adjustment-factor-effective-1-april-2019",
+     "confidence": "verified",
+     "note": "PHI 08/19, RAF 0.986, industry weighted average premium increase 3.25%. Matches ATO 2018-19 page Table 3 and ATO 2019-20 page Table 2."
+    },
+    {
+     "valid_from": "2020-04-01",
+     "valid_to": "2021-04-01",
+     "value": {
+      "under_65": {
+       "base": 25.059,
+       "tier1": 16.706,
+       "tier2": 8.352,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 29.236,
+       "tier1": 20.883,
+       "tier2": 12.529,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 33.413,
+       "tier1": 25.059,
+       "tier2": 16.706,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.health.gov.au/news/phi-circulars/phi-2420-private-health-insurance-rebate-adjustment-factor-effective-1-april-2020",
+     "confidence": "verified",
+     "note": "Rebate FROZEN: RAF set to 1 by Private Health Insurance (Incentives) Amendment Rules (No. 1) 2020 (PHI 23/20, commenced 31 Mar 2020). An earlier circular PHI 07/20 (30 Jan 2020, RAF 0.990, 24.808% base under 65) was repealed and must NOT be used. Matches ATO 2019-20 page Table 3 and ATO 2020-21 page Table 2."
+    },
+    {
+     "valid_from": "2021-04-01",
+     "valid_to": "2022-04-01",
+     "value": {
+      "under_65": {
+       "base": 24.608,
+       "tier1": 16.405,
+       "tier2": 8.202,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 28.71,
+       "tier1": 20.507,
+       "tier2": 12.303,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 32.812,
+       "tier1": 24.608,
+       "tier2": 16.405,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/income-thresholds-and-rates-for-the-phi-rebate-2021",
+     "confidence": "verified",
+     "note": "Read on ATO 2020-21 page Table 3 (1 Apr 2021 to 30 Jun 2021) and ATO 2021-22 page Table 2 (1 Jul 2021 to 31 Mar 2022). No 2021 PHI circular or RAF value was found, so the adjustment factor is not recorded. Decrease from 25.059%."
+    },
+    {
+     "valid_from": "2022-04-01",
+     "valid_to": "2023-04-01",
+     "value": {
+      "under_65": {
+       "base": 24.608,
+       "tier1": 16.405,
+       "tier2": 8.202,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 28.71,
+       "tier1": 20.507,
+       "tier2": 12.303,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 32.812,
+       "tier1": 24.608,
+       "tier2": 16.405,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.health.gov.au/news/phi-circulars/phi-0422-private-health-insurance-rebate-adjustment-factor-effective-1-april-2022",
+     "confidence": "verified",
+     "note": "PHI 04/22, RAF 1, no change on 1 Apr 2022. Matches ATO 2021-22 page Table 3 and ATO 2022-23 page Table 2."
+    },
+    {
+     "valid_from": "2023-04-01",
+     "valid_to": "2024-04-01",
+     "value": {
+      "under_65": {
+       "base": 24.608,
+       "tier1": 16.405,
+       "tier2": 8.202,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 28.71,
+       "tier1": 20.507,
+       "tier2": 12.303,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 32.812,
+       "tier1": 24.608,
+       "tier2": 16.405,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.health.gov.au/news/phi-circulars/phi-1023-private-health-insurance-rebate-adjustment-factor-effective-1-april-2023",
+     "confidence": "verified",
+     "note": "PHI 10/23, RAF 1, no change on 1 Apr 2023. Matches ATO 2022-23 page Table 3 and ATO 2023-24 page Table 2."
+    },
+    {
+     "valid_from": "2024-04-01",
+     "valid_to": "2025-04-01",
+     "value": {
+      "under_65": {
+       "base": 24.608,
+       "tier1": 16.405,
+       "tier2": 8.202,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 28.71,
+       "tier1": 20.507,
+       "tier2": 12.303,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 32.812,
+       "tier1": 24.608,
+       "tier2": 16.405,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.health.gov.au/news/phi-circulars/phi-1724-private-health-insurance-rebate-adjustment-factor-effective-1-april-2024",
+     "confidence": "verified",
+     "note": "PHI 17/24, RAF 1.000, no change on 1 Apr 2024. Matches ATO 2023-24 page Table 3 and the current ATO page (2024-25, 1 Jul 2024 to 31 Mar 2025)."
+    },
+    {
+     "valid_from": "2025-04-01",
+     "valid_to": "2026-04-01",
+     "value": {
+      "under_65": {
+       "base": 24.288,
+       "tier1": 16.192,
+       "tier2": 8.095,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 28.337,
+       "tier1": 20.24,
+       "tier2": 12.143,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 32.385,
+       "tier1": 24.288,
+       "tier2": 16.192,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.health.gov.au/news/phi-circulars/phi-2125-private-health-insurance-rebate-adjustment-factor-effective-1-april-2025",
+     "confidence": "verified",
+     "note": "PHI 21/25, RAF 0.987. Matches the current ATO page and privatehealth.gov.au."
+    },
+    {
+     "valid_from": "2026-04-01",
+     "valid_to": null,
+     "value": {
+      "under_65": {
+       "base": 24.118,
+       "tier1": 16.079,
+       "tier2": 8.038,
+       "tier3": 0
+      },
+      "65_to_69": {
+       "base": 28.139,
+       "tier1": 20.098,
+       "tier2": 12.058,
+       "tier3": 0
+      },
+      "70_plus": {
+       "base": 32.158,
+       "tier1": 24.118,
+       "tier2": 16.079,
+       "tier3": 0
+      }
+     },
+     "source_url": "https://www.health.gov.au/news/phi-circulars/phi-1226-private-health-insurance-rebate-adjustment-factor-effective-1-april-2026",
+     "confidence": "verified",
+     "note": "PHI 12/26 (17 Feb 2026), RAF 0.993, industry weighted average premium increase 4.41%. Latest period in force at 6 Nov 2026; valid_to is null because it must be re-set at the 1 April 2027 adjustment (ATO says 1 Apr 2027 rates become available in March 2027). The department states the Government has announced a rebate change planned from 1 April 2027 so that people in the same income tier receive the same rebate rate (see https://www.health.gov.au/topics/private-health-insurance/about-private-health-insurance); the age-band structure of this value object may therefore change from that date. Details of that change were not read on a primary page."
+    }
+   ]
+  },
+  "phi_rebate_income_tiers": {
+   "unit": "AUD income for surcharge purposes (single or combined family income); tier3 applies above tier2_max",
+   "meaning": "Income thresholds that place a person in the base, tier 1, tier 2 or tier 3 band for the private health insurance rebate, for singles and families (single parents and couples), with a per-child increment to the family threshold, changing each 1 July.",
+   "rows": [
+    {
+     "valid_from": "2018-07-01",
+     "valid_to": "2019-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/income-thresholds-and-rates-for-the-phi-rebate-2019",
+     "confidence": "verified",
+     "note": "FY2018-19, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it."
+    },
+    {
+     "valid_from": "2019-07-01",
+     "valid_to": "2020-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/income-thresholds-and-rates-for-the-phi-rebate-2020",
+     "confidence": "verified",
+     "note": "FY2019-20, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it."
+    },
+    {
+     "valid_from": "2020-07-01",
+     "valid_to": "2021-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/income-thresholds-and-rates-for-the-phi-rebate-2021",
+     "confidence": "verified",
+     "note": "FY2020-21, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it."
+    },
+    {
+     "valid_from": "2021-07-01",
+     "valid_to": "2022-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/api/public/content/0-cbeb5b1e-bb6e-4ee5-8fd0-0f18bf3b9908",
+     "confidence": "verified",
+     "note": "FY2021-22, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it. ATO page title: 'Income thresholds and rates for the private health insurance rebate 2022'."
+    },
+    {
+     "valid_from": "2022-07-01",
+     "valid_to": "2023-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/api/public/content/0-691844e5-775a-4ff1-b78c-bde64d9d0030",
+     "confidence": "verified",
+     "note": "FY2022-23, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it. ATO page title: 'Income thresholds and rates for the private health insurance rebate 2023'."
+    },
+    {
+     "valid_from": "2023-07-01",
+     "valid_to": "2024-07-01",
+     "value": {
+      "single": {
+       "base_max": 93000,
+       "tier1_max": 108000,
+       "tier2_max": 144000
+      },
+      "family": {
+       "base_max": 186000,
+       "tier1_max": 216000,
+       "tier2_max": 288000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/api/public/content/0-2ea27760-b2cb-43ac-84fd-18303957327a",
+     "confidence": "verified",
+     "note": "FY2023-24, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it. ATO page title: 'Income thresholds and rates for the private health insurance rebate 2024'. First indexation after the long freeze. (The page's rate table has a typo, '30 March 2024'; the period ends 31 March.)"
+    },
+    {
+     "valid_from": "2024-07-01",
+     "valid_to": "2025-07-01",
+     "value": {
+      "single": {
+       "base_max": 97000,
+       "tier1_max": 113000,
+       "tier2_max": 151000
+      },
+      "family": {
+       "base_max": 194000,
+       "tier1_max": 226000,
+       "tier2_max": 302000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/private-health-insurance-rebate/income-thresholds-and-rates-for-the-private-health-insurance-rebate",
+     "confidence": "verified",
+     "note": "FY2024-25, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it."
+    },
+    {
+     "valid_from": "2025-07-01",
+     "valid_to": "2026-07-01",
+     "value": {
+      "single": {
+       "base_max": 101000,
+       "tier1_max": 118000,
+       "tier2_max": 158000
+      },
+      "family": {
+       "base_max": 202000,
+       "tier1_max": 236000,
+       "tier2_max": 316000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/private-health-insurance-rebate/income-thresholds-and-rates-for-the-private-health-insurance-rebate",
+     "confidence": "verified",
+     "note": "FY2025-26, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it."
+    },
+    {
+     "valid_from": "2026-07-01",
+     "valid_to": "2027-07-01",
+     "value": {
+      "single": {
+       "base_max": 105000,
+       "tier1_max": 123000,
+       "tier2_max": 164000
+      },
+      "family": {
+       "base_max": 210000,
+       "tier1_max": 246000,
+       "tier2_max": 328000
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/private-health-insurance-rebate/income-thresholds-and-rates-for-the-private-health-insurance-rebate",
+     "confidence": "verified",
+     "note": "FY2026-27, effective 1 July (not 1 April, unlike the rebate percentage). Same single and family thresholds as the Medicare levy surcharge for the same year. Tier ranges: base up to base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max (rebate 0%). The $1,500 per dependent child after the first is stated for the family threshold on the current ATO rebate page and on the ATO MLS pages; the prior-year rebate pages read do not restate it. Current ATO page states the thresholds increased from 1 July 2026; privatehealth.gov.au shows the same figures."
+    }
+   ]
+  },
+  "medicare_levy_surcharge": {
+   "unit": "AUD income for MLS purposes",
+   "meaning": "Medicare levy surcharge tiers for people without appropriate private patient hospital cover. Tier ranges: base up to base_max (0%), tier1 above base_max to tier1_max, tier2 above tier1_max to tier2_max, tier3 above tier2_max; family thresholds rise by per_child_increment_after_first for each MLS dependent child after the first. 2018-19 to 2021-22 rows were read by a research helper on ATO prior-year pages.",
+   "rows": [
+    {
+     "valid_from": "2018-07-01",
+     "valid_to": "2019-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/medicare-levy-surcharge-income-thresholds-and-rates-2018-19",
+     "confidence": "verified",
+     "note": "FY2018-19. Tier ranges as published: base up to the base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max. The same $90,000 single / $180,000 family base thresholds also appear on the ATO rebate pages for 2017-18 and 2022-23, so the thresholds were frozen until indexation resumed in 2023-24."
+    },
+    {
+     "valid_from": "2019-07-01",
+     "valid_to": "2020-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/medicare-levy-surcharge-income-thresholds-and-rates-2019-20",
+     "confidence": "verified",
+     "note": "FY2019-20. Tier ranges as published: base up to the base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max. The same $90,000 single / $180,000 family base thresholds also appear on the ATO rebate pages for 2017-18 and 2022-23, so the thresholds were frozen until indexation resumed in 2023-24."
+    },
+    {
+     "valid_from": "2020-07-01",
+     "valid_to": "2021-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/medicare-levy-surcharge-income-thresholds-and-rates-2020-21",
+     "confidence": "verified",
+     "note": "FY2020-21. Tier ranges as published: base up to the base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max. The same $90,000 single / $180,000 family base thresholds also appear on the ATO rebate pages for 2017-18 and 2022-23, so the thresholds were frozen until indexation resumed in 2023-24."
+    },
+    {
+     "valid_from": "2021-07-01",
+     "valid_to": "2022-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/medicare-levy-surcharge-income-thresholds-and-rates-2021-22",
+     "confidence": "verified",
+     "note": "FY2021-22. Tier ranges as published: base up to the base_max, tier1 above base_max up to tier1_max, tier2 above tier1_max up to tier2_max, tier3 above tier2_max. The same $90,000 single / $180,000 family base thresholds also appear on the ATO rebate pages for 2017-18 and 2022-23, so the thresholds were frozen until indexation resumed in 2023-24."
+    },
+    {
+     "valid_from": "2022-07-01",
+     "valid_to": "2023-07-01",
+     "value": {
+      "single": {
+       "base_max": 90000,
+       "tier1_max": 105000,
+       "tier2_max": 140000
+      },
+      "family": {
+       "base_max": 180000,
+       "tier1_max": 210000,
+       "tier2_max": 280000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2023-07-01",
+     "valid_to": "2024-07-01",
+     "value": {
+      "single": {
+       "base_max": 93000,
+       "tier1_max": 108000,
+       "tier2_max": 144000
+      },
+      "family": {
+       "base_max": 186000,
+       "tier1_max": 216000,
+       "tier2_max": 288000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates",
+     "confidence": "verified",
+     "note": "First indexation after years frozen at 90,000 / 180,000."
+    },
+    {
+     "valid_from": "2024-07-01",
+     "valid_to": "2025-07-01",
+     "value": {
+      "single": {
+       "base_max": 97000,
+       "tier1_max": 113000,
+       "tier2_max": 151000
+      },
+      "family": {
+       "base_max": 194000,
+       "tier1_max": 226000,
+       "tier2_max": 302000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2025-07-01",
+     "valid_to": "2026-07-01",
+     "value": {
+      "single": {
+       "base_max": 101000,
+       "tier1_max": 118000,
+       "tier2_max": 158000
+      },
+      "family": {
+       "base_max": 202000,
+       "tier1_max": 236000,
+       "tier2_max": 316000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2026-07-01",
+     "valid_to": "2027-07-01",
+     "value": {
+      "single": {
+       "base_max": 105000,
+       "tier1_max": 123000,
+       "tier2_max": 164000
+      },
+      "family": {
+       "base_max": 210000,
+       "tier1_max": 246000,
+       "tier2_max": 328000
+      },
+      "rates": {
+       "tier1": 0.01,
+       "tier2": 0.0125,
+       "tier3": 0.015
+      },
+      "per_child_increment_after_first": 1500
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates",
+     "confidence": "verified",
+     "note": "ATO page last updated 22 June 2026."
+    }
+   ]
+  },
+  "medicare_levy_low_income_thresholds": {
+   "unit": "AUD taxable income (single/family); per_child is the additional amount per dependent child",
+   "meaning": "Medicare levy low-income thresholds: no levy at or below 'lower', levy phased in between 'lower' and 'upper'. SAPTO variants apply to those entitled to the seniors and pensioners tax offset.",
+   "rows": [
+    {
+     "valid_from": "2018-07-01",
+     "valid_to": "2019-07-01",
+     "value": {
+      "single": {
+       "lower": null,
+       "upper": null
+      },
+      "single_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "family": {
+       "lower": null,
+       "upper": null
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "per_child": {
+       "lower": null,
+       "upper": null
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+     "confidence": "unverified",
+     "note": "Not read in this pass; values left null rather than guessed."
+    },
+    {
+     "valid_from": "2019-07-01",
+     "valid_to": "2020-07-01",
+     "value": {
+      "single": {
+       "lower": null,
+       "upper": null
+      },
+      "single_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "family": {
+       "lower": null,
+       "upper": null
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "per_child": {
+       "lower": null,
+       "upper": null
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+     "confidence": "unverified",
+     "note": "Not read in this pass; values left null rather than guessed."
+    },
+    {
+     "valid_from": "2020-07-01",
+     "valid_to": "2021-07-01",
+     "value": {
+      "single": {
+       "lower": null,
+       "upper": null
+      },
+      "single_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "family": {
+       "lower": null,
+       "upper": null
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "per_child": {
+       "lower": null,
+       "upper": null
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+     "confidence": "unverified",
+     "note": "Not read in this pass; values left null rather than guessed."
+    },
+    {
+     "valid_from": "2021-07-01",
+     "valid_to": "2022-07-01",
+     "value": {
+      "single": {
+       "lower": null,
+       "upper": null
+      },
+      "single_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "family": {
+       "lower": null,
+       "upper": null
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "per_child": {
+       "lower": null,
+       "upper": null
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+     "confidence": "unverified",
+     "note": "Not read in this pass; values left null rather than guessed."
+    },
+    {
+     "valid_from": "2022-07-01",
+     "valid_to": "2023-07-01",
+     "value": {
+      "single": {
+       "lower": null,
+       "upper": null
+      },
+      "single_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "family": {
+       "lower": null,
+       "upper": null
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "per_child": {
+       "lower": null,
+       "upper": null
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+     "confidence": "unverified",
+     "note": "Not read in this pass; values left null rather than guessed."
+    },
+    {
+     "valid_from": "2023-07-01",
+     "valid_to": "2024-07-01",
+     "value": {
+      "single": {
+       "lower": null,
+       "upper": null
+      },
+      "single_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "family": {
+       "lower": null,
+       "upper": null
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "per_child": {
+       "lower": null,
+       "upper": null
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+     "confidence": "unverified",
+     "note": "Not read in this pass; values left null rather than guessed."
+    },
+    {
+     "valid_from": "2024-07-01",
+     "valid_to": "2025-07-01",
+     "value": {
+      "single": {
+       "lower": 27222,
+       "upper": 34027
+      },
+      "single_sapto": {
+       "lower": 43020,
+       "upper": 53775
+      },
+      "family": {
+       "lower": null,
+       "upper": 57383
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": 74857
+      },
+      "per_child": {
+       "lower": null,
+       "upper": 5270
+      }
+     },
+     "source_url": "https://www.ato.gov.au/forms-and-instructions/individual-tax-return-2025-instructions/medicare-levy-questions-m1-m2-individual-tax-return-2025/m1-medicare-levy-reduction-or-exemption-2025",
+     "confidence": "verified",
+     "note": "ATO M1 2025 instructions (2024-25 return). Family lower threshold and the per-child lower increment are not printed on that page, so they are null; 'upper' for family is the family taxable income limit (worksheet row d) and per_child.upper is worksheet row f's multiplier."
+    },
+    {
+     "valid_from": "2025-07-01",
+     "valid_to": "2026-07-01",
+     "value": {
+      "single": {
+       "lower": 28011,
+       "upper": 35013
+      },
+      "single_sapto": {
+       "lower": 44268,
+       "upper": 55335
+      },
+      "family": {
+       "lower": 47238,
+       "upper": 59047
+      },
+      "family_sapto": {
+       "lower": 61623,
+       "upper": 77028
+      },
+      "per_child": {
+       "lower": 4338,
+       "upper": 5423
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-family-income",
+     "confidence": "verified",
+     "note": "Singles read at https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners. These 2025-26 thresholds were raised by legislation with Royal Assent 30 June 2026 (ATO 'Latest news'), i.e. AFTER the year ended and retrospective to 1 July 2025; values read were 'last updated 30 June 2026'."
+    },
+    {
+     "valid_from": "2026-07-01",
+     "valid_to": "2027-07-01",
+     "value": {
+      "single": {
+       "lower": null,
+       "upper": null
+      },
+      "single_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "family": {
+       "lower": null,
+       "upper": null
+      },
+      "family_sapto": {
+       "lower": null,
+       "upper": null
+      },
+      "per_child": {
+       "lower": null,
+       "upper": null
+      }
+     },
+     "source_url": "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners",
+     "confidence": "unverified",
+     "note": "2026-27 thresholds not published on the ATO pages read as at 6 Nov 2026 (the ATO pages describe 2025-26 as the current year). Likely to be set retrospectively by a later Budget measure, as 2025-26 was. Do not carry 2025-26 values forward silently."
+    }
+   ]
+  },
+  "help_indexation_rates": {
+   "unit": "fraction applied to the part of the balance unpaid for more than 11 months, on 1 June",
+   "meaning": "Indexation applied each 1 June to study and training loans. valid_from is the 1 June application date. From 2023 the rate is the LOWER of CPI and WPI; the change was legislated in November 2024 and backdated to 1 June 2023, so the 2023 and 2024 rates were restated.",
+   "rows": [
+    {
+     "valid_from": "2018-06-01",
+     "valid_to": "2019-06-01",
+     "value": {
+      "rate": 0.019
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2019-06-01",
+     "valid_to": "2020-06-01",
+     "value": {
+      "rate": 0.018
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2020-06-01",
+     "valid_to": "2021-06-01",
+     "value": {
+      "rate": 0.018
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2021-06-01",
+     "valid_to": "2022-06-01",
+     "value": {
+      "rate": 0.006
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2022-06-01",
+     "valid_to": "2023-06-01",
+     "value": {
+      "rate": 0.039
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2023-06-01",
+     "valid_to": "2024-06-01",
+     "value": {
+      "rate": 0.032,
+      "as_originally_applied": 0.071
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified",
+     "note": "Restated: 3.2% (lower of CPI/WPI) replaced the 7.1% originally applied on 1 June 2023. Studyassist: legislation passed Nov 2024, backdated to 1 June 2023."
+    },
+    {
+     "valid_from": "2024-06-01",
+     "valid_to": "2025-06-01",
+     "value": {
+      "rate": 0.04,
+      "as_originally_applied": 0.047
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified",
+     "note": "Restated: 4.0% replaced the 4.7% originally applied on 1 June 2024."
+    },
+    {
+     "valid_from": "2025-06-01",
+     "valid_to": "2026-06-01",
+     "value": {
+      "rate": 0.032
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2026-06-01",
+     "valid_to": "2027-06-01",
+     "value": {
+      "rate": 0.028
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-indexation-rates",
+     "confidence": "verified",
+     "note": "ATO page last updated 13 Oct 2026. From 2025 the rate is calculated after the December CPI and WPI are released."
+    }
+   ]
+  },
+  "sg_max_contribution_base": {
+   "unit": "AUD per quarter of ordinary time earnings for FY 2018-19 to 2025-26; from FY 2026-27 the value is an object with basis=annual_cumulative_per_financial_year and amount in AUD",
+   "meaning": "Maximum super contribution base (maximum earnings on which an employer must pay SG), per quarter to 30 Jun 2026 and per financial year from 1 Jul 2026.",
+   "rows": [
+    {
+     "valid_from": "2018-07-01",
+     "valid_to": "2019-07-01",
+     "value": 54030,
+     "source_url": "https://web.archive.org/web/20200930145834id_/https://www.ato.gov.au/Rates/key-superannuation-rates-and-thresholds/?page=25",
+     "confidence": "verified",
+     "note": "ATO key-rates page archived by the Wayback Machine (capture 30 Sep 2020, page last modified 22 Sep 2020), Table 23 'Maximum super contributions base', income per quarter."
+    },
+    {
+     "valid_from": "2019-07-01",
+     "valid_to": "2020-07-01",
+     "value": 55270,
+     "source_url": "https://web.archive.org/web/20200930145834id_/https://www.ato.gov.au/Rates/key-superannuation-rates-and-thresholds/?page=25",
+     "confidence": "verified",
+     "note": "ATO key-rates page archived by the Wayback Machine (capture 30 Sep 2020), Table 23, income per quarter."
+    },
+    {
+     "valid_from": "2020-07-01",
+     "valid_to": "2021-07-01",
+     "value": 57090,
+     "source_url": "https://web.archive.org/web/20200930145834id_/https://www.ato.gov.au/Rates/key-superannuation-rates-and-thresholds/?page=25",
+     "confidence": "verified",
+     "note": "ATO key-rates page archived by the Wayback Machine (capture 30 Sep 2020), Table 23, income per quarter. Independently corroborated by ATO TD 2020/8 footnote 79: 'For any quarter in the 2020-21 income year, the maximum contribution base is $57,090' (https://www.ato.gov.au/law/view/print?DocID=TXD%2FTD20208%2FNAT%2FATO%2F00001&PiT=99991231235958). TD 2020/8 also says the amount is subject to AWOTE indexation and to changes in the concessional contributions cap."
+    },
+    {
+     "valid_from": "2021-07-01",
+     "valid_to": "2022-07-01",
+     "value": 58920,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee",
+     "confidence": "verified",
+     "note": "ATO Table 24 (maximum income per quarter for SG purposes); max SG per quarter $5,892.00."
+    },
+    {
+     "valid_from": "2022-07-01",
+     "valid_to": "2023-07-01",
+     "value": 60220,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee",
+     "confidence": "verified",
+     "note": "ATO Table 24; max SG per quarter $6,323.10."
+    },
+    {
+     "valid_from": "2023-07-01",
+     "valid_to": "2024-07-01",
+     "value": 62270,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee",
+     "confidence": "verified",
+     "note": "ATO Table 24; max SG per quarter $6,849.70."
+    },
+    {
+     "valid_from": "2024-07-01",
+     "valid_to": "2025-07-01",
+     "value": 65070,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee",
+     "confidence": "verified",
+     "note": "ATO Table 24; max SG per quarter $7,483.05."
+    },
+    {
+     "valid_from": "2025-07-01",
+     "valid_to": "2026-07-01",
+     "value": 62500,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee",
+     "confidence": "verified",
+     "note": "ATO Table 24; max SG per quarter $7,500.00. FELL year on year from $65,070 (ATO tables). Modeller inference, not stated by ATO: $62,500 = $30,000 concessional cap x 100 / 12% / 4 quarters, i.e. the cap-linked formula appears to apply to the 2025-26 figure; the ATO ties the formula to 'from 1 July 2026'. Corroborated by ATO 'How much quarterly super to pay' page: 'The quarterly MCB for 2025-26 is $62,500'."
+    },
+    {
+     "valid_from": "2026-07-01",
+     "valid_to": "2027-07-01",
+     "value": {
+      "basis": "annual_cumulative_per_financial_year",
+      "amount": 270830,
+      "quarterly_equivalent_published": null
+     },
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/super-guarantee",
+     "confidence": "verified",
+     "note": "BASIS CHANGE: from 1 July 2026 (Payday Super) the maximum contribution base is an ANNUAL amount of qualifying earnings per financial year, not a per-quarter figure. ATO: 2026-27 = $270,830 (also stated at https://www.ato.gov.au/businesses-and-organisations/super-for-employers/paying-super-on-payday/what-payments-are-qualifying-earnings/maximum-contributions-base). Formula (ATO): concessional contributions cap x 100 / charge percentage, rounded down to nearest $10 = 32,500 x 100 / 12 = 270,833.33 -> 270,830. Do not divide by 4 to compare with earlier per-quarter rows; ATO publishes no quarterly equivalent. Once qualifying earnings reach the base the employer can stop minimum SG for that year. Next year's value moves with the concessional cap and the SG rate."
+    }
+   ]
+  },
+  "non_concessional_cap": {
+   "unit": "AUD per financial year",
+   "meaning": "General non-concessional (after-tax) contributions cap before any bring-forward; the cap is nil if total super balance at prior 30 June is at or above the general transfer balance cap.",
+   "rows": [
+    {
+     "valid_from": "2018-07-01",
+     "valid_to": "2019-07-01",
+     "value": 100000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2019-07-01",
+     "valid_to": "2020-07-01",
+     "value": 100000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2020-07-01",
+     "valid_to": "2021-07-01",
+     "value": 100000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2021-07-01",
+     "valid_to": "2022-07-01",
+     "value": 110000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2022-07-01",
+     "valid_to": "2023-07-01",
+     "value": 110000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2023-07-01",
+     "valid_to": "2024-07-01",
+     "value": 110000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2024-07-01",
+     "valid_to": "2025-07-01",
+     "value": 120000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2025-07-01",
+     "valid_to": "2026-07-01",
+     "value": 120000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "Equals 4 x the concessional cap for the year. Nil if total super balance at prior 30 June >= general transfer balance cap."
+    },
+    {
+     "valid_from": "2026-07-01",
+     "valid_to": "2027-07-01",
+     "value": 130000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps",
+     "confidence": "verified",
+     "note": "ATO (NCC page, updated 7 May 2026): 'This is now reviewed annually to remain in line with AWOTE.' Value still equals 4 x $32,500. Nil if total super balance at 30 June 2026 >= $2.1m general transfer balance cap."
+    }
+   ]
+  },
+  "transfer_balance_cap": {
+   "unit": "AUD (general transfer balance cap, per financial year)",
+   "meaning": "General transfer balance cap: limit on the total amount that can be transferred into the retirement phase. Also the cut-off used for non-concessional cap, bring-forward, co-contribution and spouse offset eligibility.",
+   "rows": [
+    {
+     "valid_from": "2018-07-01",
+     "valid_to": "2019-07-01",
+     "value": 1600000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified",
+     "note": "General cap only; an individual's personal transfer balance cap varies with their own transfer balance account history and is not modelled here."
+    },
+    {
+     "valid_from": "2019-07-01",
+     "valid_to": "2020-07-01",
+     "value": 1600000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2020-07-01",
+     "valid_to": "2021-07-01",
+     "value": 1600000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2021-07-01",
+     "valid_to": "2022-07-01",
+     "value": 1700000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2022-07-01",
+     "valid_to": "2023-07-01",
+     "value": 1700000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2023-07-01",
+     "valid_to": "2024-07-01",
+     "value": 1900000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2024-07-01",
+     "valid_to": "2025-07-01",
+     "value": 1900000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2025-07-01",
+     "valid_to": "2026-07-01",
+     "value": 2000000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified"
+    },
+    {
+     "valid_from": "2026-07-01",
+     "valid_to": "2027-07-01",
+     "value": 2100000,
+     "source_url": "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/transfer-balance-cap",
+     "confidence": "verified",
+     "note": "General cap rose from $2.0m to $2.1m on 1 July 2026. Personal caps vary by individual."
+    }
+   ]
   }
  }
 }
