@@ -46,6 +46,14 @@ if (require.main === module) {
   console.log(`Replay, ${mode} household: ${s.run.files} files, ${s.run.observations} observations, ${s.run.events} events, ${s.run.postings} postings. Ingest ${s.run.ingest_s}s, rebuild ${s.run.rebuild_s}s. Bundle ${s.run.bundle_hash}\n`);
   printScore(s);
   if (intake.faults && intake.faults.length) console.log(`\nIntake faults: ${intake.faults.length}. ${JSON.stringify(intake.faults.slice(0, 3))}`);
+  if (args.includes("--bundle")) {
+    const { toBundle, writeBundle } = require("../engine/bundle");
+    const { L } = run();
+    const setup = loadSetup();
+    const bundle = toBundle(L, { setup, tablesSchema: readJson(path.join(root, "schema", "tables.json")), decisions: mode === "returning" ? readJson(path.join(world, "decisions", "person.json"), []) : [], rules: mode === "returning" ? readJson(path.join(world, "decisions", "rules.json"), []) : [], recipes: fs.readdirSync(path.join(root, "recipes")).filter((f) => f.endsWith(".json")).map((f) => { const r = readJson(path.join(root, "recipes", f)); return { recipe_id: r.id, fingerprint: (r.fingerprints || [""])[0], family: r.id, spec: r, author: "golden", gate_status: "passed", created_at: "2026-11-06T00:00:00Z" }; }), version: "household-standard/1", mode });
+    writeBundle(bundle, path.join(root, ".build", "bundle"), fs, path);
+    console.log(`Bundle written to standard/.build/bundle.`);
+  }
   if (args.includes("--failures")) console.log(JSON.stringify(s.failures, null, 1));
   if (args.includes("--worst")) for (const r of s.sections) if (r.worst.length) console.log(r.name, JSON.stringify(r.worst.slice(0, 3)));
   if (args.includes("--log")) fs.appendFileSync(path.join(__dirname, "history.jsonl"), JSON.stringify({ ...s.run, sections: s.sections.map((r) => ({ name: r.name, exact: r.exact, checked: r.checked })), review: s.review.items }) + "\n");

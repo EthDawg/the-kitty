@@ -31,7 +31,7 @@ function rebuild(input) {
   for (const e of R.events) {
     if (!e.postings) e.postings = post(e, eventSchema);
     for (const p of e.postings) postings.push({ ...p, event_id: e.event_id });
-    for (const w of e.witnesses) witnesses.push({ event_id: e.event_id, obs_id: w.obs_id, role: w.role });
+    for (const w of e.witnesses) witnesses.push({ event_id: e.event_id, obs_id: w.obs_id, role: w.role, amount_cents: w.amount_cents ?? null });
   }
 
   const known = new Set((setup.account || []).map((a) => a.account_id));

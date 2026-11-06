@@ -163,6 +163,7 @@ class Resolver {
     e.status = e.status || "recognised";
     e.fields = e.fields || {};
     e.refs = e.refs || {};
+    if (e.asset_id && !e.activity_id) { const a = (this.ctx.setup.activity || []).find((x) => x.asset_id === e.asset_id); if (a) e.activity_id = a.activity_id; }
     this.events.push(e);
     return e;
   }
@@ -172,7 +173,7 @@ class Resolver {
   claim(line, role) { line.claimed = role; }
   w(obs, role) { return (Array.isArray(obs) ? obs : [obs]).filter(Boolean).map((o) => ({ obs_id: o.obs_id, role })); }
   lineWitness(line, role = "recognises") {
-    return line.witnesses.map((o, i) => ({ obs_id: o.obs_id, role: i === 0 ? role : "corroborates" }));
+    return line.witnesses.map((o, i) => ({ obs_id: o.obs_id, role: i === 0 ? role : "corroborates", amount_cents: line.cents }));
   }
   docWitness(o, role = "recognises") {
     return [{ obs_id: o.obs_id, role }, ...(o.alsoSeen || []).map((x) => ({ obs_id: x.obs_id, role: "corroborates" }))];
