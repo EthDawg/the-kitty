@@ -27,6 +27,7 @@ ALLOWED_TOP_LEVEL_DIRS = frozenset({
     ".github", "apps-script", "brand", "data", "docs", "fixtures", "merchants",
     "period-close", "portals", "skills", "sources", "src", "tax", "tools", "ios",
     "standard",  # the household data standard; agreed for the Records tab, which reads its generated view
+    "life",  # the fictional family and their chapters; agreed in the programme brief, a good first read
 })
 WEB_EXTENSIONS = frozenset({
     ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".html", ".htm",
