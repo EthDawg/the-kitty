@@ -1,0 +1,17 @@
+[
+ {
+  "asset_id": "AST-UNIT",
+  "kind": "property",
+  "name": "4/17 Petrel Row, Lindisfarne",
+  "account_id": "ACC-UNIT",
+  "location": "Lindisfarne TAS",
+  "acquired_on": "2025-01-15"
+ },
+ {
+  "asset_id": "AST-CAR",
+  "kind": "vehicle",
+  "name": "The Subaru",
+  "account_id": "ACC-CAR",
+  "acquired_on": "2021-05-14"
+ }
+]

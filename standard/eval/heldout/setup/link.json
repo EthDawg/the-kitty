@@ -1,0 +1,102 @@
+[
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-ADA-EMP",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-ADA",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-SVEN-EMP1",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-SVEN",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-SVEN-EMP2",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-SVEN",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "secures",
+  "from_type": "contract",
+  "from_id": "CON-HOMELOAN",
+  "to_type": "asset",
+  "to_id": "AST-UNIT",
+  "valid_from": "2025-01-15",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "funds_purpose",
+  "from_type": "contract",
+  "from_id": "CON-HOMELOAN",
+  "to_type": "asset",
+  "to_id": "AST-UNIT",
+  "valid_from": "2025-01-15",
+  "recorded_at": "2026-07-06T00:00:00Z",
+  "share_bps": 10000
+ },
+ {
+  "relation": "secures",
+  "from_type": "contract",
+  "from_id": "CON-CARLOAN",
+  "to_type": "asset",
+  "to_id": "AST-CAR",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "paid_by",
+  "from_type": "contract",
+  "from_id": "CON-HOMELOAN",
+  "to_type": "account",
+  "to_id": "ACC-ADA",
+  "valid_from": "2025-01-15",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "paid_by",
+  "from_type": "contract",
+  "from_id": "CON-CARLOAN",
+  "to_type": "account",
+  "to_id": "ACC-SVEN",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "paid_by",
+  "from_type": "contract",
+  "from_id": "CON-LEASE",
+  "to_type": "account",
+  "to_id": "ACC-ADA",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "charged_to",
+  "from_type": "account",
+  "from_id": "ACC-CARD",
+  "to_type": "account",
+  "to_id": "ACC-ADA",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-HOME-INS",
+  "to_type": "asset",
+  "to_id": "AST-UNIT",
+  "valid_from": "2025-01-15",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ }
+]
