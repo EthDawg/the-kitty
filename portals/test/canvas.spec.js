@@ -214,7 +214,7 @@ test("a card that already draws full width says so when it is widened", async ({
 });
 
 test("the desktop header fits from 820px up, live label and Ask included", async ({ page }) => {
-  for (const width of [820, 860, 900, 960, 1000, 1040, 1100, 1180]) {
+  for (const width of [820, 860, 900, 960, 1000, 1040, 1060, 1100, 1180, 1240, 1320]) {
     await page.setViewportSize({ width, height: 800 }); await open(page);
     await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live · demo sheet"; document.querySelector("#askbtn").hidden = false; });
     expect(await page.evaluate(() => document.documentElement.scrollWidth), `page at ${width}`).toBeLessThanOrEqual(width);

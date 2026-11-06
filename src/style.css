@@ -479,8 +479,8 @@ figure.diagram figcaption{font-size:13px;color:var(--muted);max-width:70ch}
 @media (min-width:820px){.wlist.two{display:grid;grid-template-columns:1fr 1fr;gap:8px 32px}}
 .canvas.phone>.wcell{grid-column:span 12}
 @media (max-width:359px){#arrangebtn{display:none}}
-@media (min-width:820px) and (max-width:1099px){.brand .bname{display:none}}
-@media (min-width:820px) and (max-width:999px){nav.tabs button span:not(.tabglow){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+@media (min-width:820px) and (max-width:1239px){.brand .bname{display:none}}
+@media (min-width:820px) and (max-width:1059px){nav.tabs button span:not(.tabglow){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
 #arrangebtn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
 .whrow{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
 .whrow .mid{display:flex;flex-direction:column;min-width:0}.whrow .t{font-weight:600}.whrow .s{font-size:12.5px;color:var(--muted)}
