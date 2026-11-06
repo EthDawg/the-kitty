@@ -12,3 +12,4 @@ ios/Kitty/Assets.xcassets/
 ios/evidence/
 *.xcuserstate
 xcuserdata/
+standard/.build/

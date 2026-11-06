@@ -1,0 +1,102 @@
+{
+  "_about": "The controlled vocabulary of values that change. A term name not listed here, and not prefixed x_, fails conformance. shape: step means the value holds until the next row; point means it is true only on valid_from.",
+  "terms": {
+    "contract.loan": {
+      "interest_rate": { "unit": "pct", "shape": "step", "required": true },
+      "rate_type": { "unit": "enum:variable|fixed", "shape": "step" },
+      "fixed_until": { "unit": "date", "shape": "step" },
+      "repayment_type": { "unit": "enum:principal_and_interest|interest_only", "shape": "step", "required": true },
+      "repayment_cents": { "unit": "cents", "shape": "step" },
+      "repayment_cadence": { "unit": "enum:weekly|fortnightly|monthly", "shape": "step" },
+      "offset_account": { "unit": "account_id", "shape": "step" },
+      "term_end": { "unit": "date", "shape": "step" },
+      "limit_cents": { "unit": "cents", "shape": "step" }
+    },
+    "contract.insurance": {
+      "premium_cents": { "unit": "cents", "shape": "step", "required": true },
+      "premium_cadence": { "unit": "enum:monthly|yearly", "shape": "step" },
+      "sum_insured_cents": { "unit": "cents", "shape": "step" },
+      "excess_cents": { "unit": "cents", "shape": "step" },
+      "renewal_on": { "unit": "date", "shape": "step" },
+      "cover_note": { "unit": "text", "shape": "step" },
+      "hospital_cover": { "unit": "bool", "shape": "step" }
+    },
+    "contract.employment": {
+      "base_salary_cents": { "unit": "cents", "shape": "step", "required": true },
+      "fte": { "unit": "decimal", "shape": "step" },
+      "pay_cadence": { "unit": "enum:weekly|fortnightly|monthly", "shape": "step" },
+      "salary_sacrifice_cents": { "unit": "cents", "shape": "step" },
+      "super_fund": { "unit": "account_id", "shape": "step" },
+      "leave_status": { "unit": "enum:working|paid_parental|unpaid_parental|part_time", "shape": "step" }
+    },
+    "contract.lease": {
+      "rent_cents": { "unit": "cents", "shape": "step", "required": true },
+      "rent_cadence": { "unit": "enum:weekly|fortnightly|monthly", "shape": "step" },
+      "agent_fee_pct": { "unit": "pct", "shape": "step" },
+      "lease_end": { "unit": "date", "shape": "step" },
+      "tenant": { "unit": "text", "shape": "step" }
+    },
+    "contract.subscription": {
+      "price_cents": { "unit": "cents", "shape": "step", "required": true },
+      "cadence": { "unit": "enum:weekly|monthly|quarterly|yearly", "shape": "step" },
+      "plan_name": { "unit": "text", "shape": "step" },
+      "last_used": { "unit": "date", "shape": "point" },
+      "keep_decision": { "unit": "enum:keep|cancel|review", "shape": "step" }
+    },
+    "contract.utility": {
+      "plan_name": { "unit": "text", "shape": "step" },
+      "price_cents": { "unit": "cents", "shape": "step" },
+      "cadence": { "unit": "enum:monthly|quarterly|yearly", "shape": "step" }
+    },
+    "contract.childcare": {
+      "daily_fee_cents": { "unit": "cents", "shape": "step" },
+      "days_per_week": { "unit": "decimal", "shape": "step" },
+      "ccs_pct": { "unit": "pct", "shape": "step" }
+    },
+    "contract.ess_plan": {
+      "plan_rules": { "unit": "text", "shape": "step" },
+      "vest_schedule": { "unit": "text", "shape": "step" }
+    },
+    "asset.property": {
+      "use": { "unit": "enum:owner_occupied|rental|holiday|vacant", "shape": "step", "required": true },
+      "land_value_cents": { "unit": "cents", "shape": "step" },
+      "div43_base_cents": { "unit": "cents", "shape": "step" },
+      "div43_rate_pct": { "unit": "pct", "shape": "step" },
+      "div43_start": { "unit": "date", "shape": "step" },
+      "main_residence": { "unit": "bool", "shape": "step" },
+      "lga": { "unit": "text", "shape": "step" }
+    },
+    "asset.device": {
+      "warranty_until": { "unit": "date", "shape": "step" },
+      "expected_life_months": { "unit": "int", "shape": "step" },
+      "refresh_by": { "unit": "date", "shape": "step" },
+      "replacement_cost_cents": { "unit": "cents", "shape": "step" },
+      "work_use_pct": { "unit": "pct", "shape": "step" },
+      "tax_pool": { "unit": "enum:immediate|diminishing_value|prime_cost|none", "shape": "step" }
+    },
+    "asset.vehicle": {
+      "rego_until": { "unit": "date", "shape": "step" },
+      "service_due": { "unit": "date", "shape": "step" },
+      "odometer_km": { "unit": "int", "shape": "point" },
+      "expected_life_months": { "unit": "int", "shape": "step" },
+      "refresh_by": { "unit": "date", "shape": "step" },
+      "replacement_cost_cents": { "unit": "cents", "shape": "step" },
+      "work_use_pct": { "unit": "pct", "shape": "step" }
+    },
+    "asset.appliance": {
+      "warranty_until": { "unit": "date", "shape": "step" },
+      "expected_life_months": { "unit": "int", "shape": "step" },
+      "refresh_by": { "unit": "date", "shape": "step" },
+      "replacement_cost_cents": { "unit": "cents", "shape": "step" }
+    },
+    "party.person": {
+      "tax_resident": { "unit": "bool", "shape": "step" },
+      "hospital_cover": { "unit": "bool", "shape": "step" },
+      "family_status": { "unit": "enum:single|couple", "shape": "step" }
+    },
+    "account.any": {
+      "interest_rate": { "unit": "pct", "shape": "step" },
+      "monthly_fee_cents": { "unit": "cents", "shape": "step" }
+    }
+  }
+}
