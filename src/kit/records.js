@@ -68,7 +68,7 @@
   const person = (p) => {
     const r = p.readiness || {}, steps = rows(r.steps), items = rows(p.items), pct = isNum(r.pct) && r.pct > 0 ? r.pct : null;
     return `<article class="rec-person">
-      <div class="rec-phead"><h3>${esc(p.name || p.person || "Adult")}</h3>${p.status === "lodged" ? '<span class="tag good">Lodged</span>' : ""}<span class="rec-pct num">${pct == null ? '<span class="muted">Not held yet</span>' : `${esc(pct)}%<small>ready</small>`}</span></div>
+      <div class="rec-phead"><h3>${esc(p.name || p.person || "Adult")}</h3>${p.status === "lodged" ? '<span class="tag good">Lodged</span>' : ""}<span class="rec-pct num">${pct == null ? '<span class="muted">Not held yet</span>' : `${esc(pct)}%<small>ready${isNum(r.held) && isNum(r.needed) ? `, ${esc(r.held)} of ${esc(r.needed)}` : ""}</small>`}</span></div>
       ${pct == null ? "" : `<span class="rec-bar"><span style="width:${esc(pct)}%"></span></span>`}
       ${steps.length ? stepper(steps) : '<p class="sub">Steps not held yet.</p>'}
       ${p.lodged ? lodged(p) : p.derived ? draft(p.derived) : ""}
