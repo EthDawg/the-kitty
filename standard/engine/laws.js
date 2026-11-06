@@ -98,7 +98,7 @@ const laws = {
     for (const o of slips) {
       const p = o.payload;
       unique.set(`${p.person_ref}|${p.employer_ref}|${p.pay_date}|${p.net_cents}`, o);
-      const want = p.gross_cents - p.tax_cents - (p.post_tax_deductions_cents || 0) + (p.allowance_cents || 0) + (p.reimbursement_cents || 0);
+      const want = p.gross_cents - (p.salary_sacrifice_cents || 0) - p.tax_cents - (p.post_tax_deductions_cents || 0) + (p.allowance_cents || 0) + (p.reimbursement_cents || 0);
       if (Math.abs(want - p.net_cents) > 1) { bad += 1; out.push(row("L5", `${p.person_ref} ${p.pay_date}`, "fail", { gap_cents: want - p.net_cents, detail: "Gross less tax and deductions is not net." })); }
     }
     for (const o of L.observations.filter((x) => x.kind === "income_statement" && x.status === "active")) {
@@ -125,7 +125,8 @@ const laws = {
         for (const d of days) {
           const rate = termAt(L.termIdx, "contract", c.contract_id, "interest_rate", d);
           if (rate == null) { have = false; break; }
-          const offset = termAt(L.termIdx, "contract", c.contract_id, "offset_account", d);
+          const offsetLink = activeOn(L.links.filter((k) => k.relation === "offsets" && k.to_id === c.contract_id), d)[0];
+          const offset = offsetLink ? offsetLink.from_id : termAt(L.termIdx, "contract", c.contract_id, "offset_account", d);
           const off = offset ? Math.max(L.dailyBalance(offset)(d), 0) : 0;
           const bal = Math.max(-series(addDays(d, -1)) - off, 0);
           expected += bal * (Number(rate) / 100) / 365;
@@ -148,6 +149,7 @@ const laws = {
     let checked = 0, bad = 0, sample = null;
     for (const o of stated) {
       const p = o.payload;
+      if (L.isSnapshotHolding(p)) continue;
       const held = L.unitsOn(p.instrument_ref, p.as_at, p.account_ref);
       checked += 1;
       if (held !== parseUnits(p.units)) { bad += 1; if (!sample) sample = `${p.instrument_ref} on ${p.as_at}: lots ${fmtUnits(held)}, stated ${p.units}`; }
@@ -157,28 +159,30 @@ const laws = {
     return out;
   },
 
+  // The identity holds by construction under L1, so it proves nothing alone. This tests the ledger against what sources stated, independently.
   L8(L) {
-    const out = [];
-    const X = L.index;
     const inner = new Set(["cash", "property", "super", "shares", "crypto", "vehicle", "device", "loans"]);
-    const ms = L.balances.months;
-    let unexplained = 0, worstM = null;
-    for (let i = 1; i < ms.length; i++) {
-      const m = ms[i], prev = ms[i - 1];
-      let dNW = 0, other = 0;
+    const byAccount = groupBy(L.stated, (s) => s.account);
+    let months = 0, worst = 0, worstM = null;
+    for (const m of L.balances.months) {
+      const end = monthEnd(m);
+      let posted = 0, stated = 0, complete = true, seen = 0;
       for (const [account, series] of L.balances.table) {
-        const a = X.accounts.get(account);
-        const d = (series.get(m) || 0) - (series.get(prev) || 0);
-        if (a && inner.has(a.reporting_group)) dNW += d; else other += d;
+        const a = L.index.accounts.get(account);
+        if (!a || !inner.has(a.reporting_group) || (a.fidelity === "snapshot")) continue;
+        const bal = series.get(m) || 0;
+        if (!bal) continue;
+        const rows = (byAccount.get(account) || []).filter((s) => s.date <= end && monthOf(s.date) === m);
+        if (!rows.length) { complete = false; break; }
+        const last = rows.reduce((x, y) => (y.date >= x.date ? y : x));
+        posted += L.dailyBalance(account)(last.date); stated += last.cents; seen += 1;
       }
-      const accr = (L.accrual || []).find((r) => r.month === m);
-      const pnl = accr ? Object.values(accr.byCategory).reduce((s, v) => s + v, 0) : 0;
-      const cashOnly = L.cashOnlyCategoryFlow ? L.cashOnlyCategoryFlow(m) : 0;
-      const gap = dNW + other - pnl - cashOnly;
-      if (gap && Math.abs(gap) > Math.abs(unexplained)) { unexplained = gap; worstM = m; }
+      if (!complete || !seen) continue;
+      months += 1;
+      if (Math.abs(posted - stated) > Math.abs(worst)) { worst = posted - stated; worstM = m; }
     }
-    out.push(row("L8", "household", unexplained ? "fail" : "pass", { gap_cents: unexplained, detail: unexplained ? `Largest unexplained movement in ${worstM}.` : `${ms.length} months roll forward with nothing unexplained.` }));
-    return out;
+    if (!months) return [row("L8", "household", "skip", { detail: "No month has a stated balance for every account." })];
+    return [row("L8", "household", worst ? "fail" : "pass", { gap_cents: worst, detail: worst ? `Posted and stated net worth differ most in ${worstM}.` : `${months} months where posted net worth equals what sources state.` })];
   },
 
   L9(L) {
@@ -260,6 +264,20 @@ const laws = {
   L18(L) {
     const wrappers = L.parties.filter((p) => ["smsf", "trust", "company"].includes(p.kind));
     return [row("L18", "one level", wrappers.length ? "pass" : "skip", { detail: wrappers.length ? `${wrappers.length} wrappers held as one value each.` : "No wrappers." })];
+  },
+
+  L20(L) {
+    const out = [];
+    for (const [subject, rows] of groupBy(L.observations.filter((o) => o.kind === "valuation" && o.status === "active"), (o) => o.payload.subject_ref)) {
+      const sorted = [...rows].sort((a, b) => cmp(a.payload.as_at, b.payload.as_at));
+      for (let i = 1; i < sorted.length; i++) {
+        const a = sorted[i - 1].payload, b = sorted[i].payload;
+        if (!a.value_cents || !b.value_cents) continue;
+        const ratio = b.value_cents / a.value_cents;
+        if (ratio > 2 || ratio < 0.5) out.push(row("L20", subject, "open", { expected: money(a.value_cents), actual: money(b.value_cents), detail: `Value moved ${ratio.toFixed(1)}x between ${a.as_at} and ${b.as_at}. Typo?` }));
+      }
+    }
+    return out.length ? out : [row("L20", "valuations", "pass")];
   },
 
   L19(L) {

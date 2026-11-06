@@ -29,8 +29,8 @@ function collapse(items) {
   for (const [, group] of withRef) {
     const amounts = new Set(group.map((x) => x.cents));
     if (amounts.size > 1) faults.push({ kind: "restated_line", ref: group[0].ref, account: group[0].account, what: `Reference ${group[0].ref} carries ${amounts.size} amounts.` });
-    // Latest source wins a restatement; the rest stay as witnesses.
-    const best = [...group].sort((a, b) => cmp(b.capturedAt || "", a.capturedAt || "") || cmp(a.obs.obs_id, b.obs.obs_id))[0];
+    // The later-issued document wins a restatement, not the later download; the rest stay as witnesses.
+    const best = [...group].sort((a, b) => cmp(b.issuedOn || b.capturedAt || "", a.issuedOn || a.capturedAt || "") || cmp(a.obs.obs_id, b.obs.obs_id))[0];
     lines.push(makeLine(best, group));
     for (const x of group) taken.add(x);
   }
@@ -54,6 +54,26 @@ function collapse(items) {
     }
     for (const b of buckets) lines.push(makeLine(b[0], b));
   }
+
+  // A statement dates a charge by the transaction, its CSV by the posting. Same charge, two dates. Where two sources
+  // declare different date bases, a line seen in only one of them matches across up to three days.
+  const merged = new Set();
+  for (const [, group] of groupBy(lines, (l) => `${l.account}|${l.cents}`)) {
+    const sorted = [...group].sort((a, b) => cmp(a.date, b.date) || a.seq - b.seq);
+    for (let i = 0; i < sorted.length; i++) {
+      const a = sorted[i];
+      if (merged.has(a) || !a.dateBasis) continue;
+      for (let j = i + 1; j < sorted.length; j++) {
+        const b = sorted[j];
+        if (merged.has(b) || !b.dateBasis || b.dateBasis === a.dateBasis || daysBetween(a.date, b.date) > 3) continue;
+        if (similarity(a.desc, b.desc) < 0.25) continue;
+        const keep = a.dateBasis === "posting" ? a : b.dateBasis === "posting" ? b : a, drop = keep === a ? b : a;
+        keep.witnesses.push(...drop.witnesses); merged.add(drop);
+        break;
+      }
+    }
+  }
+  if (merged.size) { const live = lines.filter((l) => !merged.has(l)); lines.length = 0; lines.push(...live); }
 
   // A pending line is a witness that expires: replaced by its posted form, kept only while nothing later has covered its date.
   const coverage = new Map();
@@ -80,7 +100,7 @@ function makeLine(best, group) {
   const longest = group.reduce((a, x) => (String(x.desc).length > String(a).length ? x.desc : a), best.desc);
   return {
     account: best.account, date: best.date, valueDate: best.valueDate || null, cents: best.cents, desc: longest, ref: best.ref || null,
-    seq: best.seq, balanceAfter: group.map((x) => x.balanceAfter).find((v) => v != null) ?? null, cardMember: best.cardMember || null,
+    seq: best.seq, dateBasis: best.dateBasis || null, balanceAfter: group.map((x) => x.balanceAfter).find((v) => v != null) ?? null, cardMember: best.cardMember || null,
     foreignAmount: best.foreignAmount || null, foreignCurrency: best.foreignCurrency || null,
     witnesses: group.map((x) => x.obs), claimed: null, cls: null,
   };

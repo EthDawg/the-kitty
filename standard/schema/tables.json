@@ -41,14 +41,16 @@
     },
     "membership": {
       "plane": "setup",
-      "temporal": "effective",
+      "temporal": "bitemporal",
       "doc": "A party belonging to the household for a dated range, so a baby arrives and past views stay right.",
       "columns": [
         "party_id:id:req:fk=party.party_id",
         "role:text:req:enum=adult|dependant|relative|other",
         "valid_from:date:req",
         "valid_to:date",
-        "note:text"
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "account": {
@@ -77,7 +79,7 @@
     },
     "alias": {
       "plane": "setup",
-      "temporal": "effective",
+      "temporal": "bitemporal",
       "doc": "An outside identifier for an inside thing, for a dated range. Files resolve to entities here, never by file name.",
       "columns": [
         "subject_type:text:req:enum=account|party|contract|instrument|asset",
@@ -85,7 +87,9 @@
         "scheme:text:req:enum=account_number|card_last4|loan_number|member_number|owner_ref|payroll_id|hin|wallet_address|policy_number|merchant_string|name",
         "value:text:req",
         "valid_from:date:req",
-        "valid_to:date"
+        "valid_to:date",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "ownership": {
@@ -111,7 +115,7 @@
       "temporal": "bitemporal",
       "doc": "A dated relationship between two things, with an optional share. A loan's security, its purpose by traced principal, what a policy covers, which account serves a property, who pays a subscription. These are separate facts and one facility can serve two properties.",
       "columns": [
-        "relation:text:req:enum=secures|funds_purpose|covers|serves|paid_by|used_by|charged_to",
+        "relation:text:req:enum=secures|funds_purpose|covers|serves|paid_by|used_by|charged_to|offsets|contributes_to|split_of",
         "from_type:text:req:enum=contract|account|asset|party",
         "from_id:id:req",
         "to_type:text:req:enum=contract|account|asset|party",
@@ -137,7 +141,7 @@
         "group:text",
         "essential:bool",
         "cash_lens:bool:req",
-        "accrual_lens:bool:req",
+        "economic_lens:bool:req",
         "note:text"
       ]
     },
@@ -174,7 +178,7 @@
     },
     "activity": {
       "plane": "setup",
-      "temporal": "effective",
+      "temporal": "bitemporal",
       "doc": "An income-producing activity with a start, an end and an owner. A rental and an ABN are the same shape, and a year's composition reads from here.",
       "columns": [
         "activity_id:id:pk",
@@ -184,7 +188,9 @@
         "owner_party_id:id:fk=party.party_id",
         "valid_from:date:req",
         "valid_to:date",
-        "note:text"
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "contract": {
@@ -240,7 +246,7 @@
     },
     "stream": {
       "plane": "setup",
-      "temporal": "effective",
+      "temporal": "bitemporal",
       "doc": "What should keep arriving. Coverage is expected against held.",
       "columns": [
         "stream_id:id:pk",
@@ -253,12 +259,14 @@
         "valid_from:date:req",
         "valid_to:date",
         "grace_days:int",
-        "note:text"
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "scope": {
       "plane": "setup",
-      "temporal": "effective",
+      "temporal": "bitemporal",
       "doc": "Nothing has four meanings: zero, not held, does not apply, not asked. A missing row is not asked. Signals read this; metrics report coverage.",
       "columns": [
         "subject_type:text:req:enum=household|party|account|asset|domain",
@@ -268,28 +276,33 @@
         "by:text:req",
         "valid_from:date:req",
         "valid_to:date",
-        "note:text"
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "tax_map": {
       "plane": "setup",
-      "temporal": "effective",
-      "doc": "Which return label a category or event kind lands on, for a dated range.",
+      "temporal": "bitemporal",
+      "doc": "Which return label a category or event kind lands on, for a dated range. entity_kind stops SMSF rent landing on an individual's label 21.",
       "columns": [
         "selector_type:text:req:enum=category|event_kind",
         "selector:text:req",
         "label:text:req",
         "treatment:text:req:enum=income|deduction|offset|credit|cgt|memo",
         "basis:text:req:enum=ownership|person|household",
+        "entity_kind:text:enum=person|smsf|company|trust",
         "valid_from:date:req",
         "valid_to:date",
-        "note:text"
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "source": {
       "plane": "evidence",
       "temporal": "append",
-      "doc": "An immutable file. Identity is its hash. A corrected document is a new source that supersedes the old.",
+      "doc": "An immutable file. Identity is its hash. A corrected document is a new source that supersedes the old. status is a projection, computed from the supersedes chain; the row itself never changes.",
       "columns": [
         "source_id:id:pk",
         "sha256:text:req",
@@ -309,7 +322,7 @@
     "observation": {
       "plane": "evidence",
       "temporal": "append",
-      "doc": "One claim one source made, with a locator back to the place. Records what was said, including what is wrong.",
+      "doc": "One claim one source made, with a locator back to the place. Records what was said, including what is wrong. status is a projection, computed at rebuild. An agent-extracted observation MUST carry a quote and a locator.",
       "columns": [
         "obs_id:id:pk",
         "source_id:id:req:fk=source.source_id",
@@ -323,13 +336,14 @@
         "importer:text:req",
         "recipe_id:id",
         "confidence:rate:req",
+        "quote:text",
         "status:text:req:enum=active|rejected|superseded"
       ]
     },
     "tax_return": {
       "plane": "evidence",
       "temporal": "append",
-      "doc": "A return or assessment as it happened. History, not calculation. An amendment is a new version.",
+      "doc": "A return or assessment as it happened, materialised from a tax_assessment observation, or typed from a paper return. History, not calculation. An amendment is a new version.",
       "columns": [
         "return_id:id:pk",
         "party_id:id:req:fk=party.party_id",
@@ -364,7 +378,7 @@
     "decision": {
       "plane": "judgement",
       "temporal": "append",
-      "doc": "One thing a person chose, with the reason and what would reopen it. Survives every rebuild.",
+      "doc": "One thing a person chose, with the reason and what would reopen it. Survives every rebuild. status is a projection of the latest decision on the same target.",
       "columns": [
         "decision_id:id:pk",
         "target_type:text:req:enum=observation|line|document|source|recipe|period|contract|asset|account|check",
@@ -380,7 +394,7 @@
     },
     "rule": {
       "plane": "judgement",
-      "temporal": "effective",
+      "temporal": "bitemporal",
       "doc": "The household's accumulated taste: what a descriptor means.",
       "columns": [
         "rule_id:id:pk",
@@ -394,7 +408,10 @@
         "valid_from:date",
         "valid_to:date",
         "provenance:text:req",
-        "note:text"
+        "status:text:req:enum=proposed|accepted",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "recipe": {
@@ -430,7 +447,7 @@
     },
     "budget": {
       "plane": "plan",
-      "temporal": "effective",
+      "temporal": "bitemporal",
       "doc": "Monthly intent per category, versioned, so last year is judged against last year's budget.",
       "columns": [
         "category_id:id:req:fk=category.category_id",
@@ -438,7 +455,9 @@
         "cadence:text:req:enum=monthly|yearly",
         "valid_from:date:req",
         "valid_to:date",
-        "note:text"
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
       ]
     },
     "goal": {
@@ -509,7 +528,7 @@
         "description:text:req",
         "merchant:text",
         "category_id:id:fk=category.category_id",
-        "person:text",
+        "person:id:fk=party.party_id",
         "asset_id:id:fk=asset.asset_id",
         "activity_id:id:fk=activity.activity_id",
         "contract_id:id",
@@ -526,13 +545,14 @@
       "columns": [
         "event_id:id:req:fk=event.event_id",
         "obs_id:id:req:fk=observation.obs_id",
-        "role:text:req:enum=recognises|clears|corroborates|contradicts"
+        "role:text:req:enum=recognises|clears|corroborates|contradicts|control",
+        "amount_cents:cents"
       ]
     },
     "posting": {
       "plane": "ledger",
       "temporal": "derived",
-      "doc": "One side of a balanced entry. Exactly one of account_id and category_id. Sums to zero per event.",
+      "doc": "One side of a balanced entry. Exactly one of account_id and category_id. amount_cents is base currency and sums to zero per event; native_cents is what the account's own statement says, and L3 runs on it.",
       "columns": [
         "event_id:id:req:fk=event.event_id",
         "line:int:req",
@@ -541,16 +561,19 @@
         "amount_cents:cents:req",
         "units:units",
         "instrument_id:id:fk=instrument.instrument_id",
-        "memo:text"
+        "memo:text",
+        "native_cents:cents",
+        "native_currency:text"
       ]
     },
     "lot": {
       "plane": "ledger",
       "temporal": "derived",
-      "doc": "A parcel: units, date, owner and a five-element cost base.",
+      "doc": "A parcel: units and a date, or a whole property. Five-element cost base. An unknown cost is a value: cost_known false, cost null, and a sale reports an unknown gain.",
       "columns": [
         "lot_id:id:pk",
-        "instrument_id:id:req:fk=instrument.instrument_id",
+        "instrument_id:id:fk=instrument.instrument_id",
+        "asset_id:id:fk=asset.asset_id",
         "account_id:id:req:fk=account.account_id",
         "party_id:id",
         "acquired_on:date:req",
@@ -584,7 +607,7 @@
     "balance": {
       "plane": "ledger",
       "temporal": "derived",
-      "doc": "Month-end balance per account, summed from postings, with how it is confirmed.",
+      "doc": "A materialised view: month-end balance per account, summed from postings, with how it is confirmed.",
       "columns": [
         "month_end:date:req",
         "account_id:id:req:fk=account.account_id",
@@ -638,7 +661,7 @@
     "metric_value": {
       "plane": "control",
       "temporal": "derived",
-      "doc": "One metric, one grain, one value, with its grade and dates.",
+      "doc": "A materialised view: one metric, one grain, one value, with its grade and dates.",
       "columns": [
         "metric_id:id:req",
         "grain:text:req",

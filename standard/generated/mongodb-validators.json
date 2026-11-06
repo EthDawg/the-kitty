@@ -1,0 +1,2780 @@
+{
+  "household": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "household_id",
+        "name",
+        "jurisdiction",
+        "base_currency",
+        "fy_start_month",
+        "timezone",
+        "standard_version"
+      ],
+      "properties": {
+        "household_id": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "jurisdiction": {
+          "bsonType": "string",
+          "enum": [
+            "AU"
+          ]
+        },
+        "base_currency": {
+          "bsonType": "string"
+        },
+        "fy_start_month": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "timezone": {
+          "bsonType": "string"
+        },
+        "standard_version": {
+          "bsonType": "string"
+        }
+      },
+      "description": "The unit this bundle describes."
+    }
+  },
+  "party": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "party_id",
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "party_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "person",
+            "organisation",
+            "government",
+            "trust",
+            "smsf",
+            "company",
+            "partnership"
+          ]
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "legal_name": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "birth_date": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "abn": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Anyone or anything that can own, owe, pay, employ, insure or be paid. Tax file numbers and passwords never enter this table."
+    }
+  },
+  "membership": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "party_id",
+        "role",
+        "valid_from"
+      ],
+      "properties": {
+        "party_id": {
+          "bsonType": "string"
+        },
+        "role": {
+          "bsonType": "string",
+          "enum": [
+            "adult",
+            "dependant",
+            "relative",
+            "other"
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A party belonging to the household for a dated range, so a baby arrives and past views stay right."
+    }
+  },
+  "account": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "account_id",
+        "name",
+        "class",
+        "type",
+        "reporting_group",
+        "currency"
+      ],
+      "properties": {
+        "account_id": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "class": {
+          "bsonType": "string",
+          "enum": [
+            "asset",
+            "liability",
+            "clearing",
+            "equity",
+            "memo"
+          ]
+        },
+        "type": {
+          "bsonType": "string",
+          "enum": [
+            "transaction",
+            "offset",
+            "savings",
+            "credit_card",
+            "loan",
+            "super",
+            "smsf",
+            "brokerage",
+            "holding",
+            "ess_plan",
+            "wallet",
+            "help_debt",
+            "tax_position",
+            "property",
+            "vehicle",
+            "device",
+            "receivable",
+            "clearing",
+            "equity",
+            "memo"
+          ]
+        },
+        "reporting_group": {
+          "bsonType": "string",
+          "enum": [
+            "cash",
+            "property",
+            "super",
+            "shares",
+            "crypto",
+            "vehicle",
+            "device",
+            "loans",
+            "tax",
+            "clearing",
+            "equity",
+            "memo"
+          ]
+        },
+        "currency": {
+          "bsonType": "string"
+        },
+        "institution_party_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "parent_account_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "successor_account_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "contract_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "opened_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "closed_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "liquid": {
+          "bsonType": [
+            "bool",
+            "null"
+          ]
+        },
+        "in_scope": {
+          "bsonType": [
+            "bool",
+            "null"
+          ]
+        },
+        "fidelity": {
+          "bsonType": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ledger",
+            "snapshot",
+            null
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Anything with a balance. A balance is never stored; it is the sum of postings, checked against stated balances."
+    }
+  },
+  "alias": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "subject_type",
+        "subject_id",
+        "scheme",
+        "value",
+        "valid_from"
+      ],
+      "properties": {
+        "subject_type": {
+          "bsonType": "string",
+          "enum": [
+            "account",
+            "party",
+            "contract",
+            "instrument",
+            "asset"
+          ]
+        },
+        "subject_id": {
+          "bsonType": "string"
+        },
+        "scheme": {
+          "bsonType": "string",
+          "enum": [
+            "account_number",
+            "card_last4",
+            "loan_number",
+            "member_number",
+            "owner_ref",
+            "payroll_id",
+            "hin",
+            "wallet_address",
+            "policy_number",
+            "merchant_string",
+            "name"
+          ]
+        },
+        "value": {
+          "bsonType": "string"
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "An outside identifier for an inside thing, for a dated range. Files resolve to entities here, never by file name."
+    }
+  },
+  "ownership": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "subject_type",
+        "subject_id",
+        "party_id",
+        "basis",
+        "share_bps",
+        "valid_from",
+        "recorded_at"
+      ],
+      "properties": {
+        "subject_type": {
+          "bsonType": "string",
+          "enum": [
+            "account",
+            "asset",
+            "contract"
+          ]
+        },
+        "subject_id": {
+          "bsonType": "string"
+        },
+        "party_id": {
+          "bsonType": "string"
+        },
+        "basis": {
+          "bsonType": "string",
+          "enum": [
+            "legal",
+            "beneficial",
+            "tax"
+          ]
+        },
+        "share_bps": {
+          "bsonType": "int"
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": "string"
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "source_obs_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Dated fractional ownership. Shares sum to 10000 per subject, basis and day."
+    }
+  },
+  "link": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "relation",
+        "from_type",
+        "from_id",
+        "to_type",
+        "to_id",
+        "valid_from",
+        "recorded_at"
+      ],
+      "properties": {
+        "relation": {
+          "bsonType": "string",
+          "enum": [
+            "secures",
+            "funds_purpose",
+            "covers",
+            "serves",
+            "paid_by",
+            "used_by",
+            "charged_to",
+            "offsets",
+            "contributes_to",
+            "split_of"
+          ]
+        },
+        "from_type": {
+          "bsonType": "string",
+          "enum": [
+            "contract",
+            "account",
+            "asset",
+            "party"
+          ]
+        },
+        "from_id": {
+          "bsonType": "string"
+        },
+        "to_type": {
+          "bsonType": "string",
+          "enum": [
+            "contract",
+            "account",
+            "asset",
+            "party"
+          ]
+        },
+        "to_id": {
+          "bsonType": "string"
+        },
+        "share_bps": {
+          "bsonType": [
+            "int",
+            "null"
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": "string"
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "source_obs_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A dated relationship between two things, with an optional share. A loan's security, its purpose by traced principal, what a policy covers, which account serves a property, who pays a subscription. These are separate facts and one facility can serve two properties."
+    }
+  },
+  "category": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "category_id",
+        "name",
+        "kind",
+        "cash_lens",
+        "economic_lens"
+      ],
+      "properties": {
+        "category_id": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "parent_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "income",
+            "expense",
+            "capital",
+            "transfer",
+            "suspense",
+            "pass_through"
+          ]
+        },
+        "group": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "essential": {
+          "bsonType": [
+            "bool",
+            "null"
+          ]
+        },
+        "cash_lens": {
+          "bsonType": "bool"
+        },
+        "economic_lens": {
+          "bsonType": "bool"
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "The chart of income and expense. Tax relevance lives in tax_map, by date."
+    }
+  },
+  "instrument": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "instrument_id",
+        "kind",
+        "code",
+        "name",
+        "currency"
+      ],
+      "properties": {
+        "instrument_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "currency",
+            "listed_share",
+            "etf",
+            "managed_fund",
+            "rsu",
+            "crypto"
+          ]
+        },
+        "code": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "currency": {
+          "bsonType": "string"
+        },
+        "issuer_party_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Anything held in units: a currency, a share, an ETF, an RSU, a coin."
+    }
+  },
+  "asset": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "asset_id",
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "asset_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "property",
+            "vehicle",
+            "device",
+            "appliance",
+            "furniture",
+            "collectible",
+            "other"
+          ]
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "account_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "parent_asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "location": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "serial": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "acquired_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "disposed_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A durable thing the household cares about, on the balance sheet or not. Life-cycle facts are terms."
+    }
+  },
+  "activity": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "activity_id",
+        "kind",
+        "name",
+        "valid_from"
+      ],
+      "properties": {
+        "activity_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "rental",
+            "sole_trader",
+            "partnership",
+            "trust",
+            "investment",
+            "employment"
+          ]
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "owner_party_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "An income-producing activity with a start, an end and an owner. A rental and an ABN are the same shape, and a year's composition reads from here."
+    }
+  },
+  "contract": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "contract_id",
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "contract_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "loan",
+            "insurance",
+            "employment",
+            "lease",
+            "subscription",
+            "utility",
+            "childcare",
+            "membership",
+            "super_fund",
+            "ess_plan"
+          ]
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "counterparty_party_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "holder_party_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "account_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "category_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "started_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "ended_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A standing agreement. Everything that can change lives in term."
+    }
+  },
+  "term": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "term_id",
+        "subject_type",
+        "subject_id",
+        "term",
+        "value",
+        "valid_from",
+        "recorded_at"
+      ],
+      "properties": {
+        "term_id": {
+          "bsonType": "string"
+        },
+        "subject_type": {
+          "bsonType": "string",
+          "enum": [
+            "contract",
+            "asset",
+            "party",
+            "account",
+            "instrument"
+          ]
+        },
+        "subject_id": {
+          "bsonType": "string"
+        },
+        "term": {
+          "bsonType": "string"
+        },
+        "value": {
+          "bsonType": "string"
+        },
+        "unit": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": "string"
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "source_obs_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "The one table for values that change: rates, premiums, salaries, property use, warranty dates. Names come from terms.json. Never a column on an entity."
+    }
+  },
+  "period": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "period_id",
+        "kind",
+        "start_on",
+        "end_on",
+        "status"
+      ],
+      "properties": {
+        "period_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "month",
+            "quarter",
+            "fy"
+          ]
+        },
+        "start_on": {
+          "bsonType": "string"
+        },
+        "end_on": {
+          "bsonType": "string"
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "open",
+            "closing",
+            "closed",
+            "locked"
+          ]
+        },
+        "closed_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "seal_hash": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A month, quarter or financial year. A new year is a row, never a new workbook."
+    }
+  },
+  "stream": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "stream_id",
+        "name",
+        "doc_kind",
+        "subject_type",
+        "subject_id",
+        "cadence",
+        "valid_from"
+      ],
+      "properties": {
+        "stream_id": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "doc_kind": {
+          "bsonType": "string"
+        },
+        "subject_type": {
+          "bsonType": "string"
+        },
+        "subject_id": {
+          "bsonType": "string"
+        },
+        "issuer_party_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "cadence": {
+          "bsonType": "string",
+          "enum": [
+            "fortnightly",
+            "monthly",
+            "quarterly",
+            "half_yearly",
+            "yearly",
+            "event"
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "grace_days": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "What should keep arriving. Coverage is expected against held."
+    }
+  },
+  "scope": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "subject_type",
+        "subject_id",
+        "domain",
+        "state",
+        "by",
+        "valid_from"
+      ],
+      "properties": {
+        "subject_type": {
+          "bsonType": "string",
+          "enum": [
+            "household",
+            "party",
+            "account",
+            "asset",
+            "domain"
+          ]
+        },
+        "subject_id": {
+          "bsonType": "string"
+        },
+        "domain": {
+          "bsonType": "string"
+        },
+        "state": {
+          "bsonType": "string",
+          "enum": [
+            "none",
+            "has",
+            "partial",
+            "unknown"
+          ]
+        },
+        "by": {
+          "bsonType": "string"
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Nothing has four meanings: zero, not held, does not apply, not asked. A missing row is not asked. Signals read this; metrics report coverage."
+    }
+  },
+  "tax_map": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "selector_type",
+        "selector",
+        "label",
+        "treatment",
+        "basis",
+        "valid_from"
+      ],
+      "properties": {
+        "selector_type": {
+          "bsonType": "string",
+          "enum": [
+            "category",
+            "event_kind"
+          ]
+        },
+        "selector": {
+          "bsonType": "string"
+        },
+        "label": {
+          "bsonType": "string"
+        },
+        "treatment": {
+          "bsonType": "string",
+          "enum": [
+            "income",
+            "deduction",
+            "offset",
+            "credit",
+            "cgt",
+            "memo"
+          ]
+        },
+        "basis": {
+          "bsonType": "string",
+          "enum": [
+            "ownership",
+            "person",
+            "household"
+          ]
+        },
+        "entity_kind": {
+          "bsonType": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "person",
+            "smsf",
+            "company",
+            "trust",
+            null
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Which return label a category or event kind lands on, for a dated range. entity_kind stops SMSF rent landing on an individual's label 21."
+    }
+  },
+  "source": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "source_id",
+        "sha256",
+        "name",
+        "origin",
+        "captured_at",
+        "status"
+      ],
+      "properties": {
+        "source_id": {
+          "bsonType": "string"
+        },
+        "sha256": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "uri": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "origin": {
+          "bsonType": "string",
+          "enum": [
+            "portal",
+            "email",
+            "scan",
+            "connector",
+            "manual",
+            "cdr"
+          ]
+        },
+        "mime": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "bytes": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "stream_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "issued_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "captured_at": {
+          "bsonType": "string"
+        },
+        "supersedes_source_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "active",
+            "superseded",
+            "quarantined"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "An immutable file. Identity is its hash. A corrected document is a new source that supersedes the old. status is a projection, computed from the supersedes chain; the row itself never changes."
+    }
+  },
+  "observation": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "obs_id",
+        "source_id",
+        "locator",
+        "kind",
+        "payload",
+        "importer",
+        "confidence",
+        "status"
+      ],
+      "properties": {
+        "obs_id": {
+          "bsonType": "string"
+        },
+        "source_id": {
+          "bsonType": "string"
+        },
+        "locator": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string"
+        },
+        "occurred_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "currency": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "subject_ref": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "payload": {
+          "bsonType": [
+            "object",
+            "array"
+          ]
+        },
+        "importer": {
+          "bsonType": "string"
+        },
+        "recipe_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "confidence": {
+          "bsonType": "string"
+        },
+        "quote": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "active",
+            "rejected",
+            "superseded"
+          ]
+        }
+      },
+      "description": "One claim one source made, with a locator back to the place. Records what was said, including what is wrong. status is a projection, computed at rebuild. An agent-extracted observation MUST carry a quote and a locator."
+    }
+  },
+  "tax_return": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "return_id",
+        "party_id",
+        "fy",
+        "version",
+        "status"
+      ],
+      "properties": {
+        "return_id": {
+          "bsonType": "string"
+        },
+        "party_id": {
+          "bsonType": "string"
+        },
+        "fy": {
+          "bsonType": "string"
+        },
+        "version": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "lodged",
+            "assessed",
+            "amended"
+          ]
+        },
+        "lodged_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "assessed_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "taxable_income_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "tax_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "credits_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "result_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "source_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "supersedes_return_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A return or assessment as it happened, materialised from a tax_assessment observation, or typed from a paper return. History, not calculation. An amendment is a new version."
+    }
+  },
+  "tax_line": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "line_id",
+        "return_id",
+        "role",
+        "amount_cents"
+      ],
+      "properties": {
+        "line_id": {
+          "bsonType": "string"
+        },
+        "return_id": {
+          "bsonType": "string"
+        },
+        "label": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "section": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "bsonType": "string",
+          "enum": [
+            "leaf",
+            "subtotal",
+            "memo",
+            "carry"
+          ]
+        },
+        "rolls_up_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "One line on a lodged return or assessment. Labels repeat within a return and some lines have no label, so line_id is the identity and rolls_up_to names a line_id. role stops a sum multiplying a repeated net figure or reading a memo about a spouse as your own."
+    }
+  },
+  "decision": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "decision_id",
+        "target_type",
+        "target_ref",
+        "verb",
+        "value",
+        "by",
+        "at",
+        "status"
+      ],
+      "properties": {
+        "decision_id": {
+          "bsonType": "string"
+        },
+        "target_type": {
+          "bsonType": "string",
+          "enum": [
+            "observation",
+            "line",
+            "document",
+            "source",
+            "recipe",
+            "period",
+            "contract",
+            "asset",
+            "account",
+            "check"
+          ]
+        },
+        "target_ref": {
+          "bsonType": "string"
+        },
+        "verb": {
+          "bsonType": "string",
+          "enum": [
+            "categorise",
+            "split",
+            "link",
+            "unlink",
+            "exclude",
+            "include",
+            "assign_person",
+            "assign_claimant",
+            "choose_lot",
+            "set_event_kind",
+            "reopen",
+            "accept",
+            "reject",
+            "adjust",
+            "tag",
+            "note",
+            "worth_it",
+            "confirm"
+          ]
+        },
+        "value": {
+          "bsonType": [
+            "object",
+            "array"
+          ]
+        },
+        "by": {
+          "bsonType": "string"
+        },
+        "at": {
+          "bsonType": "string"
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "proposed",
+            "accepted",
+            "rejected"
+          ]
+        },
+        "reason": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "reopen_if": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "One thing a person chose, with the reason and what would reopen it. Survives every rebuild. status is a projection of the latest decision on the same target."
+    }
+  },
+  "rule": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "rule_id",
+        "pattern",
+        "match",
+        "provenance",
+        "status"
+      ],
+      "properties": {
+        "rule_id": {
+          "bsonType": "string"
+        },
+        "pattern": {
+          "bsonType": "string"
+        },
+        "match": {
+          "bsonType": "string",
+          "enum": [
+            "normalised",
+            "exact",
+            "contains",
+            "regex"
+          ]
+        },
+        "merchant": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "category_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "person": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "event_kind": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "contract_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "valid_from": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "provenance": {
+          "bsonType": "string"
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "proposed",
+            "accepted"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "The household's accumulated taste: what a descriptor means."
+    }
+  },
+  "recipe": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "recipe_id",
+        "fingerprint",
+        "family",
+        "spec",
+        "author",
+        "gate_status",
+        "created_at"
+      ],
+      "properties": {
+        "recipe_id": {
+          "bsonType": "string"
+        },
+        "fingerprint": {
+          "bsonType": "string"
+        },
+        "family": {
+          "bsonType": "string"
+        },
+        "spec": {
+          "bsonType": [
+            "object",
+            "array"
+          ]
+        },
+        "author": {
+          "bsonType": "string"
+        },
+        "tokens_in": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "tokens_out": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "gate_status": {
+          "bsonType": "string",
+          "enum": [
+            "proposed",
+            "passed",
+            "failed"
+          ]
+        },
+        "created_at": {
+          "bsonType": "string"
+        }
+      },
+      "description": "Data that reads one family of files. Written once, cached by fingerprint, judged by the gate."
+    }
+  },
+  "tailoring": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "tailoring_id",
+        "rung",
+        "name",
+        "sentence",
+        "definition",
+        "standard_version",
+        "status"
+      ],
+      "properties": {
+        "tailoring_id": {
+          "bsonType": "string"
+        },
+        "rung": {
+          "bsonType": "string",
+          "enum": [
+            "tag",
+            "rule",
+            "saved_question",
+            "widget",
+            "x_term",
+            "x_column",
+            "x_event_kind",
+            "x_observation_kind",
+            "x_table"
+          ]
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "sentence": {
+          "bsonType": "string"
+        },
+        "definition": {
+          "bsonType": [
+            "object",
+            "array"
+          ]
+        },
+        "example": {
+          "bsonType": [
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "standard_version": {
+          "bsonType": "string"
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "active",
+            "retired",
+            "promoted"
+          ]
+        }
+      },
+      "description": "One row per piece of household tailoring: the person's sentence, the definition, an example result and the standard version it was written against. On an update the example runs; if it fails an agent rewrites from the sentence."
+    }
+  },
+  "budget": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "category_id",
+        "amount_cents",
+        "cadence",
+        "valid_from"
+      ],
+      "properties": {
+        "category_id": {
+          "bsonType": "string"
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "cadence": {
+          "bsonType": "string",
+          "enum": [
+            "monthly",
+            "yearly"
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "superseded_at": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Monthly intent per category, versioned, so last year is judged against last year's budget."
+    }
+  },
+  "goal": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "goal_id",
+        "name",
+        "target_cents",
+        "status"
+      ],
+      "properties": {
+        "goal_id": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "target_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "target_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "account_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "active",
+            "met",
+            "dropped"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A named target. A refresh cycle can back one through asset_id."
+    }
+  },
+  "reservation": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "reservation_id",
+        "account_id",
+        "kind",
+        "requested_cents",
+        "valid_from"
+      ],
+      "properties": {
+        "reservation_id": {
+          "bsonType": "string"
+        },
+        "account_id": {
+          "bsonType": "string"
+        },
+        "goal_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "bsonType": "string",
+          "enum": [
+            "floor",
+            "sinking_fund",
+            "tax",
+            "bill",
+            "other"
+          ]
+        },
+        "requested_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "applied_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "release_ref": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Money earmarked inside an account. A reservation is an intention, not segregation; the balance does not move. Requested and applied differ, and a release names what ended it."
+    }
+  },
+  "scenario": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "scenario_id",
+        "name",
+        "base_on"
+      ],
+      "properties": {
+        "scenario_id": {
+          "bsonType": "string"
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "base_on": {
+          "bsonType": "string"
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A named what-if. A forecast is (scenario, as_of, horizon)."
+    }
+  },
+  "assumption": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "scenario_id",
+        "key",
+        "value",
+        "valid_from"
+      ],
+      "properties": {
+        "scenario_id": {
+          "bsonType": "string"
+        },
+        "key": {
+          "bsonType": "string"
+        },
+        "value": {
+          "bsonType": "string"
+        },
+        "valid_from": {
+          "bsonType": "string"
+        },
+        "valid_to": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "A dated overlay on terms and rates for one scenario."
+    }
+  },
+  "event": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "event_id",
+        "kind",
+        "occurred_on",
+        "description",
+        "status",
+        "grade"
+      ],
+      "properties": {
+        "event_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string"
+        },
+        "occurred_on": {
+          "bsonType": "string"
+        },
+        "settled_on": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "bsonType": "string"
+        },
+        "merchant": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "category_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "person": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "activity_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "contract_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "recognised",
+            "provisional",
+            "open"
+          ]
+        },
+        "grade": {
+          "bsonType": "string",
+          "enum": [
+            "reconciled",
+            "corroborated",
+            "stated",
+            "derived",
+            "estimated"
+          ]
+        },
+        "rule": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "One economic fact, recognised once."
+    }
+  },
+  "witness": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "event_id",
+        "obs_id",
+        "role"
+      ],
+      "properties": {
+        "event_id": {
+          "bsonType": "string"
+        },
+        "obs_id": {
+          "bsonType": "string"
+        },
+        "role": {
+          "bsonType": "string",
+          "enum": [
+            "recognises",
+            "clears",
+            "corroborates",
+            "contradicts",
+            "control"
+          ]
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        }
+      },
+      "description": "Which observation supports which event, and how."
+    }
+  },
+  "posting": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "event_id",
+        "line",
+        "amount_cents"
+      ],
+      "properties": {
+        "event_id": {
+          "bsonType": "string"
+        },
+        "line": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "account_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "category_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "units": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "instrument_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "memo": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "native_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "native_currency": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "One side of a balanced entry. Exactly one of account_id and category_id. amount_cents is base currency and sums to zero per event; native_cents is what the account's own statement says, and L3 runs on it."
+    }
+  },
+  "lot": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "lot_id",
+        "account_id",
+        "acquired_on",
+        "units",
+        "units_open",
+        "cost_known",
+        "cost_incidental_cents",
+        "event_id"
+      ],
+      "properties": {
+        "lot_id": {
+          "bsonType": "string"
+        },
+        "instrument_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "account_id": {
+          "bsonType": "string"
+        },
+        "party_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "acquired_on": {
+          "bsonType": "string"
+        },
+        "units": {
+          "bsonType": "string"
+        },
+        "units_open": {
+          "bsonType": "string"
+        },
+        "cost_known": {
+          "bsonType": "bool"
+        },
+        "cost_price_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "cost_incidental_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "cost_ownership_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "cost_capital_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "cost_adjustment_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "event_id": {
+          "bsonType": "string"
+        }
+      },
+      "description": "A parcel: units and a date, or a whole property. Five-element cost base. An unknown cost is a value: cost_known false, cost null, and a sale reports an unknown gain."
+    }
+  },
+  "lot_match": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "event_id",
+        "lot_id",
+        "disposed_on",
+        "units",
+        "proceeds_cents",
+        "discount_eligible",
+        "method"
+      ],
+      "properties": {
+        "event_id": {
+          "bsonType": "string"
+        },
+        "lot_id": {
+          "bsonType": "string"
+        },
+        "disposed_on": {
+          "bsonType": "string"
+        },
+        "units": {
+          "bsonType": "string"
+        },
+        "proceeds_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "cost_base_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "gain_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "discount_eligible": {
+          "bsonType": "bool"
+        },
+        "method": {
+          "bsonType": "string",
+          "enum": [
+            "fifo",
+            "lifo",
+            "specific",
+            "hifo"
+          ]
+        }
+      },
+      "description": "One parcel meeting one disposal. Each row is one CGT event line."
+    }
+  },
+  "balance": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "month_end",
+        "account_id",
+        "balance_cents",
+        "grade"
+      ],
+      "properties": {
+        "month_end": {
+          "bsonType": "string"
+        },
+        "account_id": {
+          "bsonType": "string"
+        },
+        "balance_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "units": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "grade": {
+          "bsonType": "string"
+        }
+      },
+      "description": "A materialised view: month-end balance per account, summed from postings, with how it is confirmed."
+    }
+  },
+  "tax_item": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "party_id",
+        "fy",
+        "label",
+        "amount_cents",
+        "method",
+        "evidence"
+      ],
+      "properties": {
+        "party_id": {
+          "bsonType": "string"
+        },
+        "fy": {
+          "bsonType": "string"
+        },
+        "label": {
+          "bsonType": "string"
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int"
+          ]
+        },
+        "method": {
+          "bsonType": "string"
+        },
+        "evidence": {
+          "bsonType": "string",
+          "enum": [
+            "held",
+            "missing",
+            "at_risk"
+          ]
+        },
+        "refs": {
+          "bsonType": [
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "description": "A derived per-person, per-year, per-label amount, with its method and evidence state. A draft, never advice."
+    }
+  },
+  "check_result": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "law",
+        "scope",
+        "status"
+      ],
+      "properties": {
+        "law": {
+          "bsonType": "string"
+        },
+        "scope": {
+          "bsonType": "string"
+        },
+        "status": {
+          "bsonType": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "gap",
+            "open",
+            "skip",
+            "accepted"
+          ]
+        },
+        "expected": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "actual": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "gap_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "detail": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "accepted_by": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "One law, one scope, one result."
+    }
+  },
+  "review_item": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "item_id",
+        "kind",
+        "ref",
+        "what"
+      ],
+      "properties": {
+        "item_id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "bsonType": "string"
+        },
+        "ref": {
+          "bsonType": "string"
+        },
+        "amount_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "what": {
+          "bsonType": "string"
+        },
+        "do": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Something that needs a person, ranked by money at stake."
+    }
+  },
+  "metric_value": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "metric_id",
+        "grain",
+        "value",
+        "grade",
+        "valid_on",
+        "known_at"
+      ],
+      "properties": {
+        "metric_id": {
+          "bsonType": "string"
+        },
+        "grain": {
+          "bsonType": "string"
+        },
+        "value": {
+          "bsonType": "string"
+        },
+        "grade": {
+          "bsonType": "string"
+        },
+        "valid_on": {
+          "bsonType": "string"
+        },
+        "known_at": {
+          "bsonType": "string"
+        }
+      },
+      "description": "A materialised view: one metric, one grain, one value, with its grade and dates."
+    }
+  },
+  "run": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": [
+        "run_id",
+        "mode"
+      ],
+      "properties": {
+        "run_id": {
+          "bsonType": "string"
+        },
+        "mode": {
+          "bsonType": "string"
+        },
+        "sources": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "observations": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "events": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "review_items": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "tokens_in": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "tokens_out": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "bundle_hash": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "One rebuild: what went in, what came out, what it cost."
+    }
+  }
+}

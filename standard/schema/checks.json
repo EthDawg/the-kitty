@@ -32,7 +32,7 @@
     },
     "L5": {
       "name": "Payslip",
-      "claim": "Gross minus tax minus deductions equals net; year-to-date chains; the year's payslips sum to the income statement.",
+      "claim": "Gross less sacrifice, tax and deductions, plus allowances and reimbursements, equals net; year-to-date chains; the year's payslips sum to the income statement.",
       "scope": "payslip and year",
       "tolerance_cents": 1,
       "severity": "hold"
@@ -54,7 +54,7 @@
     },
     "L8": {
       "name": "Roll-forward",
-      "claim": "Change in net worth equals income minus expenses plus revaluation, over the accounts in scope.",
+      "claim": "Net worth as posted equals net worth as stated by sources, month by month, wherever every account in scope has a stated balance or valuation. The identity change-in-net-worth = income - expenses + revaluation holds by construction under L1; this law tests it against independent evidence.",
       "scope": "household by month",
       "tolerance_cents": 0,
       "severity": "hold"
@@ -99,7 +99,8 @@
       "claim": "Contributions on payslips reach the fund, allowing for its lag.",
       "scope": "fund by quarter",
       "tolerance_cents": 100,
-      "severity": "hold"
+      "severity": "hold",
+      "detail": "Lag: 28 days after quarter end until 30 June 2026; 7 business days under payday super from 1 July 2026."
     },
     "L15": {
       "name": "Provenance",
@@ -136,6 +137,15 @@
       "tolerance_cents": 10000,
       "severity": "hold",
       "detail": "Raises a question, not a conservation failure: a return can hold non-sales income and sit on a different accounting basis."
+    },
+    "L20": {
+      "name": "Plausibility",
+      "claim": "A value does not jump beyond a declared multiple between two observations of the same subject.",
+      "scope": "subject",
+      "tolerance_cents": 0,
+      "severity": "hold",
+      "detail": "Catches a 10x valuation typo, which conserves perfectly."
     }
-  }
+  },
+  "limits": "No law catches a wrong category, a crossed pair of equal-amount transfers, or a refund a person books as income: all of these conserve. The eval's truth catches them on Davies; on a real household only review does."
 }

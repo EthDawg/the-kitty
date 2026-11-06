@@ -1,5 +1,5 @@
 {
-  "_about": "The closed vocabulary of what a source can say. Payload field form: name, or name* when required. Suffix _cents is integer cents; _on or _date is yyyy-mm-dd; units and prices are decimal strings. Sign on a txn_line is from the holder's point of view: money into the account is positive; a card charge is negative, whatever the file does. Field names follow the CDR BankingTransaction shape where one applies. super_line.line_type is one of employer, salary_sacrifice, personal_deductible, personal_after_tax, spouse, rollover_in, rollover_out, earnings, fee, insurance, contributions_tax, pension, withdrawal. A printed zero is 0; a value the source did not state is absent. Absent is never read as zero. confidence measures fidelity to the source, not whether the treatment is right.",
+  "_about": "The closed vocabulary of what a source can say. Payload field form: name, or name* when required. Suffix _cents is integer cents; _on or _date is yyyy-mm-dd; units and prices are decimal strings. Sign on a txn_line is from the holder's point of view: money into the account is positive; a card charge is negative, whatever the file does. Field names follow the CDR BankingTransaction shape where one applies. super_line.line_type is one of employer, salary_sacrifice, personal_deductible, personal_after_tax, spouse, rollover_in, rollover_out, earnings, fee, insurance, contributions_tax, pension, withdrawal. A printed zero is 0; a value the source did not state is absent. Absent is never read as zero. confidence measures fidelity to the source, not whether the treatment is right. payslip.gross_cents is the printed gross, before salary sacrifice, as every Australian payslip shows it; net = gross - sacrifice - tax - post_tax + allowance + reimbursement.",
   "kinds": {
     "txn_line": {
       "family": "lines",
@@ -18,7 +18,8 @@
         "reference",
         "merchant_name",
         "card_member",
-        "status"
+        "status",
+        "date_basis"
       ]
     },
     "statement": {
@@ -105,7 +106,10 @@
         "redraws_cents",
         "closing_cents*",
         "rate_pct",
-        "offset_cents"
+        "offset_cents",
+        "payout_cents",
+        "payout_to_ref",
+        "discharge_fee_cents"
       ]
     },
     "owner_statement": {
@@ -118,6 +122,7 @@
         "period_end*",
         "gross_rent_cents*",
         "fees_cents*",
+        "repairs_cents",
         "other_expenses_cents",
         "disbursed_cents*",
         "lines"
@@ -235,7 +240,8 @@
         "account_ref",
         "withheld_units",
         "released_units",
-        "status"
+        "status",
+        "taxing_point_date"
       ]
     },
     "crypto_txn": {
@@ -481,7 +487,9 @@
         "loan_drawn_cents",
         "loan_ref",
         "cash_paid_cents*",
-        "side"
+        "side",
+        "selling_costs_cents",
+        "loan_payout_cents"
       ]
     },
     "corporate_action": {
@@ -551,11 +559,75 @@
         "trust_ref*",
         "fy*",
         "period_end*",
+        "account_ref",
         "entitlement_cents*",
         "paid_on",
         "labels"
       ]
+    },
+    "ess_statement": {
+      "family": "tax",
+      "occurred": "period_end",
+      "amount": "discount_cents",
+      "fields": [
+        "person_ref*",
+        "plan_ref*",
+        "fy*",
+        "period_end*",
+        "discount_cents*"
+      ]
     }
   },
-  "extension": "A kind prefixed x_ is valid if it has a declared payload and passes the same gate. See SPEC section 13."
+  "extension": "A kind prefixed x_ is valid if it has a declared payload and passes the same gate. See SPEC section 13.",
+  "enums": {
+    "crypto_txn.type": [
+      "buy",
+      "sell",
+      "swap",
+      "transfer_in",
+      "transfer_out",
+      "stake_reward",
+      "fee"
+    ],
+    "corporate_action.action": [
+      "split",
+      "consolidation",
+      "return_of_capital",
+      "merger"
+    ],
+    "valuation.method": [
+      "appraisal",
+      "market",
+      "estimate",
+      "statement"
+    ],
+    "txn_line.date_basis": [
+      "transaction",
+      "posting",
+      "value"
+    ],
+    "contract_note.side": [
+      "buy",
+      "sell"
+    ],
+    "settlement.side": [
+      "buy",
+      "sell"
+    ],
+    "super_line.line_type": [
+      "employer",
+      "salary_sacrifice",
+      "personal_deductible",
+      "personal_after_tax",
+      "spouse",
+      "rollover_in",
+      "rollover_out",
+      "earnings",
+      "fee",
+      "insurance",
+      "contributions_tax",
+      "pension",
+      "withdrawal"
+    ]
+  }
 }

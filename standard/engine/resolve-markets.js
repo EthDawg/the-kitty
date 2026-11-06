@@ -30,6 +30,10 @@ module.exports = (Resolver) => {
     return account;
   };
 
+  P.holdingsOfInstrument = function (instrument) {
+    return [...new Set((this.tradeLog || []).filter((t) => t.instrument === instrument && t.holding).map((t) => t.holding))];
+  };
+
   P.recogniseMarkets = function () {
     this.tradeLog = [];
     const log = (t) => this.tradeLog.push(t);
@@ -105,6 +109,18 @@ module.exports = (Resolver) => {
       const instrument = this.instrumentOf(p.instrument_ref, p.effective_on);
       if (!instrument) continue;
       log({ kind: "action", date: p.effective_on, instrument, action: p.action, ratio: p.ratio, cashPerUnit: p.cash_per_unit_cents, ref: `action|${instrument}|${p.effective_on}`, o });
+      if (p.action === "return_of_capital" && p.cash_per_unit_cents) {
+        // Lot cost goes down and cash comes in: one cheque, not income.
+        for (const h of this.holdingsOfInstrument(instrument)) {
+          const units = this.unitsOn(instrument, p.effective_on);
+          const amount = Math.round(Number(units) / 1e8 * p.cash_per_unit_cents);
+          if (!amount) continue;
+          const cash = this.cashHubOf(h);
+          this.event({ key: `capital_return|${h}|${instrument}|${p.effective_on}`, kind: "capital_return", occurred_on: p.effective_on, description: `Return of capital, ${p.instrument_ref}`, amount_cents: amount, grade: "stated", rule: "corporate_action", witnesses: this.w(o, "recognises"), fields: { amount }, refs: { cash_account: cash, holding: h } });
+          const line = settleMatch(cash, amount, p.effective_on, "", "", "dividend_receipt");
+          if (line) this.event({ key: `dividend_receipt|${line.key}`, kind: "dividend_receipt", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "action+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: cash }, line });
+        }
+      }
     }
 
     for (const o of this.collapseDocs("vest")) {
@@ -163,8 +179,25 @@ module.exports = (Resolver) => {
     // Moving a coin between one's own wallets is nothing happening. Pair by transaction id; an unpaired move out needs a person.
     for (const [txid, group] of groupBy(this.cryptoMoves || [], (m) => m.p.txid || m.key)) {
       const out = group.find((m) => m.p.type === "transfer_out"), inn = group.find((m) => m.p.type === "transfer_in");
-      if (out && inn) log({ kind: "move", date: out.on, instrument: out.instrument, from: out.wallet, to: inn.wallet, units: parseUnits(out.p.units), ref: txid, o: out.o, feeUnits: out.p.fee_units ? parseUnits(out.p.fee_units) : 0n });
+      if (out && inn) {
+        const sent = parseUnits(out.p.units), landed = parseUnits(inn.p.units), fee = sent > landed ? sent - landed : 0n;
+        // The network fee is a small disposal; the rest is nothing happening.
+        if (fee > 0n) log({ kind: "sell", date: out.on, instrument: out.instrument, holding: out.wallet, person: this.personOfAccount(out.wallet, out.on), units: fee, proceeds: nz(out.p.fee_aud_cents), ref: `fee|${txid}`, o: out.o });
+        log({ kind: "move", date: out.on, instrument: out.instrument, from: out.wallet, to: inn.wallet, units: landed, ref: txid, o: out.o });
+      }
       else this.fault("crypto_move_unpaired", (out || inn).o, `Crypto move ${txid} has one side only. Is it an external send?`);
+    }
+    // A snapshot holding with no trade history opens lots of unknown cost. Unknown is a value, not zero, so a later sale reports an unknown gain.
+    for (const o of this.byKind.get("holding") || []) {
+      const p = o.payload;
+      const account = this.accountOf(o, p.account_ref, p.as_at);
+      if (!account) continue;
+      const instrument = this.instrumentOf(p.instrument_ref, p.as_at);
+      if (!instrument) continue;
+      const holding = this.holdingOf(instrument, account);
+      if ((this.accounts.get(holding) || {}).fidelity !== "snapshot") continue;
+      if (this.tradeLog.some((t) => t.instrument === instrument && t.holding === holding && t.kind === "buy" && t.date <= p.as_at)) continue;
+      log({ kind: "buy", date: p.as_at, instrument, holding, person: this.personOfAccount(holding, p.as_at), units: parseUnits(p.units), cost: null, incidental: 0, ref: `snapshot|${holding}|${instrument}`, o });
     }
     this.lots = buildLots(this.tradeLog, this);
   };

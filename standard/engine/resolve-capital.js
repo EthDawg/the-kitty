@@ -15,6 +15,8 @@ module.exports = (Resolver) => {
       const assetId = this.assets.has(p.asset_ref) ? p.asset_ref : this.alias("asset", p.asset_ref, p.settled_on);
       if (!assetId) { this.fault("unresolved_asset", o, `No asset for ${p.asset_ref}.`); continue; }
       const asset = this.assets.get(assetId);
+      if (p.side === "sell") { this.recogniseSale(o, assetId, asset); continue; }
+      (this.propertyLog = this.propertyLog || []).push({ kind: "buy", date: p.settled_on, asset: assetId, account: asset.account_id, price: p.price_cents, incidental: nz(p.duty_cents) + nz(p.legal_cents) + nz(p.other_costs_cents) + nz(p.adjustments_cents), o });
       const cost = p.price_cents + nz(p.duty_cents) + nz(p.legal_cents) + nz(p.other_costs_cents) + nz(p.adjustments_cents);
       const loanDrawn = nz(p.loan_drawn_cents);
       const loan = p.loan_ref ? this.accountOf(o, p.loan_ref, p.settled_on) : null;
@@ -50,6 +52,58 @@ module.exports = (Resolver) => {
     }
   };
 
+  // Selling a property: proceeds leave the asset, the payout clears the loan, costs are costs, the rest reaches the bank.
+  // The gain is a tax fact, written to lot_match. It never appears in the ledger as income.
+  P.recogniseSale = function (o, assetId, asset) {
+    const p = o.payload;
+    const loan = p.loan_ref ? this.accountOf(o, p.loan_ref, p.settled_on) : null;
+    const selling = nz(p.selling_costs_cents), payout = nz(p.loan_payout_cents);
+    (this.sales = this.sales || []).push({ asset: asset.account_id, date: p.settled_on, price: p.price_cents });
+    (this.propertyLog = this.propertyLog || []).push({ kind: "sell", date: p.settled_on, asset: assetId, account: asset.account_id, proceeds: p.price_cents, selling, o });
+    this.event({ key: `asset_disposal|${assetId}|${p.settled_on}`, kind: "asset_disposal", occurred_on: p.settled_on, description: `Sale, ${asset.name}`, asset_id: assetId, category_id: "CAPITAL", amount_cents: p.price_cents, grade: "stated", rule: "settlement",
+      witnesses: this.docWitness(o), fields: { proceeds: p.price_cents, selling, loan_payout: payout }, refs: { asset_account: asset.account_id, loan: loan || "clearing:asset:unknown", asset: assetId } });
+    const want = p.cash_paid_cents != null ? Math.abs(p.cash_paid_cents) : p.price_cents - selling - payout;
+    const l = this.lines.filter((x) => !x.claimed && x.cents === want && Math.abs(daysBetween(p.settled_on, x.date)) <= 5).sort((a, b) => cmp(a.key, b.key))[0];
+    if (!l) { this.fault("settlement_unmatched", o, `Sale of ${p.settled_on} should reach the bank as ${want / 100}; no line matches.`, "", want); return; }
+    this.claim(l, "asset_payment");
+    this.event({ key: `asset_payment|${l.key}`, kind: "asset_payment", occurred_on: l.date, description: l.desc, asset_id: assetId, category_id: "CAPITAL", amount_cents: l.cents, grade: "corroborated", rule: "settlement+bank",
+      witnesses: this.lineWitness(l, "clears"), fields: { amount: -l.cents }, refs: { account: l.account, asset: assetId }, line: l });
+  };
+
+  // A home that becomes a rental after 20 August 1996 takes its market value as cost base on the day it first earns income.
+  // The fact is a valuation dated the change of use; the lot takes it. Nothing moves in the ledger.
+  P.buildPropertyLots = function () {
+    const lots = [], matches = [];
+    const log = [...(this.propertyLog || [])].sort((a, b) => cmp(a.date, b.date));
+    const useChanges = (assetId) => this.terms.filter((t) => t.subject_type === "asset" && t.subject_id === assetId && t.term === "use" && t.superseded_at == null).sort((a, b) => cmp(a.valid_from, b.valid_from));
+    for (const t of log) {
+      if (t.kind === "buy") {
+        lots.push({ lot_id: `plot_${t.asset}`, asset_id: t.asset, account_id: t.account, acquired_on: t.date, units_open: 1n, units_bought: 1n, cost_known: true, cost_price_cents: t.price, cost_incidental_cents: t.incidental, cost_ownership_cents: 0, cost_capital_cents: 0, cost_adjustment_cents: 0, reset: null });
+        continue;
+      }
+      const lot = lots.find((l) => l.asset_id === t.asset);
+      if (!lot) { this.fault("sale_without_purchase", t.o, `Sale of ${t.asset} with no purchase held; cost base is unknown.`, "Add the purchase settlement."); matches.push({ event_ref: `asset_disposal|${t.asset}|${t.date}`, lot_id: `plot_${t.asset}`, asset_id: t.asset, disposed_on: t.date, units: "1", proceeds_cents: t.proceeds - t.selling, cost_base_cents: null, gain_cents: null, discount_eligible: true, method: "specific", fy: require("./util").fyOf(t.date) }); continue; }
+      const uses = useChanges(t.asset);
+      let base = lot.cost_price_cents + lot.cost_incidental_cents + lot.cost_capital_cents + lot.cost_adjustment_cents;
+      let acquired = lot.acquired_on;
+      const firstRental = uses.find((u) => u.value === "rental");
+      const homeBefore = uses.find((u) => u.value === "owner_occupied" && firstRental && u.valid_from < firstRental.valid_from);
+      if (firstRental && homeBefore) {
+        const atChange = (this.byKind.get("valuation") || []).filter((o) => this.resolveValueSubject(o.payload.subject_ref, o.payload.as_at, o) === lot.account_id && o.payload.as_at === firstRental.valid_from)[0];
+        const absent = this.term("asset", t.asset, "six_year_absence_from", t.date);
+        const sixYears = absent && daysBetween(absent, t.date) <= 2191;
+        if (sixYears) { matches.push({ event_ref: `asset_disposal|${t.asset}|${t.date}`, lot_id: lot.lot_id, asset_id: t.asset, disposed_on: t.date, units: "1", proceeds_cents: t.proceeds - t.selling, cost_base_cents: base, gain_cents: 0, discount_eligible: false, method: "specific", fy: require("./util").fyOf(t.date), exempt: "main_residence_six_year" }); lot.units_open = 0n; continue; }
+        if (atChange) { base = atChange.payload.value_cents; acquired = firstRental.valid_from; lot.reset = { on: acquired, value: base }; }
+        else this.fault("market_value_reset_missing", t.o, `${t.asset} became a rental on ${firstRental.valid_from}; a valuation dated that day is needed for its cost base.`, "Add the valuation.");
+      }
+      const proceeds = t.proceeds - t.selling;
+      const y = +acquired.slice(0, 4) + 1;
+      matches.push({ event_ref: `asset_disposal|${t.asset}|${t.date}`, lot_id: lot.lot_id, asset_id: t.asset, party_id: null, disposed_on: t.date, units: "1", proceeds_cents: proceeds, cost_base_cents: base, gain_cents: proceeds - base, discount_eligible: `${y}${acquired.slice(4)}` < t.date, method: "specific", fy: require("./util").fyOf(t.date) });
+      lot.units_open = 0n;
+    }
+    return { lots, matches };
+  };
+
   P.recogniseSuper = function () {
     const lineMap = {
       employer: "super_contribution", salary_sacrifice: "super_contribution", personal_deductible: "super_personal", personal_after_tax: "super_personal", spouse: "super_personal",
@@ -73,6 +127,17 @@ module.exports = (Resolver) => {
         } else this.fault("super_contribution_unpaid", l.key, `A personal contribution of ${l.cents / 100} has no bank line.`, "", l.cents);
       }
     }
+    // A pension or lump sum leaving super moves no net worth, but it is what a retiree lives on: the bank line carries SUPER-PENSION.
+    for (const e of this.events.filter((x) => x.kind === "super_withdrawal")) {
+      const want = e.fields.amount;
+      const account = e.refs.account;
+      e.fields.amount = -want;                      // lines out of the fund are negative
+      const l = this.lines.filter((x) => !x.claimed && x.cents === -want && Math.abs(daysBetween(x.date, e.occurred_on)) <= 5).sort((a, b) => Math.abs(daysBetween(a.date, e.occurred_on)) - Math.abs(daysBetween(b.date, e.occurred_on)) || cmp(a.key, b.key))[0];
+      if (!l) { this.fault("super_payment_unmatched", e.key, `${this.accountName(account)} paid ${(-want) / 100} and no bank line matches.`, "", -want); continue; }
+      this.claim(l, "super_receipt");
+      this.event({ key: `super_receipt|${l.key}`, kind: "super_receipt", occurred_on: l.date, description: l.desc, merchant: l.cls.merchant, category_id: "SUPER-PENSION", person: e.person, amount_cents: l.cents, grade: "corroborated", rule: "fund+bank",
+        witnesses: this.lineWitness(l, "clears"), fields: { amount: l.cents }, refs: { account: l.account, fund: account }, line: l });
+    }
     // A fund that gave only a statement: recognise from its totals.
     const covered = new Set((this.superLines || []).map((l) => `${l.account}|${monthOf(l.date)}`));
     for (const o of this.collapseDocs("super_statement")) {
@@ -90,6 +155,23 @@ module.exports = (Resolver) => {
       add("super_cost", nz(p.fees_cents), "SUPER-FEES", "fee");
       add("super_cost", nz(p.insurance_cents), "SUPER-INS", "insurance");
       add("super_cost", nz(p.tax_cents), "SUPER-TAX", "contributions_tax");
+    }
+  };
+
+  // Taxed this year, paid next: the statement recognises the entitlement, the bank line clears it whenever it comes.
+  P.recogniseTrusts = function () {
+    for (const o of this.collapseDocs("trust_statement")) {
+      const p = o.payload;
+      const person = this.partyOf(p.person_ref, p.period_end);
+      const cash = this.accountOf(o, p.account_ref, p.period_end);
+      const key = `trust_distribution|${person}|${p.trust_ref}|${p.fy}`;
+      this.event({ key, kind: "trust_distribution", occurred_on: p.period_end, description: `Distribution, ${p.trust_ref}, ${p.fy}`, category_id: "TRUST-DIST", person, amount_cents: p.entitlement_cents, grade: "stated", rule: "trust_statement",
+        witnesses: this.docWitness(o), fields: { amount: p.entitlement_cents }, refs: { cash_account: cash || "unassigned" } });
+      const line = this.lines.filter((l) => !l.claimed && l.cents === p.entitlement_cents && l.date >= addDays(p.period_end, -120) && (!cash || l.account === cash)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key))[0];
+      if (line) {
+        this.claim(line, "dividend_receipt");
+        this.event({ key: `dividend_receipt|${line.key}`, kind: "dividend_receipt", occurred_on: line.date, description: line.desc, category_id: "TRUST-DIST", person, amount_cents: line.cents, grade: "corroborated", rule: "statement+bank", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: cash || line.account }, line });
+      }
     }
   };
 
@@ -186,6 +268,14 @@ module.exports = (Resolver) => {
       const cur = valued.get(a).get(p.as_at);
       if (!cur || Number(o.confidence) >= Number(cur.o.confidence)) valued.get(a).set(p.as_at, { cents: p.value_cents, o });
     }
+    // A snapshot account's stated balance is its balance; the movement between statements is graded stated.
+    for (const o of this.byKind.get("balance") || []) {
+      const p = o.payload;
+      const a = this.accountOf(o, p.account_ref, p.as_at);
+      if (!a || (this.accounts.get(a) || {}).fidelity !== "snapshot") continue;
+      if (!valued.has(a)) valued.set(a, new Map());
+      valued.get(a).set(p.as_at, { cents: p.balance_cents, o });
+    }
     for (const [a, rows] of this.holdingValues ? this.holdingValues() : []) {
       if (!valued.has(a)) valued.set(a, new Map());
       for (const [d, v] of rows) if (!valued.get(a).has(d)) valued.get(a).set(d, v);
@@ -198,6 +288,11 @@ module.exports = (Resolver) => {
         if (!deltas.has(p.account_id)) deltas.set(p.account_id, []);
         deltas.get(p.account_id).push({ date: e.occurred_on, cents: p.amount_cents });
       }
+    }
+    // A sale sets the value on the day. Anything left in the book moves through revaluation first.
+    for (const s of this.sales || []) {
+      if (!valued.has(s.asset)) valued.set(s.asset, new Map());
+      valued.get(s.asset).set(s.date, { cents: s.price, o: null, saleDay: true });
     }
     // A disposal carries the book value on the day it left.
     for (const d of this.disposals || []) {
@@ -217,7 +312,7 @@ module.exports = (Resolver) => {
       for (const d of [...rows.keys()].sort()) {
         const v = rows.get(d);
         if (v.after) { book = 0; while (i < flows.length && flows[i].date <= d) i += 1; continue; }
-        while (i < flows.length && flows[i].date <= d) { book += flows[i].cents; i += 1; }
+        while (i < flows.length && (v.saleDay ? flows[i].date < d : flows[i].date <= d)) { book += flows[i].cents; i += 1; }
         const amount = v.cents - book;
         if (amount) {
           const e = this.event({ key: `revaluation|${account}|${d}`, kind: "revaluation", occurred_on: d, description: `Revaluation, ${this.accountName(account)}`, amount_cents: amount, grade: "stated", rule: "valuation",
@@ -227,6 +322,7 @@ module.exports = (Resolver) => {
         }
       }
     }
+    this.propertyLots = this.buildPropertyLots();
   };
   P.lastValueBefore = function (rows, date) {
     if (!rows) return null;

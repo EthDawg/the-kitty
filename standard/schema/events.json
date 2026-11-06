@@ -141,7 +141,7 @@
       "legs": [
         [
           "cat:SALARY",
-          "-gross"
+          "-gross+sacrifice"
         ],
         [
           "cat:SALARY-ALLOW",
@@ -169,7 +169,7 @@
         ],
         [
           "clearing:payroll:{employer}",
-          "+gross+allowance+reimbursement-post_tax-tax"
+          "+gross+allowance+reimbursement-post_tax-tax-sacrifice"
         ],
         [
           "clearing:super:{fund}",
@@ -658,16 +658,20 @@
       ],
       "legs": [
         [
-          "{account}",
-          "+proceeds"
+          "clearing:asset:{asset}",
+          "+proceeds-selling-loan_payout"
+        ],
+        [
+          "{loan}",
+          "+loan_payout"
+        ],
+        [
+          "cat:SELLING-COSTS",
+          "+selling"
         ],
         [
           "{asset_account}",
-          "-book"
-        ],
-        [
-          "equity:revaluation",
-          "-proceeds+book"
+          "-proceeds"
         ]
       ]
     },
@@ -721,7 +725,8 @@
           "{account}",
           "-amount"
         ]
-      ]
+      ],
+      "note": "Also a PAYG instalment. net_tax on tax_assessed is PAYG credits less the result, so the ATO position returns to zero when the refund or payment lands, franking credits included. An amended assessment posts only the change."
     },
     "help_indexation": {
       "family": "tax",
@@ -780,22 +785,6 @@
         ],
         [
           "receivable:{party}",
-          "-amount"
-        ]
-      ]
-    },
-    "tax_instalment": {
-      "family": "tax",
-      "authority": [
-        "txn_line"
-      ],
-      "legs": [
-        [
-          "ato:{person}",
-          "+amount"
-        ],
-        [
-          "{account}",
           "-amount"
         ]
       ]
@@ -878,6 +867,57 @@
           "-amount"
         ]
       ]
+    },
+    "cost_base_reset": {
+      "family": "capital",
+      "authority": [
+        "valuation"
+      ],
+      "legs": []
+    },
+    "loan_payout": {
+      "family": "loan",
+      "authority": [
+        "loan_statement"
+      ],
+      "legs": [
+        [
+          "{old_loan}",
+          "+amount"
+        ],
+        [
+          "{new_loan}",
+          "-amount-fee"
+        ],
+        [
+          "cat:FEES",
+          "+fee"
+        ]
+      ]
+    },
+    "capital_return": {
+      "family": "trade",
+      "authority": [
+        "corporate_action"
+      ],
+      "legs": [
+        [
+          "clearing:income:{cash_account}",
+          "+amount"
+        ],
+        [
+          "{holding}",
+          "-amount"
+        ]
+      ]
+    },
+    "ownership_change": {
+      "family": "capital",
+      "authority": [
+        "settlement"
+      ],
+      "legs": [],
+      "note": "Moves share between owners; nothing moves at household level. It is what makes the by-owner roll-forward hold."
     }
   },
   "extension": "A kind prefixed x_ is accepted when its legs pass the same proof as these. An agent adds one line of data, never a code path."

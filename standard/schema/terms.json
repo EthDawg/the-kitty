@@ -1,5 +1,5 @@
 {
-  "_about": "The controlled vocabulary of values that change. A term name not listed here, and not prefixed x_, fails conformance. shape: step means the value holds until the next row; point means it is true only on valid_from.",
+  "_about": "The controlled vocabulary of values that change. A term name not listed here, and not prefixed x_, fails conformance. shape: step means the value holds until the next row; point means it is true only on valid_from. A foreign key is never a term: an offset account, a super fund or a loan split is a dated row in link.",
   "terms": {
     "contract.loan": {
       "interest_rate": {
@@ -28,10 +28,6 @@
         "unit": "enum:weekly|fortnightly|monthly",
         "shape": "step"
       },
-      "offset_account": {
-        "unit": "account_id",
-        "shape": "step"
-      },
       "term_end": {
         "unit": "date",
         "shape": "step"
@@ -42,10 +38,6 @@
       },
       "redraw_available_cents": {
         "unit": "cents",
-        "shape": "step"
-      },
-      "split_of": {
-        "unit": "contract_id",
         "shape": "step"
       },
       "deductible_pct": {
@@ -108,10 +100,6 @@
       },
       "salary_sacrifice_cents": {
         "unit": "cents",
-        "shape": "step"
-      },
-      "super_fund": {
-        "unit": "account_id",
         "shape": "step"
       },
       "leave_status": {
@@ -356,20 +344,6 @@
         "shape": "step"
       }
     },
-    "party.person": {
-      "tax_resident": {
-        "unit": "bool",
-        "shape": "step"
-      },
-      "hospital_cover": {
-        "unit": "bool",
-        "shape": "step"
-      },
-      "family_status": {
-        "unit": "enum:single|couple",
-        "shape": "step"
-      }
-    },
     "account.any": {
       "interest_rate": {
         "unit": "pct",
@@ -395,6 +369,12 @@
       },
       "insurance_cover_cents": {
         "unit": "cents",
+        "shape": "step"
+      }
+    },
+    "party.person": {
+      "tax_resident": {
+        "unit": "bool",
         "shape": "step"
       }
     }

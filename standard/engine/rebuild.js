@@ -43,10 +43,10 @@ function rebuild(input) {
   }
 
   const L = {
-    asOf: asOf || (R.events.length ? R.events[R.events.length - 1].occurred_on : null),
+    asOf: asOf || latestDate(R),
     accounts: [...(setup.account || []), ...auto],
     categories: setup.category || [], parties: setup.party || [], contracts: setup.contract || [], assets: setup.asset || [], ownership: setup.ownership || [],
-    streams: setup.stream || [], periods: setup.period || [], budgets: setup.budget || [], activities: setup.activity || [],
+    links: setup.link || [], streams: setup.stream || [], periods: setup.period || [], budgets: setup.budget || [], activities: setup.activity || [],
     sources: sources || [], observations: R.obs, decisions, events: R.events, postings, witnesses, terms: R.terms, termIdx: indexTerms(R.terms), lines: R.lines, linesByAccount: R.linesByAccount,
   };
   L.index = V.ledgerIndex(L);
@@ -57,8 +57,8 @@ function rebuild(input) {
   L.activityNet = V.activityNet(L);
   L.coverage = V.coverage(L);
   L.refresh = V.refreshPlan(L);
-  L.lotRows = R.lots ? R.lots.lots : [];
-  L.lotMatches = R.lots ? R.lots.matches : [];
+  L.lotRows = [...(R.lots ? R.lots.lots : []), ...(R.propertyLots ? R.propertyLots.lots : [])];
+  L.lotMatches = [...(R.lots ? R.lots.matches : []), ...(R.propertyLots ? R.propertyLots.matches : [])];
 
   // Stated balances: every claim a source makes about where an account stood.
   const stated = [];
@@ -88,11 +88,16 @@ function rebuild(input) {
     let v = 0;
     for (const p of postings) if (p.category_id) {
       const c = L.index.categories.get(p.category_id);
-      if (c && c.accrual_lens === false && monthOf(L.index.events.get(p.event_id).occurred_on) === m) v -= p.amount_cents;
+      if (c && (c.economic_lens ?? c.accrual_lens) === false && monthOf(L.index.events.get(p.event_id).occurred_on) === m) v -= p.amount_cents;
     }
     return v;
   };
   L.decisionBound = (d) => R.decisionBound(d);
+  L.isSnapshotHolding = (p) => {
+    const account = R.alias("account", p.account_ref, p.as_at) || p.account_ref;
+    const instrument = R.instrumentOf(p.instrument_ref, p.as_at);
+    return (R.accounts.get(R.holdingOf(instrument, account)) || {}).fidelity === "snapshot";
+  };
   L.excludedObs = new Set();
   L.tax = reference ? Tax.derive({ L, R, reference, setup }) : null;
 
@@ -105,6 +110,14 @@ function rebuild(input) {
   return L;
 }
 
+function latestDate(R) {
+  let last = R.events.length ? R.events[R.events.length - 1].occurred_on : null;
+  for (const o of R.obs) {
+    const p = o.payload;
+    for (const d of [p.as_at, p.posting_date, p.period_end]) if (d && (!last || d > last)) last = d;
+  }
+  return last;
+}
 function isIntradayAmbiguous() { return false; }
 function rankReview(items) {
   const seen = new Set(); const out = [];

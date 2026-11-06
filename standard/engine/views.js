@@ -37,7 +37,7 @@ function accrualLens(L) {
   for (const p of L.postings) {
     if (!p.category_id) continue;
     const cat = X.categories.get(p.category_id);
-    if (cat && cat.accrual_lens === false) continue;
+    if (cat && (cat.economic_lens ?? cat.accrual_lens) === false) continue;
     const e = X.events.get(p.event_id);
     const key = monthOf(e.occurred_on);
     if (!months.has(key)) months.set(key, { month: key, income: 0, expense: 0, byCategory: {} });
@@ -62,7 +62,8 @@ function balances(L) {
   }
   const allMonths = [...new Set([...flows.values()].flatMap((f) => [...f.keys()]))].sort();
   if (!allMonths.length) return { months: [], rows: [], at: () => 0 };
-  const months = monthsBetween(allMonths[0], allMonths[allMonths.length - 1]);
+  const lastHeld = L.asOf && monthOf(L.asOf) > allMonths[allMonths.length - 1] ? monthOf(L.asOf) : allMonths[allMonths.length - 1];
+  const months = monthsBetween(allMonths[0], lastHeld);
   const rows = [], table = new Map();
   for (const [account, f] of flows) {
     let run = 0; const series = new Map();
@@ -128,7 +129,7 @@ function activityNet(L) {
     const id = e.activity_id || e.asset_id;
     if (!id) continue;
     const c = X.categories.get(p.category_id);
-    if (!c || c.accrual_lens === false || c.kind === "capital") continue;
+    if (!c || (c.economic_lens ?? c.accrual_lens) === false || c.kind === "capital") continue;
     const k = `${fyOf(e.occurred_on)}|${id}`;
     if (!out.has(k)) out.set(k, { fy: fyOf(e.occurred_on), activity: id, income: 0, expense: 0, net: 0, byCategory: {} });
     const r = out.get(k);

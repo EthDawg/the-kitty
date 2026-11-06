@@ -1,5 +1,5 @@
 {
-  "_about": "The semantic layer. Every number any surface shows is named here once. lens: cash, accrual or position. laws: what must pass for the number to be trusted. stability: stable means locked by the eval to the cent; experimental means real but unfinished and labelled so wherever it appears.",
+  "_about": "The semantic layer. Every number any surface shows is named here once. lens: cash, economic or position. laws: what must pass for the number to be trusted. stability: stable means locked by the eval to the cent; experimental means real but unfinished and labelled so wherever it appears.",
   "metrics": {
     "cash.income": {
       "unit": "cents",
@@ -54,21 +54,21 @@
       "stability": "stable",
       "doc": "Spending against the budget valid that month."
     },
-    "accrual.income": {
+    "economic.income": {
       "unit": "cents",
       "grain": "month,category",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L1",
         "L8"
       ],
       "stability": "stable",
-      "doc": "Income as earned: gross salary, employer super, gross rent, dividends, gains."
+      "doc": "Income as the household's wealth sees it: gross salary, employer super, gross rent, dividends. Recognised on the date the evidence gives, which is not strict accrual; no household books wages by the day."
     },
-    "accrual.expense": {
+    "economic.expense": {
       "unit": "cents",
       "grain": "month,category",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L1",
         "L8"
@@ -79,7 +79,7 @@
     "income.receipts": {
       "unit": "cents",
       "grain": "fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [],
       "stability": "stable",
       "doc": "Gross receipts before any cost, from payslips and activities."
@@ -87,7 +87,7 @@
     "income.total": {
       "unit": "cents",
       "grain": "fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L11"
       ],
@@ -97,7 +97,7 @@
     "income.taxable": {
       "unit": "cents",
       "grain": "fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L11"
       ],
@@ -107,7 +107,7 @@
     "income.surcharge": {
       "unit": "cents",
       "grain": "fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L11"
       ],
@@ -117,7 +117,7 @@
     "income.composition": {
       "unit": "cents",
       "grain": "fy,person,activity",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [],
       "stability": "stable",
       "doc": "The same year by activity, so a business year or a parental-leave year is not one low bar. Lodged-first: a lodged year reads tax_line leaves by section; an open year reads derived items by activity; the grade says which."
@@ -188,7 +188,7 @@
     "loan.interest": {
       "unit": "cents",
       "grain": "month,loan",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L6"
       ],
@@ -218,7 +218,7 @@
     "loan.expected_interest": {
       "unit": "cents",
       "grain": "month,loan",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L6"
       ],
@@ -228,7 +228,7 @@
     "activity.net_income": {
       "unit": "cents",
       "grain": "fy,activity",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L2",
         "L6"
@@ -249,7 +249,7 @@
     "super.contributions": {
       "unit": "cents",
       "grain": "fy,person,type",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L14"
       ],
@@ -259,7 +259,7 @@
     "super.cap_used": {
       "unit": "ratio",
       "grain": "fy,person,cap",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L14",
         "L16"
@@ -280,7 +280,7 @@
     "shares.realised_gain": {
       "unit": "cents",
       "grain": "fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L7"
       ],
@@ -290,7 +290,7 @@
     "tax.item": {
       "unit": "cents",
       "grain": "fy,person,label",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L11"
       ],
@@ -300,7 +300,7 @@
     "tax.estimate": {
       "unit": "cents",
       "grain": "fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L11"
       ],
@@ -358,7 +358,7 @@
     "forecast.tax": {
       "unit": "cents",
       "grain": "scenario,fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L10"
       ],
@@ -368,7 +368,7 @@
     "advice.tax_return": {
       "unit": "text",
       "grain": "fy,person",
-      "lens": "accrual",
+      "lens": "economic",
       "laws": [
         "L11"
       ],

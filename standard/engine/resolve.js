@@ -189,7 +189,7 @@ class Resolver {
       const src = this.sources.get(o.source_id);
       items.push({ obs: o, account, date, valueDate: p.value_date, cents: p.amount_cents, desc: p.description, ref: p.reference, status: p.status || "posted",
         sourceId: o.source_id, seq, balanceAfter: p.balance_after_cents, cardMember: p.card_member, foreignAmount: p.foreign_amount, foreignCurrency: p.foreign_currency,
-        capturedAt: src && src.captured_at, lineType: p.line_type });
+        capturedAt: src && src.captured_at, issuedOn: src && src.issued_on, dateBasis: p.date_basis, lineType: p.line_type });
     };
     let seq = 0;
     for (const o of this.byKind.get("txn_line") || []) take(o, ++seq);
@@ -269,11 +269,12 @@ class Resolver {
       const person = this.partyOf(p.person_ref, p.pay_date);
       const employer = this.partyOf(p.employer_ref, p.pay_date) || p.employer_ref;
       const contract = (this.ctx.setup.contract || []).find((c) => c.kind === "employment" && c.holder_party_id === person && c.counterparty_party_id === employer) || null;
-      const fund = contract ? this.term("contract", contract.contract_id, "super_fund", p.pay_date) : null;
+      const fundLink = contract ? activeOn(this.links.filter((k) => k.relation === "contributes_to" && k.from_id === contract.contract_id), p.pay_date)[0] : null;
+      const fund = fundLink ? fundLink.to_id : contract ? this.term("contract", contract.contract_id, "super_fund", p.pay_date) : null;
       const key = `wage|${person}|${employer}|${p.pay_date}|${p.net_cents}`;
       const ev = this.event({ key, kind: "wage", occurred_on: p.pay_date, description: `Pay, ${this.name(employer)}`, category_id: "SALARY", person, contract_id: contract && contract.contract_id, amount_cents: p.gross_cents,
         grade: "stated", rule: "payslip", witnesses: this.docWitness(o),
-        fields: { gross: p.gross_cents, tax: p.tax_cents, net: p.net_cents, super: nz(p.super_cents), sacrifice: nz(p.salary_sacrifice_cents), allowance: nz(p.allowance_cents), reimbursement: nz(p.reimbursement_cents), post_tax: nz(p.post_tax_deductions_cents) },
+        fields: { gross: p.gross_cents, tax: p.tax_cents, super: nz(p.super_cents), sacrifice: nz(p.salary_sacrifice_cents), allowance: nz(p.allowance_cents), reimbursement: nz(p.reimbursement_cents), post_tax: nz(p.post_tax_deductions_cents) },
         refs: { person, employer, fund: fund || this.defaultFund(person) } });
       const cand = (byAmount.get(p.net_cents) || []).filter((l) => !l.claimed && Math.abs(daysBetween(p.pay_date, l.date)) <= 5)
         .sort((a, b) => Math.abs(daysBetween(p.pay_date, a.date)) - Math.abs(daysBetween(p.pay_date, b.date)) || similarity(b.desc, this.name(employer)) - similarity(a.desc, this.name(employer)) || cmp(a.key, b.key));
@@ -382,6 +383,17 @@ class Resolver {
           const category = (contract && contract.category_id) || l.cls.category_id || "MORTGAGE";
           this.event({ key: `loan_payment|${l.key}`, kind: "loan_payment", occurred_on: l.date, description: l.desc, merchant: l.cls.merchant, category_id: l.cls.category_id || category, contract_id: contract && contract.contract_id, asset_id: contract && contract.asset_id, amount_cents: -l.cents, grade: "corroborated", rule: "lender+bank",
             witnesses: this.lineWitness(l, "clears"), fields: { amount: -l.cents }, refs: { loan, account: l.account }, line: l });
+        }
+      }
+      if (p.payout_cents) {
+        // Lender to lender: no bank line sees it. The old loan's closing is the new loan's opening, plus the fee.
+        const to = this.accountOf({ source_id: null }, p.payout_to_ref, p.period_end);
+        if (!to) this.fault("refinance_target_unknown", o, `Payout of ${p.payout_cents / 100} names no known loan.`, "Add the new loan.", p.payout_cents);
+        else {
+          this.event({ key: `loan_payout|${baseKey}`, kind: "loan_payout", occurred_on: p.period_end, description: `Refinance out of ${this.accountName(loan)}`, contract_id: contract && contract.contract_id, amount_cents: p.payout_cents, grade: "stated", rule: "loan_statement",
+            witnesses: this.docWitness(o, "control"), fields: { amount: p.payout_cents, fee: nz(p.discharge_fee_cents) }, refs: { old_loan: loan, new_loan: to } });
+          this.capitalLoans = this.capitalLoans || new Map();
+          this.capitalLoans.set(to, (this.capitalLoans.get(to) || 0) + p.payout_cents + nz(p.discharge_fee_cents));
         }
       }
       if (p.redraws_cents) {
@@ -506,6 +518,7 @@ class Resolver {
     this.recogniseLoans();
     this.recogniseSuper();
     this.recogniseMarkets();
+    this.recogniseTrusts();
     this.recogniseTax();
     this.pairTransfers();
     this.recogniseEveryday();
