@@ -3,7 +3,7 @@
 const { byKey, groupBy, cmp, monthOf, monthEnd, addDays, parseUnits, stableStringify, hash64 } = require("./util");
 const { indexTerms } = require("./temporal");
 const { Resolver } = require("./resolve");
-const { post } = require("./post");
+const { post, proveTemplates } = require("./post");
 const V = require("./views");
 const { runLaws } = require("./laws");
 const Tax = require("./tax");
@@ -18,8 +18,9 @@ const AUTO_ACCOUNT = [
 ];
 
 function rebuild(input) {
-  const { setup, sources, observations, decisions = [], rules, schema, reference, asOf } = input;
-  const R = new Resolver({ setup, sources, observations, decisions, rules, eventSchema: schema.events });
+  const { setup, sources, observations, decisions = [], rules, schema, reference, asOf, extensions } = input;
+  const eventSchema = withExtensions(schema.events, extensions);
+  const R = new Resolver({ setup, sources, observations, decisions, rules, eventSchema });
   R.run();
 
   R.events.sort((a, b) => cmp(a.occurred_on, b.occurred_on) || cmp(a.event_id, b.event_id));
@@ -28,7 +29,7 @@ function rebuild(input) {
 
   const postings = [], witnesses = [];
   for (const e of R.events) {
-    if (!e.postings) e.postings = post(e, schema.events);
+    if (!e.postings) e.postings = post(e, eventSchema);
     for (const p of e.postings) postings.push({ ...p, event_id: e.event_id });
     for (const w of e.witnesses) witnesses.push({ event_id: e.event_id, obs_id: w.obs_id, role: w.role });
   }
@@ -116,6 +117,16 @@ function rebuild(input) {
   return L;
 }
 
+// An x_ event kind is a line of data: it joins the vocabulary when its legs pass the same proof as the standard's. No code path.
+function withExtensions(events, extensions) {
+  const kinds = extensions && extensions.events;
+  if (!kinds) return events;
+  const named = Object.keys(kinds).filter((k) => !k.startsWith("x_"));
+  if (named.length) throw new Error(`extension kinds must start x_: ${named.join(", ")}`);
+  const bad = proveTemplates({ kinds });
+  if (bad.length) throw new Error(`extension does not balance: ${bad.join("; ")}`);
+  return { ...events, kinds: { ...events.kinds, ...kinds } };
+}
 function latestDate(R) {
   let last = R.events.length ? R.events[R.events.length - 1].occurred_on : null;
   for (const o of R.obs) {

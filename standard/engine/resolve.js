@@ -482,6 +482,11 @@ class Resolver {
         this.event({ key: `${k}|${l.key}`, kind: k, occurred_on: l.date, description: l.desc, merchant: c.merchant, category_id: category, person: c.person, amount_cents: Math.abs(l.cents), grade: this.lineGrade(l), rule: c.via, witnesses: this.lineWitness(l), fields: { amount: Math.abs(l.cents) }, refs: { account: l.account, party }, line: l });
         continue;
       }
+      if (kind && kind.startsWith("x_")) {
+        this.claim(l, kind);
+        this.event({ key: `${kind}|${l.key}`, kind, occurred_on: l.date, description: l.desc, merchant: c.merchant, category_id: category, person: c.person, amount_cents: Math.abs(l.cents), grade: this.lineGrade(l), rule: "x_ decision", witnesses: this.lineWitness(l), fields: { amount: Math.abs(l.cents) }, refs: { account: l.account, category }, line: l });
+        continue;
+      }
       if (!category) {
         category = "UNCAT";
         this.review.push({ kind: "uncategorised", ref: l.key, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });

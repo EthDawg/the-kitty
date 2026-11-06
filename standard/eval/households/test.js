@@ -239,3 +239,14 @@ test("2 shape change: a lodged business year reads by composition, and BAS net s
   assert.deepEqual(c.parts, [{ section: "salary", amount_cents: 3000000 }, { section: "business", amount_cents: 6000000 }], "leaves only: the repeated net and the spouse memo do not count");
   assert.equal(L.checks.find((x) => x.law === "L19").status, "pass", "G1 less 1A where it includes GST, plain G1 where it does not, and a PAYG-only statement is skipped");
 });
+
+test("an x_ event kind is one line of data, judged by the same proof, with no code path", () => {
+  const h = household("xkind").person("sam").account("BANK", "transaction", "cash", [["sam", 10000]]).account("DEBT", "loan", "loans", [["sam", 10000]]);
+  h.line("BANK", "2026-07-02", "SERVICES AUSTRALIA RECOVERY", -5000);
+  h.decisions.push({ decision_id: "d1", target_type: "line", target_ref: "BANK|2026-07-02|-5000", verb: "set_event_kind", value: { event_kind: "x_debt_repayment" }, by: "sam", at: "2026-07-03T00:00:00Z", status: "accepted" });
+  const extensions = { events: { x_debt_repayment: { legs: [["DEBT", "+amount"], ["{account}", "-amount"]] } } };
+  const L = run(h, { extensions });
+  assert.equal(L.balances.at("DEBT", "2026-07"), 5000);
+  assert.equal(L.cash[0].spending, 0, "repaying a debt is not spending");
+  assert.throws(() => run(h, { extensions: { events: { x_bad: { legs: [["DEBT", "+amount"]] } } } }), /does not balance/);
+});
