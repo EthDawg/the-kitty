@@ -249,8 +249,12 @@ next price moves the rest through revaluation, and tax gains live in `lot_match`
 
 A property is one lot. Its cost base takes purchase price, duty, legal costs and capital improvements, and loses claimed
 capital works. When a home first earns income after 20 August 1996 its cost base resets to market value that day, read from
-a valuation dated the change of use. The six-year absence rule is a term; a sale inside it is exempt. Each of these lands
-as a `lot_match`, never as income in the ledger.
+a valuation dated the change of use. The six-year absence rule is a term; a sale inside it is exempt. A property that was a
+rental and then a home is exempt by days, from its dated `use`. If that timeline has a hole, the gain is unknown and a
+question is raised, never a guess. Each of these lands as a `lot_match`, never as income in the ledger.
+
+An ESPP purchase has a discount and a cost paid: the discount is income, the contributions are not, and the lot's cost is
+market value. A tranche marked `scheduled` or `cancelled` makes no income.
 
 Foreign holdings keep `native_cents` and `native_currency` beside base currency, so a USD statement ties in USD.
 
@@ -440,7 +444,15 @@ is why LLM-written parsers can be trusted here, and why they are not in free-for
 ### 7.3 Decision and rule memory
 
 Rules are the household's accumulated taste; decisions are its accumulated answers. They persist across a rebuild, so
-a person is never asked twice. On a blow-away replay, a returning household keeps `decision`, `rule` and `recipe`.
+a person is never asked twice. A rule can name the property a line belongs to, so a line on a shared card reaches the right
+owners. A rule can be scoped to one account, has dates, and a rule learned later does not rewrite history. Priority beats
+length. On an account that serves a rental, a category's `property_twin_id` says what it becomes.
+
+Decisions bind to a line's content (`account|date|cents`, with an occurrence), never to a derived id. Every verb does
+something: `categorise`, `split` (parts must add to the line), `link`, `unlink`, `exclude`, `include`, `assign_person`,
+`assign_claimant`, `choose_lot`, `set_event_kind`, `adjust`, `accept` (a law's result, with a reason and `reopen_if`).
+`tag`, `note`, `worth_it` and `confirm` record and move no money. A correction to an observation is a new observation
+that names the one it replaces. On a blow-away replay, a returning household keeps `decision`, `rule` and `recipe`.
 A new household starts with the public dictionary and public recipes. The eval measures both.
 
 ---
