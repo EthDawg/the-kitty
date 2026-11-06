@@ -172,7 +172,7 @@ module.exports = (Resolver) => {
     const waiting = [];
     const bankLine = (line) => this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "exchange+bank", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: line.account }, line });
     const paidAt = (t, cents, account) => { t.ev.fields[t.field] = Math.abs(cents); t.ev.amount_cents = Math.abs(cents); t.ev.refs.cash_account = account; };
-    this.heldOnly = heldOnly;
+    this.heldOnly = [...(this.heldOnly || []), ...heldOnly];
     const settleCrypto = (ev, field, cash, cents, gross, on, key) => {
       const t = { ev, field, cash, cents, gross, on, key };
       const plain = settleMatch(cash, cents, on, "", key), line = plain || (gross !== cents ? settleMatch(cash, gross, on, "", key) : null);

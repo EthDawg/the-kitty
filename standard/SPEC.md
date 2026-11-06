@@ -402,6 +402,8 @@ A contract says what its money is: a line naming the counterparty takes the cont
 
 A contract is what most of a party's lines mean, not all of them: a bond, or a line far above the contract's price, stays a question, and an employer the person named beats a dictionary guess about money coming in. A rule can read one direction. A lender's advance with no bank line, such as money paid straight to a seller, still moves the loan, and asks. A fund's line no recipe can name still moves the balance, and asks. A lodged year known only by taxable income and result is held as a partial record. A vest table with units and no value is held, posts no income, and asks once for the grant.
 
+The household's own company or trust needs no table of its own: it is a party, its contracts say what each line means, and a loan to it sits on an account that holds the debt. A dictionary guess never stands over its name, and a lender who is also an employer or a relative is read as a loan only where the line says so. Two contracts with one party in two categories leave its name saying nothing, and a credit larger than the most ever paid to a payee is not a refund. Lines well after an account closed are held out as evidence and asked about once per file, and an asset carried at a value is gone from the day setup closes it.
+
 A two-sided fact need not arrive whole. One statement can clear several credits, and one deposit several buys, so a clearing
 account is matched by sums where amounts prove it. A managing agent is an account: what it pays clears what it owes, however
 it arrives, and what is left is what it still holds. A refinance need not name itself: a final repayment no bank line paid,

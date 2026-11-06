@@ -10,9 +10,10 @@ const MATCHING = require("../schema/matching.json");
 const WINDOW = Object.fromEntries(Object.entries(MATCHING.windows_days).map(([k, v]) => [k, v.days]));
 const TRANSFER_WORDS = new Set(MATCHING.transfer_words.words), STOP_WORDS = new Set(MATCHING.stop_words.words);
 const AGENT_LINE = /RENT|PROPERTY|AGENT|OWNER|MGMT|REALTY|REAL ESTATE/i;
-const SALE_FLOOR = 5000000;
+const SALE_FLOOR = 5000000, CLOSED_GRACE = 14;
+const OWN_ENTITY = new Set(["company", "trust", "smsf"]);
 // Who a line is with, by the first two words of what the dictionary or the bank calls them. A refund's text differs after that.
-const payee = (l) => String(l.cls.merchant || l.desc).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).slice(0, 2).join(" ");
+const payee = (l) => l.cls.contract_id || String(l.cls.merchant || l.desc).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).slice(0, 2).join(" ");
 
 const dollarsToCents = (v) => Math.round(Number(v) * 100);
 const nz = (v) => (v == null ? 0 : v);
@@ -212,12 +213,20 @@ class Resolver {
       const account = this.accountOf(o, p.account_ref, date);
       if (!account) { this.fault("unresolved_account", o, `No account for ${p.account_ref} on ${date}.`, "Add an alias for this account."); return; }
       const src = this.sources.get(o.source_id);
+      // A line well after an account closed cannot be that account's. It is usually another account's file in the wrong folder, so it stays evidence and asks once per file.
+      const closed = (this.accounts.get(account) || {}).closed_on;
+      if (closed && date > addDays(closed, CLOSED_GRACE)) { (this.strays = this.strays || new Map()).set(o.source_id, [...(this.strays.get(o.source_id) || []), { o, account }]); return; }
       items.push({ obs: o, account, date, valueDate: p.value_date, cents: p.amount_cents, desc: p.description, ref: p.reference, status: p.status || "posted",
         sourceId: o.source_id, stream: src && src.stream_id, seq, balanceAfter: p.balance_after_cents, cardMember: p.card_member, foreignAmount: p.foreign_amount, foreignCurrency: p.foreign_currency,
         capturedAt: src && src.captured_at, issuedOn: src && src.issued_on, dateBasis: p.date_basis, lineType: p.line_type });
     };
     let seq = 0;
     for (const o of this.byKind.get("txn_line") || []) take(o, ++seq);
+    for (const [src, rows] of this.strays || []) {
+      const name = (this.sources.get(src) || {}).name || src, account = rows[0].account;
+      this.review.push({ kind: "lines_after_close", ref: `${account}|${src}`, amount_cents: rows.reduce((t, r) => t + (r.o.payload.amount_cents || 0), 0), what: `${name} holds ${rows.length} lines dated after ${this.accountName(account)} closed. They are not in the ledger.`, do: "Is this another account's file? Move it, or say the account was still open." });
+      this.heldOnly = [...(this.heldOnly || []), ...rows.map((r) => r.o)];
+    }
     const { lines, faults } = collapse(items);
     for (const f of faults) this.review.push({ kind: f.kind, ref: f.ref, amount_cents: f.cents ?? null, what: f.what, do: "" });
     this.lines = lines;
@@ -317,13 +326,19 @@ class Resolver {
     }
     // A contract says what its money is. A line naming its counterparty takes its category, in the direction that category runs. A loan's lines have their own reading.
     const priced = (this.ctx.setup.contract || []).filter((k) => k.category_id && k.counterparty_party_id && k.kind !== "loan" && this.categories.has(k.category_id));
+    // Two contracts with one party, in two categories: its name alone does not say which. An amount can, and the policy step reads that.
+    const meanings = groupBy(priced, (k) => k.counterparty_party_id);
+    const entities = (this.setup.party || []).filter((p) => OWN_ENTITY.has(p.kind));
     for (const line of this.lines) {
+      // A guess from the dictionary never stands over the household's own company or trust. A question beats a quiet wrong number.
+      if (line.cls.via === "dictionary" && entities.some((p) => this.namesParty(line, p.party_id))) { line.cls.category_id = null; line.cls.via = null; }
       // What the person set up beats a dictionary guess about money coming in. A contract is what most of a party's lines mean, not all of them: a bond, or a line far above the price, stays a question.
       if (line.cls.category_id && !(line.cls.via === "dictionary" && line.cents > 0)) continue;
       if (/\b(BOND|DEPOSIT)\b/i.test(line.desc)) continue;
       const k = priced.find((x) => {
         if (this.catKind(x.category_id) === "income" && line.cents <= 0) return false;
         const price = this.term("contract", x.contract_id, "price_cents", line.date);
+        if (new Set(meanings.get(x.counterparty_party_id).map((y) => y.category_id)).size > 1) return false;
         return !(price != null && Math.abs(line.cents) > 2 * Math.abs(Number(price))) && this.namesParty(line, x.counterparty_party_id);
       });
       if (k && (!line.cls.category_id || this.catKind(k.category_id) === "income")) { line.cls.category_id = k.category_id; line.cls.contract_id = k.contract_id; line.cls.via = "contract"; }
@@ -626,10 +641,12 @@ class Resolver {
     if (!c && l.cls.dictKind === "transfer" && !l.cls.unplaced) return true;
     return false;
   }
-  // Money lent to or borrowed from a person sits on an account that holds the debt. A line naming them moves money to or from it; it is neither spending nor income.
+  // Money lent to or borrowed from a person or the household's own company sits on an account that holds the debt. A line naming them as a loan moves money to or from it; it is neither spending nor income.
   recogniseLending() {
-    for (const k of (this.ctx.setup.contract || []).filter((c) => c.kind === "loan" && c.account_id && (this.parties.get(c.counterparty_party_id) || {}).kind === "person")) {
-      for (const l of this.lines.filter((x) => !x.claimed && x.account !== k.account_id && this.namesParty(x, k.counterparty_party_id))) {
+    const side = (p) => p && (p.kind === "person" || OWN_ENTITY.has(p.kind));
+    for (const k of (this.ctx.setup.contract || []).filter((c) => c.kind === "loan" && c.account_id && side(this.parties.get(c.counterparty_party_id)))) {
+      // The line must say it is a loan. A lender can also be an employer, a relative, or one of two names on a line.
+      for (const l of this.lines.filter((x) => !x.claimed && x.account !== k.account_id && /\b(LOAN|REPAY|REPAYMENT|LENT|BORROW)\b/i.test(x.desc) && this.namesParty(x, k.counterparty_party_id))) {
         this.claim(l, "transfer");
         const out = l.cents < 0, cents = Math.abs(l.cents);
         this.event({ key: `transfer|${l.key}|lent`, kind: "transfer", occurred_on: l.date, description: l.desc, category_id: "TRANSFER", contract_id: k.contract_id, amount_cents: cents, grade: "stated", rule: "contract",
@@ -748,8 +765,10 @@ class Resolver {
         this.fault("split_does_not_add", l.key, `The split of ${l.desc} adds to ${total / 100}, not ${l.cents / 100}.`, "Fix the parts. The line stays whole until they add up.", l.cents - total);
       }
       // A credit is a refund only from someone the household paid, or if it says so. A person-to-person payment the dictionary guessed at is not an answer, and it is money nobody has explained.
-      const refund = l.cents > 0 && (/REFUND|REVERSAL|CHARGEBACK|RETURN/i.test(l.witnesses.map((o) => o.payload.description).join(" ")) || (!this.saysMoved(l) && this.paidBefore(l) >= l.cents));
+      const refund = l.cents > 0 && (/REFUND|REVERSAL|CHARGEBACK|RETURN/i.test(l.witnesses.map((o) => o.payload.description).join(" ")) || (!this.saysMoved(l) && this.paidBefore(l) >= l.cents && this.largestPaid(l) >= l.cents));
       if (category && l.cents > 0 && c.via === "dictionary" && this.catKind(category) === "expense" && !refund && this.saysMoved(l)) category = null;
+      // A contract or a guess cannot make a refund of a credit larger than anything ever paid to that payee.
+      if (category && l.cents > 0 && (c.via === "dictionary" || c.via === "contract") && this.catKind(category) === "expense" && this.largestPaid(l) > 0 && l.cents > this.largestPaid(l)) category = null;
       if (!category) {
         category = "UNCAT";
         this.review.push({ kind: "uncategorised", ref: l.key, question: c.norm || l.desc, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });
@@ -768,6 +787,11 @@ class Resolver {
     }
   }
   // What the household paid this payee in the year before a credit. A refund cannot be larger.
+  // Nor larger than the most ever paid at once: a claim on a policy is not a refund of a premium.
+  largestPaid(line) {
+    if (!this.paid) this.paid = groupBy(this.lines.filter((l) => l.cents < 0), payee);
+    return (this.paid.get(payee(line)) || []).reduce((m, l) => Math.max(m, -l.cents), 0);
+  }
   paidBefore(line) {
     if (!this.paid) this.paid = groupBy(this.lines.filter((l) => l.cents < 0), payee);
     return (this.paid.get(payee(line)) || []).filter((l) => l.date <= line.date && daysBetween(l.date, line.date) <= 365).reduce((s, l) => s - l.cents, 0);
@@ -790,10 +814,12 @@ class Resolver {
     const attach = (o, cents, on, window, apply) => {
       const options = this.lines.filter((x) => x.cents === -cents && !x.claimed && Math.abs(daysBetween(on, x.date)) <= window && !(x.docs || []).some((q) => q.kind === o.kind));
       const prefer = o.payload.subject_ref ? this.links.filter((k) => k.relation === "serves" && k.to_id === o.payload.subject_ref).map((k) => k.from_id) : [];
-      const l = options.find((x) => prefer.includes(x.account)) || options[0];
+      // An amount alone proves little. A line naming the issuer wins, and only a line that names it, or sits on the subject's own account, takes the bill's asset.
+      const issuer = o.payload.issuer_ref, named = issuer ? options.filter((x) => similarity(x.desc, issuer) > 0) : [];
+      const l = named.find((x) => prefer.includes(x.account)) || named[0] || options.find((x) => prefer.includes(x.account)) || options[0];
       if (!l) return false;
       (l.docs = l.docs || []).push(o);
-      if (apply) apply(l);
+      if (apply && (!issuer || named.includes(l) || prefer.includes(l.account))) apply(l);
       return true;
     };
     for (const o of this.byKind.get("bill") || []) {
@@ -852,8 +878,8 @@ class Resolver {
     this.recogniseMarkets();
     this.recogniseTrusts();
     this.recogniseTax();
-    this.recogniseUnmatchedWages();
     this.recogniseLending();
+    this.recogniseUnmatchedWages();
     this.pairTransfers();
     this.recogniseEveryday();
     this.finishOpenings();

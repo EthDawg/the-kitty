@@ -250,7 +250,7 @@
   ],
   "MIA FY2024": [
    6439900,
-   55647
+   55648
   ],
   "JORDAN FY2025": [
    12916300,
@@ -495,7 +495,7 @@
   "loan.principal_paid": 99,
   "loan.rate_on": 206,
   "loan.expected_interest": 3,
-  "activity.net_income": 27,
+  "activity.net_income": 19,
   "property.cost_base": 2,
   "super.contributions": 18,
   "super.cap_used": 18,
@@ -509,5 +509,5 @@
   "evidence.coverage": 61,
   "forecast.cash": 12
  },
- "fingerprint": "57b21d8176823c6a"
+ "fingerprint": "b3b72669532dac6c"
 }

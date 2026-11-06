@@ -4,6 +4,7 @@
 "use strict";
 const { groupBy, cmp, fyOf, fyRange, allocate, monthOf, addDays } = require("./util");
 const { activeOn } = require("./temporal");
+const DEFAULT_TAX_MAP = require("../schema/tax-map.json").map;
 
 const dollars = (c) => Math.trunc(c / 100) * 100;      // the ATO drops cents, label by label
 
@@ -38,10 +39,12 @@ function lito(cents, p) {
   if (Array.isArray(t)) {
     let v = max;
     for (const x of t) if (inc > x.from) v -= (Math.min(inc, x.to ?? Infinity) - x.from) * x.rate;
-    return Math.round(Math.max(v, 0) * 100);
+    return decimalCents(Math.max(v, 0));
   }
-  return Math.round(max * 100);
+  return decimalCents(max);
 }
+// Round by the decimal rule. Binary holds 34.015 as 34.01499, a cent short.
+const decimalCents = (dollars) => Math.round(Number((dollars * 100).toFixed(6)));
 
 function lmito(cents, p) {
   if (!p) return 0;
@@ -76,7 +79,8 @@ function derive({ L, R, reference, setup }) {
     if (evidence === "missing" || (evidence === "at_risk" && r.evidence === "held")) r.evidence = evidence;
     items.set(k, r);
   };
-  const tmap = setup.tax_map || [];
+  // With no map of its own a household still reaches the labels the standard knows. Without this a blank draft is short and nothing says so.
+  const tmap = setup.tax_map && setup.tax_map.length ? setup.tax_map : DEFAULT_TAX_MAP;
   const mapFor = (type, sel, on) => activeOn(tmap.filter((m) => m.selector_type === type && m.selector === sel && (m.entity_kind == null || m.entity_kind === "person")), on);
   const taxOwners = (e, on) => {
     const asset = e.asset_id;
@@ -98,12 +102,14 @@ function derive({ L, R, reference, setup }) {
     } else if (e.person) add(e.person, fy, label, cents, method, evidence, e.event_id, e.activity_id || e.asset_id);
   };
 
-  const byEmployerYear = new Map();
+  const byEmployerYear = new Map(), slipsBy = new Map();
   // ---------- wages ----------
   for (const e of L.events) {
     if (e.kind === "wage") {
       const fy = fyOf(e.occurred_on);
       add(e.person, fy, "1", e.fields.gross - e.fields.sacrifice, "payslips", "held", e.event_id);
+      const payer = `${e.person}|${fy}|${e.refs.employer}`, seen = slipsBy.get(payer) || { gross: 0, tax: 0 };
+      seen.gross += e.fields.gross - e.fields.sacrifice; seen.tax += e.fields.tax; slipsBy.set(payer, seen);
       add(e.person, fy, "2", e.fields.allowance, "payslips", "held", e.event_id);
       add(e.person, fy, "PAYG", e.fields.tax, "payslips", "held", e.event_id);
       add(e.person, fy, "SG", e.fields.super, "payslips", "held", e.event_id);
@@ -126,7 +132,10 @@ function derive({ L, R, reference, setup }) {
   }
   for (const [k, rows] of byEmployerYear) {
     const [person, fy] = k.split("|");
-    const gross = rows.reduce((s, r) => s + r.gross_cents, 0), tax = rows.reduce((s, r) => s + r.tax_cents, 0);
+    // A statement replaces its own employer's payslips, and no one else's. An employer with no statement held still counts by its payslips.
+    const stated = new Set(rows.map((r) => R.partyOf(r.employer_ref, r.period_end) || r.employer_ref));
+    const others = [...slipsBy].filter(([key]) => key.startsWith(`${person}|${fy}|`) && !stated.has(key.split("|")[2])).map(([, v]) => v);
+    const gross = rows.reduce((s, r) => s + r.gross_cents, 0) + others.reduce((s, v) => s + v.gross, 0), tax = rows.reduce((s, r) => s + r.tax_cents, 0) + others.reduce((s, v) => s + v.tax, 0);
     const label1 = items.get(`${person}|${fy}|1`), payg = items.get(`${person}|${fy}|PAYG`);
     if (label1) { label1.amount_cents = gross - (items.get(`${person}|${fy}|2`) || { amount_cents: 0 }).amount_cents; label1.method = "income statement"; } else add(person, fy, "1", gross, "income statement");
     if (payg) { payg.amount_cents = tax; payg.method = "income statement"; } else add(person, fy, "PAYG", tax, "income statement");
@@ -183,7 +192,8 @@ function derive({ L, R, reference, setup }) {
       const useDisc = Math.min(lossPool, disc); disc -= useDisc; lossPool -= useDisc;
       carry.set(person, lossPool);
       add(person, fy, "18H", total + 0, "lot matches and trust gains");
-      add(person, fy, "18A", Math.floor(disc / 2) + other, "lot matches, losses first, then the discount");
+      const discount = reference ? seriesAt(reference, "cgt_discount_individual", fyRange(fy).end) : null;
+      add(person, fy, "18A", Math.floor(disc * (1 - ((discount && discount.rate) ?? 0.5))) + other, "lot matches, losses first, then the discount");
       if (lossPool) add(person, fy, "18V", lossPool, "losses carried forward");
     }
   }
@@ -312,6 +322,11 @@ function derive({ L, R, reference, setup }) {
       if (each) for (const l of rows) compare(label, (item.by_activity || {})[l.asset_ref || l.activity_ref] || 0, l.amount_cents);
       else compare(label, item.amount_cents, rows.reduce((s, l) => s + l.amount_cents, 0));
     }
+    // It reads both ways: income the draft has and the return left out is a difference too.
+    if (lines.length) for (const [key, item] of items) {
+      const [who, year, label] = key.split("|");
+      if (who === person && year === fy && incomeLabels.has(label) && item.amount_cents && !lines.some((l) => l.label === label)) compare(label, item.amount_cents, 0);
+    }
     if (lines.length) out.labelTies.push({ person, fy, labels: lines.length, bad, worst, rid });
   }
   // Pre-fill is the tax office's own view of the year. A difference is a question to answer before lodging, either way.
@@ -421,4 +436,4 @@ function readiness(L, R, setup) {
   return fys.flatMap((fy) => adults.map((p) => readinessFor(L, R, fy, p)));
 }
 
-module.exports = { derive, scaleTax, seriesAt, materialiseReturns, composition, readiness, readinessFor };
+module.exports = { derive, scaleTax, seriesAt, lito, materialiseReturns, composition, readiness, readinessFor };

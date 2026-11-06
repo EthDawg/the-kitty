@@ -1172,3 +1172,124 @@ test("labels that sit on rows migrate as decisions, and the tool says how many b
   assert.equal(after.cash[0].byCategory.GROCERIES, -700, "two equal lines keep their own labels");
   assert.equal(after.review.filter((r) => r.kind === "uncategorised").length, 0);
 });
+
+// ---------- the company: what the fifth blind household found. No new table: party, contract and account hold it. ----------
+const company = () => {
+  const h = household("company").person("l", "Luka Novak").person("m", "Marisol Bautista").org("CO", "company").account("BANK", "offset", "cash", [["l", 10000]]).account("LENT", "receivable", "loans", [["l", 10000]]);
+  h.setup.party.find((p) => p.party_id === "CO").name = "Novak Electrical Pty Ltd";
+  h.setup.contract.push({ contract_id: "JOB", kind: "employment", name: "At the company", counterparty_party_id: "CO", holder_party_id: "l", category_id: "SALARY" }, { contract_id: "LOAN", kind: "loan", name: "Loan to the company", counterparty_party_id: "CO", account_id: "LENT" });
+  return h;
+};
+
+test("the household's own company is not a tradesman: a dictionary guess gives way to a question", () => {
+  const Engine = require("../../../src/engine.js");
+  Engine.loadMerchants({ merchants: require("../../../merchants/merchants.json"), categories: require("../../../merchants/categories.json") });
+  try {
+    const h = company();
+    h.setup.category.push({ category_id: "HOME-MAINT", name: "Home maintenance", kind: "expense", cash_lens: true, economic_lens: true });
+    h.line("BANK", "2026-03-11", "NOVAK ELECTRICAL PTY LTD RECALL", -185293);
+    const L = run(h);
+    assert.ok(!L.events.some((e) => e.category_id === "HOME-MAINT"), "not a quiet repair");
+    assert.ok(L.review.some((r) => r.kind === "uncategorised" && /RECALL/.test(r.what)));
+  } finally { Engine.loadMerchants({ merchants: { merchants: [] }, categories: {} }); }
+});
+
+test("one payer, an employer and a borrower: a line saying loan moves the loan, and pay stays pay", () => {
+  const h = company();
+  h.line("BANK", "2026-01-18", "TFR TO NOVAK ELECTRICAL LOAN", -3000000).line("BANK", "2026-02-15", "NOVAK ELECTRICAL LOAN REPAYMENT", 500000).line("BANK", "2026-02-28", "NOVAK ELECTRICAL WAGES", 300000);
+  const L = run(h);
+  assert.equal(L.balances.at("LENT", "2026-02"), 2500000);
+  assert.equal(L.cash.find((m) => m.month === "2026-01").spending, 0);
+  assert.equal(L.cash.find((m) => m.month === "2026-02").income, 300000, "only the pay is income");
+});
+
+test("a lender's name inside two people's names is not a loan payment", () => {
+  const h = household("names").person("l", "Luka Novak").account("BANK", "transaction", "cash", [["l", 10000]]).account("BROTHER", "loan", "loans", [["l", 10000]]);
+  h.setup.party.push({ party_id: "b", kind: "person", name: "Milan Novak" });
+  h.setup.contract.push({ contract_id: "B", kind: "loan", name: "Loan from Milan", counterparty_party_id: "b", account_id: "BROTHER" });
+  h.line("BANK", "2026-03-01", "OSKO TO L AND M NOVAK BILLS", -40000).line("BANK", "2026-03-02", "OSKO FROM M NOVAK LOAN", 500000);
+  const L = run(h);
+  assert.equal(L.balances.at("BROTHER", "2026-03"), -500000, "the top-up is not on the loan");
+});
+
+test("an asset closed in setup is gone from its closing day; lines long after an account closed are held out and asked about", () => {
+  const h = household("closed").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-01-01" }).account("BOAT", "vehicle", "vehicle", [["a", 10000]], { fidelity: "snapshot", closed_on: "2026-05-20" }).account("OLD", "transaction", "cash", [["a", 10000]], { closed_on: "2026-03-31" });
+  h.setup.asset.push({ asset_id: "B", kind: "vehicle", name: "Boat", account_id: "BOAT" });
+  h.obs("valuation", { subject_ref: "BOAT", as_at: "2026-01-31", value_cents: 1800000, method: "estimate" });
+  h.line("BANK", "2026-06-01", "SHOPS", -100).line("OLD", "2026-03-30", "LAST FEE", -500);
+  stream(h, "stray", "OLD");
+  const n = h.observations.length;
+  h.line("OLD", "2026-06-02", "CUSTOMER PAYMENT 1", 96283).line("OLD", "2026-06-10", "CUSTOMER PAYMENT 2", 241185);
+  from(h, n, "stray");
+  const L = run(h), at = (m) => L.netWorth.find((r) => r.month === m).total;
+  assert.equal(L.balances.at("OLD", "2026-06"), -500, "the stray lines are not posted");
+  assert.equal(L.review.filter((r) => r.kind === "lines_after_close").length, 1, "one question for the file");
+  assert.ok(!status(L, "L4").includes("fail"));
+  assert.equal(at("2026-04") - at("2026-06"), 1800000 + 100, "the boat leaves net worth");
+});
+
+test("a credit far above anything paid to that payee is not a refund, whatever a contract says", () => {
+  const h = household("insurer").person("a").org("Purrsure").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.setup.contract.push({ contract_id: "I", kind: "insurance", name: "Car", counterparty_party_id: "Purrsure", category_id: "SHOPPING" });
+  for (const m of ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]) h.line("BANK", `2025-${m}-05`, "PURRSURE PREMIUM", -10000);
+  h.line("BANK", "2025-12-19", "PURRSURE CLAIM PAYOUT", 670417);
+  const m = run(h).cash.find((x) => x.month === "2025-12");
+  assert.equal(m.unexplained, 670417);
+  assert.equal(m.spending, 10000);
+});
+
+test("two contracts with one insurer: its name alone does not say which", () => {
+  const h = household("two-policies").person("a").org("Purrsure").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.setup.contract.push({ contract_id: "C", kind: "insurance", name: "Home", counterparty_party_id: "Purrsure", category_id: "HOUSING" }, { contract_id: "D", kind: "insurance", name: "Income protection", counterparty_party_id: "Purrsure", category_id: "SHOPPING" });
+  h.line("BANK", "2025-12-01", "PURRSURE DIRECT DEBIT", -9000);
+  const L = run(h);
+  assert.ok(L.review.some((r) => r.kind === "uncategorised"), "a question, not the first contract's category");
+});
+
+// ---------- what the household pack found in the tax draft, written as fictional cases ----------
+const payslip = (h, who, employer, date, gross) => h.obs("payslip", { person_ref: who, employer_ref: employer, pay_date: date, gross_cents: gross, tax_cents: Math.round(gross / 5), net_cents: gross - Math.round(gross / 5), super_cents: 0 });
+test("a held income statement replaces only its own employer's payslips", () => {
+  const h = household("two-jobs").person("a").org("BIG").org("AGENCY").account("BANK", "transaction", "cash", [["a", 10000]]);
+  payslip(h, "a", "BIG", "2025-09-10", 500000); payslip(h, "a", "AGENCY", "2025-10-10", 200000); payslip(h, "a", "AGENCY", "2025-11-10", 368800);
+  h.obs("income_statement", { person_ref: "a", employer_ref: "BIG", fy: "FY2026", period_end: "2026-06-30", gross_cents: 520000, tax_cents: 104000, finalised: true });
+  const item = run(h).tax.items.find((i) => i.party_id === "a" && i.fy === "FY2026" && i.label === "1");
+  assert.equal(item.amount_cents, 520000 + 568800, "the agency's payslips stay");
+});
+
+test("a household with no tax map still reaches the labels the standard knows", () => {
+  const h = household("no-map").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).rule("BANK INTEREST", "INTEREST").rule("PENSION", "SUPER-PENSION");
+  h.line("BANK", "2025-09-01", "BANK INTEREST", 12300).line("BANK", "2025-09-02", "PENSION PAYMENT", 100000);
+  const items = run(h).tax.items.filter((i) => i.fy === "FY2026");
+  assert.equal((items.find((i) => i.label === "10") || {}).amount_cents, 12300, "interest");
+  assert.equal((items.find((i) => i.label === "7") || {}).amount_cents, 100000, "a pension reaches a label");
+});
+
+test("a bill binds to a payment that names its issuer, not to one that merely shares the amount", () => {
+  const h = household("bill").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).account("FLAT", "property", "property", [["a", 10000]]).rule("MECHANIC", "SHOPPING").rule("BALLARAT", "HOUSING");
+  h.setup.asset.push({ asset_id: "U", kind: "property", name: "Unit", account_id: "FLAT" });
+  h.line("BANK", "2026-03-01", "MECHANIC SERVICE", -45500).line("BANK", "2026-03-03", "BPAY BALLARAT COUNCIL", -45500);
+  h.obs("bill", { issuer_ref: "Ballarat Council", bill_date: "2026-02-10", due_on: "2026-03-05", amount_cents: 45500, subject_ref: "U" });
+  const L = run(h);
+  assert.equal(L.events.find((e) => /MECHANIC/.test(e.description)).asset_id, null, "the car service stays where it was");
+  assert.equal(L.events.find((e) => /BALLARAT/.test(e.description)).asset_id, "U");
+});
+
+test("an offset rounds by the decimal rule, not by binary", () => {
+  const { lito } = require("../../engine/tax");
+  assert.equal(lito(6439900, { max: 700, tiers: [{ from: 37500, to: 45000, rate: 0.05 }, { from: 45000, to: 66667, rate: 0.015 }] }), 3402, "34.015 rounds to 34.02");
+});
+
+test("the CGT discount is read from the reference, and a label the draft has and the return left out does not pass", () => {
+  const h = household("gain").person("a").account("BRK", "brokerage", "shares", [["a", 10000]]).account("BANK", "transaction", "cash", [["a", 10000]]).rule("BANK INTEREST", "INTEREST");
+  h.setup.instrument.push({ instrument_id: "ABC", kind: "listed_share", code: "ABC", name: "ABC", currency: "AUD" });
+  h.setup.tax_map.push({ selector_type: "category", selector: "INTEREST", label: "10", treatment: "income", basis: "ownership", valid_from: "2000-01-01" });
+  h.obs("contract_note", { account_ref: "BRK", instrument_ref: "ABC", side: "buy", trade_date: "2023-08-01", settlement_date: "2023-08-03", units: "100", price: "10.00", brokerage_cents: 0, consideration_cents: 100000 });
+  h.obs("contract_note", { account_ref: "BRK", instrument_ref: "ABC", side: "sell", trade_date: "2025-08-01", settlement_date: "2025-08-03", units: "100", price: "20.00", brokerage_cents: 0, consideration_cents: 200000 });
+  h.line("BRK", "2023-08-03", "BUY", -100000).line("BRK", "2025-08-03", "SELL", 200000).line("BANK", "2025-09-01", "BANK INTEREST", 5000);
+  h.obs("tax_assessment", { person_ref: "a", fy: "FY2026", version: 1, assessed_on: "2026-09-20", taxable_income_cents: 80000, gross_tax_cents: 0, payg_credits_cents: 0, result_cents: 0, labels: [{ label: "18A", amount_cents: 75000, role: "leaf" }] });
+  const reference = { series: { cgt_discount_individual: { rows: [{ valid_from: "1999-09-21", valid_to: null, value: { rate: 0.25 } }] } } };
+  const L = run(h, { reference });
+  assert.equal(L.tax.items.find((i) => i.label === "18A" && i.fy === "FY2026").amount_cents, 75000, "a quarter off, as the reference says");
+  const tie = L.checks.find((c) => c.law === "L11" && /labels/.test(c.scope));
+  assert.ok(tie && /10/.test(tie.detail), "interest of 50.00 is on the draft and not on the return");
+});
