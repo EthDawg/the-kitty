@@ -170,7 +170,7 @@ function payroll() {
   // the school crossing, a monthly council pay with payslips behind a portal she never logs in to
   const cr = []; for (const ym of monthRange("2023-07", "2024-12")) cr.push(earn(EV, prevBiz(`${ym}-15`), "MELTON CITY COUNCIL PAY 7714", cents(r, 312, 380), "SALARY"));
   trap("T4-NO-PAYSLIP", "A job with a declared employer and no payslip ever held", `${EV}: ${cr.length} monthly credits, "MELTON CITY COUNCIL PAY 7714". The employment is in setup; no payslip file exists`, "Income. The bank line is the only witness, and the name is the employer's.",
-    { kind: "lines", lines: [cr[1], cr[9], cr[17]].map((x) => plain(x, "income")) }, { fresh: true });
+    { kind: "lines", lines: cr.map((x) => plain(x, "income")) }, { fresh: true });
   const back = line(EV, "2025-03-04", "OSKO TO BLUEGUM AGED CARE OVERPAID LEAVE", -41230, { lens: "income", cat: "SALARY" });
   trap("T4-PAYROLL-CLAWBACK", "Overpaid leave paid back to the employer", `${EV} ${back.date} -412.30, to the old employer, who overpaid the final pay`, "A negative in income, not spending. It takes a question or a rule to know.",
     { kind: "lines", lines: [plain(back, "income")] }, { fresh: true, dc: true });
@@ -276,7 +276,7 @@ function housing() {
     else sam.push(line(EV, p, "OSKO FROM S BRENNAN RENT", half, { lens: "spending", cat: "x_RENT-PAID" }));
   }
   trap("T4-RENT", "A tenant's rent through a payment app, and a new agent after a move", `${EV}: ${rent1.length} fortnights to Melton Realty, ${rent2.length} to Cobblebank Realty, "RENTPAW"`, "Spending, at its cash amount, under the category the lease in setup carries. A lease is not rent received.",
-    { kind: "lines", lines: [rent1[3], rent1[22], rent2[5], rent2[30]].map((x) => plain(x, "spending")) }, { fresh: true });
+    { kind: "lines", lines: [...rent1, ...rent2].map((x) => plain(x, "spending", { cat: "x_RENT-PAID" })) }, { fresh: true });
   const dbl = her.find((x) => x.cents === 132000);
   trap("T4-HOUSEMATE-RENT", "A lead tenant pays all the rent; housemates pay her back half", `${EV}: ${her.length} credits from Priya, one of them two fortnights at once, then ${sam.length} from Sam, a day after each 1,320.00 debit. Both are in setup with the rent category, because a person would say so`, "Each credit lowers rent. Rent is what she bears, half. Read as income, unexplained or nothing, spending is double and the household looks poorer than it is.",
     { kind: "lines", lines: [her[2], dbl, her[20], sam[3]].map((x) => plain(x, "spending")) }, { fresh: true, dc: true });
@@ -554,7 +554,7 @@ function fileTraps() {
     { kind: "card_lag", account: CC, lagged: lagged.length, by_days: lagDays });
   const cross = B.lines.filter((x) => x.acct === CC && x.lens === "spending" && x.date >= START && x.cents < 0 && x.posted && ymOf(x.posted) !== ymOf(x.date)).sort(byTime);
   trap("T4-DATE-BASIS", "A card charge dated in one month, posted in the next", `${CC}: ${cross.length} lines. Budgets read the charge date. Six sampled`, "SPEC 6.5: a purchase counts when charged, and it is one line.",
-    { kind: "lines", lines: [0, 1, 2, 3, 4, 5].map((i) => cross[Math.floor(i * cross.length / 6)]).map((x) => plain(x, "spending", { n: 1, month: ymOf(x.date) })) });
+    { kind: "lines", lines: [0, 1, 2, 3, 4, 5].map((i) => { let j = Math.floor(i * cross.length / 6); while (posted(cross[j]) >= "2025-07-22" && posted(cross[j]) <= STATEMENT_MISSING) j += 1; return cross[j]; }).map((x) => plain(x, "spending", { n: 1, month: ymOf(x.date) })) });
   trap("T4-STATEMENT-GAP", "A card statement never downloaded", `The statement closing ${STATEMENT_MISSING} is missing`, "The lines stay, on their posting dates. Coverage names the missing statement.",
     { kind: "gap", stream: "STM-CARD", month: STATEMENT_MISSING.slice(0, 7) });
   const up = ROUND.week, cr = ROUND.credits, once = (x) => up.filter((y) => y.date === x.date && y.cents === x.cents).length === 1, some = up.filter(once);

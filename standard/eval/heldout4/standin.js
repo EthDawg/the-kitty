@@ -8,8 +8,8 @@ const { report, loadSetup } = require("./run");
 
 const built = build(), truth = JSON.parse(fs.readFileSync(path.join(OUT, "truth.json"), "utf8")), setup = loadSetup(), months = Object.keys(truth.income);
 const code = { income: "I", spending: "S", neither: "N" };
-const categories = [{ category_id: "I", kind: "income", cash_lens: true }, { category_id: "S", kind: "expense", cash_lens: true }, { category_id: "N", kind: "transfer", cash_lens: false }];
-const events = truth.cash_lines.map((x) => ({ kind: x.lens, category_id: code[x.lens], occurred_on: x.posted || x.date, charged_on: x.date, description: x.what, postings: [{ account_id: x.account, amount_cents: x.cents }], lines: [] }));
+const categories = [...setup.category, { category_id: "I", kind: "income", cash_lens: true }, { category_id: "S", kind: "expense", cash_lens: true }, { category_id: "N", kind: "transfer", cash_lens: false }];
+const events = truth.cash_lines.map((x) => ({ kind: x.lens, category_id: x.category && x.lens !== "neither" ? x.category : code[x.lens], occurred_on: x.posted || x.date, charged_on: x.date, description: x.what, postings: [{ account_id: x.account, amount_cents: x.cents }], lines: [] }));
 const rows = []; for (const [a, by] of Object.entries(truth.balances)) for (const m of months) rows.push({ account_id: a, month_end: `${m}-28`, balance_cents: by[m] });
 const cashIds = setup.account.filter((a) => a.reporting_group === "cash").map((a) => a.account_id);
 const netWorth = months.map((m) => {
