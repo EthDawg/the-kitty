@@ -1,0 +1,11 @@
+[
+  {
+    "release_id": "2036-04-pocket-money",
+    "standard_version": "household-standard/1",
+    "says": "Pocket money joins the base as a shared extension. Fuel now reads as a car cost.",
+    "extensions": ["pocket-money"],
+    "rules": [
+      { "rule_id": "shared-fuel-is-car", "pattern": "PAWPUMP FUEL", "match": "normalised", "category_id": "CAR", "priority": 1, "provenance": "release 2036-04-pocket-money", "status": "accepted" }
+    ]
+  }
+]

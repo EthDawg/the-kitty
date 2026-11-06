@@ -22,8 +22,8 @@ async function writeDecision(store, row) {
   const added = await store.tables.appendNew("decision", [clean]);
   return { decision_id: clean.decision_id, added: added > 0 };
 }
-async function categorise(store, d, today, by) {
-  const { L, view } = await rebuildAt(store, { today });
+async function categorise(store, d, today, by, built) {
+  const { L, view } = built || (await rebuildAt(store, { today }));
   const item = L.review.find((r) => r.item_id === d.item || r.ref === d.item);
   const ref = item ? item.ref : d.item;
   if (!view.setup.category.some((c) => c.category_id === d.category_id)) throw fail("no_category", `There is no category called ${d.category_id}.`);
@@ -51,7 +51,7 @@ async function balance(store, d, today, by) {
 async function reopen(store, d, today, by) {
   if (!d.reason) throw fail("no_reason", "Reopening a locked month needs a reason.");
   const out = await writeDecision(store, { decision_id: idOf("D", d.month, "reopen", today), target_type: "period", target_ref: d.month, verb: "reopen", value: { month: d.month }, by, at: stamp(today), status: "accepted", reason: d.reason, reopen_if: d.reopen_if });
-  await store.tables.change("period", { period_id: d.month, kind: "month", start_on: `${d.month}-01`, end_on: monthEnd(d.month), status: "open" });
+  await store.tables.change("period", { period_id: d.month, kind: "month", start_on: `${d.month}-01`, end_on: monthEnd(d.month), status: "open", closed_at: stamp(today) }); // the day this row was written, so a rebuild at an earlier date still sees the lock
   return out;
 }
 async function accept(store, d, today, by) {
@@ -64,17 +64,32 @@ async function handEdit(store, d, today, by) {
   if (!found) return { added: false, nothing: true };
   return writeDecision(store, { decision_id: idOf("edit-ok", d.table, found.found_hash), target_type: "source", target_ref: d.table, verb: "note", value: { found_hash: found.found_hash }, by, at: stamp(today), status: "accepted", reason: d.reason || "Looked at it. Rebuild the tab." });
 }
-async function decide(store, d, { today } = {}) {
+/* A file with nothing to read in it, a will, a certificate, a scan nobody will key in. It stays as evidence by its hash and stops being asked about. Nothing is read from it. */
+async function hold(store, d, today, by) {
+  const s = (await store.tables.read("source")).reverse().find((x) => x.source_id === d.source_id);
+  if (!s) throw fail("no_source", `There is no file ${d.source_id} here.`);
+  if (!d.reason) throw fail("no_reason", "Keeping a file unread needs a reason.");
+  await store.tables.change("source", { ...s, note: `held: ${d.reason} Said by ${by} on ${today}.` });
+  return { added: true, source_id: s.source_id };
+}
+/* Something the engine wants a person for, and nobody can answer it from here. They have seen it, and it stops being the next step. It stays in review, in the numbers it was always in. */
+async function seen(store, d, today, by) {
+  if (!d.reason) throw fail("no_reason", "Saying you have seen it needs a reason.");
+  return writeDecision(store, { decision_id: idOf("seen", d.item), target_type: "check", target_ref: `seen:${d.item}`, verb: "note", value: { seen: d.item }, by, at: stamp(today), status: "accepted", reason: d.reason, reopen_if: d.reopen_if });
+}
+async function decide(store, d, { today, built } = {}) {
   if (!today) throw fail("no_today", "decide needs today.");
   await ready(store);
   const by = d.by || "person";
   if (d.scope) return scope(store, d.scope, today, by);
   if (d.balance) return balance(store, d.balance, today, by);
   if (d.reopen) return reopen(store, { month: d.reopen, reason: d.reason, reopen_if: d.reopen_if }, today, by);
+  if (d.seen) return seen(store, { item: d.seen, reason: d.reason, reopen_if: d.reopen_if }, today, by);
+  if (d.hold) return hold(store, { source_id: d.hold, reason: d.reason }, today, by);
   if (d.hand_edit) return handEdit(store, { ...d.hand_edit, reason: d.reason }, today, by);
   if (d.check) return accept(store, d, today, by);
-  if (d.item && d.category_id) return categorise(store, d, today, by);
+  if (d.item && d.category_id) return categorise(store, d, today, by, built);
   if (d.verb && d.target_ref) return writeDecision(store, { decision_id: idOf("D", d.target_ref, d.verb, d.value), target_type: d.target_type || "line", target_ref: d.target_ref, verb: d.verb, value: d.value || {}, by, at: stamp(today), status: "accepted", reason: d.reason, reopen_if: d.reopen_if });
-  throw fail("bad_decision", "A decision names a review item and a category, a scope, a balance, a month to reopen, a check to accept, or a verb and its target.");
+  throw fail("bad_decision", "A decision names a review item and a category, a scope, a balance, a month to reopen, a check to accept, a file to hold, or a verb and its target.");
 }
 module.exports = { decide };

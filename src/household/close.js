@@ -28,29 +28,39 @@ function rowsOf(bundle, table) { return bundle.tables[table].split("\n").filter(
 
 async function close(store, month, { today } = {}) {
   if (!today) throw fail("no_today", "close needs today.");
-  if (!/^\d{4}-\d{2}$/.test(String(month))) throw fail("bad_month", "A month reads 2026-07.");
+  const months = [].concat(month);
+  for (const m of months) if (!/^\d{4}-\d{2}$/.test(String(m))) throw fail("bad_month", "A month reads 2026-07.");
   await ready(store);
   const built = await rebuildAt(store, { today }), { L, view } = built, facts = readiness(built);
-  const m = facts.months.find((x) => x.month === month), held = view.setup.period.find((p) => p.period_id === month);
-  if (held && held.status === "locked" && held.seal_hash === sealOf(L, held)) return { status: "already", month, seal_hash: held.seal_hash, say: `${monthYear(month)} is already locked.` };
-  const why = refusal(m, L, month);
-  if (why) return { status: "refused", month, say: why };
-
-  const [sealed] = seal(L, [month]);
-  const row = { ...sealed, status: m.can_lock ? "locked" : "closed", closed_at: stamp(today) };
-  const bundle = toBundle(L, { setup: view.setup, tablesSchema: base().tablesDoc, decisions: view.decisions, rules: view.rules, recipes: [], version: STANDARD_VERSION, mode: "close" });
-  const rows = Object.fromEntries(MANAGED.filter((t) => bundle.tables[t] !== undefined).map((t) => [t, rowsOf(bundle, t)]));
-  const accepted = new Set(view.decisions.filter((d) => d.status === "accepted" && d.target_type === "source").map((d) => `${d.target_ref}|${(d.value || {}).found_hash}`));
-  let written;
-  try { written = await store.tables.replaceManaged(rows, { bundle_hash: L.bundleHash, as_of: L.asOf, written_at: stamp(today), runtime: RUNTIME_VERSION }, { accepted }); }
-  catch (e) {
-    if (e.code !== "hand_edit") throw e;
-    await store.tables.appendNew("decision", e.edits.flatMap((x) => x.proposals.map((p) => ({ ...p, value: { ...p.value, found_hash: x.found_hash }, at: stamp(today) }))));
-    return { status: "stopped", month, edits: e.edits.map(({ proposals, ...x }) => x), say: `Someone typed in ${list(e.edits.map((x) => `the ${x.tab} tab`))}. Nothing was written. Say what was meant, then close again.` };
+  const held = (m) => view.setup.period.find((p) => p.period_id === m);
+  const steps = months.map((id) => {
+    const m = facts.months.find((x) => x.month === id), p = held(id);
+    if (p && p.status === "locked" && p.seal_hash === sealOf(L, p)) return { month: id, result: { status: "already", month: id, seal_hash: p.seal_hash, say: `${monthYear(id)} is already locked.` } };
+    const why = refusal(m, L, id);
+    return why ? { month: id, result: { status: "refused", month: id, say: why } } : { month: id, m };
+  });
+  const closing = steps.filter((x) => x.m);
+  if (closing.length) {
+    const bundle = toBundle(L, { setup: view.setup, tablesSchema: base().tablesDoc, decisions: view.decisions, rules: view.rules, recipes: [], version: STANDARD_VERSION, mode: "close" });
+    const rows = Object.fromEntries(MANAGED.filter((t) => bundle.tables[t] !== undefined).map((t) => [t, rowsOf(bundle, t)]));
+    const accepted = new Set(view.decisions.filter((d) => d.status === "accepted" && d.target_type === "source").map((d) => `${d.target_ref}|${(d.value || {}).found_hash}`));
+    let written;
+    try { written = await store.tables.replaceManaged(rows, { bundle_hash: L.bundleHash, as_of: L.asOf, written_at: stamp(today), runtime: RUNTIME_VERSION }, { accepted }); }
+    catch (e) {
+      if (e.code !== "hand_edit") throw e;
+      await store.tables.appendNew("decision", e.edits.flatMap((x) => x.proposals.map((p) => ({ ...p, value: { ...p.value, found_hash: x.found_hash }, at: stamp(today) }))));
+      const result = { status: "stopped", month, edits: e.edits.map(({ proposals, ...x }) => x), say: `Someone typed in ${list(e.edits.map((x) => `the ${x.tab} tab`))}. Nothing was written. Say what was meant, then close again.` };
+      return result;
+    }
+    const sealed = seal(L, closing.map((x) => x.month)), periods = [];
+    closing.forEach((x, i) => {
+      const { m } = x, row = { ...sealed[i], status: m.can_lock ? "locked" : "closed", closed_at: stamp(today) }, left = [m.waiting ? "lines still need an answer" : null, m.provisional && !m.can_lock ? "a pay is waiting on its payslip" : null].filter(Boolean);
+      periods.push(row);
+      x.result = { status: row.status, month: x.month, seal_hash: row.seal_hash, written, say: m.can_lock ? `${monthYear(x.month)} is locked.` : `${monthYear(x.month)} is closed but not locked: ${list(left)}. Close it again once ${left.length === 1 ? "that is done" : "those are done"}.`, rows_written: Object.values(written).reduce((a, b) => a + b, 0), tabs_written: plural(Object.keys(written).length, "tab") };
+    });
+    for (const row of periods) await store.tables.change("period", row);
+    await store.tables.countOriginals({ ...built.originals, period: [...built.originals.period, ...periods] });
   }
-  await store.tables.change("period", row);
-  await store.tables.countOriginals({ ...built.originals, period: [...built.originals.period, row] });
-  const left = [m.waiting ? "lines still need an answer" : null, m.provisional && !m.can_lock ? "a pay is waiting on its payslip" : null].filter(Boolean);
-  return { status: row.status, month, seal_hash: row.seal_hash, written, say: m.can_lock ? `${monthYear(month)} is locked.` : `${monthYear(month)} is closed but not locked: ${list(left)}. Close it again once ${left.length === 1 ? "that is done" : "those are done"}.`, rows_written: Object.values(written).reduce((a, b) => a + b, 0), tabs_written: plural(Object.keys(written).length, "tab") };
+  return Array.isArray(month) ? { status: "done", months: steps.map((x) => x.result) } : steps[0].result;
 }
 module.exports = { close };

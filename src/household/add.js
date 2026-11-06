@@ -17,7 +17,7 @@ const { ready, slug, stamp, fail, SINCE } = require("./init");
 const SAMPLE_ROWS = 6, SAMPLE_LINES = 14;
 const STATES = { "blob:": "held", "device:": "on_device", "not-held:": "not_held" };
 const bytesState = (s) => { const k = Object.keys(STATES).find((p) => String(s.uri || "").startsWith(p)); return k ? STATES[k] : "unknown"; };
-const readState = (s) => (s.status === "quarantined" ? "refused" : /^unread:/.test(s.note || "") ? "unread" : "read");
+const readState = (s) => (s.status === "quarantined" ? "refused" : /^unread:/.test(s.note || "") ? "unread" : /^held:/.test(s.note || "") ? "held" : "read");
 const CASH_LINES = new Set(["txn_line", "statement", "balance"]);
 const OTHER_LINES = { loan_statement: { class: "liability", type: "loan", reporting_group: "loans" }, super_statement: { class: "asset", type: "super", reporting_group: "super" }, super_line: { class: "asset", type: "super", reporting_group: "super" } };
 const refOf = (o) => o.payload && o.payload.account_ref;
@@ -56,17 +56,22 @@ function materialise(setup, sources, observations, { today, name, type }) {
     const src = observations.find((o) => refOf(o) === f.ref);
     if (R.accountOf(src, f.ref, f.first)) continue;
     if (![...f.kinds].some((k) => CASH_LINES.has(k) || OTHER_LINES[k])) { unresolved.set(f.ref, { ref: f.ref, kinds: [...f.kinds] }); continue; }
-    const tail = digits(f.ref).slice(-4) || slug(f.ref).slice(0, 8);
+    const tail = digits(f.ref).slice(-4) || slug(f.ref).slice(0, 8), called = name || (digits(f.ref) ? `Account ending ${tail}` : String(f.ref));
     let id = `ACC-${tail}`;
     for (let n = 2; used.has(id); n += 1) id = `ACC-${tail}-${n}`;
     used.add(id);
     const kind = { ...accountKind(f), ...(type ? { type } : {}) };
-    out.account.push({ account_id: id, name: name || `Account ending ${tail}`, ...kind, currency: "AUD", in_scope: true, fidelity: "ledger", note: "Made from the first file. Rename it any time." });
+    out.account.push({ account_id: id, name: called, ...kind, currency: "AUD", in_scope: true, fidelity: "ledger", note: "Made from the first file. Rename it any time." });
     out.alias.push({ subject_type: "account", subject_id: id, scheme: "account_number", value: f.ref, valid_from: SINCE, recorded_at: stamp(today) });
     if (adults.length) for (const basis of ["legal", "beneficial", "tax"]) for (const s of allocate(10000, adults.map((p) => ({ key: p, weight: 1 })))) out.ownership.push({ subject_type: "account", subject_id: id, party_id: s.key, basis, share_bps: s.cents, valid_from: SINCE, recorded_at: stamp(today), note: adults.length > 1 ? "Assumed equal until someone says otherwise." : null });
-    out.stream.push({ stream_id: id, name: name || `Account ending ${tail}`, doc_kind: "statement", subject_type: "account", subject_id: id, cadence: "monthly", valid_from: f.first, grace_days: 14, recorded_at: stamp(today) });
+    out.stream.push({ stream_id: id, name: called, doc_kind: "statement", subject_type: "account", subject_id: id, cadence: "monthly", valid_from: f.first, grace_days: 14, recorded_at: stamp(today) });
   }
   return { ...out, unresolved: [...unresolved.values()] };
+}
+// An account can have two streams, a download and a statement. A dropped file goes to the one that matches what it is.
+function streamFor(streams, source) {
+  const pdf = /pdf/.test(source.mime || ""), like = (st) => /pdf|statement/i.test(st.doc_kind || "") === pdf;
+  return streams.find(like) || streams[0] || null;
 }
 async function keepBytes(store, source, bytes, onDevice, warnings) {
   const sha = source.sha256;
@@ -94,7 +99,7 @@ async function add(store, files, opts = {}) {
   for (const f of files) {
     const name = f.name || String(f.path).split("/").pop(), sha = sha256(f.bytes), held = bySha.get(sha);
     const entry = { path: f.path || `added/${today}/${name}`, name, bytes: f.bytes, stream: f.stream || opts.account || null, download_date: f.download_date || today, origin: f.origin, issued_on: f.issued_on, sha };
-    if (held && readState(held) === "read") repeats.push({ entry, source: held }); else todo.push(entry);
+    if (held && ["read", "held"].includes(readState(held))) repeats.push({ entry, source: held }); else todo.push(entry);
   }
   const res = ingestFiles(todo, { recipes: [...recipesOf(recipeRows), ...b.recipes], vocab: b.vocab, inflate: b.inflate, manifest: { files: todo.filter((f) => f.origin || f.issued_on).map((f) => ({ path: f.path, origin: f.origin, issued_on: f.issued_on })) } });
   const byPath = new Map(todo.map((f) => [f.path, f]));
@@ -127,7 +132,8 @@ async function add(store, files, opts = {}) {
   for (const o of res.observations) { const a = refOf(o) && R.accountOf(o, refOf(o), dateOf(o)); if (a) { if (!accountsBySource.has(o.source_id)) accountsBySource.set(o.source_id, new Set()); accountsBySource.get(o.source_id).add(a); } }
   for (const s of res.sources) {
     const accounts = [...(accountsBySource.get(s.source_id) || [])];
-    if (!s.stream_id && accounts.length === 1) { const st = allStreams.find((x) => x.subject_type === "account" && x.subject_id === accounts[0]); if (st) s.stream_id = st.stream_id; }
+    const namedStream = s.stream_id && allStreams.some((x) => x.stream_id === s.stream_id);
+    if (!namedStream && accounts.length === 1) { const st = streamFor(allStreams.filter((x) => x.subject_type === "account" && x.subject_id === accounts[0]), s); if (st) s.stream_id = st.stream_id; }
     s.uri = await keepBytes(store, s, byPath.get(s.uri).bytes, opts.on_device ?? store.capabilities.device_files, result.warnings);
   }
   // A byte-identical re-delivery of a quiet file is how a dormant account says "still nothing". Of any other file it is just the same file again.
@@ -162,12 +168,16 @@ async function addRecipe(store, recipe, opts = {}) {
   await ready(store);
   const known = latest("source", await store.tables.read("source")), waiting = known.filter((s) => readState(s) !== "read");
   let pool = (opts.files || []).map((f) => ({ name: f.name || String(f.path).split("/").pop(), bytes: f.bytes, stream: f.stream || opts.account || null }));
-  if (!pool.length && store.blobs) for (const s of waiting) { const bytes = await store.blobs.get(s.sha256); if (bytes) pool.push({ name: s.name, bytes, stream: s.stream_id, download_date: dayOf(s.captured_at) }); }
+  if (!pool.length && store.blobs) for (const s of waiting) { const bytes = await store.blobs.get(s.sha256); if (bytes) pool.push({ name: s.name, bytes, stream: s.stream_id || opts.account || null, download_date: dayOf(s.captured_at) }); }
   pool = pool.map((f) => { let decoded = null; try { decoded = decode(f.bytes, { inflate: b.inflate }); } catch (e) { /* stays out of the family */ } return { ...f, decoded, fingerprint: decoded && fingerprint(decoded) }; });
   const family = pool.filter((f) => (recipe.fingerprints || []).includes(f.fingerprint));
   if (!family.length) return { status: "no_files", message: "This recipe does not claim any file held here. Its fingerprints must include the file's.", fingerprints_seen: [...new Set(pool.map((f) => f.fingerprint).filter(Boolean))] };
   const verdict = gate(recipe, family.map((f) => ({ path: f.name, stream: f.stream, decoded: f.decoded })), { vocab: b.vocab });
-  if (verdict.status !== "pass") return { status: "failed", verdict };
+  if (verdict.status !== "pass") {
+    const lacksAccount = verdict.failures.length && verdict.failures.every((x) => /account_ref/.test(x.what)) && !family.some((f) => f.stream);
+    if (lacksAccount) return { status: "needs_account", verdict, ask: `${family[0].name} does not say which account it is for, so the recipe has nothing to fill it with. Name the account and run it again.` };
+    return { status: "failed", verdict };
+  }
   await store.tables.appendNew("recipe", [{ recipe_id: recipe.id, fingerprint: recipe.fingerprints[0], family: recipe.family || recipe.id, spec: recipe, author, tokens_in, tokens_out, gate_status: "passed", created_at: stamp(today) }]);
   return { status: "passed", verdict, read: await add(store, family.map(({ name, bytes, stream, download_date }) => ({ name, bytes, stream, download_date })), { today, account: opts.account }) };
 }

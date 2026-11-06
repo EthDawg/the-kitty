@@ -9,11 +9,12 @@ const observations = require("../../standard/schema/observations.json");
 const tablesDoc = require("../../standard/schema/tables.json");
 const reference = require("../../standard/reference/au.json");
 const defaults = require("./defaults.json");
+const releases = require("./releases.json");
 
 let held = null;
 function setBase({ recipes, merchants, categories, inflate: hostInflate }) {
   Engine.loadMerchants({ merchants, categories });
-  held = { recipes, inflate: hostInflate || inflate, schema: { events, metrics }, vocab: observations, tablesDoc, reference, defaults };
+  held = { recipes, inflate: hostInflate || inflate, schema: { events, metrics }, vocab: observations, tablesDoc, reference, defaults, releases: Object.fromEntries(releases.map((r) => [r.release_id, r])) };
   return held;
 }
 function base() {

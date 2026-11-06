@@ -730,7 +730,7 @@ test("the store's rows are what a Sheet can hold, on every host", async () => {
 
 test("the core asks nothing of Node: only the two host files touch it", () => {
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? (e.name === "pack" ? [] : walk(path.join(d, e.name))) : [path.join(d, e.name)]));
-  const hosts = new Set(["node.js", "world.js", "test.js"]);
+  const hosts = new Set(["node.js", "world.js", "test.js", "life.test.js"]);
   for (const f of walk(__dirname).filter((p) => p.endsWith(".js") && !hosts.has(path.basename(p)))) {
     const s = fs.readFileSync(f, "utf8");
     assert.ok(!/require\("(fs|path|os|zlib|crypto|child_process|http|node:[a-z]+)"\)/.test(s), `${f} requires a Node module`);

@@ -5,7 +5,7 @@ const { rebuildAt } = require("./clock");
 const { readiness, DOMAINS } = require("./status");
 const { money, day, monthName, monthYear, plural } = require("./words");
 const { tabOf } = require("./tabs");
-const { monthOf, monthEnd } = require("../../standard/engine/util");
+const { monthOf, monthEnd, addDays, fyRange } = require("../../standard/engine/util");
 
 const nameOf = (L, id) => (L.index.accounts.get(id) || {}).name || id;
 const choices = (view, out) => view.setup.category.filter((c) => (out ? ["expense", "pass_through", "transfer"] : ["income", "pass_through", "transfer"]).includes(c.kind)).filter((c) => c.category_id !== "UNCAT").map((c) => ({ id: c.category_id, name: c.name }));
@@ -17,6 +17,19 @@ function scopeName(L, scope) {
   return (L.index.accounts.get(tail) || {}).name || (party && party.name) || tail;
 }
 const SPOKEN = new Set(["uncategorised", "deposit_without_payslip", "open_item", "file_refused", "unresolved_account"]);
+// Waiting on its other side. The next file usually brings it, so these are not a question yet, and they never stand in front of one. See `sides`.
+const WAITING = new Set(["payslip_without_deposit", "unpaired_transfer", "trade_unsettled", "tax_result_unmatched"]);
+const SIDE_DAYS = 45;
+// A bill or a statement with no bank line yet is the same thing from the other end.
+const inAir = (f) => (f.law === "L2" && /^clearing:/.test(f.scope)) || (f.law === "L4" && /^\d+ unattached, 0 double-claimed/.test(f.detail || ""));
+// A fund's export can stop before the deadline it is judged by. The super may well be there. Nobody can answer that until the next export, so it does not stand in front of a question.
+function shortOfFund(f, L) {
+  if (f.law !== "L14") return false;
+  const q = (/first (\d{4}-\d{2})/.exec(f.detail || "") || [])[1];
+  const last = ((L.resolver && L.resolver.superLines) || []).filter((l) => l.account === f.scope).map((l) => l.date).sort().pop();
+  return !!q && (last || "") < addDays(monthEnd(q), 14);
+}
+const ageOf = (f) => Number((/Open (\d+) days/.exec(f.detail || "") || [])[1] || 0);
 const LAW_WORDS = {
   L1: (x) => `An entry for ${x} does not balance.`,
   L2: (x) => `Two sides of the same money have not met: ${x}.`,
@@ -33,6 +46,12 @@ const LAW_WORDS = {
   L17: (x) => `A decision has lost the line it was about: ${x}.`,
   other: (x) => `Two things in your files disagree: ${x}.`,
 };
+// A lodged year from before the first file can't tie: nothing here speaks for it. That is a year with no evidence, not a number that disagrees. Finding F-008.
+function yearBeforeFiles(f, L) {
+  if (f.law !== "L11") return false;
+  const fy = (/FY\d{4}/.exec(f.scope) || [])[0], first = (L.lines || []).map((l) => l.date).sort()[0];
+  return !!fy && !!first && fyRange(fy).end < first;
+}
 const steps = {
   handEdit({ view }) {
     const hashOf = (d) => (d.value || {}).found_hash;
@@ -50,7 +69,8 @@ const steps = {
   },
   refused({ view }) {
     const s = view.sources.find((x) => x.status === "quarantined");
-    return s && { id: "refused", say: `${s.name} failed its checks, so none of it is in your numbers.`, why: String(s.note || "").replace(/^refused: /, "") || "A file that does not add up is left out whole, never half read.", action: { verb: "add", label: "Download it again and add the new copy", args: { source_id: s.source_id } } };
+    if (s && /does not say which account/.test(s.note || "")) return { id: "name_account", say: `Which account is ${s.name} for?`, why: "Nothing in the file says, so none of it is in your numbers yet.", action: { verb: "add", label: "Add it again and name the account", args: { source_id: s.source_id }, needs: ["account"] } };
+    return s && { id: "refused", say: `${s.name} failed its checks, so none of it is in your numbers.`, why: String(s.note || "").replace(/^refused: /, "") || "A file that does not add up is left out whole, never half read.", action: { verb: "add", label: "Download it again. If it fails again the bank may have changed its layout, so ask your agent for a recipe", args: { source_id: s.source_id } } };
   },
   unresolved({ L }) {
     const r = L.review.find((x) => x.kind === "unresolved_account");
@@ -64,7 +84,7 @@ const steps = {
     return f && { id: "seal_changed", say: `${monthYear(f.scope)} was locked, and something now changes it.`, why: "A locked month stays as it was unless you say otherwise.", action: { verb: "decide", label: `Reopen ${monthName(f.scope)}, or take back the change`, args: { reopen: f.scope }, needs: ["reason"] } };
   },
   lawFails({ L, facts }) {
-    const f = facts.laws.failing.find((x) => x.law !== "L12");
+    const f = facts.laws.failing.find((x) => x.law !== "L12" && !inAir(x) && !shortOfFund(x, L) && !yearBeforeFiles(x, L));
     return f && { id: "does_not_add_up", say: (LAW_WORDS[f.law] || LAW_WORDS.other)(scopeName(L, f.scope)), why: f.detail || "A number you can't trust is worse than a number you don't have.", action: { verb: "review", label: "Look at it, then add the missing file, or accept it with a reason", args: { check: `${f.law}|${f.scope}` } } };
   },
   categorise({ L, view }) {
@@ -74,8 +94,9 @@ const steps = {
     return { id: "categorise", say: `What was the ${money(Math.abs(r.amount_cents))} that ${out ? "left" : "came in"} on ${day(date)}, marked "${r.question}"?`, why: left === 1 ? "It is the last line we can't place." : `It is the biggest of the ${plural(left, "line")} we can't place. Answer it once and it is remembered.`, action: { verb: "decide", label: "Pick what it was", args: { item: r.item_id }, needs: ["category_id"], choices: choices(view, out) } };
   },
   // Anything else the engine wants a person for. Its own words are the question.
-  otherReview({ L }) {
-    const r = L.review.find((x) => !SPOKEN.has(x.kind));
+  otherReview({ L, view }) {
+    const seen = new Set(view.decisions.filter((d) => d.value && d.value.seen).map((d) => d.value.seen));
+    const r = L.review.find((x) => !SPOKEN.has(x.kind) && !WAITING.has(x.kind) && !seen.has(x.item_id));
     return r && { id: "review", say: r.what, why: r.do || "It needs a person.", action: { verb: "review", label: "Look at it", args: { item: r.item_id } } };
   },
   noBalance({ L, facts, clock }) {
@@ -106,6 +127,15 @@ const steps = {
     if (!L.review.some((r) => r.kind === "deposit_without_payslip") || facts.scope.said.payroll) return null;
     return { id: "payslips", say: "Do you keep your payslips?", why: "Your pay lands in the bank after tax. A payslip shows the gross, the tax and the super, and a month can only lock once its pay is proved or you say there are none.", action: { verb: "decide", label: "Add a payslip, or say you don't keep them", args: { scope: { domain: "payroll" } }, needs: ["state"], choices: [{ id: "has", name: "Yes, I'll add them" }, { id: "none", name: "No, go without" }] } };
   },
+  /* Money that left one account and has not met the other. Young, it is waiting for a file, and `clear` says so. Old, someone should look: often it is an
+     account The Kitty has not been told about. */
+  sides({ L, facts }) {
+    const f = facts.laws.failing.filter(inAir).sort((a, b) => ageOf(b) - ageOf(a))[0];
+    if (!f || ageOf(f) <= SIDE_DAYS) return null;
+    const lone = L.review.find((x) => x.kind === "unpaired_transfer");
+    const say = lone && f.scope === "clearing:transfer" ? `${money(Math.abs(lone.amount_cents))} on ${day(lone.ref.split("|")[1])} went to an account we don't hold yet.` : LAW_WORDS.L2(scopeName(L, f.scope));
+    return { id: "other_side", say, why: `${f.detail} It is not counted as spending. Add the other account's file and the two sides meet.`, action: { verb: "add", label: "Add the other account, or accept it with a reason", args: { check: `${f.law}|${f.scope}` } } };
+  },
   askScope({ facts }) {
     const d = DOMAINS.find((x) => facts.scope.not_asked.includes(x.domain));
     return d && { id: "scope", say: d.asks, why: d.why, action: { verb: "decide", label: "Answer yes, no or not sure", args: { scope: { domain: d.domain } }, needs: ["state"], choices: [{ id: "has", name: "Yes" }, { id: "none", name: "No" }, { id: "unknown", name: "Not sure" }] } };
@@ -118,7 +148,7 @@ const steps = {
 };
 // A missing file comes before a broken law: most laws fail because a file is missing. Evidence comes before judgement for the same reason.
 // Payslips are asked before a close, so a month locks the first time instead of being closed and then locked.
-const ORDER = ["handEdit", "unread", "refused", "firstFile", "changedSeal", "unresolved", "missingMonth", "lawFails", "categorise", "otherReview", "noBalance", "stale", "payslips", "closeMonth", "scan", "askScope", "clear"];
+const ORDER = ["handEdit", "unread", "refused", "firstFile", "changedSeal", "unresolved", "missingMonth", "lawFails", "categorise", "otherReview", "noBalance", "stale", "payslips", "closeMonth", "scan", "sides", "askScope", "clear"];
 
 function pick(built) {
   const facts = readiness(built);
@@ -128,6 +158,7 @@ function pick(built) {
 async function next(store, { today, built } = {}) {
   const probe = await store.probe();
   if (probe.empty || !probe.recognised) return { id: "start", say: "Start your Kitty.", why: "It takes a name and who is in the household. Nothing else is needed yet.", action: { verb: "init", label: "Name your household" } };
+  if (probe.manifest.state === "moved") return { id: "moved", say: "This Kitty has moved.", why: `It now lives in ${probe.manifest.moved_to}. This copy stays as it was and takes no more files.`, action: { verb: "wait", label: "Open the new one" } };
   if (probe.manifest.state !== "ready") return { id: "finish_start", say: "Finish setting up your Kitty.", why: "Setting up was cut off part way. Running it again picks up where it stopped.", action: { verb: "init", label: "Run setup again" } };
   return pick(built || (await rebuildAt(store, { today })));
 }

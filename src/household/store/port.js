@@ -5,7 +5,7 @@
 const { stableStringify } = require("../../../standard/engine/util");
 const { managedTabCheck } = require("../../../standard/engine/upgrade");
 const { normalise, hashRows } = require("../codec");
-const { TABS, pkOf, tabOf, STANDARD_VERSION, RUNTIME_VERSION } = require("../tabs");
+const { TABS, pkOf, tabOf, STANDARD_VERSION, RUNTIME_VERSION, declareTable } = require("../tabs");
 
 function blankManifest(extra = {}) {
   const tables = {};
@@ -24,6 +24,16 @@ function openStore(adapter) {
       const have = new Set(pk ? await adapter.keys(table) : (await tables.read(table)).map(key));
       const fresh = [];
       for (const r of clean) { const k = key(r); if (have.has(k)) continue; have.add(k); fresh.push(r); }
+      if (fresh.length) await adapter.append(table, fresh);
+      return fresh.length;
+    },
+    /* Rows from another store, in order, as they stand. Unlike appendNew it keeps a key's later rows, because a static table reads latest-wins and its history is part of
+       what moved. A row already here, byte for byte, is not written twice, so an adoption cut off half way can simply be run again. */
+    async adopt(table, rows) {
+      if (!rows.length) return 0;
+      const clean = rows.map((r) => normalise(table, r)), have = new Set((await tables.read(table)).map((r) => stableStringify(r)));
+      const fresh = [];
+      for (const r of clean) { const k = stableStringify(r); if (have.has(k)) continue; have.add(k); fresh.push(r); }
       if (fresh.length) await adapter.append(table, fresh);
       return fresh.length;
     },
@@ -70,10 +80,24 @@ function openStore(adapter) {
       await adapter.putManifest(m);
     },
   };
+  const known = (m) => { for (const [t, columns] of Object.entries((m && m.x_tables) || {})) declareTable(t, columns); return m; };
   return {
     kind: adapter.kind, capabilities: adapter.capabilities, tables, blobs: adapter.blobs || null,
-    probe: () => adapter.probe(), create: (m) => adapter.create(TABS, m),
-    manifest: () => adapter.getManifest(), setManifest: (m) => adapter.putManifest(m),
+    async probe() { const p = await adapter.probe(); known(p.manifest); return p; },
+    create: (m) => adapter.create(TABS, m),
+    async manifest() { return known(await adapter.getManifest()); },
+    setManifest: (m) => adapter.putManifest(m),
+    /* A table of the household's own. One call, and it is in the store, in the manifest and typed. Asking twice changes nothing; the same name with other columns is refused. */
+    async define(table, columns) {
+      const m = known(await adapter.getManifest()), had = (m.x_tables || {})[table];
+      if (had) { if (JSON.stringify(had) !== JSON.stringify(columns)) throw Object.assign(new Error(`${table} already exists with other columns.`), { code: "table_exists" }); return false; }
+      const tab = declareTable(table, columns);
+      await adapter.addTable(tab);
+      m.x_tables = { ...(m.x_tables || {}), [table]: columns };
+      m.tables[table] = { rows: 0, hash: hashRows([]), class: tab.class, plane: tab.plane, workbooks: [{ name: "household", partition: null }] };
+      await adapter.putManifest(m);
+      return true;
+    },
   };
 }
 module.exports = { openStore, blankManifest };

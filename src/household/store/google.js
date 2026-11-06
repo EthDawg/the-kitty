@@ -6,7 +6,7 @@
 const { toCells, tooLong, normalise, hashRows, guard } = require("../codec");
 const { stableStringify } = require("../../../standard/engine/util");
 const { openStore } = require("./port");
-const { ABOUT, TABS, tabOf, pkOf } = require("../tabs");
+const { ABOUT, allTabs, tabOf, pkOf, declareTable } = require("../tabs");
 
 const NEEDS = {
   sheets: ["get_spreadsheet", "get_values", "update_values", "update_spreadsheet", "batch_clear_values"],
@@ -123,16 +123,18 @@ function googleAdapter({ mcp, spreadsheetId, sheets = "Google Sheets", drive = "
   }
   // The About tab is the manifest, as a person reads it. Its hashes are text, and an all-digit one must stay text.
   const aboutRows = (m, how) => {
-    const meta = ["standard_version", "runtime", "state", "household_id", "bundle_hash", "as_of", "written_at", "value_input"];
+    const meta = ["standard_version", "runtime", "state", "household_id", "bundle_hash", "as_of", "written_at", "value_input", "moved_to", "x_tables"];
     const rows = [["name", "class", "rows", "hash", "value", "about"],
-      ...meta.map((k) => [k, "meta", "", "", m[k] == null ? "" : String(m[k]), ""]),
-      ...TABS.map((t) => { const e = m.tables[t.table] || {}; return [t.tab, t.class, e.rows ?? 0, e.hash || "", e.writing || "", t.about]; })];
+      ...meta.map((k) => [k, "meta", "", "", m[k] == null ? "" : k === "x_tables" ? JSON.stringify(m[k]) : String(m[k]), ""]),
+      ...allTabs(Object.keys(m.x_tables || {})).map((t) => { const e = m.tables[t.table] || {}; return [t.tab, t.class, e.rows ?? 0, e.hash || "", e.writing || "", t.about]; })];
     return rows.map((r) => r.map((c) => (typeof c === "string" && c ? guard(c, how) : c)));
   };
   function parseAbout(rows) {
-    const m = { tables: {} }, tabs = new Map(TABS.map((t) => [t.tab, t]));
+    const m = { tables: {} }, said = rows.find((r) => r[0] === "x_tables" && r[1] === "meta");
+    if (said && said[4]) { m.x_tables = JSON.parse(said[4]); for (const [t, columns] of Object.entries(m.x_tables)) declareTable(t, columns); }
+    const tabs = new Map(allTabs(Object.keys(m.x_tables || {})).map((t) => [t.tab, t]));
     for (const r of rows.slice(1)) {
-      if (r[1] === "meta") { if (r[4]) m[r[0]] = r[4]; continue; }
+      if (r[1] === "meta") { if (r[0] !== "x_tables" && r[4]) m[r[0]] = r[4]; continue; }
       const t = tabs.get(r[0]);
       if (t) m.tables[t.table] = { rows: Number(r[2]) || 0, hash: r[3] || hashRows([]), class: t.class, plane: t.plane, workbooks: [{ name: "household", partition: null }], ...(r[4] ? { writing: r[4] } : {}) };
     }
@@ -193,6 +195,15 @@ function googleAdapter({ mcp, spreadsheetId, sheets = "Google Sheets", drive = "
       mode = probe[0] && probe[0][0] === "kitty" ? "USER_ENTERED" : "RAW";
       await sheetsCall("update_values", { range: `${ABOUT}!H1`, values: [[""]] });
       await this.putManifest({ ...manifest, value_input: mode });
+    },
+    // One more tab. Sized, headed, and left visible: it is the household's own.
+    async addTable(tab) {
+      const g = await refreshGrid(), used = new Set([...g.values()].map((x) => x.sheetId)), sheetId = Math.max(...used, 1000) + 1;
+      await sheetsCall("update_spreadsheet", { requests: [
+        { addSheet: { properties: { sheetId, title: tab.tab, gridProperties: { rowCount: tab.rows, columnCount: tab.headers.length, frozenRowCount: 1 }, tabColorStyle: { rgbColor: COLOURS.yours } } } },
+        { updateCells: { start: { sheetId, rowIndex: 0, columnIndex: 0 }, rows: [{ values: tab.headers.map((h) => ({ userEnteredValue: { stringValue: h } })) }], fields: "userEnteredValue" } },
+      ] });
+      grid = null;
     },
     read,
     async keys(table) { const t = tabOf(table), pk = pkOf(table), col = await readGrid(t.tab, "A"); if (t.headers[0] !== pk) throw new Error(`${table}: the key is not in the first column`); return col.slice(1).map((r) => normalise(table, row(t.headers, r))[pk]).filter((k) => k !== undefined); },

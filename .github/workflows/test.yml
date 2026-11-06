@@ -64,8 +64,13 @@ jobs:
         run: node --test standard/intake/test.js standard/eval/households/test.js
       - name: replay, ladder and locked numbers
         run: node standard/eval/all.js --check
-      - name: the household runtime
-        run: node --test src/household/test.js
+      - name: the household runtime, and the verbs that change a household's shape
+        run: node --test src/household/test.js src/household/life.test.js
+      - name: the life, chapters 0 to 6, on two stores and two variant families
+        timeout-minutes: 4
+        run: node life/run.js --check
+      - name: the friction ledger reads, and says what is unlanded
+        run: node life/friction.js
       - name: findings for the data model session stay visible until they land
         run: node --test life/findings/*.test.js
       - name: one script for a page

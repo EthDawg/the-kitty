@@ -64,16 +64,28 @@ function lawFacts(L) {
   for (const c of L.checks) counts[c.status] += 1;
   return { ...counts, ran: L.checks.length - counts.skip, failing: L.checks.filter((c) => c.status === "fail").map((c) => ({ law: c.law, scope: c.scope, detail: c.detail })) };
 }
+/* Where the tax office's pre-fill and this household disagree. The engine's own comparison reads amount_cents and the public recipe gives dollars, so it never fires. Finding H-004. */
+function prefillGaps(L, view) {
+  const gaps = [...((L.tax && L.tax.prefill) || [])], items = new Map(((L.tax && L.tax.items) || []).map((i) => [`${i.party_id}|${i.fy}|${i.label}`, i]));
+  if (gaps.length) return gaps;
+  for (const o of view.observations.filter((x) => x.kind === "prefill")) {
+    const p = o.payload, person = (view.setup.party.find((x) => x.name === p.person_ref) || {}).party_id, by = new Map();
+    for (const it of p.items || []) if (it.label) by.set(it.label, (by.get(it.label) || 0) + Math.round(Number(it.amount || 0) * 100));
+    for (const [label, want] of by) { const got = (items.get(`${person}|${p.fy}|${label}`) || { amount_cents: 0 }).amount_cents; if (Math.abs(got - want) > 100) gaps.push({ person, fy: p.fy, label, want, got }); }
+  }
+  return gaps;
+}
 function readiness({ L, view, clock }) {
   const today = clock.today, accounts = view.setup.account.filter((a) => ACCOUNT_CLASSES.has(a.class) && a.in_scope !== false);
   const scope = scopeFacts(view), reach = reachOf(L, view), months = monthFacts(L, view, today, scope, reach), laws = lawFacts(L);
   const coverage = { expected: L.coverage.reduce((n, c) => n + c.expected, 0), held: L.coverage.reduce((n, c) => n + c.have, 0), streams: L.coverage.map((c) => ({ stream_id: c.stream_id, name: c.name, expected: c.expected, held: c.have, missing: c.missing })) };
   const hasObs = new Set(view.observations.map((o) => o.source_id));
-  const sources = { held: view.sources.length, read: 0, unread: 0, refused: 0, quiet: 0, bytes: { held: 0, on_device: 0, not_held: 0, unknown: 0 } };
-  for (const s of view.sources) { const st = readState(s); sources[st] += 1; if (st === "read" && !hasObs.has(s.source_id)) sources.quiet += 1; sources.bytes[bytesState(s)] += 1; }
+  const sources = { held: view.sources.length, read: 0, unread: 0, refused: 0, kept: 0, quiet: 0, bytes: { held: 0, on_device: 0, not_held: 0, unknown: 0 } };
+  for (const s of view.sources) { const st = readState(s); sources[st === "held" ? "kept" : st] += 1; if (st === "read" && !hasObs.has(s.source_id)) sources.quiet += 1; sources.bytes[bytesState(s)] += 1; }
   const open = L.review.filter((r) => r.kind === "uncategorised");
   const review = { items: L.review.length, uncategorised: open.length, uncategorised_cents: open.reduce((n, r) => n + Math.abs(r.amount_cents || 0), 0), by_kind: L.review.reduce((m, r) => { m[r.kind] = (m[r.kind] || 0) + 1; return m; }, {}) };
-  const noBalance = accounts.filter((a) => !L.stated.some((s) => s.account === a.account_id) && (L.linesByAccount.get(a.account_id) || []).length).map((a) => a.account_id);
+  // A position carried in from another Kitty is a stated balance.
+  const noBalance = accounts.filter((a) => a.opening_balance_cents == null && !L.stated.some((s) => s.account === a.account_id) && (L.linesByAccount.get(a.account_id) || []).length).map((a) => a.account_id);
   const nw = L.netWorth[L.netWorth.length - 1] || null, cash = L.cash.filter((c) => months.some((m) => m.month === c.month));
   const lastWhole = [...months].reverse().find((m) => m.whole), shown = (lastWhole && cash.find((c) => c.month === lastWhole.month)) || cash[cash.length - 1] || null;
   const unknown = [];
@@ -84,9 +96,11 @@ function readiness({ L, view, clock }) {
   if (noBalance.length) unknown.push(`${plural(noBalance.length, "account")} with no stated balance.`);
   const missing = coverage.streams.reduce((n, s) => n + s.missing.length, 0);
   if (missing) unknown.push(`${plural(missing, "period")} expected and not held.`);
+  const prefill = prefillGaps(L, view);
+  if (prefill.length) unknown.push(`Pre-fill and your files disagree in ${plural(prefill.length, "place")}. Read them before lodging.`);
   if (clock.tax_assumed_years.length) unknown.push(`Tax for ${list(clock.tax_assumed_years)} uses the last law read, ${dayYear(clock.tax_verified_at)}, and is assumed.`);
   return {
-    accounts_known: accounts.length, people: view.setup.party.filter((p) => p.kind === "person").length, scope, coverage, months, months_closed: months.filter((m) => ["closed", "locked"].includes(m.state)).length, months_locked: months.filter((m) => m.state === "locked").length, laws, review, sources, no_balance: noBalance, reach: Object.fromEntries(reach), unknown,
+    accounts_known: accounts.length, people: view.setup.party.filter((p) => p.kind === "person").length, scope, coverage, months, months_closed: months.filter((m) => ["closed", "locked"].includes(m.state)).length, months_locked: months.filter((m) => m.state === "locked").length, laws, review, sources, no_balance: noBalance, reach: Object.fromEntries(reach), unknown, prefill,
     net_worth: nw && { cents: nw.total, month: nw.month, of_accounts: accounts.length }, cash: shown && { month: shown.month, income_cents: shown.income, spending_cents: shown.spending, unexplained_cents: shown.unexplained, unplaced_cents: Math.abs(shown.byCategory.UNCAT || 0) },
   };
 }

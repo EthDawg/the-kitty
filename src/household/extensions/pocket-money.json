@@ -1,0 +1,24 @@
+{
+  "id": "pocket-money",
+  "version": 1,
+  "title": "Pocket money",
+  "rung": "x_table",
+  "says": "Jars for a child: spend, save, give. Family money in a book, never a bank line, never anyone's income. Promoted from a family's own tailoring.",
+  "table": {
+    "name": "x_jars",
+    "columns": ["entry_id:id:pk", "on:date:req", "party_id:id:req", "jar:text:req:enum=spend|save|give", "kind:text:req:enum=allowance|chore|interest|spent|given|moved|opening", "cents:cents:req", "note:text"]
+  },
+  "stages": [
+    { "from_age": 5, "stage": "jars", "says": "Jars in the book." },
+    { "from_age": 14, "stage": "own_account", "says": "Old enough for an account of their own." },
+    { "from_age": 18, "stage": "own_kitty", "says": "A Kitty of their own, and the jars go with them." }
+  ],
+  "question": {
+    "name": "jars_by_child",
+    "definition": { "from": "x_jars", "date": "on", "group": ["party_id", "jar"], "sum": "cents" }
+  },
+  "widget": {
+    "name": "jars_home",
+    "definition": { "widget": "figures", "place": "home", "title": "Pocket money", "question": "jars_by_child" }
+  }
+}
