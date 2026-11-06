@@ -32,7 +32,7 @@ function decode(bytes) {
   tablesOf(doc, "", tables, values);
   const names = Object.keys(tables).sort((a, b) => tables[b].length - tables[a].length || (a < b ? -1 : 1));
   const rows = names.length ? tables[names[0]] : [["path", "value"], ...Object.entries(values).map(([k, v]) => [k, String(v)])];
-  return { rows, meta: { container: "json", tables, values, table: names[0] || null } };
+  return { rows, meta: { container: "json", tables, values, table: names[0] || null, doc } };
 }
 
 module.exports = { decode };

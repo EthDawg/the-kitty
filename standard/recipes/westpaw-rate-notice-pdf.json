@@ -1,0 +1,50 @@
+{
+ "id": "westpaw-rate-notice-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Westpaw$",
+  "^Banking with a wag",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "contract_ref": {
+   "below": "^Loan number$"
+  },
+  "value": {
+   "below": "^New rate$",
+   "regex": "([\\d.]+)%"
+  },
+  "effective_on": {
+   "below": "^Effective date$",
+   "as": "date"
+  },
+  "notified_on": {
+   "find": "^Issued (.+)$",
+   "as": "date"
+  },
+  "term": {
+   "const": "interest_rate"
+  }
+ },
+ "emit": [
+  {
+   "kind": "rate_notice",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:b4ccbc9790502aae2f88cb49"
+ ],
+ "match": [
+  "^Westpaw$",
+  "interest rate"
+ ]
+}

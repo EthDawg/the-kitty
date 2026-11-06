@@ -16,7 +16,7 @@ function prehistory(person, first) {
   return out;
 }
 
-function payslipDoc(w, p, ytd, employerAccount) {
+function payslipDoc(w, p, ytd, employerAccount, last4 = "4771") {
   const d = new Doc({ brand: BRAND, title: "Payslip", kicker: `${fmtDate(addDays(p.date, -13))} to ${fmtDate(p.date)}`, deflate: w.deflate });
   d.h1(`Payslip for ${p.person} Davies`);
   d.kv([["Employer", p.employer], ["Pay date", fmtDate(p.date)], ["Pay period", `${fmtDate(addDays(p.date, -13))} to ${fmtDate(p.date)}`], ["Pay frequency", "Fortnightly"]], 3);
@@ -26,7 +26,7 @@ function payslipDoc(w, p, ytd, employerAccount) {
     ["PAYG withholding", money(-p.tax), money(-ytd.tax)],
     ["Superannuation guarantee (paid to fund quarterly)", money(p.sup), money(ytd.sup)],
   ], { foot: [`Net pay, to ${employerAccount}`, money(p.net), money(ytd.net)] });
-  d.para(`Net pay of ${aud(p.net)} was paid on ${fmtDate(p.date)} to the account ending 4771 with the description SALARY ${p.employer.toUpperCase()}. Year to date covers the financial year from ${fmtDate(fyStart(fyOf(p.date)))}.`, { color: MUTED, size: 8.5 });
+  d.para(`Net pay of ${aud(p.net)} was paid on ${fmtDate(p.date)} to the account ending ${last4} with the description SALARY ${p.employer.toUpperCase()}. Year to date covers the financial year from ${fmtDate(fyStart(fyOf(p.date)))}.`, { color: MUTED, size: 8.5 });
   return d.finish();
 }
 

@@ -1,0 +1,79 @@
+{
+ "id": "etreat-holdings-csv",
+ "tier": "table",
+ "container": "csv",
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1
+ },
+ "emit": [
+  {
+   "kind": "holding",
+   "fields": {
+    "account_ref": {
+     "col": "Plan"
+    },
+    "instrument_ref": {
+     "col": "Security"
+    },
+    "as_at": {
+     "col": "As At",
+     "as": "date"
+    },
+    "units": {
+     "col": "Units",
+     "as": "units"
+    },
+    "price": {
+     "col": "Price (USD)"
+    },
+    "value_cents": {
+     "col": "Value (AUD)",
+     "as": "cents"
+    }
+   }
+  },
+  {
+   "kind": "price",
+   "fields": {
+    "instrument_ref": {
+     "col": "Security"
+    },
+    "as_at": {
+     "col": "As At",
+     "as": "date"
+    },
+    "price": {
+     "col": "Price (USD)"
+    },
+    "currency": {
+     "const": "USD"
+    }
+   }
+  },
+  {
+   "kind": "fx_rate",
+   "fields": {
+    "base": {
+     "const": "USD"
+    },
+    "quote": {
+     "const": "AUD"
+    },
+    "as_at": {
+     "col": "As At",
+     "as": "date"
+    },
+    "rate": {
+     "col": "AUD per USD"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:56345427b60d5070a98cf9c3"
+ ]
+}

@@ -1,0 +1,81 @@
+{
+ "id": "settlement-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO, fictional$",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$",
+  "Conveyancing"
+ ],
+ "values": {
+  "asset_ref": {
+   "below": "^Property reference$"
+  },
+  "settled_on": {
+   "below": "^Settlement date$",
+   "as": "date"
+  },
+  "price_cents": {
+   "right": "^Purchase price$",
+   "as": "cents"
+  },
+  "duty_cents": {
+   "right": "^Land transfer duty$",
+   "as": "cents"
+  },
+  "legal_cents": {
+   "right": "^Legal and conveyancing$",
+   "as": "cents"
+  },
+  "adjustments_cents": {
+   "right": "^Adjustments",
+   "as": "cents"
+  },
+  "loan_drawn_cents": {
+   "right": "^Loan funds drawn",
+   "as": "cents",
+   "abs": true
+  },
+  "cash_paid_cents": {
+   "right": "^Cash paid by purchaser$",
+   "as": "cents"
+  },
+  "loan_ref": {
+   "find": "loan number ([\\d -]+)\\."
+  },
+  "side": {
+   "const": "buy"
+  }
+ },
+ "emit": [
+  {
+   "kind": "settlement",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "settlement",
+   "terms": [
+    "+price_cents",
+    "+duty_cents",
+    "+legal_cents",
+    "+adjustments_cents",
+    "-loan_drawn_cents",
+    "-cash_paid_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:236976d8a51f820f214c75c4"
+ ],
+ "match": [
+  "^Settlement statement, "
+ ]
+}

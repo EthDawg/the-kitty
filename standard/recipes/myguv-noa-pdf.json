@@ -1,0 +1,137 @@
+{
+ "id": "myguv-noa-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "confidence": 0.98,
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^myGuv$",
+  "^Your tax, your paws",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "person_ref": {
+   "right": "^Name$",
+   "region": {
+    "x_max": 300
+   }
+  },
+  "fy": {
+   "right": "^Financial year$",
+   "region": {
+    "x_max": 300
+   }
+  },
+  "assessed_on": {
+   "right": "^Date of issue$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "lodged_on": {
+   "right": "^Return lodged$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "version": {
+   "right": "^Version$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "int"
+  },
+  "taxable_income_cents": {
+   "right": "^Taxable income$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "gross_tax_cents": {
+   "right": "^Gross tax$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "offsets_cents": {
+   "right": "^Less offsets$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "medicare_levy_cents": {
+   "right": "^Medicare levy$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "help_cents": {
+   "right": "^HELP repayment$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "payg_credits_cents": {
+   "right": "^PAYG credits$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "other_credits_cents": {
+   "right": "^Other credits$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "result_cents": {
+   "right": "^Result of this notice$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "tax_assessment",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "tax_assessment",
+   "name": "tax less credits is the result",
+   "terms": [
+    "+gross_tax_cents",
+    "-offsets_cents",
+    "+medicare_levy_cents",
+    "+help_cents",
+    "-payg_credits_cents",
+    "-other_credits_cents",
+    "+result_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:62360b23348fb05f1b951e29"
+ ],
+ "match": [
+  "^myGuv$"
+ ]
+}

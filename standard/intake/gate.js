@@ -4,7 +4,9 @@
 "use strict";
 const { run, parseDate, AMBIGUOUS } = require("./recipe");
 
-const canon = (o) => JSON.stringify([o.kind, o.payload]);
+// order-free: keys sorted, and arrays inside a payload compared as sets of rows
+const stable = (v) => { if (Array.isArray(v)) return `[${v.map(stable).sort().join(",")}]`; if (v && typeof v === "object") return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stable(v[k])}`).join(",")}}`; return JSON.stringify(v); };
+const canon = (o) => stable([o.kind, o.payload]);
 const bag = (obs) => obs.map(canon).sort();
 const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 

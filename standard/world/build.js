@@ -11,12 +11,12 @@ const { World, TABLES } = require("./lib/world");
 const REPO = path.resolve(__dirname, "..", "..");
 const OUT = path.join(REPO, "standard", ".build", "world");
 
-const DOMAINS = ["setup", "banks", "payroll", "loans"];
+const DOMAINS = ["setup", "banks", "payroll", "loans", "property", "rates", "agency", "super", "broker", "rsu", "crypto", "rental2", "tax"];
 
 function buildWorld() {
   const base = JSON.parse(fs.readFileSync(path.join(REPO, "portals", "data", "months.json"), "utf8"));
   const sheet = JSON.parse(fs.readFileSync(path.join(REPO, "data", "snapshot-v2.json"), "utf8"));
-  const w = new World({ base, sheet, deflate: (b) => new Uint8Array(zlib.deflateSync(b, { level: 6 })) });
+  const w = new World({ base, sheet, deflate: (b) => new Uint8Array(zlib.deflateSync(b, { level: 6 })), deflateRaw: (b) => new Uint8Array(zlib.deflateRawSync(b, { level: 6 })) });
   w.repo = REPO;
   for (const d of DOMAINS) require(`./domains/${d}`).run(w, REPO);
   require("./domains/finish").run(w);

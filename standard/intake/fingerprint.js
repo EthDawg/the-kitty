@@ -32,7 +32,7 @@ function structure(decoded) {
     const tabs = [...new Set(Object.keys(m.tables).map((k) => `${norm(k)}:${shape(m.tables[k][0]).join(",")}`))].sort();
     return { c, keys, tabs };
   }
-  if (c === "xlsx") return { c, sheets: Object.keys(m.sheets).map((n) => { const rows = m.sheets[n]; const h = rows.find((r) => r.length >= 2 && r.filter((x) => x !== "").length >= 2 && isHeader(r.filter((x) => x !== ""))); return [tokens(n), (h || []).map(tokens)]; }) };
+  if (c === "xlsx") return { c, sheets: Object.keys(m.sheets).map((n) => { const rows = m.sheets[n], width = rows.reduce((w, r) => Math.max(w, r.filter((x) => x !== "").length), 0), h = rows.find((r) => r.filter((x) => x !== "").length === width && isHeader(r.filter((x) => x !== ""))); return [tokens(n), (h || []).map(tokens)]; }) };
   if (c === "image") return { c, format: m.format };
   // documents: the layout of the first page down to the first data row; cells by class, so values never reach the hash
   const lines = (decoded.lines || []).filter((l) => l.page === 1);
@@ -41,10 +41,10 @@ function structure(decoded) {
     const classes = l.cells.map(cls);
     if (classes.length >= 3 && classes[0] === "D" && classes.slice(1).includes("$")) break;
     seq.push(classes.join("")); n += 1;
-    if (n >= 14) break;
+    if (n >= 10) break;
   }
   const out = { c, seq };
-  if (c === "eml") { out.subject = tokens(m.subject).split(" ").slice(0, 4).join(" "); out.parts = (m.parts || []).map((p) => p.type); }
+  if (c === "eml") out.parts = (m.parts || []).map((p) => p.type);
   if (c === "html") out.title = tokens(m.title || "").split(" ").slice(0, 4).join(" ");
   return out;
 }

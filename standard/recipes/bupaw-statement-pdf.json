@@ -1,0 +1,63 @@
+{
+ "id": "bupaw-statement-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Health cover for the whole",
+  "^Fictional document from",
+  "Nothing here is advice\\.$",
+  "^advice\\.$",
+  "^institution\\."
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "person_ref": {
+   "below": "^Member$"
+  },
+  "insurer_ref": {
+   "find": "^(Bupaw)$"
+  },
+  "fy": {
+   "below": "^Financial year$"
+  },
+  "period_end": {
+   "below": "^Year end$",
+   "as": "date"
+  },
+  "premium_cents": {
+   "right": "^Your share of premiums paid$",
+   "as": "cents"
+  },
+  "rebate_cents": {
+   "right": "^Australian Government rebate received$",
+   "as": "cents"
+  },
+  "days_covered": {
+   "right": "^Days covered$",
+   "as": "int"
+  },
+  "benefit_code": {
+   "below": "^Benefit code$"
+  },
+  "tier": {
+   "below": "^Rebate tier$"
+  }
+ },
+ "emit": [
+  {
+   "kind": "health_statement",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:2cae1ff875ae9620c3431f5b"
+ ],
+ "match": [
+  "^Bupaw$"
+ ]
+}

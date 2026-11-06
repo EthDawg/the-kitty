@@ -1,0 +1,86 @@
+{
+ "id": "coinpurr-statement-html",
+ "tier": "table",
+ "container": "html",
+ "defaults": {
+  "date": "dmony"
+ },
+ "table": {
+  "html_table": 0,
+  "header": 1,
+  "skip": [
+   {
+    "col": "Asset",
+    "regex": "^Total$",
+    "capture": {
+     "total": {
+      "col": "Value (AUD)",
+      "as": "cents"
+     }
+    }
+   }
+  ]
+ },
+ "values": {
+  "as_at": {
+   "find": "^As at (.+)$",
+   "as": "date"
+  }
+ },
+ "emit": [
+  {
+   "kind": "holding",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "instrument_ref": {
+     "col": "Asset"
+    },
+    "as_at": {
+     "value": "as_at"
+    },
+    "units": {
+     "col": "Units",
+     "as": "units"
+    },
+    "price": {
+     "col": "Price (AUD)"
+    },
+    "value_cents": {
+     "col": "Value (AUD)",
+     "as": "cents"
+    }
+   }
+  },
+  {
+   "kind": "price",
+   "fields": {
+    "instrument_ref": {
+     "col": "Asset"
+    },
+    "as_at": {
+     "value": "as_at"
+    },
+    "price": {
+     "col": "Price (AUD)"
+    },
+    "currency": {
+     "const": "AUD"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "kind_sum",
+   "kind": "holding",
+   "field": "value_cents",
+   "equals": "total"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:412db03d43c8adc0227225b4"
+ ]
+}

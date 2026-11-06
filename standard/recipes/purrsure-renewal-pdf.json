@@ -1,0 +1,68 @@
+{
+ "id": "purrsure-renewal-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Cover for the curious",
+  "^Fictional document from",
+  "Nothing here is advice\\.$",
+  "^advice\\.$",
+  "^insurer\\.",
+  "^institution\\."
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "contract_ref": {
+   "below": "^Policy number$"
+  },
+  "insurer_ref": {
+   "find": "^(Purrsure)$"
+  },
+  "policy_kind": {
+   "find": "^(.+) renewal$"
+  },
+  "period_start": {
+   "find": "^Policy period (\\d{2} \\w{3} \\d{4}) to ",
+   "as": "date"
+  },
+  "period_end": {
+   "find": "^Policy period .* to (\\d{2} \\w{3} \\d{4})$",
+   "as": "date"
+  },
+  "premium_cents": {
+   "below": "^Total premium$",
+   "as": "cents"
+  },
+  "paid_on": {
+   "below": "^Status$",
+   "regex": "Paid (\\d{2} \\w{3} \\d{4})",
+   "as": "date"
+  },
+  "sum_insured_cents": {
+   "right": "^(Building sum insured|Contents sum insured|Agreed value)$",
+   "as": "cents"
+  },
+  "excess_cents": {
+   "right": "^Excess$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "policy",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:0757d61beedf33fb6d9074e1"
+ ],
+ "match": [
+  "^Purrsure$",
+  "renewal$"
+ ]
+}

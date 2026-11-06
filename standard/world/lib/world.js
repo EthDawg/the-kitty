@@ -8,7 +8,7 @@ const TABLES = ["household", "party", "membership", "account", "alias", "ownersh
 
 class World {
   constructor(opts) {
-    this.deflate = opts.deflate; this.base = opts.base; this.sheet = opts.sheet;
+    this.deflate = opts.deflate; this.deflateRaw = opts.deflateRaw; this.base = opts.base; this.sheet = opts.sheet;
     this.files = []; this.decisions = []; this.truth = {}; this.setup = {};
     for (const t of TABLES) this.setup[t] = [];
     this.lines = {};      // account -> [{date, desc, cents, seq}] for the accounts whose files the world writes

@@ -1,0 +1,68 @@
+{
+ "id": "coinpurr-csv",
+ "tier": "table",
+ "container": "csv",
+ "table": {
+  "header": 1
+ },
+ "emit": [
+  {
+   "kind": "crypto_txn",
+   "fields": {
+    "wallet_ref": {
+     "stream": true
+    },
+    "time": {
+     "col": "Timestamp (UTC)"
+    },
+    "type": {
+     "col": "Type",
+     "map": {
+      "BUY": "buy",
+      "SELL": "sell",
+      "SWAP": "swap",
+      "TRANSFER_OUT": "transfer_out",
+      "TRANSFER_IN": "transfer_in",
+      "STAKE_REWARD": "stake_reward"
+     }
+    },
+    "asset": {
+     "col": "Asset"
+    },
+    "units": {
+     "col": "Quantity",
+     "replace": [
+      "^-",
+      ""
+     ],
+     "as": "units"
+    },
+    "quote_asset": {
+     "col": "Counter Asset"
+    },
+    "quote_units": {
+     "col": "Counter Quantity",
+     "as": "units"
+    },
+    "aud_value_cents": {
+     "col": "AUD Value",
+     "as": "cents"
+    },
+    "fee_asset": {
+     "col": "Fee Asset"
+    },
+    "fee_units": {
+     "col": "Fee",
+     "as": "units"
+    },
+    "txid": {
+     "col": "Transaction ID"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:d2d93016fc1e592e5d7c4c7f"
+ ]
+}

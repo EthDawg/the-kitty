@@ -1,0 +1,57 @@
+{
+ "id": "wfh-log-csv",
+ "tier": "table",
+ "container": "csv",
+ "table": {
+  "header": 1,
+  "skip": [
+   {
+    "col": "Month",
+    "regex": "^Total$",
+    "capture": {
+     "total": {
+      "col": "Hours worked at home",
+      "as": "int"
+     }
+    }
+   }
+  ]
+ },
+ "emit": [
+  {
+   "kind": "work_log",
+   "fields": {
+    "person_ref": {
+     "col": "Person"
+    },
+    "fy": {
+     "col": "Month",
+     "as": "fy_of"
+    },
+    "period_end": {
+     "col": "Month",
+     "as": "ym_end"
+    },
+    "log_kind": {
+     "const": "wfh"
+    },
+    "hours": {
+     "col": "Hours worked at home",
+     "as": "int"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "kind_sum",
+   "kind": "work_log",
+   "field": "hours",
+   "equals": "total"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:d4c282ff8650c9a8b46f0a45"
+ ]
+}

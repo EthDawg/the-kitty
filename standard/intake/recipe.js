@@ -61,6 +61,9 @@ function cast(v, e, x) {
     case "int": { const n = /^-?\d+$/.test(String(v).trim().replace(/,/g, "")) ? Number(String(v).trim().replace(/,/g, "")) : null; if (n == null) x.fault("bad_int", `${v} is not a whole number`); return n; }
     case "bool": return /^(true|yes|y|1)$/i.test(String(v).trim());
     case "fy": { const m = /(\d{4})/.exec(String(v)); return m ? `FY${m[1]}` : null; }
+    case "fy_of": { const m = /^(\d{4})-(\d{2})/.exec(String(v).trim()); if (!m) { x.fault("bad_date", `${v} has no year and month`); return null; } return `FY${Number(m[1]) + (Number(m[2]) >= 7 ? 1 : 0)}`; }
+    case "ym_end": { const m = /^(\d{4})-(\d{2})/.exec(String(v).trim()); if (!m) { x.fault("bad_date", `${v} is not yyyy-mm`); return null; } return `${m[1]}-${m[2]}-${pad(dim(+m[1], +m[2]))}`; }
+    case "excel_date": { const n = Number(v); if (!Number.isFinite(n)) { x.fault("bad_date", `${v} is not a date serial`); return null; } return new Date(Math.round((n - 25569) * 864e5)).toISOString().slice(0, 10); }
     case "json": return v;
     default: x.fault("bad_recipe", `no cast ${as}`); return null;
   }
@@ -69,6 +72,7 @@ function cast(v, e, x) {
 /* One field expression. See RECIPES.md. */
 function evalExpr(e, x) {
   if (e === null || typeof e !== "object") return e;
+  if (e.if && !test(e.if, x)) return null;
   let v;
   if ("const" in e) v = e.const;
   else if (e.stream) v = x.stream;
@@ -76,6 +80,9 @@ function evalExpr(e, x) {
   else if ("group" in e) v = x.group ? x.group[e.group] : null;
   else if ("cell" in e) v = x.cells ? x.cells[e.cell] : null;
   else if ("value" in e) return x.values ? x.values[e.value] : null;
+  else if ("table" in e) return x.tableRows ? x.tableRows(e.table) : null;
+  else if ("at" in e) v = x.at ? x.at(e.at[0], e.at[1]) : null;
+  else if ("pivot" in e) return x.pivot ? x.pivot(e.pivot) : null;
   else if ("meta" in e) v = metaAt(x.meta, e.meta);
   else if ("first" in e) { for (const a of e.first) { const r = evalExpr(a, x); if (!blank(r)) return r; } return null; }
   else if ("sum" in e) {
@@ -92,6 +99,12 @@ function evalExpr(e, x) {
   if (e.map && v != null) v = e.map[String(v).trim()] != null ? e.map[String(v).trim()] : e.map["*"] != null ? e.map["*"] : null;
   if (blank(v) && e.default !== undefined) return e.default;
   return finish(cast(v, e, x), e);
+}
+function test(w, x) {
+  const { equals, matches, flags, ...rest } = w; const v = evalExpr(rest, x);
+  if (equals !== undefined) return String(v) === String(equals);
+  if (matches) return new RegExp(matches, flags || "").test(String(v == null ? "" : v));
+  return !blank(v);
 }
 function finish(v, e) {
   if (v == null) return v;
@@ -114,7 +127,7 @@ class Run {
     return { meta: this.meta, stream: this.o.stream, dateFormat: this.dateFormat, values: this.values,
       fault(code, what) { self.faults.push({ code, what, locator: self.locator }); },
       noteDate(token, fmt) { self.dates.push({ token, fmt, locator: self.locator }); },
-      col() { return null; }, ...extra };
+      col() { return null; }, tableRows(n) { return self.tables[n]; }, ...extra };
   }
   emit(spec, x, locator, extra) {
     const kind = this.vocab.kinds[spec.kind];
@@ -159,6 +172,15 @@ function runTable(R) {
   else if (R.meta.container === "ofx") locRow = (i) => `STMTTRN ${i}`;
   else if (R.meta.container === "qif") locRow = (i) => `record ${i}`;
   rows = rows.map((c, i) => ({ cells: c, i })).filter((x) => !(x.cells.length === 0 || (x.cells.length === 1 && x.cells[0] === "")));
+  const at = (r, c) => { const row = r < 0 ? rows[rows.length + r] : rows[r - 1]; if (!row) return null; return row.cells[c < 0 ? row.cells.length + c : c]; };
+  R.at = at;
+  for (const [name, spec] of Object.entries(r.values || {})) {
+    R.locator = `value ${name}`;
+    const x = R.ctx({ at }); let v;
+    if (spec.find || spec.below || spec.right || spec.after) { v = findValue(R, spec, d.lines || []); if (typeof v === "string" && spec.regex) { const m = new RegExp(spec.regex).exec(v); v = m ? (m[1] != null ? m[1] : m[0]) : null; } v = v == null ? null : finish(cast(v, spec, x), spec); } else v = evalExpr(spec, x);
+    R.values[name] = v;
+    if (blank(v) && !spec.optional) R.faults.push({ code: "missing_value", what: name, locator: `value ${name}` });
+  }
   const headerAt = t.header || 0;
   let header = t.columns || null, start = 0;
   if (headerAt) { const h = rows[headerAt - 1]; if (!h) { R.faults.push({ code: "no_header", what: "header row missing", locator: "file" }); return; } header = h.cells.map((c) => c.trim()); start = headerAt; R.skipped += headerAt; }
@@ -170,25 +192,40 @@ function runTable(R) {
   const idx = {}; (header || []).forEach((h, i) => { if (idx[h] == null) idx[h] = i; });
   const col = (cells) => (name) => { if (typeof name === "number") return cells[name]; if (idx[name] == null) { R.faults.push({ code: "no_column", what: name, locator: "header" }); return null; } return cells[idx[name]]; };
   const skips = (t.skip || []).map((s) => ({ ...s, re: new RegExp(s.regex, s.flags || "") }));
-  const captured = {};
-  const done = [];
+  const captured = R.values;
+  const done = [], gathered = [];
   for (const row of body) {
     R.locator = locRow(row.i);
-    const x = R.ctx({ col: col(row.cells), cells: row.cells });
+    const x = R.ctx({ col: col(row.cells), cells: row.cells, at });
     const sk = skips.find((s) => s.re.test(String(s.col == null ? row.cells.join(",") : (col(row.cells)(s.col) ?? ""))));
     if (sk) { R.skipped += 1; if (sk.capture) for (const [k, e] of Object.entries(sk.capture)) captured[k] = evalExpr(e, x); continue; }
     let hit = 0;
-    for (const spec of r.emit) { const o = R.emit(spec, x, locRow(row.i)); if (o) { hit += 1; done.push(o); } }
+    if (t.collect) { const rec = {}; for (const [k, e] of Object.entries(t.collect)) rec[k] = evalExpr(e, x); gathered.push(rec); hit += 1; }
+    for (const spec of r.emit || []) { const o = R.emit(spec, x, locRow(row.i)); if (o) { hit += 1; done.push(o); } }
     if (hit) R.consumed += 1; else R.unconsumed.push({ locator: locRow(row.i), text: row.cells.join(" | ").slice(0, 120) });
   }
+  R.tables.rows = gathered;
   statementFrom(R, r.statement, done, captured);
+  const fx = R.ctx({ at, pivot: (p) => pivot(gathered, p) });
+  for (const spec of r.emit_file || []) { const o = R.emit(spec, fx, "file"); if (o) R.consumed += 0; }
+}
+
+// many rows into named items, each with a value per key: a schedule's division by year
+function pivot(rows, p) {
+  const out = [], by = new Map();
+  for (const r of rows) {
+    const k = p.group.map((g) => r[g]).join("|");
+    if (!by.has(k)) { const it = {}; for (const g of p.group) it[g] = r[g]; it[p.into] = {}; by.set(k, it); out.push(it); }
+    const it = by.get(k); it[p.into][r[p.key]] = (it[p.into][r[p.key]] || 0) + r[p.value];
+  }
+  return out;
 }
 
 /* a statement the file implies. chain: from the running balance on the first and last rows. opening: captured opening plus the movements.
    closing: a stated closing less the movements. */
 function statementFrom(R, spec, done, captured) {
   if (!spec || R.o.shuffle != null) return;
-  const lines = done.filter((o) => o.kind === "txn_line");
+  const lines = done.filter((o) => o.kind === (spec.lines || "txn_line"));
   if (!lines.length) return;
   const order = (R.r.table && R.r.table.order) || "oldest_first";
   const seq = order === "newest_first" ? lines.slice().reverse() : lines;
@@ -197,11 +234,12 @@ function statementFrom(R, spec, done, captured) {
   let opening, closing;
   if (spec.from === "chain") { closing = seq[seq.length - 1].payload.balance_after_cents; opening = seq[0].payload.balance_after_cents - seq[0].payload.amount_cents; }
   else if (spec.from === "opening") { opening = captured[spec.opening || "opening_cents"]; closing = opening == null ? null : opening + sum; }
-  else if (spec.from === "closing") { closing = evalExpr(spec.closing, R.ctx({})); opening = closing == null ? null : closing - sum; }
+  else if (spec.from === "closing") { closing = evalExpr(spec.closing, R.ctx({ at: R.at })); opening = closing == null ? null : closing - sum; }
   if (opening == null || closing == null) { R.faults.push({ code: "no_statement", what: "cannot state the file's opening and closing", locator: "file" }); return; }
   const dates = lines.map((o) => o.payload.posting_date).sort();
   const account_ref = seq[0].payload.account_ref;
   const period_start = spec.period_start ? evalExpr(spec.period_start, R.ctx({})) : dates[0], period_end = spec.period_end ? evalExpr(spec.period_end, R.ctx({})) : dates[dates.length - 1];
+  R.values.statement_closing = closing;
   R.emit({ kind: "statement", fields: {}, confidence: 1 }, R.ctx({}), "file", { account_ref, period_start, period_end, opening_cents: opening, closing_cents: closing, credits_cents: credits, debits_cents: -debits });
 }
 
@@ -219,7 +257,7 @@ function findValue(R, spec, lines) {
       const m = rx.exec(l.cells[c]); if (!m) continue;
       if (n++ !== nth) continue;
       if (spec.after) return l.cells[c].slice(m.index + m[0].length).trim() || l.cells[c + 1] || null;
-      if (spec.right) return l.cells[spec.cell != null ? spec.cell : c + 1];
+      if (spec.right) return l.cells[spec.cell != null ? (spec.cell < 0 ? l.cells.length + spec.cell : spec.cell) : c + 1];
       // below: the next line's cell nearest this label's x
       const next = pool[i + 1]; if (!next) return null;
       if (!l.xs || !next.xs) return next.cells[c] != null ? next.cells[c] : null;
@@ -316,7 +354,7 @@ function checkControls(R) {
   for (const c of R.r.controls || []) {
     if (c.law === "balance_chain") {
       const order = (R.r.table && R.r.table.order) || "oldest_first";
-      let lines = R.out.filter((o) => o.kind === "txn_line");
+      let lines = R.out.filter((o) => o.kind === (c.kind || "txn_line"));
       if (order === "newest_first") lines = lines.slice().reverse();
       let bad = 0, checked = 0;
       for (let i = 1; i < lines.length; i++) { const p = lines[i - 1].payload, q = lines[i].payload; if (p.balance_after_cents == null || q.balance_after_cents == null) continue; checked += 1; if (p.balance_after_cents + q.amount_cents !== q.balance_after_cents) bad += 1; }
@@ -333,7 +371,7 @@ function checkControls(R) {
       R.controls.push({ law: c.law, name: c.name, pass: bad === 0, checked, bad, gap, proves: c.proves || ["sign"] });
     } else if (c.law === "table_sum") {
       const rows = R.tables[c.table] || []; const t = rows.reduce((s, r) => s + (r[c.field] || 0), 0);
-      const want = c.equals_sum ? c.equals_sum.reduce((s, n) => s + (R.values[n] || 0), 0) : R.values[c.equals];
+      const want = c.equals_sum ? c.equals_sum.reduce((s, n) => { const neg = n[0] === "-", k = n.replace(/^[+-]/, ""); return s + (neg ? -1 : 1) * (R.values[k] || 0); }, 0) : R.values[c.equals];
       R.controls.push({ law: c.law, name: `${c.table}.${c.field}`, pass: want != null && t === want, checked: rows.length, got: t, want, proves: ["rows"] });
     } else if (c.law === "kind_sum") {
       const objs = R.out.filter((o) => o.kind === c.kind); const t = objs.reduce((s, o) => s + (o.payload[c.field] || 0), 0);
@@ -343,6 +381,19 @@ function checkControls(R) {
       const objs = R.out.filter((o) => o.kind === (c.kind || "txn_line") && new RegExp(c.regex).test(String(o.payload[c.field || "description"])));
       const bad = objs.filter((o) => (c.sign === "+" ? o.payload[c.amount || "amount_cents"] <= 0 : o.payload[c.amount || "amount_cents"] >= 0)).length;
       R.controls.push({ law: c.law, pass: bad === 0, checked: objs.length, bad, proves: objs.length ? ["sign"] : [] });
+    } else if (c.law === "either") {
+      const objs = c.kind ? R.out.filter((o) => o.kind === c.kind) : [null]; let bad = 0;
+      for (const o of objs) { const v = vals(o); const ok = c.terms.some((list) => { let t = 0; for (const term of list) { const n = term.replace(/^[+-]/, ""); if (v[n] == null) return false; t += term[0] === "-" ? -v[n] : v[n]; } return t === 0; }); if (!ok) bad += 1; }
+      R.controls.push({ law: c.law, name: c.name, pass: bad === 0, checked: objs.length, bad, proves: ["sign"] });
+    } else if (c.law === "product") {
+      const objs = c.kind ? R.out.filter((o) => o.kind === c.kind) : [null]; let bad = 0, checked = 0, gap = 0;
+      for (const o of objs) { const v = vals(o); const a = Number(v[c.a]), b = Number(v[c.b]), want = v[c.equals]; checked += 1; const g = Math.round(a * b * 100) - want; if (!Number.isFinite(g) || Math.abs(g) > (c.tolerance == null ? 1 : c.tolerance)) { bad += 1; gap = g; } }
+      R.controls.push({ law: c.law, name: c.name, pass: bad === 0, checked, bad, gap, proves: ["rows"] });
+    } else if (c.law === "last_equals") {
+      const objs = R.out.filter((o) => o.kind === c.kind), last = objs[objs.length - 1];
+      R.controls.push({ law: c.law, pass: R.o.shuffle != null || (last != null && last.payload[c.field] === R.values[c.equals]), checked: objs.length, got: last && last.payload[c.field], want: R.values[c.equals], proves: ["rows"] });
+    } else if (c.law === "closing_ties") {
+      R.controls.push({ law: c.law, pass: R.values.statement_closing == null || R.values.statement_closing === R.values[c.equals], checked: 1, got: R.values.statement_closing, want: R.values[c.equals], proves: ["sign"] });
     } else if (c.law === "family_chain" || c.law === "ytd_chain") { R.controls.push({ law: c.law, family: true, pass: true, checked: 0 }); }
     else R.faults.push({ code: "bad_recipe", what: `no control ${c.law}`, locator: "file" });
   }
@@ -360,7 +411,7 @@ function run(recipe, decoded, opts) {
 
 const matches = (recipe, decoded) => {
   const m = recipe.match; if (!m || !m.length) return true;
-  const hay = decoded.lines ? decoded.lines.map((l) => l.text) : (decoded.rows || []).slice(0, 6).map((r) => r.join(" "));
+  const hay = decoded.lines && decoded.lines.length ? decoded.lines.map((l) => l.text) : (decoded.rows || []).slice(0, 6).map((r) => r.join(" "));
   if (decoded.meta && decoded.meta.subject) hay.push(decoded.meta.subject);
   if (decoded.meta && decoded.meta.title) hay.push(decoded.meta.title);
   return m.every((p) => { const re = new RegExp(p); return hay.some((t) => re.test(t)); });

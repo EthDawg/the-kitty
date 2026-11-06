@@ -1,0 +1,65 @@
+{
+ "id": "purrannuation-csv-v1",
+ "tier": "table",
+ "container": "csv",
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "emit": [
+  {
+   "kind": "super_line",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "posting_date": {
+     "col": "Date",
+     "as": "date"
+    },
+    "line_type": {
+     "col": "Transaction Type",
+     "map": {
+      "Employer Contribution": "employer",
+      "Contributions Tax": "contributions_tax",
+      "Administration Fee": "fee",
+      "Insurance Premium": "insurance",
+      "Investment Earnings": "earnings",
+      "Rollover In": "rollover_in"
+     }
+    },
+    "description": {
+     "col": "Description"
+    },
+    "amount_cents": {
+     "col": "Amount",
+     "as": "cents"
+    },
+    "balance_after_cents": {
+     "col": "Balance",
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "chain",
+  "lines": "super_line"
+ },
+ "controls": [
+  {
+   "law": "balance_chain",
+   "kind": "super_line"
+  },
+  {
+   "law": "family_chain"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:2a3f6742d0a9f4aa820a0469"
+ ]
+}

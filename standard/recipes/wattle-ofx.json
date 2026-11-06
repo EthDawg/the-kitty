@@ -1,0 +1,60 @@
+{
+ "id": "wattle-ofx",
+ "tier": "table",
+ "container": "ofx",
+ "defaults": {
+  "date": "yyyymmdd"
+ },
+ "table": {
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "meta": "ACCTID"
+    },
+    "posting_date": {
+     "col": "DTPOSTED",
+     "as": "date"
+    },
+    "description": {
+     "col": "NAME"
+    },
+    "amount_cents": {
+     "col": "TRNAMT",
+     "as": "cents"
+    },
+    "reference": {
+     "col": "FITID"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "closing",
+  "closing": {
+   "meta": "BALAMT",
+   "as": "cents"
+  },
+  "period_start": {
+   "meta": "DTSTART",
+   "as": "date"
+  },
+  "period_end": {
+   "meta": "DTEND",
+   "as": "date"
+  }
+ },
+ "controls": [
+  {
+   "law": "family_chain"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:0534b919e1da6c9547eb2a0d"
+ ]
+}

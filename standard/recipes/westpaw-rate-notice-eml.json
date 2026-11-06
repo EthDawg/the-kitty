@@ -1,0 +1,41 @@
+{
+ "id": "westpaw-rate-notice-eml",
+ "tier": "document",
+ "container": "eml",
+ "defaults": {
+  "date": "dmony"
+ },
+ "values": {
+  "contract_ref": {
+   "find": "^Loan number: (.+)$"
+  },
+  "value": {
+   "find": "^New rate: ([\\d.]+)%"
+  },
+  "effective_on": {
+   "find": "^Effective date: (.+)$",
+   "as": "date"
+  },
+  "notified_on": {
+   "find": "^Notice date: (.+)$",
+   "as": "date"
+  },
+  "term": {
+   "const": "interest_rate"
+  }
+ },
+ "emit": [
+  {
+   "kind": "rate_notice",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:5190f59ee6b42757e5cc8e74"
+ ],
+ "match": [
+  "^Loan number: ",
+  "^New rate: "
+ ]
+}

@@ -1,0 +1,102 @@
+{
+ "id": "hestabby-app-json",
+ "tier": "table",
+ "container": "json",
+ "defaults": {
+  "date": "ymd"
+ },
+ "table": {
+  "path": "transactions",
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "values": {
+  "opening_cents": {
+   "meta": "balance.opening",
+   "as": "cents"
+  },
+  "closing_cents": {
+   "meta": "balance.closing",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "super_line",
+   "fields": {
+    "account_ref": {
+     "meta": "member.number"
+    },
+    "posting_date": {
+     "col": "date",
+     "as": "date"
+    },
+    "line_type": {
+     "col": "code",
+     "map": {
+      "SG": "employer",
+      "TAX": "contributions_tax",
+      "FEE": "fee",
+      "INS": "insurance",
+      "EARN": "earnings",
+      "ROLLIN": "rollover_in"
+     }
+    },
+    "description": {
+     "col": "label"
+    },
+    "amount_cents": {
+     "col": "amount",
+     "as": "cents"
+    },
+    "balance_after_cents": {
+     "col": "balanceAfter",
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "emit_file": [
+  {
+   "kind": "super_statement",
+   "fields": {
+    "account_ref": {
+     "meta": "member.number"
+    },
+    "period_start": {
+     "meta": "period.from",
+     "as": "date"
+    },
+    "period_end": {
+     "meta": "period.to",
+     "as": "date"
+    },
+    "opening_cents": {
+     "value": "opening_cents"
+    },
+    "closing_cents": {
+     "value": "closing_cents"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "balance_chain",
+   "kind": "super_line"
+  },
+  {
+   "law": "kind_sum",
+   "kind": "super_line",
+   "field": "amount_cents",
+   "equals_sum": [
+    "+closing_cents",
+    "-opening_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:720fe56dad2dc0fd08008a2c"
+ ]
+}

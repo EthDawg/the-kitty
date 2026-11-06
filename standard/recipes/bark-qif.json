@@ -1,0 +1,57 @@
+{
+ "id": "bark-qif",
+ "tier": "table",
+ "container": "qif",
+ "defaults": {
+  "date": "dmy2"
+ },
+ "table": {
+  "header": 1,
+  "order": "oldest_first",
+  "skip": [
+   {
+    "col": "P",
+    "regex": "^Opening Balance$",
+    "capture": {
+     "opening_cents": {
+      "col": "T",
+      "as": "cents"
+     }
+    }
+   }
+  ]
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "posting_date": {
+     "col": "D",
+     "as": "date"
+    },
+    "description": {
+     "col": "P"
+    },
+    "amount_cents": {
+     "col": "T",
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "opening"
+ },
+ "controls": [
+  {
+   "law": "family_chain"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:4ba7bd205a481dc0d9dfe36a"
+ ]
+}

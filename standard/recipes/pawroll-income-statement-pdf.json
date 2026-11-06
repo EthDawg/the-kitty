@@ -4,7 +4,10 @@
  "tier": "document",
  "container": "pdf",
  "fingerprints": [
-  "fp1:0a9905dd555029d652131e24"
+  "fp1:a8d8d4156e17bba9ffe62db9"
+ ],
+ "match": [
+  "^Pawroll$"
  ],
  "defaults": {
   "date": "dmony"

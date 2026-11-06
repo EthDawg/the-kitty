@@ -1,0 +1,153 @@
+{
+ "id": "propertymeow-owner-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^PropertyMeow$",
+  "^Your rental",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "property_ref": {
+   "below": "^Owner reference$"
+  },
+  "gross_rent_cents": {
+   "below": "^Rent collected$",
+   "as": "cents"
+  },
+  "fees_cents": {
+   "below": "^Management fees$",
+   "as": "cents"
+  },
+  "disbursed_cents": {
+   "below": "^Paid to owner$",
+   "as": "cents"
+  },
+  "period_start": {
+   "find": "^(\\d{2} \\w{3} \\d{4}) to \\d",
+   "as": "date"
+  },
+  "period_end": {
+   "find": "^\\d{2} \\w{3} \\d{4} to (\\d{2} \\w{3} \\d{4})$",
+   "as": "date"
+  }
+ },
+ "tables": [
+  {
+   "name": "lines",
+   "start": "^Date  Description  Rental schedule",
+   "end": "^Rent is paid to the owner",
+   "skip": [
+    "\\(continued\\)$"
+   ],
+   "columns": [
+    {
+     "name": "date",
+     "x": [
+      44,
+      100
+     ]
+    },
+    {
+     "name": "description",
+     "x": [
+      100,
+      262
+     ]
+    },
+    {
+     "name": "schedule_line",
+     "x": [
+      262,
+      380
+     ]
+    },
+    {
+     "name": "money_in",
+     "x": [
+      380,
+      440
+     ]
+    },
+    {
+     "name": "money_out",
+     "x": [
+      440,
+      496
+     ]
+    },
+    {
+     "name": "by",
+     "x": [
+      496,
+      600
+     ]
+    }
+   ],
+   "collect": {
+    "date": {
+     "col": "date",
+     "as": "date"
+    },
+    "description": {
+     "col": "description"
+    },
+    "schedule_line": {
+     "col": "schedule_line"
+    },
+    "money_in_cents": {
+     "col": "money_in",
+     "as": "cents"
+    },
+    "money_out_cents": {
+     "col": "money_out",
+     "as": "cents"
+    },
+    "by": {
+     "col": "by"
+    }
+   }
+  }
+ ],
+ "emit": [
+  {
+   "kind": "owner_statement",
+   "from_values": true,
+   "fields": {
+    "lines": {
+     "table": "lines"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "owner_statement",
+   "terms": [
+    "+gross_rent_cents",
+    "-fees_cents",
+    "-disbursed_cents"
+   ]
+  },
+  {
+   "law": "table_sum",
+   "table": "lines",
+   "field": "money_in_cents",
+   "equals": "gross_rent_cents"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:bca12f8897153f927808f3b8"
+ ],
+ "match": [
+  "^PropertyMeow$"
+ ]
+}

@@ -1,0 +1,173 @@
+{
+ "id": "agent-return-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "confidence": 0.99,
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO, fictional$",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$",
+  "^Paws and Claws Tax Agents$"
+ ],
+ "values": {
+  "person_ref": {
+   "below": "^Taxpayer$"
+  },
+  "fy": {
+   "below": "^Financial year$"
+  },
+  "version": {
+   "below": "^Version$",
+   "as": "int"
+  },
+  "lodged_on": {
+   "below": "^Lodged on$",
+   "as": "date"
+  },
+  "assessed_on": {
+   "below": "^Assessed on$",
+   "as": "date"
+  },
+  "taxable_income_cents": {
+   "find": "^Taxable  TX  Taxable income  ([-\\d,.]+)$",
+   "as": "cents"
+  },
+  "gross_tax_cents": {
+   "right": "^Gross tax$",
+   "as": "cents"
+  },
+  "offsets_cents": {
+   "right": "^Offsets$",
+   "as": "cents"
+  },
+  "medicare_levy_cents": {
+   "right": "^Medicare levy$",
+   "as": "cents"
+  },
+  "help_cents": {
+   "right": "^HELP repayment$",
+   "as": "cents"
+  },
+  "payg_credits_cents": {
+   "right": "^PAYG credits$",
+   "as": "cents"
+  },
+  "other_credits_cents": {
+   "right": "^Other credits$",
+   "as": "cents"
+  },
+  "result_cents": {
+   "right": "^Result$",
+   "as": "cents"
+  }
+ },
+ "tables": [
+  {
+   "name": "labels",
+   "start": "^Section  Label  Description",
+   "end": "^Assessment$",
+   "skip": [
+    "\\(continued\\)$"
+   ],
+   "row": "^(\\S+)  (\\S+)  (.+?)  (-?[\\d,]+\\.\\d\\d)$",
+   "collect": {
+    "line_id": {
+     "group": 2
+    },
+    "label": {
+     "group": 2,
+     "replace": [
+      "NET$",
+      ""
+     ]
+    },
+    "section": {
+     "group": 1
+    },
+    "role": {
+     "group": 2,
+     "map": {
+      "TI": "subtotal",
+      "TD": "subtotal",
+      "TX": "subtotal",
+      "21NET": "subtotal",
+      "18H": "memo",
+      "20O": "memo",
+      "18V": "carry",
+      "*": "leaf"
+     }
+    },
+    "rolls_up_to": {
+     "group": 2,
+     "map": {
+      "1": "TI",
+      "10": "TI",
+      "12": "TI",
+      "24": "TI",
+      "11S": "TI",
+      "11T": "TI",
+      "11U": "TI",
+      "13U": "TI",
+      "13C": "TI",
+      "13Q": "TI",
+      "18A": "TI",
+      "20M": "TI",
+      "21P": "21NET",
+      "21Q": "21NET",
+      "21F": "21NET",
+      "21X": "21NET",
+      "21NET": "TI",
+      "D1": "TD",
+      "D3": "TD",
+      "D4": "TD",
+      "D5": "TD",
+      "D9": "TD",
+      "D10": "TD"
+     },
+     "default": null
+    },
+    "amount_cents": {
+     "group": 4,
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "emit": [
+  {
+   "kind": "tax_assessment",
+   "from_values": true,
+   "fields": {
+    "labels": {
+     "table": "labels"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "tax_assessment",
+   "name": "tax less credits is the result",
+   "terms": [
+    "+gross_tax_cents",
+    "-offsets_cents",
+    "+medicare_levy_cents",
+    "+help_cents",
+    "-payg_credits_cents",
+    "-other_credits_cents",
+    "+result_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:6d6175a7b7b1c816dcd821ba"
+ ],
+ "match": [
+  "tax return for "
+ ]
+}

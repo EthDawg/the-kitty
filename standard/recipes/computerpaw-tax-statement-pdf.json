@@ -1,0 +1,112 @@
+{
+ "id": "computerpaw-tax-statement-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Computerpaw$",
+  "^Investor services",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "account_ref": {
+   "below": "^Holder number$"
+  },
+  "instrument_ref": {
+   "below": "^Security code$"
+  },
+  "fy": {
+   "below": "^Financial year$"
+  },
+  "period_end": {
+   "below": "^Year end$",
+   "as": "date"
+  },
+  "cash_cents": {
+   "right": "^Cash distributions$",
+   "as": "cents"
+  },
+  "interest_cents": {
+   "right": "^Interest$",
+   "as": "cents"
+  },
+  "franked_cents": {
+   "right": "^Franked distributions$",
+   "as": "cents"
+  },
+  "franking_credit_cents": {
+   "right": "^Franking credits$",
+   "as": "cents"
+  },
+  "unfranked_cents": {
+   "right": "^Unfranked distributions$",
+   "as": "cents"
+  },
+  "foreign_income_cents": {
+   "right": "^Foreign income$",
+   "as": "cents"
+  },
+  "foreign_credit_cents": {
+   "right": "^Foreign tax credits$",
+   "as": "cents"
+  },
+  "discount_gain_cents": {
+   "right": "^Discounted capital gains$",
+   "as": "cents"
+  },
+  "cgt_concession_cents": {
+   "right": "^CGT concession$",
+   "as": "cents"
+  },
+  "tax_deferred_cents": {
+   "right": "^Tax deferred$",
+   "as": "cents"
+  },
+  "amit_increase_cents": {
+   "right": "^AMIT cost base increase$",
+   "as": "cents"
+  },
+  "amit_decrease_cents": {
+   "right": "^AMIT cost base decrease$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "distribution",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "distribution",
+   "name": "cash is what was attributed, plus or minus the AMIT adjustment",
+   "terms": [
+    "+cash_cents",
+    "-interest_cents",
+    "-franked_cents",
+    "-unfranked_cents",
+    "-foreign_income_cents",
+    "+foreign_credit_cents",
+    "-discount_gain_cents",
+    "-cgt_concession_cents",
+    "-tax_deferred_cents",
+    "+amit_increase_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:3815ba0a3c53fd6b776f1e3d"
+ ],
+ "match": [
+  "^Computerpaw$",
+  "tax statement$"
+ ]
+}

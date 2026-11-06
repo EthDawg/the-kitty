@@ -1,0 +1,47 @@
+{
+ "id": "wallet-json",
+ "tier": "table",
+ "container": "json",
+ "table": {
+  "path": "transfers",
+  "header": 1
+ },
+ "emit": [
+  {
+   "kind": "crypto_txn",
+   "fields": {
+    "wallet_ref": {
+     "meta": "address"
+    },
+    "time": {
+     "col": "ts"
+    },
+    "type": {
+     "col": "kind",
+     "map": {
+      "STAKING_REWARD": "stake_reward",
+      "RECEIVE": "transfer_in"
+     }
+    },
+    "asset": {
+     "col": "token"
+    },
+    "units": {
+     "col": "qty",
+     "as": "units"
+    },
+    "aud_value_cents": {
+     "col": "valueAud",
+     "as": "cents"
+    },
+    "txid": {
+     "col": "hash"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:b1932fdfa7c09ab76919043e"
+ ]
+}

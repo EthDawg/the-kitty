@@ -1,0 +1,39 @@
+{
+ "id": "myguv-prefill-json",
+ "tier": "table",
+ "container": "json",
+ "table": {
+  "path": "items",
+  "header": 1,
+  "collect": {
+   "label": {
+    "col": "label"
+   }
+  }
+ },
+ "emit_file": [
+  {
+   "kind": "prefill",
+   "fields": {
+    "person_ref": {
+     "meta": "person"
+    },
+    "fy": {
+     "meta": "periodEnd",
+     "as": "fy_of"
+    },
+    "period_end": {
+     "meta": "periodEnd"
+    },
+    "items": {
+     "meta": "doc.items",
+     "as": "json"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:8c05bc4e859b72f67d8f301d"
+ ]
+}

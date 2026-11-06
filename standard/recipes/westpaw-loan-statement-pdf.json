@@ -4,7 +4,10 @@
  "tier": "document",
  "container": "pdf",
  "fingerprints": [
-  "fp1:f7b0ee00ef997f850a8b8c31"
+  "fp1:0bff42a5ad9aa489310191f9"
+ ],
+ "match": [
+  "^Westpaw$"
  ],
  "defaults": {
   "date": "dmony"

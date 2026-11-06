@@ -197,7 +197,8 @@
         "withholding_cents",
         "net_cents*",
         "drp_units",
-        "drp_price"
+        "drp_price",
+        "attributed_later"
       ]
     },
     "distribution": {
@@ -445,7 +446,9 @@
         "period_end*",
         "log_kind*",
         "hours",
-        "km"
+        "km",
+        "label",
+        "amount_cents"
       ]
     },
     "depreciation_schedule": {

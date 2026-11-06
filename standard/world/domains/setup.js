@@ -58,6 +58,7 @@ const CATEGORIES = [
   cat("FEES", "Bank fees and card interest", "expense", "Fees", false, true, true),
   cat("INCOME-TAX", "Income tax assessed", "expense", "Tax", null, false, true),
   cat("HELP-INDEX", "HELP indexation", "expense", "Tax", null, false, true),
+  cat("TAX-REFUND", "Tax refunds and payments", "transfer", "Tax", null, false, false, "Money between the household and its tax position."),
   cat("TRANSFER", "Transfers between own accounts", "transfer", "Transfers", null, false, false),
   cat("CC-PAY", "Credit card payments", "transfer", "Transfers", null, false, false),
   cat("UNCAT", "Uncategorised", "suspense", "Uncategorised", null, true, true),

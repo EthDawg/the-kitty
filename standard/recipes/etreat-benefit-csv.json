@@ -1,0 +1,99 @@
+{
+ "id": "etreat-benefit-csv",
+ "tier": "table",
+ "container": "csv",
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1
+ },
+ "emit": [
+  {
+   "kind": "vest",
+   "fields": {
+    "plan_ref": {
+     "col": "Plan Account"
+    },
+    "person_ref": {
+     "col": "Participant"
+    },
+    "instrument_ref": {
+     "col": "Security"
+    },
+    "vest_date": {
+     "col": "Vest Date",
+     "as": "date"
+    },
+    "units": {
+     "col": "Qty Vested",
+     "as": "units"
+    },
+    "released_units": {
+     "col": "Qty Vested",
+     "as": "units"
+    },
+    "price": {
+     "col": "Vest FMV (USD)"
+    },
+    "currency": {
+     "const": "USD"
+    },
+    "fx_rate": {
+     "col": "AUD per USD"
+    },
+    "taxable_value_cents": {
+     "col": "Taxable Value (AUD)",
+     "as": "cents"
+    },
+    "account_ref": {
+     "col": "Plan Account"
+    },
+    "taxing_point_date": {
+     "col": "Taxing Point",
+     "as": "date"
+    }
+   }
+  },
+  {
+   "kind": "fx_rate",
+   "fields": {
+    "base": {
+     "const": "USD"
+    },
+    "quote": {
+     "const": "AUD"
+    },
+    "as_at": {
+     "col": "Vest Date",
+     "as": "date"
+    },
+    "rate": {
+     "col": "AUD per USD"
+    }
+   }
+  },
+  {
+   "kind": "price",
+   "fields": {
+    "instrument_ref": {
+     "col": "Security"
+    },
+    "as_at": {
+     "col": "Vest Date",
+     "as": "date"
+    },
+    "price": {
+     "col": "Vest FMV (USD)"
+    },
+    "currency": {
+     "const": "USD"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:9c7d6d502b80d5867a0b3644"
+ ]
+}

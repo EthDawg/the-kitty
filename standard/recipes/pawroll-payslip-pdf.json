@@ -4,7 +4,11 @@
  "tier": "document",
  "container": "pdf",
  "fingerprints": [
-  "fp1:84b50e25a72b51fc8a4cbb24"
+  "fp1:27829db1044c815a752097d4"
+ ],
+ "match": [
+  "^Pawroll$",
+  "^Payslip for "
  ],
  "defaults": {
   "date": "dmony"

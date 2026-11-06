@@ -1,0 +1,95 @@
+{
+ "id": "fund-statement-plain-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO, fictional$",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$",
+  "^HESTAbby$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "account_ref": {
+   "below": "^Member number$"
+  },
+  "period_start": {
+   "below": "^Statement period$",
+   "regex": "^(.+?) to ",
+   "as": "date"
+  },
+  "period_end": {
+   "below": "^Statement period$",
+   "regex": " to (.+)$",
+   "as": "date"
+  },
+  "opening_cents": {
+   "find": "^Opening balance  ([-\\d,.]+)$",
+   "as": "cents"
+  },
+  "closing_cents": {
+   "find": "^Closing balance  ([-\\d,.]+)$",
+   "as": "cents"
+  },
+  "employer_cents": {
+   "find": "^Employer contributions  ([-\\d,.]+)$",
+   "as": "cents"
+  },
+  "rollover": {
+   "find": "^Rollovers in  ([-\\d,.]+)$",
+   "as": "cents",
+   "optional": true
+  },
+  "earnings_cents": {
+   "find": "^Investment earnings  ([-\\d,.]+)$",
+   "as": "cents"
+  },
+  "tax_cents": {
+   "find": "^Contributions tax  ([-\\d,.]+)$",
+   "as": "cents"
+  },
+  "fees_cents": {
+   "find": "^Administration fees  ([-\\d,.]+)$",
+   "as": "cents"
+  },
+  "insurance_cents": {
+   "find": "^Insurance premiums  ([-\\d,.]+)$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "super_statement",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "super_statement",
+   "terms": [
+    "+opening_cents",
+    "+employer_cents",
+    "+rollover",
+    "+earnings_cents",
+    "-tax_cents",
+    "-fees_cents",
+    "-insurance_cents",
+    "-closing_cents"
+   ],
+   "optional": [
+    "rollover"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:ed5f60ac9a4d8053ec3f84ff"
+ ],
+ "match": [
+  "^HESTAbby  "
+ ]
+}
