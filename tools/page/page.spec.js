@@ -351,6 +351,7 @@ test("chapter 2: more files, some questions, and a first close", async ({ page }
   }
   expect(closed, `Home stopped at ${await page.locator(".kh-next h1").innerText()}`).toMatch(/^Close /);
   await expect(page.locator("#v-home")).toContainText("closed");
+  if (SHOTS) await page.waitForTimeout(2800);   // the coins have fallen, and the toast is still saying so
   await shot(page, "ch02-1-first-close.png", { fullPage: true });
   expect(errors).toEqual([]);
 });

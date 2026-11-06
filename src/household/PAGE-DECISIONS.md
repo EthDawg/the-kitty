@@ -66,9 +66,9 @@ Taken on 7 November 2026 while building, without stopping to ask. Each is a defa
 
 | Demo page | Before | After |
 |---|---|---|
-| `dist/kitty-v2.html` | 1,569 KB | 1,915 KB |
-| First contentful paint, median of 7, twice, local server | 24 and 40 ms | 40 and 36 ms |
-| DOMContentLoaded | 110 and 109 ms | 111 and 111 ms |
+| `dist/kitty-v2.html` | 1,569 KB | 1,920 KB |
+| First contentful paint, median of 7, twice, local server | 40 and 40 ms | 40 and 40 ms |
+| DOMContentLoaded | 120 and 121 ms | 126 and 126 ms |
 
 Activity, Insights, Goals and Records read exactly the same text before and after. Home adds one "Start yours" link. Setup changed as asked.
 
