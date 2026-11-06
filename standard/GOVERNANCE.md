@@ -9,6 +9,7 @@ The schema is a public API. Households depend on it, so the rules below are the 
 | A new column, table, term, observation kind, event kind or metric | Additive. Goes on the right. Readers ignore what they do not know. Minor version. |
 | A new law | Starts at `hold` for one release, so an update cannot turn a working page red. |
 | A changed meaning | Never. Deprecate the old name and add a new one. |
+| An existing verb posts differently | Allowed where the old posting was wrong, with a failing case. An update shows it as a metric diff, and a locked period raises a reopen proposal. |
 | Removing or renaming anything | Major version, a pure migration over Originals, and a run on every test household. |
 | A change to a locked number | Never silently. It raises a reopen proposal with the amount. |
 

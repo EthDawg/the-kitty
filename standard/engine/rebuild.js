@@ -67,7 +67,9 @@ function rebuild(input) {
   const stated = [];
   // A file may run newest first, so which line closes a day is not known from order. The day's close is one of its stated balances.
   for (const [, rows] of groupBy(R.lines.filter((l) => l.balanceAfter != null), (l) => `${l.account}|${l.date}`)) {
-    stated.push({ account: rows[0].account, date: rows[0].date, cents: rows[rows.length - 1].balanceAfter, any: rows.map((r) => r.balanceAfter) });
+    // A line that prints no balance leaves the day's close unseen, so what is printed is a reading partway through the day.
+    const blank = (R.linesByAccount.get(rows[0].account) || []).some((l) => l.date === rows[0].date && l.balanceAfter == null);
+    stated.push({ account: rows[0].account, date: rows[0].date, cents: rows[rows.length - 1].balanceAfter, any: rows.map((r) => r.balanceAfter), reading: blank });
   }
   L.stated = stated;
   for (const o of R.obs) {
@@ -75,7 +77,7 @@ function rebuild(input) {
     if (o.kind === "statement") { const a = R.accountOf(o, p.account_ref, p.period_end); if (a) L.stated.push({ account: a, date: p.period_end, cents: p.closing_cents }); }
     if (o.kind === "loan_statement") { const a = R.accountOf(o, p.account_ref, p.period_end); if (a) L.stated.push({ account: a, date: p.period_end, cents: -p.closing_cents }); }
     if (o.kind === "super_statement") { const a = R.accountOf(o, p.account_ref, p.period_end); if (a) L.stated.push({ account: a, date: p.period_end, cents: p.closing_cents }); }
-    if (o.kind === "balance" && (!p.balance_kind || p.balance_kind === "ledger")) { const a = R.accountOf(o, p.account_ref, p.as_at); if (a) L.stated.push({ account: a, date: p.as_at, cents: p.balance_cents }); }
+    if (o.kind === "balance" && (!p.balance_kind || ["ledger", "total"].includes(p.balance_kind))) { const a = R.accountOf(o, p.account_ref, p.as_at); if (a) L.stated.push({ account: a, date: p.as_at, cents: p.balance_cents, reading: true }); }
   }
   const dailyCache = new Map();
   L.dailyBalance = (account) => {
@@ -86,6 +88,15 @@ function rebuild(input) {
     const at = (d) => { let lo = 0, hi = days.length - 1, ans = 0; while (lo <= hi) { const mid = (lo + hi) >> 1; if (days[mid].d <= d) { ans = days[mid].b; lo = mid + 1; } else hi = mid - 1; } return ans; };
     dailyCache.set(account, at);
     return at;
+  };
+  // Can this reading be reached: the day's lines in some part, or the close before a recent credit had posted?
+  L.reachedOn = (account, date, cents) => {
+    const moves = postings.filter((p) => p.account_id === account).map((p) => ({ d: V.balanceDate(L.index.events.get(p.event_id), account), c: p.amount_cents }));
+    const today = moves.filter((m) => m.d === date).map((m) => m.c), close = L.dailyBalance(account)(date), before = close - today.reduce((s, c) => s + c, 0);
+    const some = (list, base) => { for (let mask = 0; mask < 1 << list.length; mask++) { let v = base; for (let i = 0; i < list.length; i++) if (mask & (1 << i)) v += list[i]; if (v === cents) return true; } return false; };
+    if (today.length <= 12 && some(today, before)) return true;
+    const recent = moves.filter((m) => m.c > 0 && m.d <= date && m.d >= addDays(date, -5)).map((m) => -m.c).slice(0, 8);
+    return some(recent, close);
   };
   L.unitsOn = (ref, date, accountRef) => R.unitsOn(ref, date, accountRef);
   L.cashOnlyCategoryFlow = (m) => {
@@ -102,7 +113,7 @@ function rebuild(input) {
     const instrument = R.instrumentOf(p.instrument_ref, p.as_at);
     return (R.accounts.get(R.holdingOf(instrument, account)) || {}).fidelity === "snapshot";
   };
-  L.excludedObs = new Set();
+  L.excludedObs = new Set((R.heldOnly || []).map((o) => o.obs_id));
   L.tax = Tax.derive({ L, R, reference, setup });
   L.readiness = Tax.readiness(L, R, setup);
   L.returns = Tax.materialiseReturns(R);

@@ -148,9 +148,12 @@ module.exports = (Resolver) => {
       }
     }
 
+    const heldOnly = [], valueless = new Set();
     for (const o of this.collapseDocs("vest")) {
       const p = o.payload;
-      if (p.status === "scheduled" || p.status === "cancelled") continue;           // a future tranche makes no income; it feeds the forecast only
+      if (p.status === "scheduled" || p.status === "cancelled") { heldOnly.push(o, ...(o.alsoSeen || [])); continue; }           // a future tranche makes no income; it feeds the forecast only
+      // A provider's unit table gives units and no value. It is held, it makes no income, and it asks once for the grant.
+      if (p.taxable_value_cents == null) { heldOnly.push(o, ...(o.alsoSeen || [])); if (!valueless.has(p.plan_ref)) { valueless.add(p.plan_ref); this.fault("vest_without_value", p.plan_ref, `The vest table for ${p.plan_ref} gives units and no value, so no income is recorded for it.`, "Add the vest statement, or the price on each date."); } continue; }
       if (p.status === "provisional" || p.status === "unconfirmed") { this.fault("unconfirmed_vest", o, `Vest of ${p.vest_date} is not confirmed; an unconfirmed award is unknown, not zero.`); continue; }
       const instrument = this.instrumentOf(p.instrument_ref, p.vest_date);
       const account = p.account_ref ? this.accountOf(o, p.account_ref, p.vest_date) : null;
@@ -169,6 +172,7 @@ module.exports = (Resolver) => {
     const waiting = [];
     const bankLine = (line) => this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "exchange+bank", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: line.account }, line });
     const paidAt = (t, cents, account) => { t.ev.fields[t.field] = Math.abs(cents); t.ev.amount_cents = Math.abs(cents); t.ev.refs.cash_account = account; };
+    this.heldOnly = heldOnly;
     const settleCrypto = (ev, field, cash, cents, gross, on, key) => {
       const t = { ev, field, cash, cents, gross, on, key };
       const plain = settleMatch(cash, cents, on, "", key), line = plain || (gross !== cents ? settleMatch(cash, gross, on, "", key) : null);

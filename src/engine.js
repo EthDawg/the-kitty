@@ -659,6 +659,10 @@
     if (memo) memo.set(key, out);
     return out;
   };
+  // One rule against one descriptor, with no dictionary scan behind a miss: what a long ordered rule list needs.
+  E.compileRule = (r) => ruleIndex({ rules: [r] })[0];
+  E.ruleProbe = (raw) => { const key = raw == null ? "" : String(raw); return { key, up: key.toUpperCase().trim(), rawT: toks(E.normalise(key)) }; };
+  E.ruleHit = (x, p) => (x.kind === "exact" ? p.up === x.upper : x.kind === "contains" ? p.up.includes(x.upper) : x.kind === "regex" ? !!(x.re && x.re.test(p.key)) : tokensMatch(x.tokens, p.rawT));
   // The dictionary's nearest entries to a descriptor, for the fortune cookie's prompt and the review card's suggestions.
   E.candidates = (raw, n = 5) => {
     const t = new Set(toks(E.normalise(raw))); if (!t.size) return [];

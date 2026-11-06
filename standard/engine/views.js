@@ -87,7 +87,8 @@ function balances(L) {
 function heldBy(L) {
   const owners = groupBy(L.ownership.filter((o) => o.subject_type === "account" && o.superseded_at == null), (o) => o.subject_id);
   const members = groupBy(L.memberships || [], (m) => m.party_id);
-  const belongs = (party, on) => !members.has(party) || members.get(party).some((m) => m.valid_from <= on && (m.valid_to == null || on < m.valid_to));
+  const people = new Set(L.parties.filter((p) => p.kind === "person").map((p) => p.party_id));
+  const belongs = (party, on) => (members.has(party) ? members.get(party).some((m) => m.valid_from <= on && (m.valid_to == null || on < m.valid_to)) : !people.has(party));
   return (account, on) => {
     if (!owners.has(account)) return 1;
     const active = activeOn(owners.get(account), on), beneficial = active.filter((o) => o.basis === "beneficial"), rows = beneficial.length ? beneficial : active;
@@ -217,8 +218,11 @@ function billsCommitted(L, month) {
     const price = termAt(L.termIdx, "contract", c.contract_id, "price_cents", on) ?? termAt(L.termIdx, "contract", c.contract_id, "premium_cents", on);
     if (price == null) continue;
     const cadence = termAt(L.termIdx, "contract", c.contract_id, "cadence", on) || termAt(L.termIdx, "contract", c.contract_id, "premium_cadence", on) || "yearly";
-    const monthly = cadence === "monthly" ? Number(price) : cadence === "quarterly" ? Math.round(Number(price) / 3) : cadence === "weekly" ? Math.round(Number(price) * 52 / 12) : Math.round(Number(price) / 12);
-    rows.push({ contract_id: c.contract_id, name: c.name, monthly_cents: monthly });
+    // Every 4, 8, 15 or 26 weeks is said in billing_months; a cadence named nowhere is a guess, and says so.
+    const months = Number(termAt(L.termIdx, "contract", c.contract_id, "billing_months", on)) || null;
+    const known = { monthly: 1, quarterly: 3, half_yearly: 6, yearly: 12, fortnightly: 12 / 26 }[cadence];
+    const monthly = months ? Math.round(Number(price) / months) : cadence === "weekly" ? Math.round(Number(price) * 52 / 12) : Math.round(Number(price) / (known || 12));
+    rows.push({ contract_id: c.contract_id, name: c.name, monthly_cents: monthly, ...(months || known || cadence === "weekly" ? {} : { guessed: true }) });
     total += monthly;
   }
   return { month, total_cents: total, rows };

@@ -20,7 +20,8 @@ Machine-readable schema: [`schema/`](schema/). Everything generated from it: [`g
    are derived and can be deleted at any time. Rebuilding is always safe, and is the test.
 2. **Recognise once, clear everywhere.** One economic fact is usually witnessed by several documents. Exactly one
    witness recognises it (the income, the expense, the asset). Every other witness clears against it. Double counting
-   is not filtered out later; it has no way in.
+   is not filtered out later: it has to get past a clearing account. Where two witnesses cannot be paired, the second stays a
+   question, and that question is the honest limit of this rule.
 3. **Every balance moves through a balanced entry.** Postings on an event sum to zero. Money between your own accounts,
    and every fact witnessed on two sides, passes through a clearing account that must return to zero. An unmatched side
    shows as an open item, never as spending or income.
@@ -228,6 +229,14 @@ A relative's spend on your card, an employer reimbursement, a fund's reimburseme
 household's rails and are not income, spending or savings. A `pass_through` category posts to `receivable:{party}`.
 `PASS-THROUGH` ships for this. `REIMBURSE` is the payslip's own reimbursement line.
 
+A line can be partly someone else's. A `split` part in a `pass_through` category posts to `receivable:{party}` in the same
+way, with the party named on the part, and the other side clears it. In a share house one person holds the lease and pays
+the agent the whole rent. Their own share is rent. Each flatmate's share is owed by that flatmate, and the flatmate's
+payment back is a `pass_through` credit that clears it. Nothing the flatmates pay is income, and what one has not yet paid
+stays on their receivable, by name. A flatmate is a party and not a member. Two limits stand: each rent line needs its own
+split, because a rule cannot yet carry a share, and a flatmate who pays more than their share is not modelled. The
+difference there would be rent income, and nothing says so yet. A receivable stays out of headline net worth, as it did.
+
 ### 4.5 Assets are not just accounts
 
 `asset` is any durable thing the household cares about, whether or not it sits on the balance sheet: a house, a car, a
@@ -390,6 +399,8 @@ covers card repayments, own-account transfers, rental disbursements, loan repaym
 broker settlements, tax refunds and reimbursements.
 
 A contract says what its money is: a line naming the counterparty takes the contract's category, in the direction that category runs. Money lent out sits on an account that holds the debt, so a line naming the borrower moves money to or from that account.
+
+A contract is what most of a party's lines mean, not all of them: a bond, or a line far above the contract's price, stays a question, and an employer the person named beats a dictionary guess about money coming in. A rule can read one direction. A lender's advance with no bank line, such as money paid straight to a seller, still moves the loan, and asks. A fund's line no recipe can name still moves the balance, and asks. A lodged year known only by taxable income and result is held as a partial record. A vest table with units and no value is held, posts no income, and asks once for the grant.
 
 A two-sided fact need not arrive whole. One statement can clear several credits, and one deposit several buys, so a clearing
 account is matched by sums where amounts prove it. A managing agent is an account: what it pays clears what it owes, however

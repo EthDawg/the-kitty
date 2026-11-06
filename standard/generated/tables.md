@@ -417,6 +417,7 @@ The household's accumulated taste: what a descriptor means. Priority beats lengt
 | `person` | text |  |
 | `event_kind` | text |  |
 | `priority` | int |  |
+| `direction` | text | credit, debit |
 | `account_id` | id | → account |
 | `activity_id` | id | → activity |
 | `asset_id` | id | → asset |
