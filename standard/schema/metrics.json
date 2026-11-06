@@ -1,37 +1,379 @@
 {
   "_about": "The semantic layer. Every number any surface shows is named here once. lens: cash, accrual or position. laws: what must pass for the number to be trusted. stability: stable means locked by the eval to the cent; experimental means real but unfinished and labelled so wherever it appears.",
   "metrics": {
-    "cash.income":            { "unit": "cents", "grain": "month", "lens": "cash", "laws": ["L3"], "stability": "stable", "doc": "Money that arrived in cash accounts, by category, excluding own transfers." },
-    "cash.spending":          { "unit": "cents", "grain": "month,category", "lens": "cash", "laws": ["L3", "L2"], "stability": "stable", "doc": "Money that left, by category. A mortgage repayment counts at its cash amount; a card purchase counts when charged, the card repayment does not." },
-    "cash.net":               { "unit": "cents", "grain": "month", "lens": "cash", "laws": ["L3", "L2"], "stability": "stable", "doc": "cash.income minus cash.spending." },
-    "cash.savings_rate":      { "unit": "ratio", "grain": "month", "lens": "cash", "laws": ["L3", "L2"], "stability": "stable", "doc": "cash.net over cash.income." },
-    "budget.variance":        { "unit": "cents", "grain": "month,category", "lens": "cash", "laws": ["L2"], "stability": "stable", "doc": "Spending against the budget valid that month." },
-    "accrual.income":         { "unit": "cents", "grain": "month,category", "lens": "accrual", "laws": ["L1", "L8"], "stability": "stable", "doc": "Income as earned: gross salary, employer super, gross rent, dividends, gains." },
-    "accrual.expense":        { "unit": "cents", "grain": "month,category", "lens": "accrual", "laws": ["L1", "L8"], "stability": "stable", "doc": "Expenses as incurred: interest but not principal." },
-    "position.balance":       { "unit": "cents", "grain": "month,account", "lens": "position", "laws": ["L3", "L6", "L7"], "stability": "stable", "doc": "Each account's balance, summed from postings." },
-    "position.cash":          { "unit": "cents", "grain": "month", "lens": "position", "laws": ["L3"], "stability": "stable", "doc": "Cash accounts net of cards." },
-    "position.net_worth":     { "unit": "cents", "grain": "month", "lens": "position", "laws": ["L8"], "stability": "stable", "doc": "Assets less liabilities, excluding clearing and tax position." },
-    "position.net_worth_by_group": { "unit": "cents", "grain": "month,group", "lens": "position", "laws": ["L8"], "stability": "stable", "doc": "The same, by reporting group." },
-    "position.net_worth_by_owner": { "unit": "cents", "grain": "month,person", "lens": "position", "laws": ["L8", "L9"], "stability": "stable", "doc": "The same, split by dated beneficial ownership, conserving cents." },
-    "position.free_cash":     { "unit": "cents", "grain": "month", "lens": "position", "laws": ["L3"], "stability": "stable", "doc": "Liquid cash less goals' reservations." },
-    "loan.interest":          { "unit": "cents", "grain": "month,loan", "lens": "accrual", "laws": ["L6"], "stability": "stable", "doc": "Interest charged, as stated." },
-    "loan.principal_paid":    { "unit": "cents", "grain": "month,loan", "lens": "position", "laws": ["L3"], "stability": "stable", "doc": "Fall in the balance." },
-    "loan.rate_on":           { "unit": "pct", "grain": "date,loan", "lens": "position", "laws": ["L10"], "stability": "stable", "doc": "The rate valid on a date, as known at a date." },
-    "loan.expected_interest": { "unit": "cents", "grain": "month,loan", "lens": "accrual", "laws": ["L6"], "stability": "stable", "doc": "Computed daily, net of offset. A control, never a ledger figure." },
-    "property.net_income":    { "unit": "cents", "grain": "fy,property", "lens": "accrual", "laws": ["L2", "L6"], "stability": "stable", "doc": "Rent less costs, as earned, per property." },
-    "property.cost_base":     { "unit": "cents", "grain": "property", "lens": "position", "laws": ["L2"], "stability": "stable", "doc": "Purchase price, duty, legal, capital improvements." },
-    "super.contributions":    { "unit": "cents", "grain": "fy,person,type", "lens": "accrual", "laws": ["L14"], "stability": "stable", "doc": "By type, as the fund received them." },
-    "super.cap_used":         { "unit": "ratio", "grain": "fy,person,cap", "lens": "accrual", "laws": ["L14", "L16"], "stability": "stable", "doc": "Concessional and non-concessional use against the cap for that year." },
-    "shares.holdings":        { "unit": "units", "grain": "date,instrument", "lens": "position", "laws": ["L7"], "stability": "stable", "doc": "Units in open lots." },
-    "shares.realised_gain":   { "unit": "cents", "grain": "fy,person", "lens": "accrual", "laws": ["L7"], "stability": "stable", "doc": "Net capital gain, after losses and the discount." },
-    "tax.item":               { "unit": "cents", "grain": "fy,person,label", "lens": "accrual", "laws": ["L11"], "stability": "stable", "doc": "The derived draft of each return label." },
-    "tax.estimate":           { "unit": "cents", "grain": "fy,person", "lens": "accrual", "laws": ["L11"], "stability": "stable", "doc": "Tax, levies, offsets and credits by the law of that year. A draft, never advice." },
-    "tax.readiness":          { "unit": "ratio", "grain": "fy,person", "lens": "position", "laws": ["L13"], "stability": "stable", "doc": "How much of the year's expected evidence is held, and what is left." },
-    "things.refresh_due":     { "unit": "cents", "grain": "fy,asset", "lens": "position", "laws": [], "stability": "stable", "doc": "Replacement costs falling due, from asset terms." },
-    "bills.committed":        { "unit": "cents", "grain": "month", "lens": "cash", "laws": ["L10"], "stability": "stable", "doc": "Contracted outgoings at the price valid that month." },
-    "evidence.coverage":      { "unit": "ratio", "grain": "stream,period", "lens": "position", "laws": ["L13"], "stability": "stable", "doc": "Expected against held." },
-    "forecast.cash":          { "unit": "cents", "grain": "scenario,month", "lens": "cash", "laws": ["L10"], "stability": "experimental", "doc": "Contracts and rates rolled forward. Stored with its as_of so it can be scored later." },
-    "forecast.tax":           { "unit": "cents", "grain": "scenario,fy,person", "lens": "accrual", "laws": ["L10"], "stability": "experimental", "doc": "This year's tax at the current run rate." },
-    "advice.tax_return":      { "unit": "text", "grain": "fy,person", "lens": "accrual", "laws": ["L11"], "stability": "experimental", "doc": "A model reads the draft and asks what is missing. Needs the Australian Tax MCP wired in." }
+    "cash.income": {
+      "unit": "cents",
+      "grain": "month",
+      "lens": "cash",
+      "laws": [
+        "L3"
+      ],
+      "stability": "stable",
+      "doc": "Money that arrived in cash accounts, by category, excluding own transfers. A super income stream counts here under SUPER-PENSION even though it moves no net worth, because it is what a retiree lives on."
+    },
+    "cash.spending": {
+      "unit": "cents",
+      "grain": "month,category",
+      "lens": "cash",
+      "laws": [
+        "L3",
+        "L2"
+      ],
+      "stability": "stable",
+      "doc": "Money that left, by category. A mortgage repayment counts at its cash amount; a card purchase counts when charged, the card repayment does not."
+    },
+    "cash.net": {
+      "unit": "cents",
+      "grain": "month",
+      "lens": "cash",
+      "laws": [
+        "L3",
+        "L2"
+      ],
+      "stability": "stable",
+      "doc": "cash.income minus cash.spending."
+    },
+    "cash.savings_rate": {
+      "unit": "ratio",
+      "grain": "month",
+      "lens": "cash",
+      "laws": [
+        "L3",
+        "L2"
+      ],
+      "stability": "stable",
+      "doc": "cash.net over cash.income."
+    },
+    "budget.variance": {
+      "unit": "cents",
+      "grain": "month,category",
+      "lens": "cash",
+      "laws": [
+        "L2"
+      ],
+      "stability": "stable",
+      "doc": "Spending against the budget valid that month."
+    },
+    "accrual.income": {
+      "unit": "cents",
+      "grain": "month,category",
+      "lens": "accrual",
+      "laws": [
+        "L1",
+        "L8"
+      ],
+      "stability": "stable",
+      "doc": "Income as earned: gross salary, employer super, gross rent, dividends, gains."
+    },
+    "accrual.expense": {
+      "unit": "cents",
+      "grain": "month,category",
+      "lens": "accrual",
+      "laws": [
+        "L1",
+        "L8"
+      ],
+      "stability": "stable",
+      "doc": "Expenses as incurred: interest but not principal."
+    },
+    "income.receipts": {
+      "unit": "cents",
+      "grain": "fy,person",
+      "lens": "accrual",
+      "laws": [],
+      "stability": "stable",
+      "doc": "Gross receipts before any cost, from payslips and activities."
+    },
+    "income.total": {
+      "unit": "cents",
+      "grain": "fy,person",
+      "lens": "accrual",
+      "laws": [
+        "L11"
+      ],
+      "stability": "stable",
+      "doc": "Total income on the return."
+    },
+    "income.taxable": {
+      "unit": "cents",
+      "grain": "fy,person",
+      "lens": "accrual",
+      "laws": [
+        "L11"
+      ],
+      "stability": "stable",
+      "doc": "Taxable income, after deductions."
+    },
+    "income.surcharge": {
+      "unit": "cents",
+      "grain": "fy,person",
+      "lens": "accrual",
+      "laws": [
+        "L11"
+      ],
+      "stability": "stable",
+      "doc": "Income for surcharge purposes: taxable income plus fringe benefits, salary sacrifice and net investment losses."
+    },
+    "income.composition": {
+      "unit": "cents",
+      "grain": "fy,person,activity",
+      "lens": "accrual",
+      "laws": [],
+      "stability": "stable",
+      "doc": "The same year by activity, so a business year or a parental-leave year is not one low bar. Lodged-first: a lodged year reads tax_line leaves by section; an open year reads derived items by activity; the grade says which."
+    },
+    "position.balance": {
+      "unit": "cents",
+      "grain": "month,account",
+      "lens": "position",
+      "laws": [
+        "L3",
+        "L6",
+        "L7"
+      ],
+      "stability": "stable",
+      "doc": "Each account's balance, summed from postings."
+    },
+    "position.cash": {
+      "unit": "cents",
+      "grain": "month",
+      "lens": "position",
+      "laws": [
+        "L3"
+      ],
+      "stability": "stable",
+      "doc": "Cash accounts net of cards."
+    },
+    "position.net_worth": {
+      "unit": "cents",
+      "grain": "month",
+      "lens": "position",
+      "laws": [
+        "L8"
+      ],
+      "stability": "stable",
+      "doc": "Assets less liabilities, excluding clearing and tax position."
+    },
+    "position.net_worth_by_group": {
+      "unit": "cents",
+      "grain": "month,group",
+      "lens": "position",
+      "laws": [
+        "L8"
+      ],
+      "stability": "stable",
+      "doc": "The same, by reporting group."
+    },
+    "position.net_worth_by_owner": {
+      "unit": "cents",
+      "grain": "month,person",
+      "lens": "position",
+      "laws": [
+        "L8",
+        "L9"
+      ],
+      "stability": "stable",
+      "doc": "The same, split by dated beneficial ownership, conserving cents."
+    },
+    "position.free_cash": {
+      "unit": "cents",
+      "grain": "month",
+      "lens": "position",
+      "laws": [
+        "L3"
+      ],
+      "stability": "stable",
+      "doc": "Liquid cash less goals' reservations."
+    },
+    "loan.interest": {
+      "unit": "cents",
+      "grain": "month,loan",
+      "lens": "accrual",
+      "laws": [
+        "L6"
+      ],
+      "stability": "stable",
+      "doc": "Interest charged, as stated."
+    },
+    "loan.principal_paid": {
+      "unit": "cents",
+      "grain": "month,loan",
+      "lens": "position",
+      "laws": [
+        "L3"
+      ],
+      "stability": "stable",
+      "doc": "Fall in the balance."
+    },
+    "loan.rate_on": {
+      "unit": "pct",
+      "grain": "date,loan",
+      "lens": "position",
+      "laws": [
+        "L10"
+      ],
+      "stability": "stable",
+      "doc": "The rate valid on a date, as known at a date."
+    },
+    "loan.expected_interest": {
+      "unit": "cents",
+      "grain": "month,loan",
+      "lens": "accrual",
+      "laws": [
+        "L6"
+      ],
+      "stability": "stable",
+      "doc": "Computed daily, net of offset. A control, never a ledger figure."
+    },
+    "activity.net_income": {
+      "unit": "cents",
+      "grain": "fy,activity",
+      "lens": "accrual",
+      "laws": [
+        "L2",
+        "L6"
+      ],
+      "stability": "stable",
+      "doc": "Income less costs, as earned, per income-producing activity: a rental, and later an ABN."
+    },
+    "property.cost_base": {
+      "unit": "cents",
+      "grain": "property",
+      "lens": "position",
+      "laws": [
+        "L2"
+      ],
+      "stability": "stable",
+      "doc": "Purchase price, duty, legal, capital improvements."
+    },
+    "super.contributions": {
+      "unit": "cents",
+      "grain": "fy,person,type",
+      "lens": "accrual",
+      "laws": [
+        "L14"
+      ],
+      "stability": "stable",
+      "doc": "By type, as the fund received them."
+    },
+    "super.cap_used": {
+      "unit": "ratio",
+      "grain": "fy,person,cap",
+      "lens": "accrual",
+      "laws": [
+        "L14",
+        "L16"
+      ],
+      "stability": "stable",
+      "doc": "Concessional and non-concessional use against the cap for that year."
+    },
+    "shares.holdings": {
+      "unit": "units",
+      "grain": "date,instrument",
+      "lens": "position",
+      "laws": [
+        "L7"
+      ],
+      "stability": "stable",
+      "doc": "Units in open lots."
+    },
+    "shares.realised_gain": {
+      "unit": "cents",
+      "grain": "fy,person",
+      "lens": "accrual",
+      "laws": [
+        "L7"
+      ],
+      "stability": "stable",
+      "doc": "Net capital gain, after losses and the discount."
+    },
+    "tax.item": {
+      "unit": "cents",
+      "grain": "fy,person,label",
+      "lens": "accrual",
+      "laws": [
+        "L11"
+      ],
+      "stability": "stable",
+      "doc": "The derived draft of each return label."
+    },
+    "tax.estimate": {
+      "unit": "cents",
+      "grain": "fy,person",
+      "lens": "accrual",
+      "laws": [
+        "L11"
+      ],
+      "stability": "stable",
+      "doc": "Tax, levies, offsets and credits by the law of that year. A draft, never advice."
+    },
+    "tax.readiness": {
+      "unit": "ratio",
+      "grain": "fy,person",
+      "lens": "position",
+      "laws": [
+        "L13"
+      ],
+      "stability": "stable",
+      "doc": "How much of the year's expected evidence is held, and what is left."
+    },
+    "things.refresh_due": {
+      "unit": "cents",
+      "grain": "fy,asset",
+      "lens": "position",
+      "laws": [],
+      "stability": "stable",
+      "doc": "Replacement costs falling due, from asset terms."
+    },
+    "bills.committed": {
+      "unit": "cents",
+      "grain": "month",
+      "lens": "cash",
+      "laws": [
+        "L10"
+      ],
+      "stability": "stable",
+      "doc": "Contracted outgoings at the price valid that month."
+    },
+    "evidence.coverage": {
+      "unit": "ratio",
+      "grain": "stream,period",
+      "lens": "position",
+      "laws": [
+        "L13"
+      ],
+      "stability": "stable",
+      "doc": "Expected against held."
+    },
+    "forecast.cash": {
+      "unit": "cents",
+      "grain": "scenario,month",
+      "lens": "cash",
+      "laws": [
+        "L10"
+      ],
+      "stability": "experimental",
+      "doc": "Contracts and rates rolled forward. Stored with its as_of so it can be scored later."
+    },
+    "forecast.tax": {
+      "unit": "cents",
+      "grain": "scenario,fy,person",
+      "lens": "accrual",
+      "laws": [
+        "L10"
+      ],
+      "stability": "experimental",
+      "doc": "This year's tax at the current run rate."
+    },
+    "advice.tax_return": {
+      "unit": "text",
+      "grain": "fy,person",
+      "lens": "accrual",
+      "laws": [
+        "L11"
+      ],
+      "stability": "experimental",
+      "doc": "A model reads the draft and asks what is missing. Needs the Australian Tax MCP wired in."
+    }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "_about": "The closed vocabulary of what can happen, with the balanced entry each one makes. A leg names an account (literal, or a template in braces) or a category, and an amount expression over the event's fields. Sign: positive is a debit (asset or expense goes up), negative is a credit (liability or income goes up). The engine evaluates these templates; no event kind posts in code. Legs with a zero amount are dropped. Every kind MUST sum to zero for any field values, which tools/generate.js proves symbolically.",
+  "_about": "The closed vocabulary of what can happen, with the balanced entry each one makes. A leg names an account (literal, or a template in braces) or a category, and an amount expression over the event's fields. Sign: positive is a debit (asset or expense goes up), negative is a credit (liability or income goes up). The engine evaluates these templates; no event kind posts in code. Legs with a zero amount are dropped. Every kind MUST sum to zero for any field values, which tools/generate.js proves symbolically. Holdings are carried at market: a sale moves proceeds out of the holding, the next price moves the rest through revaluation, and tax gains live in lot_match, so net worth never jumps at a sale.",
   "clearing": {
     "payroll": "clearing:payroll:{employer}",
     "super": "clearing:super:{account}",
@@ -12,55 +12,873 @@
     "asset": "clearing:asset:{asset}"
   },
   "kinds": {
-    "opening_balance": { "family": "opening", "legs": [["{account}", "+amount"], ["equity:opening", "-amount"]] },
-    "purchase":        { "family": "everyday", "authority": ["txn_line"], "legs": [["cat:{category}", "+cost"], ["{account}", "-cost"]] },
-    "refund":          { "family": "everyday", "authority": ["txn_line"], "legs": [["{account}", "+amount"], ["cat:{category}", "-amount"]] },
-    "income":          { "family": "everyday", "authority": ["txn_line"], "legs": [["{account}", "+amount"], ["cat:{category}", "-amount"]] },
-    "reimbursement":   { "family": "everyday", "authority": ["txn_line"], "legs": [["{account}", "+amount"], ["cat:{category}", "-amount"]] },
-    "gift_in":         { "family": "everyday", "authority": ["txn_line"], "legs": [["{account}", "+amount"], ["cat:GIFT-IN", "-amount"]] },
-    "transfer":        { "family": "transfer", "legs": [["{to_account}", "+amount"], ["{from_account}", "-amount"]] },
-    "open_transfer":   { "family": "transfer", "legs": [["{account}", "+amount"], ["clearing:transfer", "-amount"]] },
-    "wage": { "family": "payroll", "authority": ["payslip", "income_statement", "txn_line"], "legs": [
-      ["cat:SALARY", "-gross"], ["cat:SALARY-ALLOW", "-allowance"], ["cat:REIMBURSE", "-reimbursement"],
-      ["cat:SUPER-EMPLOYER", "-super"], ["cat:SUPER-SACRIFICE", "-sacrifice"], ["cat:PAYROLL-DED", "+post_tax"],
-      ["ato:{person}", "+tax"], ["clearing:payroll:{employer}", "+net"], ["clearing:super:{fund}", "+super+sacrifice"] ] },
-    "wage_receipt":    { "family": "payroll", "legs": [["{account}", "+amount"], ["clearing:payroll:{employer}", "-amount"]] },
-    "wage_unmatched":  { "family": "payroll", "legs": [["{account}", "+amount"], ["cat:SALARY", "-amount"]] },
-    "loan_interest":   { "family": "loan", "authority": ["loan_statement", "txn_line"], "legs": [["cat:{category}", "+amount"], ["{loan}", "-amount"]] },
-    "loan_fee":        { "family": "loan", "authority": ["loan_statement", "txn_line"], "legs": [["cat:{category}", "+amount"], ["{loan}", "-amount"]] },
-    "loan_payment":    { "family": "loan", "legs": [["clearing:loan:{loan}", "+amount"], ["{account}", "-amount"]] },
-    "loan_applied":    { "family": "loan", "authority": ["loan_statement"], "legs": [["{loan}", "+amount"], ["clearing:loan:{loan}", "-amount"]] },
-    "loan_redraw":     { "family": "loan", "authority": ["loan_statement"], "legs": [["{account}", "+amount"], ["{loan}", "-amount"]] },
-    "rent_statement": { "family": "rental", "authority": ["owner_statement"], "legs": [
-      ["cat:RENT-INC", "-rent"], ["cat:RENT-MGMT", "+fees"], ["cat:RENT-REPAIR", "+repairs"], ["cat:RENT-OTHER", "+other"], ["clearing:agent:{property}", "+rent-fees-repairs-other"] ] },
-    "rent_receipt":    { "family": "rental", "legs": [["{account}", "+amount"], ["clearing:agent:{property}", "-amount"]] },
-    "super_contribution": { "family": "super", "authority": ["super_line", "super_statement"], "legs": [["{account}", "+amount"], ["clearing:super:{account}", "-amount"]] },
-    "super_personal":  { "family": "super", "authority": ["super_line", "super_statement"], "legs": [["{account}", "+amount"], ["clearing:transfer", "-amount"]] },
-    "super_rollover":  { "family": "super", "authority": ["super_line", "super_statement"], "legs": [["{account}", "+amount"], ["equity:opening", "-amount"]] },
-    "super_earnings":  { "family": "super", "authority": ["super_line", "super_statement"], "legs": [["{account}", "+amount"], ["cat:SUPER-EARN", "-amount"]] },
-    "super_cost":      { "family": "super", "authority": ["super_line", "super_statement"], "legs": [["cat:{category}", "+amount"], ["{account}", "-amount"]] },
-    "trade_buy":       { "family": "trade", "authority": ["contract_note"], "legs": [["{holding}", "+consideration"], ["clearing:settle:{cash_account}", "-consideration"]] },
-    "trade_sell":      { "family": "trade", "authority": ["contract_note"], "legs": [["clearing:settle:{cash_account}", "+proceeds"], ["{holding}", "-cost_base"], ["cat:CAPITAL-GAIN", "-gain"]] },
-    "settle_cash":     { "family": "trade", "legs": [["{account}", "+amount"], ["clearing:settle:{account}", "-amount"]] },
-    "dividend":        { "family": "income", "authority": ["dividend", "distribution"], "legs": [
-      ["cat:DIVIDEND", "-gross_cash"], ["ato:{person}", "+withholding"], ["clearing:income:{cash_account}", "+net"] ] },
-    "dividend_receipt":{ "family": "income", "legs": [["{account}", "+amount"], ["clearing:income:{account}", "-amount"]] },
-    "drp":             { "family": "income", "authority": ["dividend"], "legs": [["{holding}", "+amount"], ["cat:DIVIDEND", "-amount"]] },
-    "cost_adjust":     { "family": "income", "authority": ["distribution"], "legs": [["{holding}", "+amount"], ["cat:DIVIDEND", "-amount"]] },
-    "corporate_action":{ "family": "trade", "authority": ["corporate_action"], "legs": [] },
-    "vest":            { "family": "trade", "authority": ["vest"], "legs": [["{holding}", "+amount"], ["cat:ESS-INCOME", "-amount"]] },
-    "crypto_buy":      { "family": "trade", "authority": ["crypto_txn"], "legs": [["{wallet}", "+cost"], ["clearing:settle:{cash_account}", "-cost"]] },
-    "crypto_sell":     { "family": "trade", "authority": ["crypto_txn"], "legs": [["clearing:settle:{cash_account}", "+proceeds"], ["{wallet}", "-cost_base"], ["cat:CAPITAL-GAIN", "-gain"]] },
-    "crypto_swap":     { "family": "trade", "authority": ["crypto_txn"], "legs": [["{wallet}", "+gain"], ["cat:CAPITAL-GAIN", "-gain"]] },
-    "crypto_income":   { "family": "trade", "authority": ["crypto_txn"], "legs": [["{wallet}", "+amount"], ["cat:CRYPTO-INCOME", "-amount"]] },
-    "revaluation":     { "family": "market", "authority": ["valuation", "holding", "price"], "legs": [["{account}", "+amount"], ["equity:revaluation", "-amount"]] },
-    "asset_purchase":  { "family": "capital", "authority": ["settlement", "asset_fact", "txn_line"], "legs": [["{asset_account}", "+cost"], ["{loan}", "-loan_drawn"], ["clearing:asset:{asset}", "-cost+loan_drawn"]] },
-    "asset_payment":   { "family": "capital", "legs": [["clearing:asset:{asset}", "+amount"], ["{account}", "-amount"]] },
-    "asset_disposal":  { "family": "capital", "authority": ["settlement", "txn_line"], "legs": [["{account}", "+proceeds"], ["{asset_account}", "-book"], ["equity:revaluation", "-proceeds+book"]] },
-    "tax_assessed":    { "family": "tax", "authority": ["tax_assessment"], "legs": [["cat:INCOME-TAX", "+net_tax"], ["ato:{person}", "-net_tax"]] },
-    "tax_refund":      { "family": "tax", "authority": ["txn_line"], "legs": [["{account}", "+amount"], ["ato:{person}", "-amount"]] },
-    "tax_payment":     { "family": "tax", "authority": ["txn_line"], "legs": [["ato:{person}", "+amount"], ["{account}", "-amount"]] },
-    "help_indexation": { "family": "tax", "authority": ["help_balance"], "legs": [["cat:HELP-INDEX", "+amount"], ["{account}", "-amount"]] },
-    "adjustment":      { "family": "judgement", "legs": [["{account}", "+amount"], ["cat:{category}", "-amount"]] }
-  }
+    "opening_balance": {
+      "family": "opening",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "equity:opening",
+          "-amount"
+        ]
+      ]
+    },
+    "purchase": {
+      "family": "everyday",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "cat:{category}",
+          "+cost"
+        ],
+        [
+          "{account}",
+          "-cost"
+        ]
+      ]
+    },
+    "refund": {
+      "family": "everyday",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "cat:{category}",
+          "-amount"
+        ]
+      ]
+    },
+    "income": {
+      "family": "everyday",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "cat:{category}",
+          "-amount"
+        ]
+      ]
+    },
+    "reimbursement": {
+      "family": "everyday",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "cat:{category}",
+          "-amount"
+        ]
+      ]
+    },
+    "gift_in": {
+      "family": "everyday",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "cat:GIFT-IN",
+          "-amount"
+        ]
+      ]
+    },
+    "transfer": {
+      "family": "transfer",
+      "legs": [
+        [
+          "{to_account}",
+          "+amount"
+        ],
+        [
+          "{from_account}",
+          "-amount"
+        ]
+      ]
+    },
+    "open_transfer": {
+      "family": "transfer",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:transfer",
+          "-amount"
+        ]
+      ]
+    },
+    "wage": {
+      "family": "payroll",
+      "authority": [
+        "payslip",
+        "income_statement",
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "cat:SALARY",
+          "-gross"
+        ],
+        [
+          "cat:SALARY-ALLOW",
+          "-allowance"
+        ],
+        [
+          "cat:REIMBURSE",
+          "-reimbursement"
+        ],
+        [
+          "cat:SUPER-EMPLOYER",
+          "-super"
+        ],
+        [
+          "cat:SUPER-SACRIFICE",
+          "-sacrifice"
+        ],
+        [
+          "cat:PAYROLL-DED",
+          "+post_tax"
+        ],
+        [
+          "ato:{person}",
+          "+tax"
+        ],
+        [
+          "clearing:payroll:{employer}",
+          "+gross+allowance+reimbursement-post_tax-tax"
+        ],
+        [
+          "clearing:super:{fund}",
+          "+super+sacrifice"
+        ]
+      ]
+    },
+    "wage_receipt": {
+      "family": "payroll",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:payroll:{employer}",
+          "-amount"
+        ]
+      ]
+    },
+    "wage_unmatched": {
+      "family": "payroll",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "cat:SALARY",
+          "-amount"
+        ]
+      ]
+    },
+    "loan_interest": {
+      "family": "loan",
+      "authority": [
+        "loan_statement",
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "cat:{category}",
+          "+amount"
+        ],
+        [
+          "{loan}",
+          "-amount"
+        ]
+      ]
+    },
+    "loan_fee": {
+      "family": "loan",
+      "authority": [
+        "loan_statement",
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "cat:{category}",
+          "+amount"
+        ],
+        [
+          "{loan}",
+          "-amount"
+        ]
+      ]
+    },
+    "loan_payment": {
+      "family": "loan",
+      "legs": [
+        [
+          "clearing:loan:{loan}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "loan_applied": {
+      "family": "loan",
+      "authority": [
+        "loan_statement"
+      ],
+      "legs": [
+        [
+          "{loan}",
+          "+amount"
+        ],
+        [
+          "clearing:loan:{loan}",
+          "-amount"
+        ]
+      ]
+    },
+    "loan_redraw": {
+      "family": "loan",
+      "authority": [
+        "loan_statement"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "{loan}",
+          "-amount"
+        ]
+      ]
+    },
+    "rent_statement": {
+      "family": "rental",
+      "authority": [
+        "owner_statement"
+      ],
+      "legs": [
+        [
+          "cat:RENT-INC",
+          "-rent"
+        ],
+        [
+          "cat:RENT-MGMT",
+          "+fees"
+        ],
+        [
+          "cat:RENT-REPAIR",
+          "+repairs"
+        ],
+        [
+          "cat:RENT-OTHER",
+          "+other"
+        ],
+        [
+          "clearing:agent:{property}",
+          "+rent-fees-repairs-other"
+        ]
+      ]
+    },
+    "rent_receipt": {
+      "family": "rental",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:agent:{property}",
+          "-amount"
+        ]
+      ]
+    },
+    "super_contribution": {
+      "family": "super",
+      "authority": [
+        "super_line",
+        "super_statement"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:super:{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "super_personal": {
+      "family": "super",
+      "authority": [
+        "super_line",
+        "super_statement"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:transfer",
+          "-amount"
+        ]
+      ]
+    },
+    "super_rollover": {
+      "family": "super",
+      "authority": [
+        "super_line",
+        "super_statement"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "equity:opening",
+          "-amount"
+        ]
+      ]
+    },
+    "super_earnings": {
+      "family": "super",
+      "authority": [
+        "super_line",
+        "super_statement"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "cat:SUPER-EARN",
+          "-amount"
+        ]
+      ]
+    },
+    "super_cost": {
+      "family": "super",
+      "authority": [
+        "super_line",
+        "super_statement"
+      ],
+      "legs": [
+        [
+          "cat:{category}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "trade_buy": {
+      "family": "trade",
+      "authority": [
+        "contract_note"
+      ],
+      "legs": [
+        [
+          "{holding}",
+          "+consideration"
+        ],
+        [
+          "clearing:settle:{cash_account}",
+          "-consideration"
+        ]
+      ]
+    },
+    "trade_sell": {
+      "family": "trade",
+      "authority": [
+        "contract_note"
+      ],
+      "legs": [
+        [
+          "clearing:settle:{cash_account}",
+          "+proceeds"
+        ],
+        [
+          "{holding}",
+          "-proceeds"
+        ]
+      ]
+    },
+    "settle_cash": {
+      "family": "trade",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:settle:{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "dividend": {
+      "family": "income",
+      "authority": [
+        "dividend",
+        "distribution"
+      ],
+      "legs": [
+        [
+          "cat:DIVIDEND",
+          "-gross_cash"
+        ],
+        [
+          "ato:{person}",
+          "+withholding"
+        ],
+        [
+          "clearing:income:{cash_account}",
+          "+gross_cash-withholding"
+        ]
+      ]
+    },
+    "dividend_receipt": {
+      "family": "income",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:income:{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "drp": {
+      "family": "income",
+      "authority": [
+        "dividend"
+      ],
+      "legs": [
+        [
+          "{holding}",
+          "+amount"
+        ],
+        [
+          "cat:DIVIDEND",
+          "-amount"
+        ]
+      ]
+    },
+    "cost_adjust": {
+      "family": "income",
+      "authority": [
+        "distribution"
+      ],
+      "legs": [
+        [
+          "{holding}",
+          "+amount"
+        ],
+        [
+          "cat:DIVIDEND",
+          "-amount"
+        ]
+      ]
+    },
+    "corporate_action": {
+      "family": "trade",
+      "authority": [
+        "corporate_action"
+      ],
+      "legs": []
+    },
+    "vest": {
+      "family": "trade",
+      "authority": [
+        "vest"
+      ],
+      "legs": [
+        [
+          "{holding}",
+          "+amount"
+        ],
+        [
+          "cat:ESS-INCOME",
+          "-amount"
+        ]
+      ]
+    },
+    "crypto_buy": {
+      "family": "trade",
+      "authority": [
+        "crypto_txn"
+      ],
+      "legs": [
+        [
+          "{wallet}",
+          "+cost"
+        ],
+        [
+          "clearing:settle:{cash_account}",
+          "-cost"
+        ]
+      ]
+    },
+    "crypto_sell": {
+      "family": "trade",
+      "authority": [
+        "crypto_txn"
+      ],
+      "legs": [
+        [
+          "clearing:settle:{cash_account}",
+          "+proceeds"
+        ],
+        [
+          "{wallet}",
+          "-proceeds"
+        ]
+      ]
+    },
+    "crypto_swap": {
+      "family": "trade",
+      "authority": [
+        "crypto_txn"
+      ],
+      "legs": []
+    },
+    "crypto_income": {
+      "family": "trade",
+      "authority": [
+        "crypto_txn"
+      ],
+      "legs": [
+        [
+          "{wallet}",
+          "+amount"
+        ],
+        [
+          "cat:CRYPTO-INCOME",
+          "-amount"
+        ]
+      ]
+    },
+    "revaluation": {
+      "family": "market",
+      "authority": [
+        "valuation",
+        "holding",
+        "price"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "equity:revaluation",
+          "-amount"
+        ]
+      ]
+    },
+    "asset_purchase": {
+      "family": "capital",
+      "authority": [
+        "settlement",
+        "asset_fact",
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{asset_account}",
+          "+cost"
+        ],
+        [
+          "{loan}",
+          "-loan_drawn"
+        ],
+        [
+          "clearing:asset:{asset}",
+          "-cost+loan_drawn"
+        ]
+      ]
+    },
+    "asset_payment": {
+      "family": "capital",
+      "legs": [
+        [
+          "clearing:asset:{asset}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "asset_disposal": {
+      "family": "capital",
+      "authority": [
+        "settlement",
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+proceeds"
+        ],
+        [
+          "{asset_account}",
+          "-book"
+        ],
+        [
+          "equity:revaluation",
+          "-proceeds+book"
+        ]
+      ]
+    },
+    "tax_assessed": {
+      "family": "tax",
+      "authority": [
+        "tax_assessment"
+      ],
+      "legs": [
+        [
+          "cat:INCOME-TAX",
+          "+net_tax-help"
+        ],
+        [
+          "{help_account}",
+          "+help"
+        ],
+        [
+          "ato:{person}",
+          "-net_tax"
+        ]
+      ]
+    },
+    "tax_refund": {
+      "family": "tax",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "ato:{person}",
+          "-amount"
+        ]
+      ]
+    },
+    "tax_payment": {
+      "family": "tax",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "ato:{person}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "help_indexation": {
+      "family": "tax",
+      "authority": [
+        "help_balance"
+      ],
+      "legs": [
+        [
+          "cat:HELP-INDEX",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "adjustment": {
+      "family": "judgement",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "cat:{category}",
+          "-amount"
+        ]
+      ]
+    },
+    "on_behalf": {
+      "family": "third_party",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "receivable:{party}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "recovery": {
+      "family": "third_party",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "receivable:{party}",
+          "-amount"
+        ]
+      ]
+    },
+    "tax_instalment": {
+      "family": "tax",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "ato:{person}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "super_withdrawal": {
+      "family": "super",
+      "authority": [
+        "super_line",
+        "super_statement"
+      ],
+      "legs": [
+        [
+          "clearing:super_out:{account}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "super_receipt": {
+      "family": "super",
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "clearing:super_out:{fund}",
+          "-amount"
+        ]
+      ],
+      "note": "Net worth neutral: money moves from the fund to the bank. Carries category SUPER-PENSION (income, cash_lens true, accrual_lens false) so cash.income is true for a retiree."
+    },
+    "trust_distribution": {
+      "family": "income",
+      "authority": [
+        "trust_statement"
+      ],
+      "legs": [
+        [
+          "cat:TRUST-DIST",
+          "-amount"
+        ],
+        [
+          "clearing:income:{cash_account}",
+          "+amount"
+        ]
+      ]
+    },
+    "bas_payment": {
+      "family": "tax",
+      "authority": [
+        "txn_line"
+      ],
+      "legs": [
+        [
+          "ato:{person}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
+    },
+    "loss_carried": {
+      "family": "tax",
+      "authority": [
+        "tax_assessment"
+      ],
+      "legs": [
+        [
+          "memo:{name}",
+          "+amount"
+        ],
+        [
+          "equity:memo",
+          "-amount"
+        ]
+      ]
+    }
+  },
+  "extension": "A kind prefixed x_ is accepted when its legs pass the same proof as these. An agent adds one line of data, never a code path."
 }

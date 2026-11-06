@@ -1,5 +1,5 @@
 {
-  "_about": "The closed vocabulary of what a source can say. Payload field form: name, or name* when required. Suffix _cents is integer cents; _on or _date is yyyy-mm-dd; units and prices are decimal strings. Sign on a txn_line is from the holder's point of view: money into the account is positive; a card charge is negative, whatever the file does. Field names follow the CDR BankingTransaction shape where one applies. super_line.line_type is one of employer, salary_sacrifice, personal_deductible, personal_after_tax, spouse, rollover_in, rollover_out, earnings, fee, insurance, contributions_tax.",
+  "_about": "The closed vocabulary of what a source can say. Payload field form: name, or name* when required. Suffix _cents is integer cents; _on or _date is yyyy-mm-dd; units and prices are decimal strings. Sign on a txn_line is from the holder's point of view: money into the account is positive; a card charge is negative, whatever the file does. Field names follow the CDR BankingTransaction shape where one applies. super_line.line_type is one of employer, salary_sacrifice, personal_deductible, personal_after_tax, spouse, rollover_in, rollover_out, earnings, fee, insurance, contributions_tax, pension, withdrawal. A printed zero is 0; a value the source did not state is absent. Absent is never read as zero. confidence measures fidelity to the source, not whether the treatment is right.",
   "kinds": {
     "txn_line": {
       "family": "lines",
@@ -141,7 +141,9 @@
         "earnings_cents",
         "fees_cents",
         "insurance_cents",
-        "tax_cents"
+        "tax_cents",
+        "pension_cents",
+        "withdrawal_cents"
       ]
     },
     "contract_note": {
@@ -230,7 +232,10 @@
         "currency*",
         "fx_rate",
         "taxable_value_cents*",
-        "account_ref"
+        "account_ref",
+        "withheld_units",
+        "released_units",
+        "status"
       ]
     },
     "crypto_txn": {
@@ -503,6 +508,54 @@
         "balance_after_cents",
         "reference"
       ]
+    },
+    "ato_line": {
+      "family": "tax",
+      "occurred": "posting_date",
+      "amount": "amount_cents",
+      "fields": [
+        "person_ref*",
+        "posting_date*",
+        "effective_date",
+        "description*",
+        "amount_cents*",
+        "balance_after_cents",
+        "fy",
+        "reference"
+      ]
+    },
+    "activity_statement": {
+      "family": "tax",
+      "occurred": "period_end",
+      "amount": "amount_cents",
+      "fields": [
+        "person_ref*",
+        "period_start*",
+        "period_end*",
+        "instalment_cents",
+        "varied",
+        "due_on",
+        "g1_cents",
+        "gst_collected_cents",
+        "gst_paid_cents",
+        "g1_includes_gst",
+        "gst_only"
+      ]
+    },
+    "trust_statement": {
+      "family": "tax",
+      "occurred": "period_end",
+      "amount": "entitlement_cents",
+      "fields": [
+        "person_ref*",
+        "trust_ref*",
+        "fy*",
+        "period_end*",
+        "entitlement_cents*",
+        "paid_on",
+        "labels"
+      ]
     }
-  }
+  },
+  "extension": "A kind prefixed x_ is valid if it has a declared payload and passes the same gate. See SPEC section 13."
 }
