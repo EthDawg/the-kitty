@@ -78,7 +78,7 @@ Activity, Insights, Goals and Records read exactly the same text before and afte
 
 ## Not proved
 
-- **Nothing here has met the real connector.** The Sheets and Drive shapes are the runtime's guesses, and `update_spreadsheet` is not on the published page's declared list until it is republished.
+- **The real connector, in part.** The steering session ran the runtime's calls by hand through the real Sheets and Drive connectors, and they behave as `store/google.js` expects: `get_spreadsheet` field masks, one atomic `update_spreadsheet` (addSheet with hidden, colour and frozen row, updateCells, addProtectedRange warningOnly, deleteSheet), the apostrophe probe reading `kitty`, an empty range returning no `values` key, numbers returning as strings, Drive `create_file` with `base64Content`, `search_files` returning `{files}` and `download_file_content` returning `{content}`. Still unproved: a full 43-tab init, statement-sized files, and the page's own consent flow. `update_spreadsheet` is not on the published page's declared list until it is republished.
 - **Whether a host's content rules allow an injected inline script.** Inline scripts run in an artifact, so it should. The page says so plainly if not.
 - **Google's pacing.** A page refresh is about 40 reads, and a drop adds more.
 - **Whether a free Claude plan has connectors.** The page says it depends on the plan and points there.

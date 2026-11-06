@@ -80,7 +80,8 @@ function compare(field, v2, m) {
   for (const row of right) { const k = keyOf(row); if (!index.has(k)) index.set(k, []); index.get(k).push(row); }
   const used = new Set();
   for (const row of left) {
-    const k = keyOf(row), other = (index.get(k) || []).shift();
+    // Twins share a key, and which twin comes first depends on the order a disk lists files. Pair each with the twin that agrees, so the count is the same on any machine.
+    const k = keyOf(row), pool = index.get(k) || [], at = field.key ? pool.findIndex((x) => same(row[field.key], x[field.key], field.key)) : 0, other = pool.splice(Math.max(at, 0), 1)[0];
     if (!other) { miss(k, ["row", "no such row"]); continue; }
     used.add(other);
     if (field.key) check(k, row[field.key], other[field.key]); else r.matches += 1;
