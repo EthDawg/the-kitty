@@ -55,6 +55,7 @@ consent dialog.
 - Invent names. Institutions are parodies, like Westpaw and Amewx, with original wordmarks. The real thing's column shape is fine, and its branding is not.
 - Addresses use the reserved `.example` domain. Google links go only to the fictional sheets in `kitty.config.json`.
 - Screenshots come from the Davies, and issue reports use them too.
+- Git keeps an address on every commit, and a public repository publishes it. Commit with your GitHub no-reply address.
 - `python3 check.py public` catches private paths, addresses and document links. It cannot prove anything is fictional, so that stays your job.
 - Maintainers keep a private list of real names outside the repository and point `KITTY_PRIVATE_TERMS` at it before a push.
 

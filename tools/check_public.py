@@ -61,7 +61,8 @@ def findings(name: str, text: str, documents: frozenset[str], terms: list[str]) 
             found += [f"{where}: a Google document that is not a fictional sheet" for m in GOOGLE_DOC.finditer(line)
                       if m.group(1) not in documents]
         lowered = line.lower()
-        found += [f"{where}: a private term" for term in terms if term in lowered]
+        if name != "LICENSE":  # a licence has to name its copyright holder
+            found += [f"{where}: a private term" for term in terms if term in lowered]
     return found
 
 
