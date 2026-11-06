@@ -109,7 +109,7 @@ observations.
 
 Some oracle figures were computed by Google Sheets formulas, not by this engine. The scoreboard says plainly what the eval is given and where its truth comes from.
 
-The blind level is the one that tests what tuning cannot, and it is the one that hurt. The first blind household crashed the rebuild, doubled 88 card lines and hid a missing month, on a model that scored 100% on the Davies. The repairs did not make the second family easy: 17 of its 56 traps were silently wrong, one of them caused by a repair. A third family, retired with no wage in the house, showed the engine reading 42,184 of 409,895 of its income. A fourth, a single parent, came in at 12 of 69 silently wrong, with 83 questions to answer. Every result is [kept as it was written](eval/SCOREBOARD.md).
+The blind level is the one that tests what tuning cannot, and it is the one that hurt. The first blind household crashed the rebuild, doubled 88 card lines and hid a missing month, on a model that scored 100% on the Davies. The repairs did not make the second family easy: 17 of its 56 traps were silently wrong, one of them caused by a repair. A third family, retired with no wage in the house, showed the engine reading 42,184 of 409,895 of its income. A fourth, a single parent, came in at 12 of 69 silently wrong. A fifth, a tradie who incorporates, came in at 14 of 63, nearly all of it a company the engine had never met. Every result is [kept as it was written](eval/SCOREBOARD.md).
 
 | Blind run | Traps | Handled | Flagged | Silently wrong |
 |---|---:|---:|---:|---:|
@@ -117,8 +117,9 @@ The blind level is the one that tests what tuning cannot, and it is the one that
 | Second | 56 | 24 | 15 | 17 |
 | Third | 55 | 16 | 27 | 12 |
 | Fourth | 69 | 33 | 24 | 12 |
+| Fifth | 63 | 32 | 17 | 14 |
 
-Each family was built to be harder than the last, so these are not four runs of one test. Each defect becomes a fixture and a repair, and only a new blind household shows whether a repair generalises. A score after repair proves only that the repair works. The standard is not finished: a person's answers are still what makes most of these numbers exact, and the last column is not yet zero.
+Each family was built to be harder than the last, so these are not runs of one test. Each defect becomes a fixture and a repair, and only a new blind household shows whether a repair generalises. A score after repair proves only that the repair works. Repairs do hold: of the 31 shapes the fifth family repeated, none got worse. New shapes are where silence still comes from, so the standard is not finished. A person's answers are still what makes most of these numbers exact, and the last column is not yet zero.
 
 ## Compared with
 

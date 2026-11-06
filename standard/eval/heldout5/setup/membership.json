@@ -1,0 +1,32 @@
+[
+ {
+  "party_id": "PTY-LUKA",
+  "role": "adult",
+  "valid_from": "1981-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-MARI",
+  "role": "adult",
+  "valid_from": "2009-04-11",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-MATEO",
+  "role": "dependant",
+  "valid_from": "2011-05-20",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-INES",
+  "role": "dependant",
+  "valid_from": "2016-10-02",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-THEO",
+  "role": "dependant",
+  "valid_from": "2025-03-11",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]
