@@ -98,13 +98,13 @@ const steps = {
   },
   closeMonth({ facts }) {
     const m = facts.months.find((x) => x.state === "ready");
-    if (m) return { id: "close", say: `Close ${monthYear(m.month)}.`, why: "Every line in it is proved against a stated balance. Closing keeps that month as it is.", action: { verb: "close", label: `Close ${monthName(m.month)}`, args: { month: m.month } } };
+    if (m) return { id: "close", say: `Close ${monthYear(m.month)}.`, why: "Its lines add up to the balance your bank stated. Closing keeps that month as it is.", action: { verb: "close", label: `Close ${monthName(m.month)}`, args: { month: m.month } } };
     const l = facts.months.find((x) => x.state === "closed" && x.can_lock);
     return l && { id: "lock", say: `Lock ${monthYear(l.month)}.`, why: "Nothing in it is waiting on anything now. Locking keeps it as it is for good.", action: { verb: "close", label: `Lock ${monthName(l.month)}`, args: { month: l.month } } };
   },
   payslips({ L, facts }) {
     if (!L.review.some((r) => r.kind === "deposit_without_payslip") || facts.scope.said.payroll) return null;
-    return { id: "payslips", say: "Do you keep your payslips?", why: "Your pay lands in the bank after tax. A payslip shows the gross, the tax and the super, and a month can only lock once its pay is proved or you say there are none.", action: { verb: "decide", label: "Add a payslip, or say you don't keep them", args: { scope: { domain: "payroll" } }, needs: ["state"], choices: [{ id: "has", name: "Yes, I'll add them" }, { id: "none", name: "No, go without" }] } };
+    return { id: "payslips", say: "Do you keep your payslips?", why: "Your pay lands in the bank after tax. A payslip shows the gross, the tax and the super, and a month can only lock once a payslip backs its pay, or you say there are none.", action: { verb: "decide", label: "Add a payslip, or say you don't keep them", args: { scope: { domain: "payroll" } }, needs: ["state"], choices: [{ id: "has", name: "Yes, I'll add them" }, { id: "none", name: "No, go without" }] } };
   },
   askScope({ facts }) {
     const d = DOMAINS.find((x) => facts.scope.not_asked.includes(x.domain));
@@ -113,7 +113,7 @@ const steps = {
   clear({ facts }) {
     const m = facts.months[facts.months.length - 1], open = facts.review.by_kind.open_item || 0;
     const waiting = open ? ` ${plural(open, "thing")} will clear by ${open === 1 ? "itself" : "themselves"} when the other side arrives.` : "";
-    return { id: "clear", say: "You're up to date.", why: `${m ? `Everything we expected is here and ${monthName(m.month)} is ${m.state === "open" ? "still running" : "closed"}.` : "There is nothing waiting on you."}${waiting}`, action: { verb: "wait", label: "Add the next file when the month ends" } };
+    return { id: "clear", say: "You're up to date.", why: `${m ? `Everything we expected is here and ${monthName(m.month)} is ${m.state === "open" ? "still running" : "closed"}.` : "There is nothing waiting on you."}${waiting} That means your files are in, not that every number is right.`, action: { verb: "wait", label: "Add the next file when the month ends" } };
   },
 };
 // A missing file comes before a broken law: most laws fail because a file is missing. Evidence comes before judgement for the same reason.

@@ -2,7 +2,8 @@
 /* One script for a page: src/household, standard/engine, standard/intake, the schema, the law, the recipes and the dictionary, as window.KittyHousehold.
    build.py concatenates by string replace, so this stays that simple: walk the requires, wrap each file, no transforms, no dependencies. The page
    takes dist/kitty-household.js with one .replace when it is ready to.
-     node tools/household-bundle.js [--out path] */
+     node tools/household-bundle.js [--out path]
+     node tools/household-bundle.js --defaults    refresh src/household/defaults.json from the standard, after node standard/world/build.js */
 "use strict";
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
 
@@ -54,7 +55,17 @@ root.KittyHousehold = load(${JSON.stringify(ENTRY)});
   const ascii = text.replace(/[^\x00-\x7f]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
   return { text: ascii.replace(/<\/script/gi, "<\\/script"), modules: ids.length };
 }
-if (require.main === module) {
+// Shared data the standard has no file for yet (finding R-009), and the day the law was read (R-003). A test fails when this goes stale.
+function writeDefaults() {
+  const world = path.join(root, "standard", ".build", "world", "setup"), json = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
+  const clean = (r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== null && v !== undefined && v !== ""));
+  const about = json(path.join(root, "src", "household", "defaults.json"))._about;
+  const out = { _about: about, reference_verified_at: json(path.join(root, "standard", "reference", "au-verified.json")).verified_at, categories: json(path.join(world, "category.json")).map(clean), tax_map: json(path.join(world, "tax_map.json")).map(clean) };
+  fs.writeFileSync(path.join(root, "src", "household", "defaults.json"), `${JSON.stringify(out, null, 1)}\n`);
+  console.log(`src/household/defaults.json: ${out.categories.length} categories, ${out.tax_map.length} tax map rows.`);
+}
+if (require.main === module && process.argv.includes("--defaults")) writeDefaults();
+else if (require.main === module) {
   const i = process.argv.indexOf("--out"), out = i > 0 ? process.argv[i + 1] : path.join(root, "dist", "kitty-household.js");
   const { text, modules } = bundle();
   new Function(text);
