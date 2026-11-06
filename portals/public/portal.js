@@ -203,26 +203,37 @@
     if (brand.vault || (m && m[1] === "files")) files(m && m[1] === "files" && m[2] ? decodeURIComponent(m[2]) : ""); else if (m && m[2] && m[1] === "account") account(m[2]); else if (m && m[2]) documents(m[2]); else overview();
   };
   window.addEventListener("hashchange", route);
-  const askForCode = (j) => { $("#codebox").hidden = false; $("#codeshown").textContent = j.code; $("#codehow").textContent = j.how; $("#code").required = true; $("#code").focus(); };
-  $("#loginform").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  // Sign-in has two doors, and a code may follow either. `pending` is who is part way through, so the code goes with the right door.
+  let pending = null;
+  const askForCode = (j) => { $("#codebox").hidden = false; $("#codeshown").textContent = j.code; $("#codehow").textContent = j.how; $("#code").required = true; $("#usecode").focus(); };
+  const signInWith = async (who, code) => {
     $("#loginbtn").disabled = true; $("#loginerror").hidden = true;
-    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId, name: $("#name").value, password: $("#password").value, code: $("#code").value }) });
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId, ...who, code }) });
     const j = await r.json().catch(() => ({}));
     $("#loginbtn").disabled = false;
-    if (j.needs_code) askForCode(j);
+    if (j.needs_code) { pending = who; if (who.person) { $("#name").required = false; $("#password").required = false; } askForCode(j); }
     if (!r.ok) { $("#loginerror").textContent = j.error || "Could not sign in."; $("#loginerror").hidden = false; return; }
     if (j.needs_code) return;
-    $("#codebox").hidden = true; $("#code").value = ""; $("#code").required = false;
+    pending = null; $("#codebox").hidden = true; $("#code").value = ""; $("#code").required = false;
     load();
-  });
+  };
+  $("#loginform").addEventListener("submit", (e) => { e.preventDefault(); signInWith(pending && pending.person ? pending : { name: $("#name").value, password: $("#password").value }, $("#code").value); });
+  $("#usecode").addEventListener("click", () => signInWith(pending, $("#codeshown").textContent));
+  const showQuick = async () => {
+    const r = await fetch("/api/login", { headers: { Accept: "application/json" } }).catch(() => null);
+    if (!r || !r.ok) return;
+    const { people } = await r.json();
+    $("#quick").innerHTML = people.map((p) => `<button class="btn" type="button" data-person="${esc(p.id)}">Continue as ${esc(p.first_name)}</button>`).join("");
+    for (const b of $("#quick").querySelectorAll("[data-person]")) b.addEventListener("click", () => signInWith({ person: b.dataset.person }));
+    $("#quick").hidden = !people.length;
+  };
   $("#signout").addEventListener("click", async () => { await fetch("/api/logout", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId }) }); data = null; location.hash = ""; load(); });
   const showClock = () => { const c = $("#clockline"); c.hidden = !data.as_of; if (data.as_of) c.textContent = `The clock says ${fmtDate(data.as_of)}. Nothing later exists yet.`; };
   // ?today=2027-01-31 or ?chapter=1 on any portal sets the clock for the whole run
   const setClockFromUrl = async () => { const q = new URLSearchParams(location.search), today = q.get("today"), as_of = q.get("as_of"), chapter = q.get("chapter"); if (today == null && as_of == null && chapter == null) return; await fetch("/api/clock", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ today, as_of, chapter }) }); };
   const load = async () => {
     const r = await fetch(`/api/accounts?brand=${encodeURIComponent(brandId)}`, { headers: { Accept: "application/json" } });
-    if (r.status === 401) { $("#signin").hidden = false; $("#view").hidden = true; $("#nav").hidden = true; $("#who").hidden = true; $("#loginbrand").value = brandId; if (new URLSearchParams(location.search).get("error")) { $("#loginerror").textContent = "Any name will do, and the password is demo."; $("#loginerror").hidden = false; } $("#name").focus(); return; }
+    if (r.status === 401) { $("#signin").hidden = false; $("#view").hidden = true; $("#nav").hidden = true; $("#who").hidden = true; $("#loginbrand").value = brandId; showQuick(); if (new URLSearchParams(location.search).get("error")) { $("#loginerror").textContent = "Any name will do, and the password is demo."; $("#loginerror").hidden = false; } $("#name").focus(); return; }
     data = await r.json();
     $("#signin").hidden = true; $("#view").hidden = false; $("#who").hidden = false; $("#whoname").textContent = `Signed in as ${data.person ? data.person.full_name : data.name}`;
     showClock();

@@ -2,17 +2,21 @@
 const { readBody, cookies, json, redirect, wantsJson, secure } = require("../lib/http");
 const { PASSWORD, doorsOf, signInCookie, cleanName, codeFor, codeOk, makeToken, tokenOf } = require("../lib/auth");
 const { brandById } = require("../lib/data");
-const { personOf } = require("../lib/people");
+const { personOf, CAST } = require("../lib/people");
 const { rulesFor, newRun, runCookie } = require("../lib/view");
 const Clock = require("../lib/clock");
 
+// Two doors. `person` is one click, with no password, because an agent must not type one, even a fake one. `name` and the password demo is the old door.
 module.exports = async (req, res) => {
-  if (req.method !== "POST") return json(res, 405, { error: "POST a name and the password demo." });
+  if (req.method === "GET") return json(res, 200, { people: CAST.people.map((p) => ({ id: p.id, first_name: p.first_name })), sign_in: "POST a person, or a name and the password demo." });
+  if (req.method !== "POST") return json(res, 405, { error: "POST a person, or a name and the password demo." });
   const body = await readBody(req);
   const brand = brandById[String(body.brand || "")];
-  const name = cleanName(body.name);
   if (!brand) return json(res, 404, { error: "No such portal." });
-  if (!name || String(body.password || "") !== PASSWORD) {
+  const chosen = body.person ? CAST.people.find((p) => p.id === String(body.person).toLowerCase()) : null;
+  if (body.person && !chosen) return json(res, 404, { error: "No such person here." });
+  const name = chosen ? chosen.first_name : cleanName(body.name);
+  if (!chosen && (!name || String(body.password || "") !== PASSWORD)) {
     return wantsJson(req) ? json(res, 401, { error: "Any name will do, and the password is demo." }) : redirect(res, `/${brand.id}?error=1`);
   }
   const person = personOf(name);

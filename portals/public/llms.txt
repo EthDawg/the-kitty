@@ -8,13 +8,14 @@ Everything. Every institution is a parody with an original name and mark. Every 
 
 ## Sign in
 
-Any name with the password `demo` signs in and shows the whole household. Nothing is stored.
+You never need to type a password here. Every portal has a one-click sign-in.
 
-Sign in as `Danny` or `Daisy` to be that person. You then see only what they hold, with the friction a real site has. For now they stand in for Jordan and Mia, the people in these files, and those names sign in too.
+- **One click, no password.** Press "Continue as Daisy" or "Continue as Danny" on any portal's sign-in page. You then see only what that person holds, with the friction a real site has.
+- **An agent, without a browser.** `POST /api/login` with JSON `{"brand": "westpaw", "person": "daisy"}`, and keep the cookie. `GET /api/login` lists the people.
+- **The mock code.** Some portals then ask for a code. It is on screen, because a real site would text it. Press "Use this code". Without a browser, the response carries `needs_code: true` and the code, so post again with `code`.
+- **Any name.** People who want it can type any name with the password `demo`. That shows the whole household, with no friction, so it is not how a run plays a person.
 
-- A browser: open a portal, such as /westpaw, and use the form.
-- An agent: `POST /api/login` with JSON `{"brand": "westpaw", "name": "Daisy", "password": "demo"}`, and keep the cookie.
-- Some portals then ask for a code. The response carries `needs_code: true` and the code itself, because a real site would text it. Post again with `code`. An agent acting for a person should let the person do this step.
+For now Danny and Daisy stand in for Jordan and Mia, the people in these files. Typing those names with the password does the same.
 
 The list of portals is /brands.json and /vault-brands.json.
 

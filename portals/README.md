@@ -2,8 +2,8 @@
 
 Twenty-four parody portals that hold the fictional Davies household's files for eight years, the way a bank, a card
 company, a property manager, a payroll, an insurer, a super fund, a tax office and a council hold them, deployed on Vercel
-at https://the-kitty-portals.vercel.app. A twenty-fifth, Tabby Tax, is a parody accountant. Any name signs in with the
-password `demo`. Nothing here is a real institution; the column shapes are real. `public/llms.txt` tells an agent how the sites work.
+at https://the-kitty-portals.vercel.app. A twenty-fifth, Tabby Tax, is a parody accountant. Each has "Continue as Daisy" and
+"Continue as Danny", one click and no password. Any name also signs in with the password `demo`. Nothing here is a real institution; the column shapes are real. `public/llms.txt` tells an agent how the sites work.
 
 The seven originals generate exports on the server. Every portal also hands over the Davies world's files exactly as
 delivered: the seventeen below do nothing else, and the seven carry them under a "Files as delivered" tab.
@@ -52,7 +52,7 @@ a bearer token, or the `kp_as_of` cookie set by `POST /api/clock`. `lib/data.js`
 ask it through `has()` and `upTo()` and hold no rule of their own. A row exists from its date, a statement from its issue date, an assessment
 from its assessed date (the world's `issued_on`). No clock means everything the portals hold, as before. The chapter dates are in `lib/clock.js`.
 
-**Sign-in chooses a person.** Any name and `demo` still sees the whole household with no friction. A name in `data/cast.json` is that person. These
+**Sign-in chooses a person.** "Continue as Daisy" on any portal is one click with no password, because an agent must not type one, even a fake one (`POST /api/login` with `person`; `GET /api/login` lists them). The mock code has a "Use this code" button for the same reason. Any name and `demo` still sees the whole household with no friction, and a name in `data/cast.json` is that person. These
 portals hold the benchmark world, so its people are the ones who sign in; Danny and Daisy's names stand in for Jordan and Mia until their own generated life
 is loaded. `estate/access.json` says who holds what, written by `build-vault.js` from the world's ownership tables, and it follows the
 date: the saver is joint until 1 July 2024. `data/portal-rules.json` holds the one exception, the card, where the world splits the cost and the

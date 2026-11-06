@@ -109,6 +109,61 @@ test("a mock second factor: no cookie without the code, a wrong code is refused,
   await expect(page.locator("#whoname")).toHaveText("Signed in as Daisy Davies");
 });
 
+test("one click and no password, by the API: the person is chosen, and the code still stands", async () => {
+  const people = await getJson(anyone, "/api/login");
+  expect(people.people).toEqual([{ id: "danny", first_name: "Danny" }, { id: "daisy", first_name: "Daisy" }]);
+  const first = await (await daisy.post("/api/login", { headers: API, data: { brand: "westpaw", person: "daisy" } })).json();
+  expect(first.needs_code).toBe(true);
+  expect((await daisy.get("/api/accounts?brand=westpaw")).status(), "no code, no cookie").toBe(401);
+  const second = await (await daisy.post("/api/login", { headers: API, data: { brand: "westpaw", person: "daisy", code: first.code } })).json();
+  expect(second.person.id).toBe("daisy");
+  const seen = await getJson(daisy, "/api/accounts?brand=westpaw");
+  expect(seen.person.id).toBe("daisy");
+  expect(seen.rules.back_years, "a person, with a person's friction").toBe(7);
+  const straight = await (await danny.post("/api/login", { headers: API, data: { brand: "pawroll", person: "DANNY" } })).json();
+  expect(straight.person.id).toBe("danny");
+  expect(await ids(danny, "pawroll")).toEqual(["Jordan@Northwind Logistics"]);
+  expect((await anyone.post("/api/login", { headers: API, data: { brand: "westpaw", person: "nobody" } })).status()).toBe(404);
+  expect((await anyone.post("/api/login", { headers: API, data: { brand: "westpaw", name: "No Password" } })).status(), "the old door still wants its password").toBe(401);
+});
+
+test("one click in a browser: every portal offers it, and nothing is typed, the code included", async ({ page }) => {
+  for (const b of brands()) {
+    await page.goto(`/${b.id}`);
+    await expect(page.getByRole("button", { name: "Continue as Daisy" }), b.id).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue as Danny" }), b.id).toBeVisible();
+    await expect(page.locator("#name"), `${b.id} keeps the old door`).toBeVisible();
+  }
+  await page.goto("/westpaw");
+  await page.getByRole("button", { name: "Continue as Daisy" }).click();
+  await expect(page.locator("#codebox")).toBeVisible();
+  await expect(page.locator("#codeshown")).toHaveText(/^\d{6}$/);
+  await expect(page.locator("#view")).toBeHidden();
+  await page.click("#usecode");
+  await expect(page.locator(".greet")).toContainText("Daisy");
+  await expect(page.locator("#whoname")).toHaveText("Signed in as Daisy Davies");
+  await page.goto("/pawroll");
+  await page.getByRole("button", { name: "Continue as Danny" }).click();
+  await expect(page.locator(".greet")).toContainText("Danny");
+  await expect(page.locator(".acct")).toHaveCount(1);
+});
+
+test("a code can still be typed after one click, and a person can still type a name and the password", async ({ page }) => {
+  await page.goto("/westpaw");
+  await page.getByRole("button", { name: "Continue as Danny" }).click();
+  await expect(page.locator("#codebox")).toBeVisible();
+  await page.fill("#code", await page.locator("#codeshown").textContent());
+  await page.click("#loginbtn");
+  await expect(page.locator(".greet")).toContainText("Danny");
+  await page.click("#signout");
+  await expect(page.locator("#signin")).toBeVisible();
+  await page.fill("#name", "Anyone At All");
+  await page.fill("#password", "demo");
+  await page.click("#loginbtn");
+  await expect(page.locator("#whoname")).toHaveText("Signed in as Anyone At All");
+  await expect(page.locator(".acct").first()).toBeVisible();
+});
+
 test("statements only go back so many years, and an export only covers so many days", async () => {
   await signIn(daisy, "westpaw", "Daisy");
   await setClock(daisy, { chapter: 1 }); // seven years back, 366 days at a time

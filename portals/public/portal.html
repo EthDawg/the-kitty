@@ -26,6 +26,7 @@
       <div class="eyebrow">Sign in</div>
       <h1 id="signintitle">Welcome</h1>
       <p class="muted small" id="signinsub"></p>
+      <div class="quick" id="quick" hidden></div>
       <form id="loginform" method="post" action="/api/login" autocomplete="off">
         <input type="hidden" name="brand" id="loginbrand">
         <div class="field"><label for="name">Your name</label><input id="name" name="name" required maxlength="40" autocomplete="off" placeholder="Daisy"></div>
@@ -33,11 +34,12 @@
         <div class="panel" id="codebox" style="margin:12px 0 0" hidden>
           <div class="field" style="margin-top:0"><label for="code">Enter the code we sent you</label><input id="code" name="code" inputmode="numeric" maxlength="6" autocomplete="off"></div>
           <p class="small" style="margin-top:8px">Your code is <b class="num" id="codeshown"></b>. <span class="muted" id="codehow"></span></p>
+          <div class="actions"><button class="btn" type="button" id="usecode">Use this code</button></div>
         </div>
         <div class="error" id="loginerror" hidden></div>
         <div class="actions"><button class="btn" type="submit" id="loginbtn">Sign in</button><span class="status">Not a real sign-in. Nothing is stored.</span></div>
       </form>
-      <div class="hint">This is a demo. Type any name and the password <b>demo</b> to see the whole household. Sign in as <b>Danny</b> or <b>Daisy</b> to see only what that person can, the way a real site would. A real portal would never say that, which is one way you can tell.</div>
+      <div class="hint">This is a demo. <b>Continue as</b> someone to see only what that person can, the way a real site would, with no password. Or type any name and the password <b>demo</b> to see the whole household. A real portal would never offer either, which is one way you can tell.</div>
     </section>
     <div id="view" hidden></div>
   </div>
