@@ -47,6 +47,21 @@ jobs:
       - name: the fixtures are exactly what the snapshot cuts
         run: python3 fixtures/make-v2-fixtures.py && git diff --exit-code --stat fixtures/
 
+  standard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: generated files are current and every event template balances
+        run: node standard/tools/generate.js --check
+      - name: the Davies world builds the same every time
+        run: node standard/world/build.js
+      - name: importers and households
+        run: node --test standard/intake/test.js standard/eval/households/test.js
+      - name: replay, ladder and locked numbers
+        run: node standard/eval/all.js --check
+
   portals:
     runs-on: ubuntu-latest
     steps:
