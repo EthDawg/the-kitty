@@ -53,7 +53,7 @@ function main() {
     "## The ladder", "", ...rungs.map((r) => `- ${r.ok ? "holds" : "**breaks**"}: ${r.name}`), "", `${rungs.filter((r) => r.ok).length} of ${rungs.length} rungs hold. A presentation rung holds when the bundle hash is unchanged. A semantic rung holds when the right alarm rings in the right place.`, "",
     "## Households", "", `${hh.pass} small lives, written as observations, each with its truth beside it: ${hh.fail} fail. These prove the model's truth, not file reading.`, "",
     "## The Sheet", "", par.skipped ? `Skipped: ${par.skipped}.` : `Workbook formulas recalculated in LibreOffice against the engine: ${par.exact} of ${par.checked} cells exact.`, "",
-    ...(cold ? ["## Cold start", "", `A cheap model (${cold.model}) wrote every importer from one sample and the recipe spec: ${cold.passed} of ${cold.families} families passed the gate first try or after one repair. ${cold.tokens_in} tokens in, ${cold.tokens_out} out, about US$${cold.usd}. The second household pays nothing: recipes are cached by fingerprint.`, ""] : []),
+    ...(cold ? ["## Cold start", "", `A cheap model (${cold.model}) wrote importers from one sample and the recipe spec: ${cold.passed} of ${cold.families} families passed the gate on the first try or after one repair; the run stopped at its US$12 cap with 8 of 58 families untried. ${cold.tokens_in} tokens in, ${cold.tokens_out} out, about US$${cold.usd}. The gate refused the other ${cold.families - cold.passed}, so none reached a ledger. ${cold.second_protocol ? cold.second_protocol.note : ""} Golden recipes passed for all 58. The second household pays nothing: recipes are cached by fingerprint.`, ""] : []),
   ].join("\n");
   const lock = lockFrom(back.L, s);
   console.log(md);

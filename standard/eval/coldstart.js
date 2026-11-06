@@ -44,12 +44,14 @@ for (const family of families) {
   if (results.reduce((a, r) => a + r.usd, 0) >= cap) { console.log(`Stopped at the US$${cap} cap.`); break; }
   const files = manifest.files.filter((f) => f.family === family);
   const decoded = files.map((f) => { const bytes = new Uint8Array(fs.readFileSync(path.join(world, f.path))); const d = decode(bytes, { inflate }); return { path: f.path, stream: f.stream_id, decoded: d, bytes }; });
-  const sample = decoded[Math.floor(decoded.length / 2)];
+  // Two samples, far apart in the family: a value that only some files state shows up here, not in the gate's complaint.
+  const sample = decoded[Math.floor(decoded.length / 2)], other = decoded[decoded.length - 1], third = decoded[0];
   const fp = fingerprint(sample.decoded);
   const kinds = [...new Set(files.flatMap((f) => Object.keys(f.by_kind || {})))];
-  const prompt = `You write one recipe: JSON data that reads one family of financial files. No code. Answer with the JSON recipe only.\n\n# How recipes work\n${spec}\n\n# What observations look like\n${card}\n\n# This family\nid: ${family}\nfingerprint: ${fp}\nIt must emit these observation kinds: ${kinds.join(", ")}\n${files.length} files in the family. One sample:\n\n${sampleText(sample.decoded, sample)}`;
+  const prompt = `You write one recipe: JSON data that reads one family of financial files. No code. Answer with the JSON recipe only.\n\n# How recipes work\n${spec}\n\n# What observations look like\n${card}\n\n# This family\nid: ${family}\nfingerprint: ${fp}\nIt must emit these observation kinds: ${kinds.join(", ")}\n${files.length} files in the family. Three samples, far apart. Where a value is not in the file at all, use a stream or file-level default rather than a required field the file cannot give.\n\nSample 1:\n${sampleText(sample.decoded, sample)}\n\nSample 2:\n${sampleText(other.decoded, other).slice(0, 2500)}\n\nSample 3:\n${sampleText(third.decoded, third).slice(0, 2500)}`;
   let tries = 0, tokensIn = 0, tokensOut = 0, usd = 0, verdict = null, recipe = null, err = null, feedback = "";
-  while (tries < 2) {
+  const maxTries = Number(arg("tries", "3"));
+  while (tries < maxTries) {
     tries += 1;
     const a = ask(prompt + feedback);
     if (a.error) { err = a.error; break; }

@@ -422,8 +422,10 @@ No per-institution code is needed. An importer is anything that produces valid o
 | **Recipe, document** | Data: anchors and row patterns over extracted text lines. Same engine, over PDF, HTML and email. | anything | zero tokens |
 | **Agent extraction** | A model reads a scan or a one-off and emits observations directly. Each MUST carry a locator and a quote, its control totals go through the same gate, and it lands in review below the confidence threshold. | a harness | tokens, every time |
 
-A recipe is usually written by a model in under a kilobyte of output, from a header and a few rows, once per format,
-and cached by a **fingerprint** of the file's structure. The second household to meet that format pays nothing. This is
+A recipe is written by a model once per format, from a few samples, and cached by a **fingerprint** of the file's
+structure. The second household to meet that format pays nothing. [`eval/coldstart.js`](eval/coldstart.js) measures what the
+first household pays; the numbers are on the scoreboard. A cheap model does not get every format right, and that is the point
+of the gate: what it gets wrong is refused, not imported. This is
 the "cheap code gen in a harness" idea made durable: instead of generating a throwaway parser, generate data that an
 audited interpreter runs and that the gate can judge.
 
