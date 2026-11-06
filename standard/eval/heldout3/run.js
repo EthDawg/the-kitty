@@ -61,6 +61,7 @@ function Reader(L, setup) {
   const askedOther = (x, found) => L.review.filter((r) => {
     const what = String(r.what || "");
     if (r.kind === "owner_statement_unmatched") { const m = /Owner statement (\d{4}-\d{2}-\d{2})/.exec(what); if (!m) return false; const gap = (Date.parse(x.date) - Date.parse(m[1])) / 864e5; return x.account === "ACC-SAVER" && ((gap >= 0 && gap <= 14) || (x.date.slice(0, 7) === m[1].slice(0, 7) && Math.abs(x.cents) !== Math.abs(r.amount_cents))); }
+    if (r.kind === "restated_line") { const q = String(r.ref).split("|"); return q[0] === x.account && what.includes(money(Math.abs(x.cents))) && days(q[1], x.date) <= 14; }
     if (r.kind === "tax_result_unmatched") return found.some((e) => /\bATO\b/.test(e.description || ""));
     if (r.kind === "trade_unsettled") { const m = /on (\d{4}-\d{2}-\d{2}) has no (?:cash )?line in (\S+?)\.?$/.exec(what); if (!m) return false; const gap = (Date.parse(x.date) - Date.parse(m[1])) / 864e5; return m[2] === x.account && gap >= -2 && gap <= 14; }
     return false;
@@ -88,7 +89,7 @@ function scoreTable(L, truth, R) {
   const bal = { exact: perAcct.reduce((t, a) => t + a.exact, 0), of: perAcct.length * months.length, moved: perAcct.reduce((t, a) => t + a.moved, 0), moved_of: perAcct.length * (months.length - 1), all_exact_months: months.filter((m) => accounts.every((a) => truth.balances[a][m] === R.balance(a, m))).length };
   const uncat = L.cash.filter((c) => months.includes(c.month)).reduce((t, c) => t + Math.max(0, -(c.byCategory.UNCAT || 0)), 0), spent = L.cash.filter((c) => months.includes(c.month)).reduce((t, c) => t + c.spending, 0);
   const monthly = months.map((m) => ({ m, inc: [truth.income[m], inc.get(m) || 0], sp: [truth.spending[m], sp.get(m) || 0], nw: [truth.networth[m], nw.get(m) || 0] }));
-  return { rows, perAcct, bal, uncategorised_share: spent ? uncat / spent : 0, monthly };
+  return { rows, perAcct, bal, uncategorised_share: spent ? uncat / spent : 0, uncategorised_cents: uncat, monthly };
 }
 
 // ---------- every cash line, one by one: did the engine book it once, and treat it as truth does ----------
@@ -166,6 +167,12 @@ function judge(trap, ctx) {
     notes.push(`${b.account}: ${b.months.length - off.length} of ${b.months.length} month-ends exact${off.length ? `, worst ${money(worst)} off` : ""}`);
     if (off.length) { const o = b.strict ? "silently wrong" : lawBad(b.account) ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, worst); }
   }
+  /* the month-on-month change, for an account that already carries another trap's error */
+  for (const b of p.moves || []) {
+    const prev = (m) => months[months.indexOf(m) - 1], move = (f, m) => f(m) - f(prev(m)), want = (m) => truth.balances[b.account][m], got = (m) => R.balance(b.account, m), off = b.months.filter((m) => move(want, m) !== move(got, m)), worst = off.reduce((t, m) => Math.max(t, Math.abs(move(want, m) - move(got, m))), 0);
+    notes.push(`${b.account}: ${b.months.length - off.length} of ${b.months.length} monthly movements exact${off.length ? `, worst ${money(worst)} off` : ""}`);
+    if (off.length) { const o = lawBad(b.account) ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, worst); }
+  }
   if (p.zero_after) {
     const ms = months.filter((m) => m >= p.zero_after.from), off = ms.filter((m) => R.balance(p.zero_after.account, m) !== 0);
     notes.push(`${p.zero_after.account}: ${ms.length - off.length} of ${ms.length} month-ends at zero${off.length ? `, ${off[0]} shows ${money(R.balance(p.zero_after.account, off[0]))}` : ""}`);
@@ -199,6 +206,8 @@ function judge(trap, ctx) {
     const cs = L.checks.filter((c) => c.law === q.law && String(c.scope).includes(q.scope)), off = cs.filter((c) => c.status !== "pass");
     notes.push(`${q.law} ${q.scope}: ${cs.length ? off.length ? `${off.length} of ${cs.length} not passing, ${off[0].status}: ${off[0].detail || ""}` : `${cs.length} pass` : "no check ran"}`);
     if (!cs.length) outcomes.push("silently wrong"); else if (off.length) outcomes.push("flagged");
+    // a law that must fail: a pass is the control missing what it exists to catch
+    else if (q.must_fail) { outcomes.push("silently wrong"); cents += Math.max(...cs.map((c) => Math.abs(c.gap_cents || 0))); }
   }
   if (p.absent) for (const x of p.absent) {
     const f = R.find(x.account, x.date, x.cents, x.account === CARD ? 9 : 2, x.posted);
@@ -234,7 +243,7 @@ function judge(trap, ctx) {
   if (p.kind === "hole") {
     const l3 = L.checks.find((x) => x.law === "L3" && x.scope === p.account), c = L.coverage.find((x) => x.stream_id === p.account), re = new RegExp(p.match);
     const said = l3 && l3.status !== "pass" && re.test(String(l3.detail));
-    notes.push(`L3 ${l3 ? `${l3.status}: ${l3.detail || ""}` : "absent"}; coverage ${c ? `${c.have} of ${c.expected}` : "no row"}; the ${money(p.net_cents)} that moved ${said ? "is named" : "is not named"}`);
+    notes.push(`L3 ${l3 ? `${l3.status}: ${l3.detail || ""}` : "absent"}; coverage ${c ? `${c.have} of ${c.expected}` : "no row"}; the ${money(p.net_cents)} that moved ${said ? "is named" : `has no month named, though L3's gap is ${l3 ? money(l3.gap_cents) : "absent"}`}`);
     { const o = said ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, Math.abs(p.net_cents)); }
   }
   if (p.kind === "card_lag") {
@@ -247,6 +256,7 @@ function judge(trap, ctx) {
     notes.push(`${found.length} ${q.kinds || ""} events before ${q.before}, ${money(found.reduce((t, e) => t + Math.abs(e.amount_cents || 0), 0))}`);
     if (found.length) { outcomes.push("silently wrong"); cents += found.reduce((t, e) => t + Math.abs(e.amount_cents || 0), 0); }
   }
+  if (p.law_note) for (const c of L.checks.filter((x) => x.law === p.law_note)) notes.push(`${c.law} ${c.scope} ${c.status}: ${c.detail || ""}`);
   if (p.unread) {
     const u = intake.unknown_files.filter((f) => f.path.startsWith(p.unread));
     notes.push(`${u.length} files unread and reported by intake`);
@@ -286,8 +296,22 @@ function report(r) {
   const asks = new Map(); for (const x of L.review.filter((i) => i.kind === "uncategorised")) asks.set(x.question, (asks.get(x.question) || 0) + Math.abs(x.amount_cents));
   const byValue = [...asks.values()].sort((a, b) => b - a), total = byValue.reduce((a, b) => a + b, 0), top = byValue.slice(0, 30).reduce((a, b) => a + b, 0);
   const allAsks = new Set(L.review.map((x) => `${x.kind}|${x.question || x.what || x.ref}`));
-  p(`Spending left uncategorised: ${(T.uncategorised_share * 100).toFixed(1)}% of the dollars. Every merchant is invented, so the dictionary knows few of them; uncategorised spending still counts as spending. The ${L.review.filter((i) => i.kind === "uncategorised").length} uncategorised lines are ${asks.size} questions, one per merchant, and the first 30 cover ${(top / (total || 1) * 100).toFixed(1)}% of their dollars. The whole review queue is ${L.review.length} items and ${allAsks.size} distinct questions.`);
+  p(`Spending left uncategorised: ${T.uncategorised_share > 0 ? `${(T.uncategorised_share * 100).toFixed(1)}% of the dollars` : `${money(T.uncategorised_cents)}, and no share of a spending total that nets below zero`}. Every merchant is invented, so the dictionary knows few of them; uncategorised spending still counts as spending. The ${L.review.filter((i) => i.kind === "uncategorised").length} uncategorised lines are ${asks.size} questions, one per merchant, and the first 30 cover ${(top / (total || 1) * 100).toFixed(1)}% of their dollars. The whole review queue is ${L.review.length} items and ${allAsks.size} distinct questions.`);
   p();
+  p("## Did round two generalise");
+  p();
+  p(VERDICT[0]);
+  p();
+  for (const v of VERDICT.slice(1)) { p(v); p(); }
+  { const byId = new Map(traps.map((t) => [t.id, t])), rank = { "silently wrong": 0, flagged: 1, handled: 2 }, fresh = traps.filter((t) => t.fresh), n = (o) => fresh.filter((t) => t.outcome === o).length;
+    p("Twelve shapes repeat an earlier family's, on this family's files. The rest of the traps are new.");
+    p();
+    p("| This household | Earlier trap | Then, first blind run | Now | Way |");
+    p("|---|---|---|---|---|");
+    for (const [a, b, then] of REPEATS) { const now = byId.get(a).outcome, d = rank[now] - rank[then]; p(`| ${a} | ${b} | ${then} | ${now} | ${d > 0 ? "better" : d < 0 ? "worse" : "same"} |`); }
+    p();
+    p(`The ${fresh.length} shapes in neither earlier list: ${n("handled")} handled, ${n("flagged")} flagged, ${n("silently wrong")} silently wrong.`);
+    p(); }
   const dollarsSW = traps.filter((t) => t.outcome === "silently wrong");
   p("## Silently wrong, with the dollars");
   p();
@@ -360,7 +384,8 @@ function report(r) {
   p("## Files the public recipes did not read");
   p();
   const unread = {}; for (const u of intake.unknown_files) { const k = `${u.path.split("/")[1]}: ${u.reason}`; unread[k] = (unread[k] || 0) + 1; }
-  p(Object.entries(unread).map(([k, v]) => `- ${k}, ${v} files`).join("\n") || "None.");
+  const refused = {}; for (const f of intake.faults.filter((x) => x.code === "file_refused")) { const k = `${f.path.split("/")[1]}: refused by intake, a line type the recipe does not map`; refused[k] = (refused[k] || 0) + 1; }
+  p([...Object.entries(unread), ...Object.entries(refused)].map(([k, v]) => `- ${k}, ${v} files`).join("\n") || "None.");
   p();
   p("## Month by month");
   p();
@@ -404,9 +429,35 @@ const NOTES = [
   "Before the first run the scorer was tried on a perfect stand-in built from the simulation's own book, never the engine: 52 handled, and 3 flagged, the three gaps nobody can fill (T3-QIF-HOLE, T3-HOLDINGS-GAP, T3-STATEMENT-GAP). So every other probe can pass. An own transfer counts as paired when a leg of its amount on each side is neither and not left open, where BLIND-2 asked every such leg, because T3-PENSION-VS-TFR puts an income line of the same amount on the same day.",
   "A flagged outcome needs the engine to name the line in review, or a law that fails or shows a gap on that account, or coverage that names the month. For a hole in a bank file the law must name the month. A doubled line counts as asked only if review asks whether it is doubled. A balance is flagged by any law scoped at that account, or by a review item about the account rather than one of its lines, which widens BLIND-2's rule of L3 alone so that a coverage gap or a currency question counts. A file refused or unread by intake is a report of the intake and does not by itself flag a number. Tax is not scored: L11 is printed as the engine reports it. A trust, SMSF or age-pension calculation is not asked for: SPEC 9 declines them, and only their cash lines are scored.",
 ];
-const AFTER = [];
-const MOVES = [];
-const SEEN = [];
+const REPEATS = [["T3-MEDICARE-SA", "T2-MEDICARE-SA", "handled"], ["T3-BILL-WITNESS", "T-BILL-WITNESS", "handled"], ["T3-DIVIDEND", "T2-DIVIDEND", "handled"], ["T3-SETTLEMENT", "T-SETTLEMENT", "flagged"], ["T3-HOLIDAY-LAG", "T2-HOLIDAY-LAG", "silently wrong"], ["T3-DATE-BASIS", "T2-DATE-BASIS", "flagged"], ["T3-HOLDINGS-GAP", "T2-HOLDINGS-GAP", "flagged"], ["T3-STATEMENT-GAP", "T2-STATEMENT-GAP", "silently wrong"], ["T3-MERGER", "T2-BANK-FORMAT", "silently wrong"], ["T3-FX-REPRICE", "T2-FX-AUTH", "silently wrong"], ["T3-QIF-HOLE", "T2-OFX-HOLE", "silently wrong"], ["T3-POSTING-LAG", "T2-POSTING-LAG", "silently wrong"]];
+const VERDICT = [
+  "Partly. What fitted a shape held on a new layout. What fitted a family did not.",
+  "Held or better: a Medicare credit under a payer that also pays a pension, five business days of lag over Christmas, a card charge dated in one month and posted in the next, a settlement behind a deposit, a balance and a loan, a merger in which no line doubled, and credits nobody can explain, which now mostly stand apart as unexplained instead of passing as spending.",
+  "Did not hold: the guard against a false pair stopped one crossed pair and let another through on a shared word and a shared counterparty. Agent clearing matched none of twelve owner statements. A credit from someone the household never paid, a solicitor, landed as a refund, and so did a house sale and a car, so 36 months of spending came out at -339,108.33 against 132,359.00. Net worth kept all of a joint account after one owner left the household, kept a sold home for 14 month-ends, left out the fund's shares, and held a sterling balance as dollars.",
+  "With no wage in the house, the engine finds 42,183.73 of 409,895.21 of income. All 215 pension credits it booked sit under UNCAT as unexplained, which is honest about not knowing, though both pension contracts in setup carry SUPER-PENSION and phase retirement.",
+];
+const AFTER = [
+  "The household did not change. Bundle b824469ab1be030f, 2104 events, and every figure in the Scores table but the trap row are the first run's, to the cent, as is every table below it but the traps. What changed is the probes of four traps in build.js, what run.js counts for them, and two lines of wording. No money, no file and no setup row moved.",
+  "First run: 18 handled, 26 flagged, 11 silently wrong. Now: 16 handled, 27 flagged, 12 silently wrong. Four traps moved, one up and three down, in the table below. The rebuild did not crash on either run.",
+  "A scorer bug that overstated the error, which moved a trap up. T3-MERGER sampled the Harbour term deposit's interest line and wanted neither, against this household's own convention that any one of the three lines may carry that interest, which T3-TD-INT-ELSEWHERE measures and passes. Its balance probe also read the level of ACC-EVERY, which is off by exactly the T3-QIF-HOLE amount from August 2024 on, so one error landed on two traps. It now drops that line and reads the month-on-month change, which is exact in all three months. Silently wrong became flagged, and flagged only because two of its four lines are pensions the engine calls unexplained. No line doubled.",
+  "Scorer bugs that understated the error, each moving a trap down. T3-OFFSET-NOT-LINKED's probe was the law probe from T2-OFFSET-INTEREST, where a pass is right. Here the trap says L6 cannot pass and it passed, with a widest gap of 364.79 against the 50.00 tolerance in schema/checks.json, so handled was wrong and it now reads silently wrong for that gap. T3-CARD-LOGIN sampled four of Geoffrey's lines and all four were fine, while the line table showed a purchase never booked. It now reads every card line of the quarter, 101 of them. One is gone: Salma's 150.82 at a grocer, which review reports as a restatement of Geoffrey's 154.33 there five days later. Only her lines are in that quarter's download. Review names it, so handled became flagged.",
+  "Stricter after reading the first run, lowering a score, the same change BLIND-2 made to T2-CRYPTO-THIRD-COIN. T3-PENSION-UNREAD read flagged because this household widened the balance rule to any law at the account, and L13 shows a gap at ACC-PENSION. That gap says Missing 2023-07, and the same row appears on TAX-SALMA and STM-SMSF, whose files are all there: it would be there if every pension file had been read. It is not about the refused files, of which six count as received. Coverage must now name the refused periods, it does not, and the trap reads silently wrong for 165,277.80.",
+  "Left on the stricter reading, though a looser one is arguable, and both would raise a score. T3-QIF-HOLE: L3 fails on ACC-EVERY with a gap of the hole to the cent, and L13 says Missing 2024-07 on the same account, but the interval L3 names ends 2024-11-26 and BLIND-2's rule wants the month from the law. T3-SMSF-ONE-LEVEL: L18 is open on the fund's party and states the 272,778.40, so the amount is in front of a person, but it says the money counts once, which is not true, and it does not name the account.",
+  "Wording only. The uncategorised share printed -98.5%, a share of a total below zero, and now prints dollars. T3-QIF-HOLE's note said the amount was not named when L3's gap names it; it now says the month is what is missing. T3-SMSF-ONE-LEVEL now prints L18's row beside its evidence.",
+  "The rerun's first line reads \"with uncommitted changes\" because another session left standard/reference/au-verified.json untracked in this worktree while this ran. It is not part of this work and is not committed with it. The bundle hash is unchanged. The scorer's perfect stand-in, run again, reads T3-OFFSET-NOT-LINKED as silently wrong only because the stand-in's L6 row says pass.",
+];
+const MOVES = [["T3-MERGER", "silently wrong", "flagged", "up"], ["T3-OFFSET-NOT-LINKED", "handled", "silently wrong", "down"], ["T3-CARD-LOGIN", "handled", "flagged", "down"], ["T3-PENSION-UNREAD", "flagged", "silently wrong", "down"]];
+const SEEN = [
+  "ACC-PENSION and ACC-KARIM have no balance rows at all. The 0.00 in the tables above is this reader's default for no row, as in the earlier scorers. The engine does not print a zero. Net worth simply leaves them out, and nothing says by how much.",
+  "L18 ran for the first time in the held-out series. It is open on PTY-SMSF: 272,778.40 held inside it is left out of net worth, so it counts once. Nothing else counts it. The fund's bank and broker cash, typed smsf, stay in; its shares go. Tried once outside this table, with those two accounts typed transaction and brokerage, the law leaves out 549,217.61, the whole fund, and the super group disappears from net worth.",
+  "Coverage rests on the call pattern, as BLIND-2 found. run.js passes every received file as a receipt, so ACC-PENSION reads 6 of 7 with all six refused. Tried once outside this table, passing only files that were read, it reads 0 of 5 and names 2023-07 to 2025-07.",
+  "L6 for CON-BRIDGE reads 3 months checked, widest gap 364.79 in 2025-05, pass. Tried once outside this table, with the offsets link a person forgot, the widest gap is 107.69 and it still passes.",
+  "ACC-EVERY stays out by 4,613.64 from August 2024 to June 2026, while the Harbour file from March 2025 states a running balance on every line. L3 reports one interval. The movements are right in 34 of 35 months.",
+  "Every owner statement for the Portland unit is unmatched: one review item, 28,554.00 across twelve statements, and no rent_receipt event in 36 months, though the economic lens has each month's gross right and the reissued fee right. The agent's credits and the false sum are all unexplained. The false subset was not taken.",
+  "The new bank's number has an alias starting on the merger date and its first file reaches back six days. No line was lost or doubled.",
+  "ACC-KARIM has no file, so it has no balance. The 20,000.00 loan is a purchase under UNCAT and 23 repayments are unexplained, the 24th sitting in the QIF hole. L6 skips CON-KARIM: no rate history, for a rate of zero typed in setup.",
+  "Six intake faults are the refused pension files and 38 are their lines. ACC-BROKER and ACC-SMSF-BROKER show coverage gaps for quarters with no activity, because this household's render writes no file for a quarter with no lines. That is a property of the render, not a trap, and it scored nothing. L3 reports those as quiet months, open.",
+];
 
 if (require.main === module) report(run());
 module.exports = { run, report };

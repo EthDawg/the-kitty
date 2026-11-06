@@ -415,7 +415,7 @@ function bridge() {
   trap("T3-BRIDGE", "A bridging loan repaid at the table, with no bank line", `${BR}: drawn ${money(CAPITAL.loan)} at the purchase, interest capitalised monthly, ${money(LOANS.payout)} paid from the sale`, "The loan ends at the lender's zero. No repayment reaches spending, and the capitalised interest counts only in the economic lens.",
     { kind: "lines", clearing: "clearing:loan:ACC-BRIDGE", zero_after: { account: BR, from: "2025-05" }, balances: [{ account: BR, months: ["2025-02", "2025-03", "2025-04"] }] }, { fresh: true, dc: true });
   trap("T3-OFFSET-NOT-LINKED", "A loan offset the household never declared", `${BR}: interest is charged net of ${SV}, and setup has no offsets link, because nobody said`, "L6 cannot pass: interest charged falls short of the rate on the full balance. The gap in front of a person is the right answer.",
-    { kind: "law", law: "L6", scope: "CON-BRIDGE" }, { fresh: true });
+    { kind: "law", law: "L6", scope: "CON-BRIDGE", must_fail: true }, { fresh: true });
 }
 
 // ---------- lines the bank gets wrong, and lines that look like each other ----------
@@ -479,9 +479,9 @@ const EV_CSV = [["2025-03-11", "2025-06-30"], ["2025-07-01", "2025-09-30"], ["20
 const STATEMENT_MISSING = "2024-12-21";
 /* traps that live in how the files were downloaded, not in the money */
 function fileTraps() {
-  const over = B.lines.filter((x) => x.acct === EV && x.date >= "2025-03-11" && x.date <= "2025-03-21").sort(byTime), seen = new Set(), uniq = over.filter((x) => { const k = `${x.date}|${x.cents}`; if (seen.has(k)) return false; seen.add(k); return !over.some((y) => y !== x && y.date === x.date && y.cents === x.cents); });
+  const over = B.lines.filter((x) => x.acct === EV && x.date >= "2025-03-11" && x.date <= "2025-03-21").sort(byTime), seen = new Set(), uniq = over.filter((x) => { const k = `${x.date}|${x.cents}`; if (seen.has(k)) return false; seen.add(k); return !/TD INTEREST/.test(x.desc) && !over.some((y) => y !== x && y.date === x.date && y.cents === x.cents); });
   trap("T3-MERGER", "A bank merger: a new account number and a new file format, overlapping, on one account", `${EV}: Bark QIF to 2025-03-21, no number and no running balance; Harbour CSV from 2025-03-11, a new number from ${MERGER} and the same lines reworded (BPAY becomes BILL PAYMENT); ${over.length} lines in both, and a number whose alias starts after the file does`, "One account, one line each, two witnesses, and the balance chain carries across.",
-    { kind: "lines", lines: uniq.slice(0, 6).map((x) => plain(x, x.lens || "neither", { n: 1 })), balances: [{ account: EV, months: ["2025-03", "2025-04", "2025-05"] }] });
+    { kind: "lines", lines: uniq.slice(0, 6).map((x) => plain(x, x.lens || "neither", { n: 1 })), moves: [{ account: EV, months: ["2025-03", "2025-04", "2025-05"] }] });
   const hole = B.lines.filter((x) => x.acct === EV && x.date >= "2024-08-05" && x.date <= "2024-08-12");
   trap("T3-QIF-HOLE", "Eight days of bank lines nobody downloaded, in a format with no running balance", `${EV}: no QIF holds 2024-08-05 to 2024-08-12, ${hole.length} lines worth ${money(hole.reduce((t, x) => t + x.cents, 0))}. Each file's opening record is honest`, "The engine cannot know the lines. It must say the opening does not chain, for that account and those dates.",
     { kind: "hole", account: EV, month: "2024-08", net_cents: hole.reduce((t, x) => t + x.cents, 0), line_count: hole.length, match: /2024-0[89]/.source });
@@ -494,15 +494,16 @@ function fileTraps() {
   const cross = B.lines.filter((x) => x.acct === CC && x.lens === "spending" && x.date >= START && x.cents < 0 && x.posted && ymOf(x.posted) !== ymOf(x.date)).sort(byTime);
   trap("T3-DATE-BASIS", "A card charge dated in one month, posted in the next", `${CC}: ${cross.length} lines. Budgets read the charge date. Six sampled`, "SPEC 6.5: a purchase counts when charged, and it is one line.",
     { kind: "lines", lines: [0, 1, 2, 3, 4, 5].map((i) => cross[Math.floor(i * cross.length / 6)]).map((x) => plain(x, "spending", { n: 1, month: ymOf(x.date) })) });
-  const f = B.lines.filter((x) => x.acct === CC && x.member === GEOFF && x.cents < 0 && x.date >= "2025-07-10" && x.date <= "2025-09-10").sort(byTime), pick = f.filter((x, i) => i % Math.floor(f.length / 4) === 0 && !B.lines.some((y) => y !== x && y.acct === CC && y.cents === x.cents)).slice(0, 4);
+  const near = (x) => B.lines.some((y) => y !== x && y.acct === CC && y.cents === x.cents && Math.abs(dayDiff(y.date, x.date)) <= 5);
+  const f = B.lines.filter((x) => x.acct === CC && x.member === GEOFF && x.cents < 0 && x.date >= "2025-07-10" && x.date <= "2025-09-10").sort(byTime), pick = B.lines.filter((x) => x.acct === CC && x.cents < 0 && x.date >= "2025-07-03" && posted(x) <= "2025-09-30" && !near(x)).sort(byTime);
   trap("T3-CARD-LOGIN", "An activity download that shows only one card member", `${CC}: the quarterly file for 2025-07 to 2025-09 was downloaded from Salma's login, and holds only her lines. ${f.length} of Geoffrey's lines in those dates are on the statements alone`, "A filtered download is not a statement of what did not happen. SPEC 6.2 reads a side that covers a day and does not show a line as saying so; here that reading would delete real purchases.",
     { kind: "lines", lines: pick.map((x) => plain(x, "spending", { n: 1 })) }, { fresh: true, dc: true });
   trap("T3-STATEMENT-GAP", "A card statement never downloaded", `The statement closing ${STATEMENT_MISSING} is missing`, "The lines stay, on their posting dates. Coverage names the missing statement.",
     { kind: "gap", stream: "STM-CARD", month: STATEMENT_MISSING.slice(0, 7) });
   trap("T3-PENSION-UNREAD", "A pension account no public recipe can read", `${PN}: the fund's half-yearly JSON has the layout of a public recipe and carries a pension line type its map does not hold, so the file is refused. ${money(OPEN[PN])} at the start`, "The balance cannot be known. It must be named as not held, never shown as zero, because a printed zero is a claim, SPEC 4.4b and 5.4.",
-    { kind: "lines", balances: [{ account: PN, months: ["2023-12", "2024-12", "2025-12", "2026-06"] }] }, { fresh: true, dc: true });
+    { kind: "lines", balances: [{ account: PN, months: ["2023-12", "2024-12", "2025-12", "2026-06"], strict: true }], must_name: { stream: PN, months: ["2024-01", "2024-07", "2025-01", "2025-07", "2026-01"] } }, { fresh: true, dc: true });
   trap("T3-SMSF-ONE-LEVEL", "The fund's accounts, whose legal owner is not a member", `${SB}, ${SK} and ${SS} are the fund's by law and Geoffrey's beneficially. Nothing else states the fund's balance`, "They count once in net worth, SPEC 6.6. A household holds what its members own, and they own this beneficially.",
-    { kind: "lines", excluded: [{ group: "super", accounts: [SB, SK, SS, PN], named: SB, month: "2024-12", want: 0 }, { group: "super", accounts: [SB, SK, SS, PN], named: SB, month: "2026-06", want: 0 }], balances: [{ account: SB, months: ["2024-12", "2025-12"] }, { account: SS, months: ["2024-12", "2025-12"] }] }, { fresh: true, dc: true });
+    { kind: "lines", excluded: [{ group: "super", accounts: [SB, SK, SS, PN], named: SB, month: "2024-12", want: 0 }, { group: "super", accounts: [SB, SK, SS, PN], named: SB, month: "2026-06", want: 0 }], balances: [{ account: SB, months: ["2024-12", "2025-12"] }, { account: SS, months: ["2024-12", "2025-12"] }], law_note: "L18" }, { fresh: true, dc: true });
 }
 function leaverTrap(balances) {
   const ms = monthRange("2024-03", "2024-08"), excl = [...ms.map((m) => ({ group: "cash", accounts: "cash", named: FM, month: m, want: Math.floor(balances[FM][m] / 2), tolerance: 1 })), { group: "cash", accounts: "cash", named: FM, month: "2024-02", want: 0, tolerance: 0 }];
