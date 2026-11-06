@@ -72,7 +72,7 @@ th{text-align:left;font-weight:600;color:var(--muted);font-size:13px}
 th,td{padding:7px 12px 7px 0;border-top:1px solid var(--line);vertical-align:baseline}
 td.num,th.num{text-align:right;font-family:var(--mono);font-size:13px;white-space:nowrap}
 .laws{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:0 28px;margin-top:22px}
-.law{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
+.law{display:grid;grid-template-columns:48px minmax(0,1fr);gap:8px;align-items:start;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
 .law b{font-weight:600}.law p{color:var(--muted);font-size:13.5px}
 .exp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px;margin-top:22px}
 .exp article{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:8px;align-content:start}
@@ -125,6 +125,7 @@ footer{padding-block:28px;color:var(--muted);font-size:14px}
   <h2>Containers are code. Institutions are data.</h2>
   <p class="sub">No per-bank adapters. A recipe is a small piece of data a cheap model can write from a few rows, cached by the shape of the file, so the second household pays nothing. The gate does not care who wrote it: money is conserved, and misreading it breaks conservation.</p>
   <div class="stats" id="cold"></div>
+  <p class="note" id="coldnote"></p>
   <pre id="recipe"></pre>
 </div></section>
 <section><div class="wrap">
@@ -200,13 +201,14 @@ footer{padding-block:28px;color:var(--muted);font-size:14px}
   const span = day(hi) - day(lo);
   const at = (pct) => iso(day(lo) + (span * pct) / 100);
   const lookup = (on, known) => { const hit = T.filter((r) => r.valid_from <= on && (r.valid_to == null || on < r.valid_to) && r.recorded_at <= known && (r.superseded_at == null || known < r.superseded_at)); return hit.length ? hit[hit.length - 1].value : null; };
+  const windowRates = [...new Set([...Array(21).keys()].flatMap((i) => [...Array(21).keys()].map((j) => lookup(at(i * 5), at(j * 5))).filter((v) => v != null).map(Number)))];
   const W = 520, H = 330, M = 44;
   function plot(von, kat) {
     const n = 60; let cells = "";
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
       const v = lookup(at((i + .5) * 100 / n), at((j + .5) * 100 / n));
-      const low = T.length && v != null && Number(v) === Math.min(...T.map((r) => Number(r.value)));
-      cells += `<rect x="${M + (i * (W - M - 8)) / n}" y="${H - M - ((j + 1) * (H - M - 8)) / n}" width="${(W - M - 8) / n + .6}" height="${(H - M - 8) / n + .6}" fill="${low ? "var(--good)" : "var(--accent)"}" fill-opacity="${low ? .55 : .3}"/>`;
+      const low = v != null && Number(v) === Math.min(...windowRates);
+      cells += `<rect shape-rendering="crispEdges" x="${M + (i * (W - M - 8)) / n}" y="${H - M - ((j + 1) * (H - M - 8)) / n}" width="${(W - M - 8) / n + .6}" height="${(H - M - 8) / n + .6}" fill="${low ? "var(--good)" : "var(--accent)"}" fill-opacity="${low ? .6 : .32}"/>`;
     }
     const x = M + (von * (W - M - 8)) / 100, y = H - M - (kat * (H - M - 8)) / 100;
     $("timeplot").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Rate by the day it applies to and the day it was known">${cells}<circle cx="${x}" cy="${y}" r="7" fill="var(--ink)" stroke="var(--bg)" stroke-width="2"/><text x="${M}" y="${H - 22}" fill="var(--muted)" font-size="12" font-family="var(--body)">${lo}</text><text x="${W - 8}" y="${H - 22}" fill="var(--muted)" font-size="12" text-anchor="end" font-family="var(--body)">${hi}</text><text x="${(W + M) / 2}" y="${H - 6}" text-anchor="middle" fill="var(--ink2)" font-size="12.5" font-family="var(--body)">The day it applies to</text><text transform="translate(13 ${(H - M) / 2}) rotate(-90)" text-anchor="middle" fill="var(--ink2)" font-size="12.5" font-family="var(--body)">The day we knew</text></svg>`;
@@ -234,6 +236,7 @@ footer{padding-block:28px;color:var(--muted);font-size:14px}
   // ---------- importers ----------
   const c = D.cold;
   $("cold").innerHTML = (c ? [[`${c.passed} of ${c.families}`, `families read by ${c.model}, cold`], [(c.tokens_in + c.tokens_out).toLocaleString(), "tokens, first household"], ["0", "tokens, second household"], [`$${c.usd}`, "to read a household's formats"]] : [[`${D.recipes}`, "recipes"], [`${D.families}`, "file families"], ["0", "lines of per-bank code"]]).map(([a, b]) => `<div class="stat"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("");
+  $("coldnote").textContent = c ? `The gate refused the other ${c.families - c.passed}, so none reached a ledger. The run stopped at its US$12 cap with 8 of 58 families untried. ${c.second_protocol ? c.second_protocol.note : ""} Recipes written by hand pass for all 58.` : "";
   $("recipe").textContent = D.recipe;
 
   // ---------- tax ----------
