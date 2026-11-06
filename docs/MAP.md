@@ -90,6 +90,7 @@ Never edit an output by hand. Change its source, run this, and commit both. `che
 
 - There are three importers: `period-close/` (Python, the reference), `src/core/` (the JavaScript port) and `standard/intake/` (the Standard's, driven by recipes).
 - `fixtures/`, `period-close/fixtures/` and `standard/eval/households/` are three different kinds of fixture. See the [glossary](GLOSSARY.md#testing).
+- The `standard` area recalculates the workbook in LibreOffice if `soffice` is installed, and skips that step if not. With LibreOffice open, or another run at the same moment, it can fail with `Command failed: soffice`. Close it and run again.
 - `src/vendor/` holds pinned third-party code. Do not edit it. `src/tokens.css` is generated from `brand/tokens.json`.
 - `standard/.build/`, `dist/` and `portals/node_modules/` are ignored outputs.
 
