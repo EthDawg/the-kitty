@@ -4,7 +4,7 @@ Generated from [profile.json](profile.json) by `build-profile.js`. Edit the JSON
 
 The Digital Davies: a fictional Australian family used to test The Kitty and for future builds and demos. Every person, employer and address here is invented. This file is the single source for who they are.
 
-Each fact in the JSON says where it came from. **Canon** is Ethan's. **World** is already stated by `standard/world` and a test holds it there. **Invented** is ours to change.
+Each fact in the JSON says where it came from. **Canon** is the project owner's. **World** is already stated by `standard/world` and a test holds it there. **Invented** is ours to change.
 
 Danny and Daisy are referred to by name throughout. The children's pronouns are unstated, so write *they* or avoid one.
 
@@ -26,7 +26,7 @@ The world still calls Danny Jordan (`JORDAN`). See [RENAME.md](RENAME.md).
 
 **Study**
 
-- Bachelor of Commerce, finance and accounting, Merri Creek University, 3 March 2003 to 24 November 2006.
+- Bachelor of Commerce, finance and accounting, University of Mewbourne, 3 March 2003 to 24 November 2006.
 
 **HELP**
 
@@ -36,8 +36,8 @@ The world still calls Danny Jordan (`JORDAN`). See [RENAME.md](RENAME.md).
 
 | Employer | Role | From | To |
 |---|---|---|---|
-| Bluetongue Bank | Graduate, then business banking analyst | 5 February 2007 | 18 December 2009 |
-| Copperleaf Wealth | Financial adviser | 18 January 2010 | 27 January 2017 |
+| Bank of Whiskers | Graduate, then business banking analyst | 5 February 2007 | 18 December 2009 |
+| Purrpetual Advice | Financial adviser | 18 January 2010 | 27 January 2017 |
 | Northwind Logistics | Finance manager, treasury | 6 February 2017 | 29 June 2035 |
 
 **Pay rises**
@@ -79,9 +79,9 @@ The world still calls Daisy Mia (`MIA`). See [RENAME.md](RENAME.md).
 
 **Study**
 
-- Bachelor of Science, anatomy and physiology, Merri Creek University, 28 February 2005 to 23 November 2007.
-- Master of Physiotherapy, graduate entry, Merri Creek University, 25 February 2008 to 20 November 2009.
-- Master of Musculoskeletal Physiotherapy, part time, Merri Creek University, 2 August 2021 to 24 November 2023.
+- Bachelor of Science, anatomy and physiology, University of Mewbourne, 28 February 2005 to 23 November 2007.
+- Master of Physiotherapy, graduate entry, University of Mewbourne, 25 February 2008 to 20 November 2009.
+- Master of Musculoskeletal Physiotherapy, part time, University of Mewbourne, 2 August 2021 to 24 November 2023.
 
 **HELP**
 
@@ -92,7 +92,7 @@ The world still calls Daisy Mia (`MIA`). See [RENAME.md](RENAME.md).
 
 | Employer | Role | From | To |
 |---|---|---|---|
-| Wattle Bend Community Health | Physiotherapist, rotating | 18 January 2010 | 19 December 2014 |
+| Catnip Creek Community Health | Physiotherapist, rotating | 18 January 2010 | 19 December 2014 |
 | Bayview Health | Physiotherapist, then senior physiotherapist | 19 January 2015 | 30 June 2033 |
 | Nightpaw Agency Nursing | Casual weekend shifts | 1 April 2019 | 30 June 2024 |
 
@@ -121,7 +121,7 @@ The world still calls Daisy Mia (`MIA`). See [RENAME.md](RENAME.md).
 
 **Salary packaging:** Offered by Bayview Health and not used in the world's payslips. The programme brief imagines salary packaging. A chapter that wants it needs new payslips, so it is recorded as a gap rather than assumed.
 
-**Business: Long Stretch Physio, from 2 February 2032.** A private physiotherapy practice in rented rooms in Brunswick. A sole trader with an ABN. Daisy drops to two days at Bayview Health, then leaves on 30 June 2033.
+**Business: Paws and Stretch Physio, from 2 February 2032.** A private physiotherapy practice in rented rooms in Brunswick. A sole trader with an ABN. Daisy drops to two days at Bayview Health, then leaves on 30 June 2033.
 
 - GST: Allied health services are often GST-free. A physiotherapy consultation that is necessary treatment carries no GST, but GST-free sales still count towards the $75,000 registration threshold, so the practice registers and lodges anyway. Braces and bands sold at the desk, and ergonomic assessments for employers, are taxable.
 - BAS: Quarterly, most of the income at the GST-free label.

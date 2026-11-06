@@ -40,7 +40,7 @@ const lines = [
   "# The Davies family", "",
   "Generated from [profile.json](profile.json) by `build-profile.js`. Edit the JSON, not this page.", "",
   P.about, "",
-  "Each fact in the JSON says where it came from. **Canon** is Ethan's. **World** is already stated by `standard/world` and a test holds it there. **Invented** is ours to change.", "",
+  "Each fact in the JSON says where it came from. **Canon** is the project owner's. **World** is already stated by `standard/world` and a test holds it there. **Invented** is ours to change.", "",
   "Danny and Daisy are referred to by name throughout. The children's pronouns are unstated, so write *they* or avoid one.", "",
   `**Voice.** ${P.voice}`, "",
   ...table(["Person", "Born", "Role"], P.people.map((p) => [`${p.first_name} ${p.family_name}`, date(p.born), p.role])), "",

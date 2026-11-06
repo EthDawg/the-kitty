@@ -29,8 +29,9 @@
     water: { title: "Your water accounts", sub: "Quarterly bills, one bowl per property.", nav: ["Documents", "Usage|off", "Payments|off"] },
     valuation: { title: "Your estimates", sub: "A month-end figure for everything you watch.", nav: ["Documents", "Suburb report|off", "Alerts|off"] },
     energy: { title: "Your energy accounts", sub: "Electricity and gas bills for the home.", nav: ["Documents", "Usage|off", "Plans|off"] },
-    inbox: { title: "Sign in to your mail", sub: "Everything that turned up with an attachment.", nav: ["Documents", "Compose|off", "Spam|off"] },
-    folder: { title: "The shared folder", sub: "What the household keeps for itself.", nav: ["Documents", "Share|off", "Trash|off"] },
+    inbox: { title: "Sign in to your mail", sub: "Everything that turned up, attachments and all.", nav: [] },
+    folder: { title: "Sign in to your Drive", sub: "Folders, search and everything the household kept, in the state it kept it.", nav: [] },
+    agent: { title: "Client sign-in", sub: "Send us your papers by email. We'll tell you what's missing.", nav: [] },
   };
   let brand, data, state = { page: 1, q: "" };
 
@@ -46,23 +47,25 @@
   const acct = (id) => data.accounts.find((a) => a.id === id);
   const nav = (active) => {
     const w = WORDS[brand.kind];
-    $("#navlinks").innerHTML = w.nav.map((n, i) => { const [label, off] = n.split("|"); const href = off ? "#" : i === 0 ? "#/" : i === 1 ? `#/documents/${encodeURIComponent((state.account || data.accounts[0]).id)}` : "#/files"; return `<a href="${href}" ${off ? 'class="off" aria-disabled="true" tabindex="-1"' : ""} ${active === i ? 'aria-current="page"' : ""}>${esc(label)}</a>`; }).join("");
+    $("#navlinks").innerHTML = w.nav.map((n, i) => { const [label, off] = n.split("|"); const firstAccount = state.account || data.accounts[0]; const href = off ? "#" : i === 0 ? "#/" : i === 1 ? (firstAccount ? `#/documents/${encodeURIComponent(firstAccount.id)}` : "#/") : "#/files"; return `<a href="${href}" ${off ? 'class="off" aria-disabled="true" tabindex="-1"' : ""} ${active === i ? 'aria-current="page"' : ""}>${esc(label)}</a>`; }).join("");
     $("#nav").hidden = false;
   };
   const balanceCell = (a) => a.balance == null ? "" : `<span class="bal num ${a.balance < 0 ? "neg" : ""}">${aud(a.balance)}<small>as at ${fmtDate(a.as_at)}</small></span>`;
   const accountRow = (a, current) => `<a class="acct" href="#/account/${encodeURIComponent(a.id)}" data-account="${esc(a.id)}" ${current === a.id ? 'aria-current="true"' : ""}>
     <span><span class="name">${esc(a.name)}${a.in_sheet === false ? '<span class="badge off">not on the sheet</span>' : ""}</span><br><span class="sub">${esc(a.number)} · ${esc(a.type)}</span></span>${balanceCell(a)}</a>`;
 
+  const firstName = () => (data.person ? data.person.first_name : data.name);
   const greeting = () => { const hour = new Date().getHours(); return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"; };
 
   // ---- overview
   const overview = () => {
     state.account = null; nav(0);
     const w = WORDS[brand.kind];
+    if (!data.accounts.length) { $("#view").innerHTML = `<div class="greet">${greeting()}, ${esc(firstName())}.</div><div class="card"><div class="eyebrow">${esc(w.list)}</div><p class="small" style="margin-top:6px">${data.person ? `Nothing at ${esc(brand.name)} is in ${esc(data.person.first_name)}'s name${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.` : `${esc(brand.name)} holds nothing yet${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.`}</p></div>`; return; }
     const liquid = data.accounts.filter((a) => a.kind === "bank" && a.balance != null).reduce((s, a) => s + a.balance, 0);
     const owing = data.accounts.filter((a) => a.kind === "loan").reduce((s, a) => s + a.balance, 0);
-    $("#view").innerHTML = `<div class="greet">${greeting()}, ${esc(data.name)}.</div>
-      <p class="muted small" style="margin-bottom:14px">${esc(w.list)} held since ${fmtDate(data.accounts.reduce((m, a) => (a.from < m ? a.from : m), data.accounts[0].from))}. Records run to ${fmtDate(data.today)}.</p>
+    $("#view").innerHTML = `<div class="greet">${greeting()}, ${esc(firstName())}.</div>
+      <p class="muted small" style="margin-bottom:14px">${esc(w.list)} held since ${fmtDate(data.accounts.reduce((m, a) => (a.from < m ? a.from : m), data.accounts[0].from))}. Records run to ${fmtDate(data.today)}.${rulesLine()}</p>
       <div class="grid side">
         <div><div class="card"><div class="eyebrow" style="margin-bottom:10px">${esc(w.list)}</div><div class="acctlist">${data.accounts.map((a) => accountRow(a)).join("")}</div>
           ${brand.kind === "bank" || brand.kind === "card" ? `<div class="totals">${liquid ? `<span><b class="num">${aud(liquid)}</b>in accounts</span>` : ""}${owing ? `<span><b class="num">${aud(-owing)}</b>owing on loans</span>` : ""}</div>` : ""}</div></div>
@@ -162,30 +165,33 @@
     $("#docs").innerHTML = `<div class="eyebrow">${n.toLocaleString("en-AU")} documents by financial year</div>` + j.groups.map((g, i) => `<details class="fy" ${i === 0 ? "open" : ""}><summary><span>${esc(g.group)}</span><span class="count">${g.docs.length} documents</span></summary><ul>${g.docs.map((d) => `<li><span>${esc(d.label)}<br><span class="small muted">${fmtDate(d.from)}${d.from !== d.to ? ` to ${fmtDate(d.to)}` : ""}</span></span><span class="links">${d.formats.map(([f, label]) => `<a href="/api/export?${new URLSearchParams({ brand: brandId, account: a.id, from: d.from, to: d.to, format: f })}" data-doc="${esc(d.kind)}">${esc(label)}</a>`).join("")}</span></li>`).join("")}</ul></details>`).join("");
   };
 
-  // ---- files as delivered: public/vault, listed by public/vault.json, by stream and year. Nothing here is generated on the way out.
+  // ---- files as delivered: by stream and year, as the clock and the person may see them. Nothing here is generated on the way out.
   let vault;
-  const loadVault = async () => { if (vault === undefined) { const r = await fetch("/vault.json").catch(() => null); vault = r && r.ok ? await r.json() : null; } return vault; };
+  const loadVault = async () => { const r = await fetch(`/api/files?brand=${encodeURIComponent(brandId)}`, { headers: { Accept: "application/json" } }).catch(() => null); vault = r && r.ok ? await r.json() : { error: r ? (await r.json().catch(() => ({}))).error : "Could not reach the portal." }; return vault; };
   const size = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
   const fileRow = (f) => `<li><span class="file">${esc(f.name)}<br><span class="small muted">Delivered ${fmtDate(f.date)} · ${size(f.size)}</span></span><span class="links"><a href="/${encodeURI(f.path)}" download="${esc(f.name)}" data-file="${esc(f.name)}" data-sha256="${esc(f.sha256)}">${esc(f.name.split(".").pop().toUpperCase())}</a></span></li>`;
   const files = async (streamId) => {
     state.account = null; nav(brand.vault ? 0 : 2);
     const v = await loadVault();
-    const streams = v ? v.streams.filter((s) => s.brand === brandId) : [];
-    if (!streams.length) { $("#view").innerHTML = `<div class="card"><div class="eyebrow">Nothing filed yet</div><p class="small" style="margin-top:6px">These files are built from the Davies world, not kept in the repository. From the repository root, run <code>node standard/world/build.js && node portals/build-vault.js</code>, then reload.</p></div>`; return; }
+    const streams = v.streams || [];
+    if (!streams.length) { $("#view").innerHTML = `<div class="card"><div class="eyebrow">Nothing filed yet</div><p class="small" style="margin-top:6px">${v.error ? esc(v.error) : data.person ? `${esc(brand.name)} holds nothing in ${esc(data.person.first_name)}'s name${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.` : `${esc(brand.name)} holds nothing yet${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.`}</p></div>`; return; }
     const s = streams.find((x) => x.id === streamId) || streams[0];
     const list = v.files.filter((f) => f.brand === brandId && f.stream === s.id).sort((a, b) => (a.date === b.date ? (a.name < b.name ? 1 : -1) : a.date < b.date ? 1 : -1));
     const years = [...new Set(list.map((f) => f.year))];
     const total = streams.reduce((n, x) => n + x.files, 0);
     const first = streams.map((x) => x.first).sort()[0], last = streams.map((x) => x.last).sort().pop();
     const words = `${total.toLocaleString("en-AU")} files delivered from ${fmtDate(first)} to ${fmtDate(last)}, each one exactly as it arrived.`;
-    $("#view").innerHTML = `${brand.vault ? `<div class="greet">${greeting()}, ${esc(data.name)}.</div><p class="muted small" style="margin-bottom:14px">${words}</p>` : `<div class="pagehead"><div><h1>Files as delivered</h1><p class="muted small">${words}</p></div></div>`}
+    $("#view").innerHTML = `${brand.vault ? `<div class="greet">${greeting()}, ${esc(firstName())}.</div><p class="muted small" style="margin-bottom:14px">${words}</p>` : `<div class="pagehead"><div><h1>Files as delivered</h1><p class="muted small">${words}</p></div></div>`}
       <div class="grid side">
         <div><div class="card"><div class="eyebrow" style="margin-bottom:10px">Documents</div><div class="acctlist">${streams.map((x) => `<a class="acct" href="#/files/${encodeURIComponent(x.id)}" data-stream="${esc(x.id)}" ${x.id === s.id ? 'aria-current="true"' : ""}><span><span class="name">${esc(x.name)}</span><br><span class="sub">${x.files.toLocaleString("en-AU")} ${x.files === 1 ? "file" : "files"} · ${x.first.slice(0, 4)}${x.first.slice(0, 4) === x.last.slice(0, 4) ? "" : ` to ${x.last.slice(0, 4)}`}</span></span></a>`).join("")}</div></div></div>
         <div><div class="card" id="docs"><div class="eyebrow">${esc(s.name)} · by year delivered</div>${years.map((y, i) => { const mine = list.filter((f) => f.year === y); return `<details class="fy" data-year="${esc(y)}" ${i === 0 ? "open" : ""}><summary><span>${esc(y)}</span><span class="count">${mine.length} ${mine.length === 1 ? "file" : "files"}</span></summary><ul>${mine.map(fileRow).join("")}</ul></details>`; }).join("")}</div>
-          <div class="card"><div class="eyebrow">About these records</div><p class="small" style="margin-top:6px">${brand.serves ? `${esc(brand.serves)} ` : ""}Nothing here is generated when you click: each file is the one the Davies household received, byte for byte. Save it, unchanged, under <code>sources/&lt;stream&gt;/&lt;delivered date&gt;/</code>.</p></div></div>
+          <div class="card"><div class="eyebrow">About these records</div><p class="small" style="margin-top:6px">${brand.serves ? `${esc(brand.serves)} ` : ""}Nothing here is generated when you click: each file is the one the Davies household received, byte for byte. Save it, unchanged, under <code>sources/&lt;stream&gt;/&lt;delivered date&gt;/</code>.${rulesLine()}</p></div></div>
       </div>`;
     if (streamId && window.innerWidth < 900) $("#docs").scrollIntoView(); // the rail stacks above the list on a phone
   };
+
+  // what this portal limits, in its own words, for a named person
+  const rulesLine = () => { const r = data.rules || {}, bits = []; if (r.back_years) bits.push(`keeps ${r.back_years} years online`); if (r.window_days) bits.push(`exports at most ${r.window_days} days at a time`); if (r.gap_seconds) bits.push("hands over one document at a time"); return bits.length ? ` ${esc(brand.name)} ${bits.join(", ")}.` : ""; };
 
   // ---- routing, sign-in, boot
   const route = () => {
@@ -193,24 +199,33 @@
     const h = location.hash || "#/";
     const m = h.match(/^#\/(account|documents|files)(?:\/(.+))?$/);
     window.scrollTo(0, 0);
+    if (window.KittyEstate && KittyEstate[brand.kind]) { $("#nav").hidden = true; return KittyEstate[brand.kind]({ $, esc, fmtDate, brand, brandId, data, firstName, greeting, hash: h }); }
     if (brand.vault || (m && m[1] === "files")) files(m && m[1] === "files" && m[2] ? decodeURIComponent(m[2]) : ""); else if (m && m[2] && m[1] === "account") account(m[2]); else if (m && m[2]) documents(m[2]); else overview();
   };
   window.addEventListener("hashchange", route);
+  const askForCode = (j) => { $("#codebox").hidden = false; $("#codeshown").textContent = j.code; $("#codehow").textContent = j.how; $("#code").required = true; $("#code").focus(); };
   $("#loginform").addEventListener("submit", async (e) => {
     e.preventDefault();
     $("#loginbtn").disabled = true; $("#loginerror").hidden = true;
-    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId, name: $("#name").value, password: $("#password").value }) });
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId, name: $("#name").value, password: $("#password").value, code: $("#code").value }) });
     const j = await r.json().catch(() => ({}));
     $("#loginbtn").disabled = false;
+    if (j.needs_code) askForCode(j);
     if (!r.ok) { $("#loginerror").textContent = j.error || "Could not sign in."; $("#loginerror").hidden = false; return; }
+    if (j.needs_code) return;
+    $("#codebox").hidden = true; $("#code").value = ""; $("#code").required = false;
     load();
   });
   $("#signout").addEventListener("click", async () => { await fetch("/api/logout", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId }) }); data = null; location.hash = ""; load(); });
+  const showClock = () => { const c = $("#clockline"); c.hidden = !data.as_of; if (data.as_of) c.textContent = `The clock says ${fmtDate(data.as_of)}. Nothing later exists yet.`; };
+  // ?as_of=2027-01-31 or ?chapter=1 on any portal sets the clock for the whole run
+  const setClockFromUrl = async () => { const q = new URLSearchParams(location.search), as_of = q.get("as_of"), chapter = q.get("chapter"); if (as_of == null && chapter == null) return; await fetch("/api/clock", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ as_of, chapter }) }); };
   const load = async () => {
     const r = await fetch(`/api/accounts?brand=${encodeURIComponent(brandId)}`, { headers: { Accept: "application/json" } });
     if (r.status === 401) { $("#signin").hidden = false; $("#view").hidden = true; $("#nav").hidden = true; $("#who").hidden = true; $("#loginbrand").value = brandId; if (new URLSearchParams(location.search).get("error")) { $("#loginerror").textContent = "Any name will do, and the password is demo."; $("#loginerror").hidden = false; } $("#name").focus(); return; }
     data = await r.json();
-    $("#signin").hidden = true; $("#view").hidden = false; $("#who").hidden = false; $("#whoname").textContent = `Signed in as ${data.name}`;
+    $("#signin").hidden = true; $("#view").hidden = false; $("#who").hidden = false; $("#whoname").textContent = `Signed in as ${data.person ? data.person.full_name : data.name}`;
+    showClock();
     route();
   };
   Promise.all(["/brands.json", "/vault-brands.json"].map((u) => fetch(u).then((r) => r.json()))).then(([originals, more]) => {
@@ -220,6 +235,6 @@
     applyBrand(brand);
     $("#brandswitch").innerHTML = brands.map((b) => `<option value="${b.id}" ${b.id === brandId ? "selected" : ""}>${esc(b.name)}</option>`).join("");
     $("#brandswitch").addEventListener("change", (e) => { location.href = `/${e.target.value}`; });
-    load();
+    setClockFromUrl().then(load);
   });
 })();

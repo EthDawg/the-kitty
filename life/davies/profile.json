@@ -2,7 +2,7 @@
   "schema": "davies-profile/1",
   "about": "The Digital Davies: a fictional Australian family used to test The Kitty and for future builds and demos. Every person, employer and address here is invented. This file is the single source for who they are.",
   "provenance": {
-    "canon": "Set by Ethan. Do not change without him.",
+    "canon": "Set by the project owner. Do not change without asking.",
     "world": "Already stated by standard/world. portals/test/profile.spec.js holds these to the world, so a change there fails here.",
     "invented": "Written here to fill the gaps. Ours to change."
   },
@@ -33,14 +33,14 @@
       "provenance": "canon",
       "sign_in": { "names": ["danny", "danny davies", "jordan", "jordan davies"] },
       "study": [
-        { "what": "Bachelor of Commerce, finance and accounting", "where": "Merri Creek University", "from": "2003-03-03", "to": "2006-11-24", "provenance": "invented" }
+        { "what": "Bachelor of Commerce, finance and accounting", "where": "University of Mewbourne", "from": "2003-03-03", "to": "2006-11-24", "provenance": "invented" }
       ],
       "help": [
         { "what": "HECS-HELP for the commerce degree", "borrowed": 19400, "repaid_by": "2014-06-30", "note": "Gone before the world opens in 2019, which is why the world holds no HELP account for Danny.", "provenance": "invented" }
       ],
       "jobs": [
-        { "employer": "Bluetongue Bank", "title": "Graduate, then business banking analyst", "from": "2007-02-05", "to": "2009-12-18", "provenance": "invented" },
-        { "employer": "Copperleaf Wealth", "title": "Financial adviser", "from": "2010-01-18", "to": "2017-01-27", "provenance": "invented" },
+        { "employer": "Bank of Whiskers", "title": "Graduate, then business banking analyst", "from": "2007-02-05", "to": "2009-12-18", "provenance": "invented" },
+        { "employer": "Purrpetual Advice", "title": "Financial adviser", "from": "2010-01-18", "to": "2017-01-27", "provenance": "invented" },
         { "employer": "Northwind Logistics", "title": "Finance manager, treasury", "from": "2017-02-06", "to": "2035-06-29", "provenance": "world for the employer and start date, invented for the title and end date", "cadence": "fortnightly", "party_id": "NORTHWIND", "contract_id": "C-EMP-J" }
       ],
       "pay": [
@@ -89,16 +89,16 @@
       "provenance": "canon",
       "sign_in": { "names": ["daisy", "daisy davies", "mia", "mia davies"] },
       "study": [
-        { "what": "Bachelor of Science, anatomy and physiology", "where": "Merri Creek University", "from": "2005-02-28", "to": "2007-11-23", "provenance": "invented" },
-        { "what": "Master of Physiotherapy, graduate entry", "where": "Merri Creek University", "from": "2008-02-25", "to": "2009-11-20", "provenance": "invented" },
-        { "what": "Master of Musculoskeletal Physiotherapy, part time", "where": "Merri Creek University", "from": "2021-08-02", "to": "2023-11-24", "note": "The dates follow the HELP debts the world charges, the last on 31 August 2023.", "provenance": "invented, dated to fit the world" }
+        { "what": "Bachelor of Science, anatomy and physiology", "where": "University of Mewbourne", "from": "2005-02-28", "to": "2007-11-23", "provenance": "invented" },
+        { "what": "Master of Physiotherapy, graduate entry", "where": "University of Mewbourne", "from": "2008-02-25", "to": "2009-11-20", "provenance": "invented" },
+        { "what": "Master of Musculoskeletal Physiotherapy, part time", "where": "University of Mewbourne", "from": "2021-08-02", "to": "2023-11-24", "note": "The dates follow the HELP debts the world charges, the last on 31 August 2023.", "provenance": "invented, dated to fit the world" }
       ],
       "help": [
         { "what": "HECS-HELP for the first two degrees", "borrowed": 38600, "repaid_by": "2019-06-30", "note": "Gone before the world's HELP account opens.", "provenance": "invented" },
         { "what": "HELP for the part-time master's", "account_id": "HELP-M", "opened": "2021-08-31", "balance_at": "2026-09-06", "balance": 1730.27, "provenance": "world" }
       ],
       "jobs": [
-        { "employer": "Wattle Bend Community Health", "title": "Physiotherapist, rotating", "from": "2010-01-18", "to": "2014-12-19", "provenance": "invented" },
+        { "employer": "Catnip Creek Community Health", "title": "Physiotherapist, rotating", "from": "2010-01-18", "to": "2014-12-19", "provenance": "invented" },
         { "employer": "Bayview Health", "title": "Physiotherapist, then senior physiotherapist", "from": "2015-01-19", "to": "2033-06-30", "provenance": "world for the employer and start date, invented for the title and end date", "cadence": "fortnightly", "party_id": "BAYVIEW", "contract_id": "C-EMP-M" },
         { "employer": "Nightpaw Agency Nursing", "title": "Casual weekend shifts", "from": "2019-04-01", "to": "2024-06-30", "note": "The agency places allied health staff as well as nurses, whatever the name says.", "provenance": "world for the employer and dates", "party_id": "NIGHTPAW", "contract_id": "C-EMP-M2" }
       ],
@@ -122,7 +122,7 @@
       "super": { "fund": "HESTAbby", "member": "HB-2210-7744", "account_id": "SUPER-M", "provenance": "world" },
       "salary_packaging": { "state": "Offered by Bayview Health and not used in the world's payslips.", "provenance": "invented", "note": "The programme brief imagines salary packaging. A chapter that wants it needs new payslips, so it is recorded as a gap rather than assumed." },
       "business": {
-        "name": "Long Stretch Physio",
+        "name": "Paws and Stretch Physio",
         "what": "A private physiotherapy practice in rented rooms in Brunswick.",
         "from": "2032-02-02",
         "structure": "A sole trader with an ABN. Daisy drops to two days at Bayview Health, then leaves on 30 June 2033.",

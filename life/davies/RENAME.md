@@ -77,7 +77,7 @@ The lowercase `ava` and `mia` rows are mostly sign-in test names and need a look
 
 - The Davies demo sheet and the v2 sheet in Google, and the public Kitty artifact's sample.
 - The portals on Vercel: redeploy after the vault is rebuilt.
-- Notes in the private Personal-AI-OS project that say Jordan and Mia. Those are Ethan's to update.
+- Any notes kept outside the repository that say Jordan and Mia.
 
 ## Order
 

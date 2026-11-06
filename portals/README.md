@@ -2,8 +2,8 @@
 
 Twenty-four parody portals that hold the fictional Davies household's files for eight years, the way a bank, a card
 company, a property manager, a payroll, an insurer, a super fund, a tax office and a council hold them, deployed on Vercel
-at https://the-kitty-portals.vercel.app. Any name signs in with the password `demo`. Nothing here is a real institution;
-the column shapes are real.
+at https://the-kitty-portals.vercel.app. A twenty-fifth, Tabby Tax, is a parody accountant. Any name signs in with the
+password `demo`. Nothing here is a real institution; the column shapes are real. `public/llms.txt` tells an agent how the sites work.
 
 The seven originals generate exports on the server. Every portal also hands over the Davies world's files exactly as
 delivered: the seventeen below do nothing else, and the seven carry them under a "Files as delivered" tab.
@@ -35,12 +35,42 @@ delivered: the seventeen below do nothing else, and the seven carry them under a
 | Bupaw | Bupa | Each person's private health insurance statement for the tax return. |
 | Kittenhood | a childcare centre's family portal | Ava's monthly statements of account, as saved pages. |
 | VicPaws | VicRoads | A registration notice a year, through two cars. |
-| Gmeow | the household's email inbox | Receipts from JB Hi-Fur and the like, valuations, settlement statements, depreciation schedules and the tax agent's returns. |
-| Litterbox | the household's shared folder | Receipt scans, deductions worksheets, the work-from-home log, the car logbook and the wallet export. |
+| Gmeow | the household's email inbox | A working inbox: receipts, bills, statements, valuations, settlement papers, returns and noise. Search, threads, attachments, compose. |
+| Litterbox | the household's Drive | A working Drive, messy on purpose: folders, search, preview, download, upload. |
+| Tabby Tax | a tax agent's practice | Holds no files. Takes emailed PDFs and a zip, asks what a real practice asks, and does not open cloud links. |
 
 Councils, water and energy share one portal each, the way Pawroll serves two employers; each stream names who sent what.
 Files with no portal of their own live where they landed: Gmeow for what arrived by email, Litterbox for what the
 household keeps itself.
+
+## The estate: when, who and how
+
+Every read passes through one view of the request, `lib/view.js`: when (the clock), who (the person) and how (that portal's friction).
+
+**The clock lives in `lib/clock.js`, between the API and the data.** A request carries an `as_of`: `?as_of=2027-01-31` or `?chapter=1`,
+a bearer token, or the `kp_as_of` cookie set by `POST /api/clock`. `lib/data.js`, `lib/exports.js`, `lib/vault.js`, `lib/drive.js` and `lib/mail.js`
+ask it through `has()` and `upTo()` and hold no rule of their own. A row exists from its date, a statement from its issue date, an assessment
+from its assessed date (the world's `issued_on`). No clock means everything the portals hold, as before. The chapter dates are in `lib/clock.js`.
+
+**Sign-in chooses a person.** Any name and `demo` still sees the whole household with no friction. A name in `life/davies/profile.json`, old or
+new, is that person. `estate/access.json` says who holds what, written by `build-vault.js` from the world's ownership tables, and it follows the
+date: the saver is joint until 1 July 2024. `data/portal-rules.json` holds the one exception, the card, where the world splits the cost and the
+card company signs in its member.
+
+**Friction is data.** `data/portal-rules.json` has a row per portal: `back_years`, `window_days`, `gap_seconds` (one document at a time) and
+`second_factor` (a mock code shown on screen). It applies to a named person and never to the any-name door.
+
+**The Drive and the inbox.** `estate-plan.js` says where things landed and what state they are in, and `build-estate.js` builds it. `lib/drive.js` and
+`lib/mail.js` have the same tools and arguments as a real connector, at `/api/drive/<tool>` and `/api/mail/<tool>`, with the query languages too. A real
+demo Google or Microsoft account is a new class behind `driveFor()` and `mailFor()`, and nothing else changes. `life/davies/ESTATE.md` is generated:
+what each chapter needs and where it is, checked at that chapter's clock.
+
+**A run's own writes.** Uploads and sent mail go through `lib/runstore.js`, one object per write, under a run id set at sign-in, so runs cannot see each
+other. It uses Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set and a temporary folder otherwise, which does not survive a cold start on Vercel.
+`ESTATE_WRITES=off` turns writing off.
+
+**Tabby Tax.** `lib/tabby.js` answers from `data/tabby-script.json`, with no model and no randomness. It knows the family's papers by hash, so
+`scan0003.pdf` is read the way a person would read it, and anything else by its name and words. Nothing it says is tax advice.
 
 ## What is in here
 
@@ -50,12 +80,13 @@ household keeps itself.
 | `build-data.py` | Builds `data/months.json` from `history.py`, `data/snapshot.json` (every month the sheet holds, unchanged) and `period-close/simulate.py` run in a scratch copy (the two months ahead). `--check` fails if the committed file is stale; `--write-sources` writes the history as bank files under `../sources/`; `public/stats.json` is written alongside. |
 | `data/months.json` | The one dataset the portals serve: accounts, transactions, payslips, loans by month, properties by month, policies by period. |
 | `public/` | The pages: `index.html` (the landing), `portal.html` + `portal.js` + `portal.css` (one app for every brand: overview, activity, documents, files as delivered), `brands.json` (the seven) and `vault-brands.json` (the seventeen, same shape) as the registry, `marks.js` (the original wordmarks). |
-| `build-vault.js` | Copies the world's files into `public/vault/<stream>/<delivered date>/` and writes `public/vault.json` (brand, stream, year, date, file name, size, content type, path, hash). `streams` in each registry row says which portal holds what. A file with no home or two, a stream with no files, or a copy that misses its hash stops the build. Both outputs are gitignored. |
-| `api/` | Four Node functions: `login`, `logout`, `accounts` (list, paged activity, documents), `export` (the download). The vault needs none of them beyond sign-in: its files are static. |
-| `lib/` | `data.js` (indexes, presets, documents), `shapes.js` (the exact CSV shapes, byte-for-byte what `period-close/adapters.py` writes), `pdf.js` (pdf-lib documents), `exports.js`, `http.js`, `auth.js`. |
+| `build-vault.js` | Copies the world's files into `estate/files/vault/<stream>/<delivered date>/` and writes `estate/vault.json` (brand, stream, year, date, `exists_from`, file name, size, content type, path, hash), `estate/access.json` and `estate/people.json`, then runs `build-estate.js`. `streams` in each registry row says which portal holds what. A file with no home or two, a stream with no files, or a copy that misses its hash stops the build. `estate/` is gitignored and sits outside `public/`, so nothing is static. |
+| `build-estate.js`, `estate-plan.js` | The Drive, the inbox and the files only the estate holds, and `life/davies/ESTATE.md`. |
+| `api/` | `login`, `logout`, `accounts` (list, paged activity, documents), `export` (the download), `files` (the vault, by list or by file), `clock`, and `estate` (the two connectors). |
+| `lib/` | `view.js`, `clock.js`, `people.js`, `friction.js` (the estate rules above), `data.js` (indexes, presets, documents), `shapes.js` (the exact CSV shapes, byte-for-byte what `period-close/adapters.py` writes), `pdf.js` (pdf-lib documents), `exports.js`, `vault.js`, `drive.js`, `drive-query.js`, `mail.js`, `tabby.js`, `runstore.js`, `read.js`, `mime.js`, `zip.js`, `http.js`, `auth.js`. |
 | `server.js` | Mounts the same functions locally with the same rewrites; what Playwright runs against. |
 | `lib/file-types.js` | The content type of each delivered file. `vercel.json` repeats it for the deployment; `test/vault.spec.js` holds the two together. |
-| `test/portals.spec.js` | The proof. `test/vault.spec.js` is the vault's: two sign-ins, a PDF and a CSV hashed against the world, one home for every file. `test/screenshots.js` takes the README's screenshots. |
+| `test/portals.spec.js` | The proof. `test/vault.spec.js` is the vault's: two sign-ins, a PDF and a CSV hashed against the world, one home for every file. `clock`, `people`, `estate`, `tabby` and `profile.spec.js` hold the rest. `test/screenshots.js` takes the README's screenshots. |
 
 ## Run it
 
@@ -66,7 +97,7 @@ python3 build-data.py                     # after a month-end close (promote per
 python3 build-data.py --write-sources     # also write any new months as bank files under sources/
 ```
 
-The vault is generated, so a checkout builds it from the repo root. Without it a portal says what to run instead of listing files.
+The estate is generated, so a checkout builds it from the repo root. Without it a portal says what to run instead of listing files.
 
 ```bash
 node standard/world/build.js && node portals/build-vault.js
@@ -113,17 +144,16 @@ live was deployed with the Vercel CLI; Git auto-deploys and a preview URL per pu
 GitHub login connection (`vercel git connect` once it exists). Deployment protection is at Vercel's default: the
 production domain is public, unique deployment URLs ask for a Vercel sign-in.
 
-The vault changes what a deploy needs:
+The estate changes what a deploy needs:
 
 - **Build it first.** From the repo root, where the `.vercel` link lives, never from inside `portals/`:
   `node standard/world/build.js && node portals/build-vault.js && vercel --prod`. A new checkout or worktree has no link;
   copy `.vercel/` from a linked one or run `vercel link`.
 - **The gitignored files still go up.** The CLI reads `.vercelignore` and not `.gitignore` (checked in CLI 59.26's source),
-  and `.vercelignore` does not list the vault. Keep it that way. `buildCommand` skips when `public/vault.json` arrived with
-  the upload and otherwise builds the vault from the repo, which a Git deploy would need; that path has not been run on Vercel.
+  and `.vercelignore` does not list `estate/`. Keep it that way. `buildCommand` skips when `estate/vault.json` arrived with
+  the upload and otherwise builds it from the repo, which a Git deploy would need; that path has not been run on Vercel.
 - **Every portal needs a rewrite.** `vercel.json` lists the ids by hand. `test/vault.spec.js` fails if one is missing.
-- **The files are static.** `/vault/*` is served with `Content-Disposition: attachment` and its own content types. The
-  sign-in guards the listing, not the files: anyone with a URL can fetch one, which is fine for a fictional household and
-  would not be for a real one.
-- **`cleanUrls` touches one type.** A vault `.html` answers with a 308 to the same path without the extension. The link's
-  `download` attribute keeps the file name and the bytes are unchanged.
+- **Nothing in the estate is static.** `/vault/*` rewrites to `api/files.js`, so a file answers to its sign-in, the clock and the person.
+  `functions` in `vercel.json` carries `estate/` into the functions that read it. `build-vault.js` deletes a stale `public/vault`,
+  because a file left there would be served to anyone.
+- **Uploads need a store.** Without `BLOB_READ_WRITE_TOKEN`, a run's uploads and mail last only as long as a function instance.

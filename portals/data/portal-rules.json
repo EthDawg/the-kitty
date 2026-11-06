@@ -1,0 +1,35 @@
+{
+  "_about": "The friction a real site has, one row per portal. It applies to a named person, never to the any-name door. back_years: how far back documents go, counted from the clock. window_days: the most one export can cover. gap_seconds: one document at a time, this long between downloads. second_factor: a mock code shown on screen, where a real site would text one. Invented, not a claim about the real institution.",
+  "access": {
+    "_about": "Where a portal's login differs from who owns the money. The card's cost is split 50/50 in the world, but its Card Member column only ever says one person, and a card company signs in its member.",
+    "ACC-CC": ["JORDAN"],
+    "ACC-CC-STMT": ["JORDAN"]
+  },
+  "portals": {
+    "westpaw":       { "second_factor": true,  "back_years": 7,    "window_days": 366,  "gap_seconds": 2 },
+    "commbark":      { "second_factor": true,  "back_years": 7,    "window_days": 548,  "gap_seconds": 2 },
+    "amewx":         { "second_factor": true,  "back_years": 3,    "window_days": 186,  "gap_seconds": 2 },
+    "ping":          { "second_factor": true,  "back_years": 5,    "window_days": 366,  "gap_seconds": 2 },
+    "propertymeow":  { "second_factor": false, "back_years": 7,    "window_days": 366,  "gap_seconds": 1 },
+    "pawroll":       { "second_factor": false, "back_years": 5,    "window_days": 366,  "gap_seconds": 1 },
+    "purrsure":      { "second_factor": false, "back_years": 7,    "window_days": null, "gap_seconds": 1 },
+    "myguv":         { "second_factor": true,  "back_years": 5,    "window_days": null, "gap_seconds": 2 },
+    "purrannuation": { "second_factor": true,  "back_years": 7,    "window_days": null, "gap_seconds": 1 },
+    "hestabby":      { "second_factor": true,  "back_years": 7,    "window_days": null, "gap_seconds": 1 },
+    "cedartrade":    { "second_factor": true,  "back_years": 7,    "window_days": null, "gap_seconds": 1 },
+    "computerpaw":   { "second_factor": false, "back_years": 7,    "window_days": null, "gap_seconds": 1 },
+    "etreat":        { "second_factor": true,  "back_years": 7,    "window_days": null, "gap_seconds": 2 },
+    "coinpurr":      { "second_factor": true,  "back_years": 5,    "window_days": null, "gap_seconds": 1 },
+    "rentpurrfect":  { "second_factor": false, "back_years": 3,    "window_days": null, "gap_seconds": 1 },
+    "ratepurr":      { "second_factor": false, "back_years": 3,    "window_days": null, "gap_seconds": 1 },
+    "waterbowl":     { "second_factor": false, "back_years": 2,    "window_days": null, "gap_seconds": 1 },
+    "pawprice":      { "second_factor": false, "back_years": null, "window_days": null, "gap_seconds": 1 },
+    "meowtility":    { "second_factor": false, "back_years": 2,    "window_days": null, "gap_seconds": 1 },
+    "bupaw":         { "second_factor": false, "back_years": 5,    "window_days": null, "gap_seconds": 1 },
+    "kittenhood":    { "second_factor": false, "back_years": 2,    "window_days": null, "gap_seconds": 1 },
+    "vicpaws":       { "second_factor": false, "back_years": 3,    "window_days": null, "gap_seconds": 1 },
+    "gmeow":         { "second_factor": false, "back_years": null, "window_days": null, "gap_seconds": 0 },
+    "litterbox":     { "second_factor": false, "back_years": null, "window_days": null, "gap_seconds": 0 },
+    "tabbytax":      { "second_factor": false, "back_years": null, "window_days": null, "gap_seconds": 0 }
+  }
+}
