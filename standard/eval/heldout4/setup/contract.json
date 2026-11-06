@@ -1,0 +1,184 @@
+[
+ {
+  "contract_id": "CON-BLUEGUM",
+  "kind": "employment",
+  "name": "Renee at Bluegum",
+  "counterparty_party_id": "PTY-BLUEGUM",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "SALARY",
+  "started_on": "2019-03-04",
+  "ended_on": "2025-01-31"
+ },
+ {
+  "contract_id": "CON-BANKSIA",
+  "kind": "employment",
+  "name": "Renee at Banksia",
+  "counterparty_party_id": "PTY-BANKSIA",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "SALARY",
+  "started_on": "2025-02-10"
+ },
+ {
+  "contract_id": "CON-RIVERBEND",
+  "kind": "employment",
+  "name": "Renee at the bowls club",
+  "counterparty_party_id": "PTY-RIVERBEND",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "SALARY",
+  "started_on": "2025-03-10"
+ },
+ {
+  "contract_id": "CON-COUNCIL",
+  "kind": "employment",
+  "name": "School crossing",
+  "counterparty_party_id": "PTY-COUNCIL",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "SALARY",
+  "started_on": "2022-02-01",
+  "ended_on": "2024-12-20"
+ },
+ {
+  "contract_id": "CON-SUPER",
+  "kind": "super_fund",
+  "name": "Renee's super",
+  "counterparty_party_id": "PTY-HESTABBY",
+  "holder_party_id": "PTY-RENEE",
+  "account_id": "ACC-SUPER"
+ },
+ {
+  "contract_id": "CON-SUPER-OLD",
+  "kind": "super_fund",
+  "name": "Renee's old super",
+  "counterparty_party_id": "PTY-PURRANNUATION",
+  "holder_party_id": "PTY-RENEE",
+  "account_id": "ACC-SUPER-OLD",
+  "ended_on": "2024-11-28"
+ },
+ {
+  "contract_id": "CON-CARLOAN",
+  "kind": "loan",
+  "name": "Car loan",
+  "counterparty_party_id": "PTY-PING",
+  "holder_party_id": "PTY-RENEE",
+  "account_id": "ACC-CARLOAN",
+  "asset_id": "AST-CAR-A",
+  "category_id": "CAR",
+  "started_on": "2021-11-15",
+  "ended_on": "2025-03-12"
+ },
+ {
+  "contract_id": "CON-MUM",
+  "kind": "loan",
+  "name": "Loan from Mum",
+  "counterparty_party_id": "PTY-RUTH",
+  "holder_party_id": "PTY-RENEE",
+  "account_id": "ACC-MUM",
+  "started_on": "2024-09-09"
+ },
+ {
+  "contract_id": "CON-BNPL",
+  "kind": "loan",
+  "name": "Afterpaws",
+  "counterparty_party_id": "PTY-AFTERPAWS",
+  "holder_party_id": "PTY-RENEE",
+  "account_id": "ACC-BNPL",
+  "category_id": "SHOPPING"
+ },
+ {
+  "contract_id": "CON-BOND",
+  "kind": "commitment",
+  "name": "Rental bond at the RTBA",
+  "counterparty_party_id": "PTY-RTBA",
+  "holder_party_id": "PTY-RENEE",
+  "account_id": "ACC-BOND"
+ },
+ {
+  "contract_id": "CON-RENT-1",
+  "kind": "lease",
+  "name": "The Melton unit",
+  "counterparty_party_id": "PTY-MELREALTY",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "x_RENT-PAID",
+  "started_on": "2021-02-01",
+  "ended_on": "2024-09-14"
+ },
+ {
+  "contract_id": "CON-RENT-2",
+  "kind": "lease",
+  "name": "The Cobblebank house",
+  "counterparty_party_id": "PTY-COBREALTY",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "x_RENT-PAID",
+  "started_on": "2024-09-14"
+ },
+ {
+  "contract_id": "CON-PRIYA",
+  "kind": "commitment",
+  "name": "Priya's half of the rent",
+  "counterparty_party_id": "PTY-PRIYA",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "x_RENT-PAID",
+  "started_on": "2024-09-14",
+  "ended_on": "2026-01-31"
+ },
+ {
+  "contract_id": "CON-SAM",
+  "kind": "commitment",
+  "name": "Sam's half of the rent",
+  "counterparty_party_id": "PTY-SAM",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "x_RENT-PAID",
+  "started_on": "2026-02-01"
+ },
+ {
+  "contract_id": "CON-CENTRELINK",
+  "kind": "commitment",
+  "name": "Centrelink payments",
+  "counterparty_party_id": "PTY-CENTRELINK",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "x_CENTRELINK"
+ },
+ {
+  "contract_id": "CON-CSA",
+  "kind": "commitment",
+  "name": "Child support for Kobi",
+  "counterparty_party_id": "PTY-CSA",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "x_CHILD-SUPPORT",
+  "ended_on": "2025-04-12"
+ },
+ {
+  "contract_id": "CON-LUKAS",
+  "kind": "commitment",
+  "name": "Child support for Ava",
+  "counterparty_party_id": "PTY-LUKAS",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "x_CHILD-SUPPORT"
+ },
+ {
+  "contract_id": "CON-MOTOR",
+  "kind": "insurance",
+  "name": "Motor insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-RENEE",
+  "asset_id": "AST-CAR-A",
+  "category_id": "CAR"
+ },
+ {
+  "contract_id": "CON-POWER",
+  "kind": "utility",
+  "name": "Electricity",
+  "counterparty_party_id": "PTY-GOLDLINE",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "UTILITIES"
+ },
+ {
+  "contract_id": "CON-KIDS",
+  "kind": "childcare",
+  "name": "Kittenhood OSHC",
+  "counterparty_party_id": "PTY-KITTEN",
+  "holder_party_id": "PTY-RENEE",
+  "category_id": "CHILDCARE",
+  "ended_on": "2025-01-31"
+ }
+]

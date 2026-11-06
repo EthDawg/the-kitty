@@ -1,0 +1,515 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-GOAL",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-GOAL",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-GOAL",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BIZ",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BIZ",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BIZ",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-OLD",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-OLD",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-OLD",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARLOAN",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARLOAN",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARLOAN",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HELP",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HELP",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HELP",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUM",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUM",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUM",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BNPL",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BNPL",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BNPL",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BOND",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BOND",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BOND",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR-A",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR-A",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR-A",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR-B",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR-B",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR-B",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OLDJOINT",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OLDJOINT",
+  "party_id": "PTY-LUKAS",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OLDJOINT",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OLDJOINT",
+  "party_id": "PTY-LUKAS",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OLDJOINT",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OLDJOINT",
+  "party_id": "PTY-LUKAS",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KOBI",
+  "party_id": "PTY-KOBI",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KOBI",
+  "party_id": "PTY-KOBI",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KOBI",
+  "party_id": "PTY-KOBI",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR-A",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR-A",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR-A",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR-B",
+  "party_id": "PTY-RENEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR-B",
+  "party_id": "PTY-RENEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR-B",
+  "party_id": "PTY-RENEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]
