@@ -394,7 +394,7 @@ function checkControls(R) {
       R.controls.push({ law: c.law, pass: R.o.shuffle != null || (last != null && last.payload[c.field] === R.values[c.equals]), checked: objs.length, got: last && last.payload[c.field], want: R.values[c.equals], proves: ["rows"] });
     } else if (c.law === "closing_ties") {
       R.controls.push({ law: c.law, pass: R.values.statement_closing == null || R.values.statement_closing === R.values[c.equals], checked: 1, got: R.values.statement_closing, want: R.values[c.equals], proves: ["sign"] });
-    } else if (c.law === "family_chain" || c.law === "ytd_chain") { R.controls.push({ law: c.law, family: true, pass: true, checked: 0 }); }
+    } else if (c.law === "family_chain") { R.controls.push({ law: c.law, family: true, pass: true, checked: 0 }); }
     else R.faults.push({ code: "bad_recipe", what: `no control ${c.law}`, locator: "file" });
   }
 }

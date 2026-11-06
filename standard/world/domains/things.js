@@ -9,10 +9,10 @@ const { stream } = require("./setup");
 
 // id, name, kind, merchant, date, cents, account paid from (a new line if flagged), via, serial, warranty years, life months, refresh_by, replacement, work %
 const THINGS = [
-  { id: "DEV-DESK", name: "Standing desk", kind: "furniture", merchant: "Officepurr", date: "2020-04-02", cents: 68900, line: ["ACC-EVD", -68900], via: "pdf", serial: "OP-DSK-44120", wy: 5, life: 120, replacement: 89900, work: 100 },
+  { id: "DEV-DESK", name: "Standing desk", kind: "device", merchant: "Officepurr", date: "2020-04-02", cents: 68900, line: ["ACC-EVD", -68900], via: "pdf", serial: "OP-DSK-44120", wy: 5, life: 120, replacement: 89900, work: 100 },
   { id: "DEV-MONITOR", name: "27 inch monitor", kind: "device", merchant: "JB Hi-Fur", date: "2020-04-02", cents: 44900, line: ["ACC-EVD", -44900], via: "eml", serial: "JB-MON-90417", wy: 2, life: 84, refresh: "2027-04-01", replacement: 59900, work: 100 },
   { id: "DEV-COFFEE", name: "Espresso machine", kind: "appliance", merchant: "Myaw", date: "2021-12-20", cents: 44025, line: ["ACC-CC", -44025], via: "eml", serial: "MY-ESP-20771", wy: 2, life: 84, replacement: 54900 },
-  { id: "DEV-PRAM", name: "Pram", kind: "other", merchant: "Baby Bunny", date: "2022-03-22", cents: 88603, line: ["ACC-CC", -88603], via: "pdf", serial: "BB-PRM-3310", wy: 3, life: 60, replacement: 92900 },
+  { id: "DEV-PRAM", name: "Pram", kind: "appliance", merchant: "Baby Bunny", date: "2022-03-22", cents: 88603, line: ["ACC-CC", -88603], via: "pdf", serial: "BB-PRM-3310", wy: 3, life: 60, replacement: 92900 },
   { id: "DEV-VAC", name: "Robot vacuum", kind: "appliance", merchant: "Myaw", date: "2022-12-19", cents: 56534, line: ["ACC-CC", -56534], via: "eml", serial: "MY-VAC-58821", wy: 2, life: 60, refresh: "2027-12-01", replacement: 69900 },
   { id: "DEV-DISHWASHER", name: "Dishwasher", kind: "appliance", merchant: "Harvey Whiskers", date: "2023-03-14", cents: 114900, new: "HARVEY WHISKERS AUBURN Card xx4471 Value Date: 13/03/2023", via: "pdf", serial: "HW-DSH-77120", wy: 5, life: 120, replacement: 129900 },
   { id: "DEV-FRIDGE", name: "Fridge", kind: "appliance", merchant: "Good Paws Appliances", date: "2024-08-05", cents: 219900, new: "GOOD PAWS APPLIANCES Card xx4471 Value Date: 04/08/2024", via: "eml", serial: "GP-FRG-11904", wy: 3, life: 144, replacement: 249900 },
@@ -22,7 +22,7 @@ const THINGS = [
 ];
 const SCANS = [
   { id: "DEV-BBQ", name: "Barbecue", kind: "appliance", merchant: "Bunnypaws Warehouse", date: "2019-04-06", accountLine: true, serial: "", wy: 1, life: 96, replacement: 39900, lines: (c) => ["BUNNYPAWS WAREHOUSE COBURG", "TAX INVOICE  ABN 00 000 000 000", "06/04/2019  14:22", "4 BURNER BARBECUE", `TOTAL  $${c}`, "EFTPOS  CARD 4771", "1 YEAR WARRANTY", "FICTIONAL RECEIPT"] },
-  { id: "DEV-LADDER", name: "Ladder", kind: "other", merchant: "Bunnypaws Warehouse", date: "2025-04-12", accountLine: true, serial: "", wy: 5, life: 180, replacement: 25900, lines: (c) => ["BUNNYPAWS WAREHOUSE COBURG", "TAX INVOICE  ABN 00 000 000 000", "12/04/2025  09:51", "ALUMINIUM LADDER 2.4M", `TOTAL  $${c}`, "CREDIT CARD 1007", "FICTIONAL RECEIPT"] },
+  { id: "DEV-LADDER", name: "Ladder", kind: "appliance", merchant: "Bunnypaws Warehouse", date: "2025-04-12", accountLine: true, serial: "", wy: 5, life: 180, replacement: 25900, lines: (c) => ["BUNNYPAWS WAREHOUSE COBURG", "TAX INVOICE  ABN 00 000 000 000", "12/04/2025  09:51", "ALUMINIUM LADDER 2.4M", `TOTAL  $${c}`, "CREDIT CARD 1007", "FICTIONAL RECEIPT"] },
   { id: "DEV-WASHER", name: "Washing machine", kind: "appliance", merchant: "Good Paws Appliances", date: "2025-03-02", cents: 109900, new: "GOOD PAWS APPLIANCES Card xx4471 Value Date: 01/03/2025", serial: "GP-WSH-20418", wy: 2, life: 120, replacement: 119900, lines: (c) => ["GOOD PAWS APPLIANCES", "TAX INVOICE  ABN 00 000 000 000", "02/03/2025", "FRONT LOADER WASHER 8KG", "SERIAL GP-WSH-20418", `TOTAL  $${c}`, "2 YEAR WARRANTY", "FICTIONAL RECEIPT"] },
 ];
 const pct = (c) => Math.round(c / 11);
@@ -61,14 +61,12 @@ function run(w) {
     const account = t.id === "DEV-LAPTOP" ? "DEV-LAPTOP" : undefined;
     S.asset.push({ asset_id: t.id, kind: t.kind, name: t.name, ...(account ? { account_id: account } : {}), ...(t.serial ? { serial: t.serial } : {}), acquired_on: t.date });
     w.alias("asset", t.id, "name", t.name, t.date);
-    const unitSet = t.kind === "device" || t.kind === "appliance" ? t.kind : "appliance";
     term("asset", t.id, "warranty_until", t.warranty, "date", t.date);
     term("asset", t.id, "expected_life_months", t.life, "int", t.date);
     const refresh = t.refresh || `${Number(t.date.slice(0, 4)) + Math.floor(t.life / 12)}${t.date.slice(4, 7)}-01`;
     term("asset", t.id, "refresh_by", refresh, "date", t.date); term("asset", t.id, "replacement_cost_cents", t.replacement, "cents", t.date);
-    if (t.work) term("asset", t.id, "work_use_pct", t.work, "pct", t.date);
+    if (t.work && t.kind === "device") term("asset", t.id, "work_use_pct", t.work, "pct", t.date);
     assets.push({ asset_id: t.id, name: t.name, kind: t.kind, merchant: t.merchant, acquired_on: t.date, cost_cents: cents, warranty_until: t.warranty, expected_life_months: t.life, refresh_by: refresh, refresh_fy: `FY${fyOf(refresh)}`, replacement_cost_cents: t.replacement, ...(t.work ? { work_use_pct: t.work } : {}), witness: t.line ? [t.line[0], t.date, t.line[1]] : null });
-    void unitSet;
   }
   S.account.push({ account_id: "DEV-LAPTOP", name: "Laptop", class: "asset", type: "device", reporting_group: "device", currency: "AUD", asset_id: "DEV-LAPTOP", opened_on: "2025-02-10", in_scope: false, fidelity: "ledger", note: "Beta on the sheet: a thing with a refresh date." });
   for (const b of ["legal", "beneficial", "tax"]) S.ownership.push({ subject_type: "account", subject_id: "DEV-LAPTOP", party_id: "JORDAN", basis: b, share_bps: 10000, valid_from: "2025-02-10", recorded_at: "2025-02-10T00:00:00Z" });

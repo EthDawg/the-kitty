@@ -6,7 +6,9 @@ const { toCents, monthRange, monthEnd, fyStart, fyEnd, pad } = require("../lib/u
 const T0 = "2019-03-01T00:00:00Z";
 const HOUSEHOLD = "H-DAVIES";
 
-const cat = (category_id, name, kind, group, essential, cash_lens, economic_lens, note) => ({ category_id, name, kind, group, essential, cash_lens, economic_lens, ...(note ? { note } : {}) });
+// a plumber on a rental account reads as a rental repair
+const TWIN = { "HOME-MAINT": "RENT-REPAIR", "RATES-HOME": "RENT-RATES", "HOME-INS": "RENT-INS", UTILITIES: "RENT-RATES" };
+const cat = (category_id, name, kind, group, essential, cash_lens, economic_lens, note) => ({ category_id, name, kind, group, essential, cash_lens, economic_lens, ...(note ? { note } : {}), ...(TWIN[category_id] ? { property_twin_id: TWIN[category_id] } : {}) });
 
 const CATEGORIES = [
   cat("SALARY", "Salary and wages", "income", "Income", null, true, true),

@@ -64,7 +64,20 @@ function run(w) {
   d("D-PERSON-03", "ACC-CC|2026-10-21|-3850", "categorise", { category_id: "DINING", merchant: "Market Lane" }, "Coffee and pastries at the market.");
   d("D-PERSON-04", "ACC-EVD|2022-11-05|950000", "set_event_kind", { event_kind: "asset_disposal", asset_id: "MAZDA" }, "Cash from selling the 2012 Mazda 3 to a neighbour. No document exists.");
   d("D-PERSON-05", "ACC-BRK|2020-06-22|29000000", "categorise", { category_id: "GIFT-IN", event_kind: "gift_in" }, "An inheritance from Jordan's aunt, paid straight to the cash hub. Not income.");
+  const accept = (id, ref, reason, reopen_if) => w.decisions.push({ decision_id: id, target_type: "check", target_ref: ref, verb: "accept", value: {}, by: "Mia", at: "2027-02-02T09:00:00Z", status: "accepted", reason, reopen_if });
+  accept("D-PERSON-06", "L6|C-HOME", "The fictional lender computes interest monthly", "interest gap above 20%");
+  accept("D-PERSON-07", "L6|C-INV", "The fictional lender computes interest monthly", "interest gap above 20%");
   w.rules = w.sheet.rules.map((r) => ({ rule_id: r.rule_id, pattern: r.pattern, match: r.match, ...(r.merchant ? { merchant: r.merchant } : {}), ...(r.category_id ? { category_id: r.category_id } : {}), ...(r.person ? { person: r.person } : {}), provenance: r.source || "sheet", status: "accepted" }));
+  // the new strings the household's own rules cover; the first two override the dictionary
+  const rule = (rule_id, pattern, merchant, category_id, note) => w.rules.push({ rule_id, pattern, match: "contains", merchant, category_id, provenance: "household", status: "accepted", ...(note ? { note } : {}) });
+  rule("R-WORLD-01", "CENTRAL HIGHLANDS WATER", "Central Highland Paws Water", "RENT-RATES");
+  rule("R-WORLD-02", "HARBOUR BANK INVESTMENT LOAN ESTABLISHMENT", "Harbour Bank", "FEES", "A borrowing cost, kept as a fee. Tax does not amortise it here.");
+  rule("R-WORLD-03", "GOOD PAWS APPLIANCES", "Good Paws Appliances", "SHOPPING");
+  rule("R-WORLD-04", "HARVEY WHISKERS", "Harvey Whiskers", "SHOPPING");
+  rule("R-WORLD-05", "APPURR STORE", "Appurr Store", "SHOPPING", "The work share is the laptop's work_use_pct, not this line.");
+  rule("R-WORLD-06", "CITY OF BALLARAT RATES", "City of Ballapaw", "RENT-RATES");
+  rule("R-WORLD-07", "PURRSURE LANDLORD POLICY", "Purrsure", "RENT-INS");
+  rule("R-WORLD-08", "BALLARAT ROOFING", "Ballarat Roofing", "RENT-REPAIR");
 }
 
 module.exports = { run };
