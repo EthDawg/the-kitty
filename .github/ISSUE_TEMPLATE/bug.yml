@@ -1,0 +1,39 @@
+name: Something is broken
+description: The page, the iPhone app, an importer, a portal or a check does the wrong thing.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. Reproduce the problem on the fictional Davies household where you can, and keep bank files, account numbers, private sheet links and sign-in details out of it. Security problems go through `SECURITY.md`.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - The page (Claude artifact)
+        - The iPhone app
+        - The importer
+        - The portals
+        - The Standard
+        - check.py or CI
+        - The docs
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you did, what you expected, what appeared
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or build, if you know it
+  - type: checkboxes
+    id: fiction
+    attributes:
+      label: Fictional data only
+      options:
+        - label: Nothing here is real household data.
+          required: true
