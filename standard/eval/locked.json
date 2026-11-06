@@ -1,8 +1,8 @@
 {
- "bundle_hash": "55cabea51a74eeaf",
+ "bundle_hash": "41319218fddea27a",
  "as_of": "2027-03-31",
- "events": 6290,
- "postings": 14010,
+ "events": 6289,
+ "postings": 14008,
  "net_worth_by_month": {
   "2019-02": 0,
   "2019-03": 35632357,
@@ -468,7 +468,7 @@
   "open_item": 3
  },
  "grades": {
-  "stated": 860,
+  "stated": 859,
   "reconciled": 1877,
   "corroborated": 3553
  },
@@ -485,11 +485,11 @@
   "income.taxable": 24,
   "income.surcharge": 24,
   "income.composition": 60,
-  "position.balance": 2223,
+  "position.balance": 2170,
   "position.cash": 98,
   "position.net_worth": 98,
   "position.net_worth_by_group": 640,
-  "position.net_worth_by_owner": 3,
+  "position.net_worth_by_owner": 2,
   "position.free_cash": 98,
   "loan.interest": 205,
   "loan.principal_paid": 99,
@@ -509,5 +509,5 @@
   "evidence.coverage": 61,
   "forecast.cash": 12
  },
- "fingerprint": "24310250731de307"
+ "fingerprint": "84ca212fc53f3524"
 }

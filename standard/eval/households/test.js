@@ -796,3 +796,13 @@ test("a fingerprint is the layout: another row, or a price with a different numb
   const three = doc([["BTC", "0.5", "101,250.5", "50,625.25"], ["ETH", "2.0", "4,410.25", "8,820.50"], ["SOL", "9.1", "211.00", "1,920.10"]]);
   assert.equal(fingerprint(two), fingerprint(three));
 });
+
+test("an asset carried at its opening value and sold leaves nothing behind", () => {
+  const h = household("sold").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).account("CAR", "vehicle", "vehicle", [["a", 10000]], { opening_balance_cents: 950000, opened_on: "2024-01-01" });
+  h.setup.asset.push({ asset_id: "OLD", kind: "vehicle", name: "Old car", account_id: "CAR" });
+  h.line("BANK", "2026-03-05", "CASH DEPOSIT SALE OF CAR", 800000);
+  h.decisions.push({ decision_id: "d1", target_type: "line", target_ref: "BANK|2026-03-05|800000", verb: "set_event_kind", value: { event_kind: "asset_disposal", asset_id: "OLD" }, by: "a", at: "2026-03-06T00:00:00Z", status: "accepted" });
+  const L = run(h);
+  assert.equal(L.balances.at("CAR", "2026-03"), 0);
+  assert.equal(L.netWorth.find((r) => r.month === "2026-03").total, 800000);
+});

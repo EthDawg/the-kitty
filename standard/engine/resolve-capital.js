@@ -352,6 +352,11 @@ module.exports = (Resolver) => {
       if (!valued.has(a)) valued.set(a, new Map());
       for (const [d, v] of rows) if (!valued.get(a).has(d)) valued.get(a).set(d, v);
     }
+    // A sale sets the value on the day. Anything left in the book moves through revaluation first.
+    for (const s of this.sales || []) {
+      if (!valued.has(s.asset)) valued.set(s.asset, new Map());
+      valued.get(s.asset).set(s.date, { cents: s.price, o: s.o, saleDay: true });
+    }
     const schema = this.ctx.eventSchema;
     const deltas = new Map();
     for (const e of this.events) {
@@ -360,11 +365,6 @@ module.exports = (Resolver) => {
         if (!deltas.has(p.account_id)) deltas.set(p.account_id, []);
         deltas.get(p.account_id).push({ date: e.occurred_on, cents: p.amount_cents });
       }
-    }
-    // A sale sets the value on the day. Anything left in the book moves through revaluation first.
-    for (const s of this.sales || []) {
-      if (!valued.has(s.asset)) valued.set(s.asset, new Map());
-      valued.get(s.asset).set(s.date, { cents: s.price, o: s.o, saleDay: true });
     }
     for (const [account, rows] of valued) {
       const flows = (deltas.get(account) || []).sort((a, b) => cmp(a.date, b.date));
