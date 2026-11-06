@@ -107,7 +107,7 @@ test("every year of every Davies adult ties, so the pack is not shaped to one ye
 });
 
 test("the blind held-out families tie too, and what the engine left out shows as not found", () => {
-  for (const dir of ["heldout", "heldout2", "heldout3"]) {
+  for (const dir of ["heldout", "heldout2", "heldout3", "heldout4"]) {
     const { L: H } = heldout(dir), adults = [...new Set(H.memberships.filter((m) => m.role === "adult").map((m) => m.party_id))];
     for (const fy of ["FY2024", "FY2025", "FY2026"]) for (const person of adults) {
       const p = K.tax.build({ L: H, reference: hh.reference, person, fy, asOf: H.asOf }), r = K.workbookTax.render(p);
