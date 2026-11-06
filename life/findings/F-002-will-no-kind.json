@@ -1,0 +1,21 @@
+{
+ "id": "F-002",
+ "title": "A will has no observation kind: held by hash, never read",
+ "chapter": 5,
+ "trap": "T5-WILL-NO-KIND",
+ "kind": "unread",
+ "found": "Two wills in Drive. No recipe claims them, and none should invent a number.",
+ "shape": {
+  "family": "life-will-pdf",
+  "fingerprint": "fp1:700ecf0332910cbc83f99e10",
+  "lines": [
+   "Merri Legal Wills  DEMO, fictional",
+   "Last will of Daisy Davies",
+   "Signed 22 May 2028 at 12 Wren Street, Thornbury VIC 3071. Everything to my partner, then to our children in",
+   "equal shares. Names an executor. This document has no money in it. Fictional."
+  ]
+ },
+ "want": "Stays a source with no observations, listed as held and unread, and `scope` records that the household has a will.",
+ "landing": "honestly declined",
+ "owner": "runtime, as a held document"
+}

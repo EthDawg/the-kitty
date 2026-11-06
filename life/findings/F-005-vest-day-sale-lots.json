@@ -1,0 +1,22 @@
+{
+ "id": "F-005",
+ "title": "A sale on the vest day takes the oldest parcel, so a nil gain becomes a gain",
+ "chapter": 4,
+ "trap": "T5-CGT-TWO-REGIMES",
+ "kind": "engine",
+ "found": "Danny holds 120 older units and sells each new parcel the day it vests. Lots match oldest first, so FY2027 derives $400.45 of net capital gain that did not happen. L11 catches the gap against the lodged return.",
+ "shape": {
+  "held_units": 120,
+  "vest": {
+   "date": "2026-07-15",
+   "units": 25
+  },
+  "sale": {
+   "date": "2026-07-15",
+   "units": 25
+  }
+ },
+ "want": "A sale on the day of a vest matches that vest's parcel, or the choice of parcel is a question. Which parcel is sold is the taxpayer's to identify.",
+ "landing": "one small base change",
+ "owner": "data model session: resolve-markets.js lot order"
+}

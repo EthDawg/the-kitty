@@ -2,7 +2,7 @@
 """Check the one-app/two-host repository boundary, without inspecting build outputs.
 
 The static top-level allowlist is the directory set at main 7ad1895402bc5320dfbaf0be4009b81c6df037ed,
-plus the authorised ios/ host and standard/. Adding another top-level directory requires agreement;
+plus the authorised ios/ host, standard/ and life/. Adding another top-level directory requires agreement;
 do not regenerate this list from whatever a change happens to introduce.
 
 Run from anywhere: python3 tools/check_shape.py [--root REPOSITORY]. Git's tracked

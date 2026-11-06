@@ -8,6 +8,7 @@ const MATCH = require("../schema/matching.json");
 
 const PENDING_DAYS = MATCH.windows_days.pending.days, DRIFT_DAYS = MATCH.windows_days.date_drift.days, SIMILAR = MATCH.similarity.minimum;
 const STREAM_JOIN_DAYS = 7, REPRICED = 0.05;
+const FOREIGN = /\b(USD|GBP|EUR|NZD|JPY|CAD|SGD|HKD|CHF|THB|IDR|FX)\b/i;
 
 const words = (s) => new Set(String(s || "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length > 1));
 function similarity(a, b) {
@@ -127,7 +128,10 @@ function collapse(items) {
     const sorted = [...group].sort((a, b) => cmp(a.date, b.date) || a.cents - b.cents);
     for (let i = 0; i < sorted.length; i++) for (let j = i + 1; j < sorted.length && daysBetween(sorted[i].date, sorted[j].date) <= DRIFT_DAYS; j++) {
       const a = sorted[i], b = sorted[j];
-      if (repriced.has(a) || repriced.has(b) || a.cents === b.cents || Math.sign(a.cents) !== Math.sign(b.cents) || Math.abs(a.cents - b.cents) > Math.max(5, Math.abs(a.cents) * REPRICED)) continue;
+      if (repriced.has(a) || repriced.has(b) || a.cents === b.cents || Math.sign(a.cents) !== Math.sign(b.cents)) continue;
+      // Two prices at one shop are two purchases. Only a rounding, or a foreign charge repriced on the way through, is one charge at two amounts.
+      const rounding = Math.abs(a.cents - b.cents) <= 5, abroad = (FOREIGN.test(a.desc) || FOREIGN.test(b.desc) || a.foreignCurrency || b.foreignCurrency) && Math.abs(a.cents - b.cents) <= Math.abs(a.cents) * REPRICED;
+      if (!rounding && !abroad) continue;
       const A = sourcesOf(a), B = sourcesOf(b);
       if ([...A].some((x) => B.has(x)) || similarity(a.desc, b.desc) < 0.5) continue;
       const oneStream = [...streamsOf(a)].some((x) => streamsOf(b).has(x));

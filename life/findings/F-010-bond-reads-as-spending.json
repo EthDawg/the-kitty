@@ -1,0 +1,21 @@
+{
+ "id": "F-010",
+ "title": "A rental bond reads as spending, and its refund as a negative purchase",
+ "chapter": 3,
+ "trap": "T3-BOND",
+ "kind": "engine",
+ "found": "BPAY RESIDENTIAL TENANCIES BOND books as a purchase of $7,200 in March 2027 and the refund as a refund in February 2028. Only the $185 cleaning charge was ever spent.",
+ "shape": {
+  "out": {
+   "desc": "BPAY RESIDENTIAL TENANCIES BOND",
+   "cents": -720000
+  },
+  "back": {
+   "desc": "RESIDENTIAL TENANCIES BOND REFUND",
+   "cents": 701500
+  }
+ },
+ "want": "Money held by a third party: an asset, a question at worst. A person can already decide it. A dictionary entry would make it right first time.",
+ "landing": "the dictionary",
+ "owner": "data model session"
+}

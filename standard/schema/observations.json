@@ -244,10 +244,10 @@
         "instrument_ref*",
         "vest_date*",
         "units*",
-        "price*",
-        "currency*",
+        "price",
+        "currency",
         "fx_rate",
-        "taxable_value_cents*",
+        "taxable_value_cents",
         "account_ref",
         "withheld_units",
         "released_units",
@@ -416,12 +416,12 @@
         "lodged_on",
         "version*",
         "taxable_income_cents*",
-        "gross_tax_cents*",
+        "gross_tax_cents",
         "offsets_cents",
         "medicare_levy_cents",
         "mls_cents",
         "help_cents",
-        "payg_credits_cents*",
+        "payg_credits_cents",
         "other_credits_cents",
         "result_cents*",
         "labels"
@@ -669,7 +669,9 @@
       "contributions_tax",
       "pension",
       "withdrawal",
-      "release"
+      "release",
+      "government",
+      "other"
     ],
     "vest.status": [
       "scheduled",
@@ -681,7 +683,8 @@
     "balance.balance_kind": [
       "ledger",
       "available",
-      "pending"
+      "pending",
+      "total"
     ],
     "ato_line.role": [
       "posting",

@@ -147,12 +147,14 @@ module.exports = (Resolver) => {
     const lineMap = {
       employer: "super_contribution", salary_sacrifice: "super_contribution", personal_deductible: "super_personal", personal_after_tax: "super_personal", spouse: "super_personal",
       rollover_in: "super_rollover", rollover_out: "super_rollover", earnings: "super_earnings", fee: "super_cost", insurance: "super_cost", contributions_tax: "super_cost",
-      pension: "super_withdrawal", withdrawal: "super_withdrawal", release: "super_release",
+      pension: "super_withdrawal", withdrawal: "super_withdrawal", release: "super_release", government: "super_other", other: "super_other",
     };
     const costCat = { fee: "SUPER-FEES", insurance: "SUPER-INS", contributions_tax: "SUPER-TAX" };
     for (const l of this.superLines || []) {
       const kind = lineMap[l.lineType];
       if (!kind) { this.fault("unknown_super_line", l.key, `Super line type ${l.lineType} is not in the vocabulary.`); continue; }
+      // A line the recipe could not name still moved the balance. It posts, and asks.
+      if (l.lineType === "other") this.fault("unknown_super_line", l.key, `${l.desc} on ${this.accountName(l.account)} is a line type nobody has named. The balance moves with it.`, "Say what it is.", l.cents);
       const amount = kind === "super_cost" || kind === "super_release" ? -l.cents : l.cents;
       const refs = { account: l.account, category: costCat[l.lineType], person: this.personOfAccount(l.account, l.date) };
       const cat = costCat[l.lineType] || (kind === "super_earnings" ? "SUPER-EARN" : null);
@@ -225,11 +227,13 @@ module.exports = (Resolver) => {
       const prior = latest.get(key);
       const priorResult = prior ? prior.payload.result_cents : 0;
       const delta = p.result_cents - priorResult;      // an amendment moves the account by the change only
-      const payg = prior ? 0 : p.payg_credits_cents;
+      // An old filing can be known only by taxable income and result. It is held as a record; with no bank line it moves nothing and asks nothing.
+      const partial = p.gross_tax_cents == null || p.payg_credits_cents == null;
+      const payg = prior ? 0 : nz(p.payg_credits_cents);
       const netTax = payg - delta;
       const help = nz(p.help_cents) - (prior ? nz(prior.payload.help_cents) : 0);
       const helpAccount = (this.ctx.setup.account || []).find((a) => a.type === "help_debt" && this.ownersOf("account", a.account_id, p.assessed_on).some((x) => x.party_id === person));
-      this.event({ key: `tax_assessed|${person}|${p.fy}|${p.version}`, kind: "tax_assessed", occurred_on: p.assessed_on, description: `${p.fy} assessment v${p.version}`, category_id: "INCOME-TAX", person, amount_cents: netTax, grade: "stated", rule: "tax_assessment",
+      const told = this.event({ key: `tax_assessed|${person}|${p.fy}|${p.version}`, kind: "tax_assessed", occurred_on: p.assessed_on, description: `${p.fy} assessment v${p.version}`, category_id: "INCOME-TAX", person, amount_cents: netTax, grade: "stated", rule: "tax_assessment",
         witnesses: this.docWitness(o), fields: { net_tax: netTax, help: helpAccount ? help : 0 }, refs: { person, help_account: helpAccount ? helpAccount.account_id : "clearing:help" } });
       latest.set(key, o);
       const want = delta;
@@ -239,6 +243,7 @@ module.exports = (Resolver) => {
         .sort((a, b) => Math.abs(daysBetween(p.assessed_on, a.date)) - Math.abs(daysBetween(p.assessed_on, b.date)) || cmp(a.key, b.key))[0];
       // A bill can be paid in parts. Lines that name the tax office and add to it to the cent.
       const parts = m ? [m] : want < 0 ? subsetSum(this.lines.filter((l) => inWindow(l) && l.cents < 0 && /\b(ATO|TAX)\b/i.test(l.desc)).sort((a, b) => a.cents - b.cents || cmp(a.key, b.key)), -want) : null;
+      if (!parts && partial) { told.fields.net_tax = 0; told.amount_cents = 0; continue; }
       if (!parts) { (this.unmatchedTax = this.unmatchedTax || []).push({ person, cents: want, o }); this.fault("tax_result_unmatched", o, `${p.fy} assessment for ${this.name(person)} shows ${want / 100} and no bank line matches.`, "Find the refund, or the payment. It may have gone to an old account.", want); continue; }
       const kind = want > 0 ? "tax_refund" : "tax_payment";
       for (const l of parts) {

@@ -29,7 +29,10 @@
       "INS-DTPD": "insurance",
       "EARNINGS": "earnings",
       "ROLL-IN": "rollover_in",
-      "PENSION": "pension"
+      "PENSION": "pension",
+      "ROLL-OUT": "rollover_out",
+      "LISTO": "government",
+      "*": "other"
      }
     },
     "description": {
