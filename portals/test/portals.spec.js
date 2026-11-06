@@ -92,7 +92,7 @@ test("a wrong password is refused and nothing is listed", async ({ page }) => {
 test("the landing page lists every portal, the brand switch moves between them, and the portals read like a bank", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".demo")).toContainText("DEMO");
-  await expect(page.locator(".brandcard")).toHaveCount(7);
+  await expect(page.locator(".brandcard")).toHaveCount(require("../public/brands.json").length + require("../public/vault-brands.json").length);
   await page.click('.brandcard[href="/ping"]');
   await expect(page).toHaveURL(/\/ping$/);
   await expect(page.locator("#mark .n")).toHaveText("PING");

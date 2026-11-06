@@ -6,9 +6,9 @@ const fs = require("fs");
 const path = require("path");
 
 const PUBLIC = path.join(__dirname, "public");
-const BRANDS = new Set(require("./public/brands.json").map((b) => b.id));
+const BRANDS = new Set([...require("./public/brands.json"), ...require("./public/vault-brands.json")].map((b) => b.id));
 const API = { login: require("./api/login"), logout: require("./api/logout"), accounts: require("./api/accounts"), export: require("./api/export") };
-const MIME = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8" };
+const MIME = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8", ...require("./lib/file-types") };
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
@@ -26,6 +26,7 @@ const server = http.createServer(async (req, res) => {
     if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.statusCode = 404; res.setHeader("Content-Type", "text/plain"); return res.end("not found"); }
     res.setHeader("Content-Type", MIME[path.extname(file)] || "application/octet-stream");
     res.setHeader("Cache-Control", "no-store");
+    if (p.startsWith("/vault/")) res.setHeader("Content-Disposition", "attachment"); // the header vercel.json sets
     fs.createReadStream(file).pipe(res);
   } catch (e) {
     console.error(e);

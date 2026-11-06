@@ -1,8 +1,12 @@
 # The portals
 
-Seven parody portals that hold the fictional Davies household's files for eight years, the way a bank, a card company,
-a property manager, a payroll and an insurer hold them, deployed on Vercel at https://the-kitty-portals.vercel.app.
-Any name signs in with the password `demo`. Nothing here is a real institution; the column shapes are real.
+Twenty-four parody portals that hold the fictional Davies household's files for eight years, the way a bank, a card
+company, a property manager, a payroll, an insurer, a super fund, a tax office and a council hold them, deployed on Vercel
+at https://the-kitty-portals.vercel.app. Any name signs in with the password `demo`. Nothing here is a real institution;
+the column shapes are real.
+
+The seven originals generate exports on the server. Every portal also hands over the Davies world's files exactly as
+delivered: the seventeen below do nothing else, and the seven carry them under a "Files as delivered" tab.
 
 | Portal | Stands in for | Serves |
 |---|---|---|
@@ -14,6 +18,30 @@ Any name signs in with the password `demo`. Nothing here is a real institution; 
 | Pawroll | an employer's payroll portal | A payslip per pay since March 2019 for Jordan and Mia, an income statement per financial year, `payslips.csv` in the period-close shape |
 | Purrsure | an insurer's policy portal | Landlord, home and contents, and car policies: a renewal notice and a certificate of currency per period |
 
+| Portal | Stands in for | Serves, as delivered |
+|---|---|---|
+| myGuv | myGov, the ATO and Services Australia | Notices of assessment, the pre-fill, Mia's HELP account and paid parental leave. |
+| Purrannuation | an industry super fund | Jordan's monthly activity as CSV, with the header that changed in July 2023, and annual statements as PDF. |
+| HESTAbby | HESTA | Mia's quarterly app exports as JSON and half-yearly statements as plain PDF. |
+| Cedar Trade | an online share broker | The cash hub by month, holdings by year, and a contract note for every trade. |
+| Computerpaw | Computershare | Distribution and dividend statements, a share split notice and the annual tax statements. |
+| E\*Treat | E*TRADE | Jordan's sale confirmations, ESS statements, benefit history and plan holdings. |
+| Coinpurr | a crypto exchange | Activity by financial year as CSV and one closing statement as a saved page. |
+| RentPurrfect | a second property manager's owner portal | Monthly owner statements for the Ballarat cottage. |
+| Ratepurr | a council's ratepayer portal | Quarterly rates notices from three councils, one per property. |
+| WaterBowl | a water authority's customer portal | Quarterly water bills from three authorities, one per property. |
+| PawPrice | a property value estimate service | A month-end estimate for the big things the household owns, as CSV. |
+| Meowtility | an energy retailer's account page | RedPaw Energy's electricity bills as email, Origpurr Gas's bills as saved pages. |
+| Bupaw | Bupa | Each person's private health insurance statement for the tax return. |
+| Kittenhood | a childcare centre's family portal | Ava's monthly statements of account, as saved pages. |
+| VicPaws | VicRoads | A registration notice a year, through two cars. |
+| Gmeow | the household's email inbox | Receipts from JB Hi-Fur and the like, valuations, settlement statements, depreciation schedules and the tax agent's returns. |
+| Litterbox | the household's shared folder | Receipt scans, deductions worksheets, the work-from-home log, the car logbook and the wallet export. |
+
+Councils, water and energy share one portal each, the way Pawroll serves two employers; each stream names who sent what.
+Files with no portal of their own live where they landed: Gmeow for what arrived by email, Litterbox for what the
+household keeps itself.
+
 ## What is in here
 
 | Path | What it is |
@@ -21,11 +49,13 @@ Any name signs in with the password `demo`. Nothing here is a real institution; 
 | `history.py` | March 2019 to June 2025, invented month by month with the household's life events, landing every account to the cent on the sheet's opening balances (30 June 2025). Also the descriptor conventions below and the back-solved home-loan walk. |
 | `build-data.py` | Builds `data/months.json` from `history.py`, `data/snapshot.json` (every month the sheet holds, unchanged) and `period-close/simulate.py` run in a scratch copy (the two months ahead). `--check` fails if the committed file is stale; `--write-sources` writes the history as bank files under `../sources/`; `public/stats.json` is written alongside. |
 | `data/months.json` | The one dataset the portals serve: accounts, transactions, payslips, loans by month, properties by month, policies by period. |
-| `public/` | The pages: `index.html` (the landing), `portal.html` + `portal.js` + `portal.css` (one app for every brand: overview, activity, documents), `brands.json` (the registry), `marks.js` (the original wordmarks). |
-| `api/` | Four Node functions: `login`, `logout`, `accounts` (list, paged activity, documents), `export` (the download). |
+| `public/` | The pages: `index.html` (the landing), `portal.html` + `portal.js` + `portal.css` (one app for every brand: overview, activity, documents, files as delivered), `brands.json` (the seven) and `vault-brands.json` (the seventeen, same shape) as the registry, `marks.js` (the original wordmarks). |
+| `build-vault.js` | Copies the world's files into `public/vault/<stream>/<delivered date>/` and writes `public/vault.json` (brand, stream, year, date, file name, size, content type, path, hash). `streams` in each registry row says which portal holds what. A file with no home or two, a stream with no files, or a copy that misses its hash stops the build. Both outputs are gitignored. |
+| `api/` | Four Node functions: `login`, `logout`, `accounts` (list, paged activity, documents), `export` (the download). The vault needs none of them beyond sign-in: its files are static. |
 | `lib/` | `data.js` (indexes, presets, documents), `shapes.js` (the exact CSV shapes, byte-for-byte what `period-close/adapters.py` writes), `pdf.js` (pdf-lib documents), `exports.js`, `http.js`, `auth.js`. |
 | `server.js` | Mounts the same functions locally with the same rewrites; what Playwright runs against. |
-| `test/portals.spec.js` | The proof. `test/screenshots.js` takes the README's screenshots. |
+| `lib/file-types.js` | The content type of each delivered file. `vercel.json` repeats it for the deployment; `test/vault.spec.js` holds the two together. |
+| `test/portals.spec.js` | The proof. `test/vault.spec.js` is the vault's: two sign-ins, a PDF and a CSV hashed against the world, one home for every file. `test/screenshots.js` takes the README's screenshots. |
 
 ## Run it
 
@@ -34,6 +64,12 @@ cd portals && npm ci && npm start        # http://127.0.0.1:4173
 npx playwright test                       # chromium only; starts the server itself
 python3 build-data.py                     # after a month-end close (promote period-close/state.json first)
 python3 build-data.py --write-sources     # also write any new months as bank files under sources/
+```
+
+The vault is generated, so a checkout builds it from the repo root. Without it a portal says what to run instead of listing files.
+
+```bash
+node standard/world/build.js && node portals/build-vault.js
 ```
 
 ## Rebuilding the sheet from the files
@@ -76,3 +112,18 @@ Vercel project `the-kitty-portals` (team less-go), root directory `portals/`, fr
 live was deployed with the Vercel CLI; Git auto-deploys and a preview URL per pull request need the Vercel account's
 GitHub login connection (`vercel git connect` once it exists). Deployment protection is at Vercel's default: the
 production domain is public, unique deployment URLs ask for a Vercel sign-in.
+
+The vault changes what a deploy needs:
+
+- **Build it first.** From the repo root, where the `.vercel` link lives, never from inside `portals/`:
+  `node standard/world/build.js && node portals/build-vault.js && vercel --prod`. A new checkout or worktree has no link;
+  copy `.vercel/` from a linked one or run `vercel link`.
+- **The gitignored files still go up.** The CLI reads `.vercelignore` and not `.gitignore` (checked in CLI 59.26's source),
+  and `.vercelignore` does not list the vault. Keep it that way. `buildCommand` skips when `public/vault.json` arrived with
+  the upload and otherwise builds the vault from the repo, which a Git deploy would need; that path has not been run on Vercel.
+- **Every portal needs a rewrite.** `vercel.json` lists the ids by hand. `test/vault.spec.js` fails if one is missing.
+- **The files are static.** `/vault/*` is served with `Content-Disposition: attachment` and its own content types. The
+  sign-in guards the listing, not the files: anyone with a URL can fetch one, which is fine for a fictional household and
+  would not be for a real one.
+- **`cleanUrls` touches one type.** A vault `.html` answers with a 308 to the same path without the extension. The link's
+  `download` attribute keeps the file name and the bytes are unchanged.

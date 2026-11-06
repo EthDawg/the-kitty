@@ -1,5 +1,6 @@
-// One page for every brand. The path says which brand; brands.json says how it looks; the API says what it holds.
-// Views: #/ (overview), #/account/<id> (activity with filters and export), #/documents/<id> (statements by year).
+// One page for every brand. The path says which brand; brands.json and vault-brands.json say how it looks; the API says what it holds.
+// Views: #/ (overview), #/account/<id> (activity with filters and export), #/documents/<id> (statements by year), #/files/<stream> (files as delivered).
+// A brand with `vault` holds only files as delivered, so its #/ is the files view.
 (() => {
   "use strict";
   const $ = (s, el = document) => el.querySelector(s);
@@ -9,11 +10,27 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = (iso) => { if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return esc(iso); const [y, m, d] = iso.split("-"); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
   const WORDS = {
-    bank: { title: "Welcome to online banking", sub: "Online banking for people whose cats open the mail.", list: "Accounts", nav: ["Accounts", "Statements & documents", "Pay & transfer|off", "Cards|off", "Settings|off"] },
-    card: { title: "Your card, online", sub: "Statements, activity and downloads for your card.", list: "Cards", nav: ["Account home", "Statements & activity", "Rewards|off", "Payments|off", "Settings|off"] },
-    property: { title: "Owner portal", sub: "Statements and documents for the properties we manage for you.", list: "Properties", nav: ["Properties", "Statements & documents", "Maintenance|off", "Inspections|off"] },
-    payroll: { title: "Employee self-service", sub: "Payslips and income statements, whenever you need them.", list: "Employments", nav: ["My pay", "Payslips & income statements", "Leave|off", "Details|off"] },
-    policy: { title: "My policies", sub: "Renewals, certificates and cover, all in one place.", list: "Policies", nav: ["Policies", "Documents", "Claims|off", "Payments|off"] },
+    bank: { title: "Welcome to online banking", sub: "Online banking for people whose cats open the mail.", list: "Accounts", nav: ["Accounts", "Statements & documents", "Files as delivered", "Pay & transfer|off", "Cards|off", "Settings|off"] },
+    card: { title: "Your card, online", sub: "Statements, activity and downloads for your card.", list: "Cards", nav: ["Account home", "Statements & activity", "Files as delivered", "Rewards|off", "Payments|off", "Settings|off"] },
+    property: { title: "Owner portal", sub: "Statements and documents for the properties we manage for you.", list: "Properties", nav: ["Properties", "Statements & documents", "Files as delivered", "Maintenance|off", "Inspections|off"] },
+    payroll: { title: "Employee self-service", sub: "Payslips and income statements, whenever you need them.", list: "Employments", nav: ["My pay", "Payslips & income statements", "Files as delivered", "Leave|off", "Details|off"] },
+    policy: { title: "My policies", sub: "Renewals, certificates and cover, all in one place.", list: "Policies", nav: ["Policies", "Documents", "Files as delivered", "Claims|off", "Payments|off"] },
+    super: { title: "Member online", sub: "Activity and statements for your super, filed under long naps.", nav: ["Documents", "Contributions|off", "Insurance|off", "Beneficiaries|off"] },
+    broker: { title: "Your trading account", sub: "Cash, holdings and contract notes. No hot tips.", nav: ["Documents", "Trade|off", "Watchlist|off"] },
+    registry: { title: "Investor centre", sub: "Statements for the securities you hold, from the people who keep the list.", nav: ["Documents", "Holdings|off", "Reinvestment plans|off"] },
+    plan: { title: "Your stock plan", sub: "Vests, sales and the statements your tax agent will ask for.", nav: ["Documents", "Vesting|off", "Sell|off"] },
+    crypto: { title: "Your exchange account", sub: "Activity and statements. The cat is not a financial adviser.", nav: ["Documents", "Buy|off", "Wallets|off"] },
+    gov: { title: "Sign in to your linked services", sub: "Tax, HELP and parental leave, all behind one door.", nav: ["Documents", "Lodge|off", "Payments|off", "Messages|off"] },
+    health: { title: "My cover", sub: "Statements for your tax return, for the whole litter.", nav: ["Documents", "Claims|off", "Find a vet|off"] },
+    childcare: { title: "Family portal", sub: "Statements of account for the smallest member of the household.", nav: ["Documents", "Bookings|off", "Daily photos|off"] },
+    rego: { title: "My registrations", sub: "Renewal notices for the vehicles in your name.", nav: ["Documents", "Renew|off", "Licence|off"] },
+    agency: { title: "Owner portal", sub: "Statements for the properties we manage for you.", nav: ["Documents", "Maintenance|off", "Inspections|off"] },
+    rates: { title: "Ratepayer portal", sub: "Quarterly notices for every property you own.", nav: ["Documents", "Pay rates|off", "Bins|off"] },
+    water: { title: "Your water accounts", sub: "Quarterly bills, one bowl per property.", nav: ["Documents", "Usage|off", "Payments|off"] },
+    valuation: { title: "Your estimates", sub: "A month-end figure for everything you watch.", nav: ["Documents", "Suburb report|off", "Alerts|off"] },
+    energy: { title: "Your energy accounts", sub: "Electricity and gas bills for the home.", nav: ["Documents", "Usage|off", "Plans|off"] },
+    inbox: { title: "Sign in to your mail", sub: "Everything that turned up with an attachment.", nav: ["Documents", "Compose|off", "Spam|off"] },
+    folder: { title: "The shared folder", sub: "What the household keeps for itself.", nav: ["Documents", "Share|off", "Trash|off"] },
   };
   let brand, data, state = { page: 1, q: "" };
 
@@ -24,26 +41,27 @@
     $("#mark").innerHTML = `${KittyMark(b, 36)}<span><span class="n">${esc(b.name)}</span><span class="t">${esc(b.tagline)}</span></span>`;
     const w = WORDS[b.kind];
     $("#signintitle").textContent = w.title; $("#signinsub").textContent = w.sub;
-    $("#foot").innerHTML = `${esc(b.name)} is a parody that stands in for ${esc(b.standsInFor)}. The column shapes are real; the name and the mark are original. Fictional household; nothing here is advice. <a href="https://github.com/EthDawg/the-kitty">Source</a>`;
+    $("#foot").innerHTML = `${esc(b.name)} is a parody that stands in for ${esc(b.standsInFor)}. ${b.vault ? "The files are fictional; the name and the mark are original." : "The column shapes are real; the name and the mark are original."} Fictional household; nothing here is advice. <a href="https://github.com/EthDawg/the-kitty">Source</a>`;
   };
   const acct = (id) => data.accounts.find((a) => a.id === id);
   const nav = (active) => {
     const w = WORDS[brand.kind];
-    $("#navlinks").innerHTML = w.nav.map((n, i) => { const [label, off] = n.split("|"); const href = i === 0 ? "#/" : i === 1 ? `#/documents/${encodeURIComponent((state.account || data.accounts[0]).id)}` : "#"; return `<a href="${href}" ${off ? 'class="off" aria-disabled="true" tabindex="-1"' : ""} ${active === i ? 'aria-current="page"' : ""}>${esc(label)}</a>`; }).join("");
+    $("#navlinks").innerHTML = w.nav.map((n, i) => { const [label, off] = n.split("|"); const href = off ? "#" : i === 0 ? "#/" : i === 1 ? `#/documents/${encodeURIComponent((state.account || data.accounts[0]).id)}` : "#/files"; return `<a href="${href}" ${off ? 'class="off" aria-disabled="true" tabindex="-1"' : ""} ${active === i ? 'aria-current="page"' : ""}>${esc(label)}</a>`; }).join("");
     $("#nav").hidden = false;
   };
   const balanceCell = (a) => a.balance == null ? "" : `<span class="bal num ${a.balance < 0 ? "neg" : ""}">${aud(a.balance)}<small>as at ${fmtDate(a.as_at)}</small></span>`;
   const accountRow = (a, current) => `<a class="acct" href="#/account/${encodeURIComponent(a.id)}" data-account="${esc(a.id)}" ${current === a.id ? 'aria-current="true"' : ""}>
     <span><span class="name">${esc(a.name)}${a.in_sheet === false ? '<span class="badge off">not on the sheet</span>' : ""}</span><br><span class="sub">${esc(a.number)} · ${esc(a.type)}</span></span>${balanceCell(a)}</a>`;
 
+  const greeting = () => { const hour = new Date().getHours(); return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"; };
+
   // ---- overview
   const overview = () => {
     state.account = null; nav(0);
     const w = WORDS[brand.kind];
-    const hour = new Date().getHours(), greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     const liquid = data.accounts.filter((a) => a.kind === "bank" && a.balance != null).reduce((s, a) => s + a.balance, 0);
     const owing = data.accounts.filter((a) => a.kind === "loan").reduce((s, a) => s + a.balance, 0);
-    $("#view").innerHTML = `<div class="greet">${greet}, ${esc(data.name)}.</div>
+    $("#view").innerHTML = `<div class="greet">${greeting()}, ${esc(data.name)}.</div>
       <p class="muted small" style="margin-bottom:14px">${esc(w.list)} held since ${fmtDate(data.accounts.reduce((m, a) => (a.from < m ? a.from : m), data.accounts[0].from))}. Records run to ${fmtDate(data.today)}.</p>
       <div class="grid side">
         <div><div class="card"><div class="eyebrow" style="margin-bottom:10px">${esc(w.list)}</div><div class="acctlist">${data.accounts.map((a) => accountRow(a)).join("")}</div>
@@ -144,13 +162,38 @@
     $("#docs").innerHTML = `<div class="eyebrow">${n.toLocaleString("en-AU")} documents by financial year</div>` + j.groups.map((g, i) => `<details class="fy" ${i === 0 ? "open" : ""}><summary><span>${esc(g.group)}</span><span class="count">${g.docs.length} documents</span></summary><ul>${g.docs.map((d) => `<li><span>${esc(d.label)}<br><span class="small muted">${fmtDate(d.from)}${d.from !== d.to ? ` to ${fmtDate(d.to)}` : ""}</span></span><span class="links">${d.formats.map(([f, label]) => `<a href="/api/export?${new URLSearchParams({ brand: brandId, account: a.id, from: d.from, to: d.to, format: f })}" data-doc="${esc(d.kind)}">${esc(label)}</a>`).join("")}</span></li>`).join("")}</ul></details>`).join("");
   };
 
+  // ---- files as delivered: public/vault, listed by public/vault.json, by stream and year. Nothing here is generated on the way out.
+  let vault;
+  const loadVault = async () => { if (vault === undefined) { const r = await fetch("/vault.json").catch(() => null); vault = r && r.ok ? await r.json() : null; } return vault; };
+  const size = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+  const fileRow = (f) => `<li><span class="file">${esc(f.name)}<br><span class="small muted">Delivered ${fmtDate(f.date)} · ${size(f.size)}</span></span><span class="links"><a href="/${encodeURI(f.path)}" download="${esc(f.name)}" data-file="${esc(f.name)}" data-sha256="${esc(f.sha256)}">${esc(f.name.split(".").pop().toUpperCase())}</a></span></li>`;
+  const files = async (streamId) => {
+    state.account = null; nav(brand.vault ? 0 : 2);
+    const v = await loadVault();
+    const streams = v ? v.streams.filter((s) => s.brand === brandId) : [];
+    if (!streams.length) { $("#view").innerHTML = `<div class="card"><div class="eyebrow">Nothing filed yet</div><p class="small" style="margin-top:6px">These files are built from the Davies world, not kept in the repository. From the repository root, run <code>node standard/world/build.js && node portals/build-vault.js</code>, then reload.</p></div>`; return; }
+    const s = streams.find((x) => x.id === streamId) || streams[0];
+    const list = v.files.filter((f) => f.brand === brandId && f.stream === s.id).sort((a, b) => (a.date === b.date ? (a.name < b.name ? 1 : -1) : a.date < b.date ? 1 : -1));
+    const years = [...new Set(list.map((f) => f.year))];
+    const total = streams.reduce((n, x) => n + x.files, 0);
+    const first = streams.map((x) => x.first).sort()[0], last = streams.map((x) => x.last).sort().pop();
+    const words = `${total.toLocaleString("en-AU")} files delivered from ${fmtDate(first)} to ${fmtDate(last)}, each one exactly as it arrived.`;
+    $("#view").innerHTML = `${brand.vault ? `<div class="greet">${greeting()}, ${esc(data.name)}.</div><p class="muted small" style="margin-bottom:14px">${words}</p>` : `<div class="pagehead"><div><h1>Files as delivered</h1><p class="muted small">${words}</p></div></div>`}
+      <div class="grid side">
+        <div><div class="card"><div class="eyebrow" style="margin-bottom:10px">Documents</div><div class="acctlist">${streams.map((x) => `<a class="acct" href="#/files/${encodeURIComponent(x.id)}" data-stream="${esc(x.id)}" ${x.id === s.id ? 'aria-current="true"' : ""}><span><span class="name">${esc(x.name)}</span><br><span class="sub">${x.files.toLocaleString("en-AU")} ${x.files === 1 ? "file" : "files"} · ${x.first.slice(0, 4)}${x.first.slice(0, 4) === x.last.slice(0, 4) ? "" : ` to ${x.last.slice(0, 4)}`}</span></span></a>`).join("")}</div></div></div>
+        <div><div class="card" id="docs"><div class="eyebrow">${esc(s.name)} · by year delivered</div>${years.map((y, i) => { const mine = list.filter((f) => f.year === y); return `<details class="fy" data-year="${esc(y)}" ${i === 0 ? "open" : ""}><summary><span>${esc(y)}</span><span class="count">${mine.length} ${mine.length === 1 ? "file" : "files"}</span></summary><ul>${mine.map(fileRow).join("")}</ul></details>`; }).join("")}</div>
+          <div class="card"><div class="eyebrow">About these records</div><p class="small" style="margin-top:6px">${brand.serves ? `${esc(brand.serves)} ` : ""}Nothing here is generated when you click: each file is the one the Davies household received, byte for byte. Save it, unchanged, under <code>sources/&lt;stream&gt;/&lt;delivered date&gt;/</code>.</p></div></div>
+      </div>`;
+    if (streamId && window.innerWidth < 900) $("#docs").scrollIntoView(); // the rail stacks above the list on a phone
+  };
+
   // ---- routing, sign-in, boot
   const route = () => {
     if (!data) return;
     const h = location.hash || "#/";
-    const m = h.match(/^#\/(account|documents)\/(.+)$/);
-    if (m && m[1] === "account") account(m[2]); else if (m) documents(m[2]); else overview();
+    const m = h.match(/^#\/(account|documents|files)(?:\/(.+))?$/);
     window.scrollTo(0, 0);
+    if (brand.vault || (m && m[1] === "files")) files(m && m[1] === "files" && m[2] ? decodeURIComponent(m[2]) : ""); else if (m && m[2] && m[1] === "account") account(m[2]); else if (m && m[2]) documents(m[2]); else overview();
   };
   window.addEventListener("hashchange", route);
   $("#loginform").addEventListener("submit", async (e) => {
@@ -170,7 +213,8 @@
     $("#signin").hidden = true; $("#view").hidden = false; $("#who").hidden = false; $("#whoname").textContent = `Signed in as ${data.name}`;
     route();
   };
-  fetch("/brands.json").then((r) => r.json()).then((brands) => {
+  Promise.all(["/brands.json", "/vault-brands.json"].map((u) => fetch(u).then((r) => r.json()))).then(([originals, more]) => {
+    const brands = [...originals, ...more];
     brand = brands.find((b) => b.id === brandId);
     if (!brand) { location.replace("/"); return; }
     applyBrand(brand);
