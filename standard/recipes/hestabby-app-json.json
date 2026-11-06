@@ -39,7 +39,8 @@
       "FEE": "fee",
       "INS": "insurance",
       "EARN": "earnings",
-      "ROLLIN": "rollover_in"
+      "ROLLIN": "rollover_in",
+      "PENS": "pension"
      }
     },
     "description": {

@@ -54,7 +54,8 @@ module.exports = (Resolver) => {
       this.claim(hit, role);
       return hit;
     };
-    const loose = (l) => (!l.cls.category_id || l.cls.category_id === "UNCAT" || this.isTransferLine(l)) && (this.accounts.get(l.account) || {}).reporting_group === "cash";
+    const banked = (l) => { const a = this.accounts.get(l.account) || {}; return a.reporting_group === "cash" || a.type === "smsf"; };
+    const loose = (l) => (!l.cls.category_id || l.cls.category_id === "UNCAT" || this.isTransferLine(l)) && banked(l);
     // A sale abroad reaches the bank as a wire, days later, at another day's rate. One such line is the sale; the difference is what getting it here cost or made.
     const wireFor = (cents, date) => {
       const lands = this.lines.filter((l) => !l.claimed && l.cents > 0 && Math.abs(cents - l.cents) <= cents * WIRE_CUT && daysBetween(date, l.date) >= -2 && daysBetween(date, l.date) <= WINDOW_WIRE && loose(l) && /\b(WIRE|SWIFT|TELEGRAPHIC|TT|USD|FX)\b/i.test(l.desc));

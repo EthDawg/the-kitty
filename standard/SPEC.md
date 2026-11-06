@@ -389,6 +389,8 @@ reverse, `clearing:payroll:NORTHWIND` is non-zero, it has an age, and it names t
 covers card repayments, own-account transfers, rental disbursements, loan repayments, dividends, super contributions,
 broker settlements, tax refunds and reimbursements.
 
+A contract says what its money is: a line naming the counterparty takes the contract's category, in the direction that category runs. Money lent out sits on an account that holds the debt, so a line naming the borrower moves money to or from that account.
+
 A two-sided fact need not arrive whole. One statement can clear several credits, and one deposit several buys, so a clearing
 account is matched by sums where amounts prove it. A managing agent is an account: what it pays clears what it owes, however
 it arrives, and what is left is what it still holds. A refinance need not name itself: a final repayment no bank line paid,
@@ -428,8 +430,10 @@ excludes `clearing` and the `tax` position, with two exceptions, both real money
 debt or a receivable, because a buy between trade and settlement has raised holdings and has not yet lowered cash; once
 settlement is well past with no cash line, it is a question and leaves the headline. `clearing:transit` is a transfer that
 has left one account and not reached the other. A household holds what its members own on the day, so a joiner's accounts
-count from their membership date, whatever their year-end papers reach back to. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
-company) is not counted beside the wrapper's balance. Look-through is a view.
+count from their membership date, whatever their year-end papers reach back to, and a joint owner who leaves takes their
+share. An account held in another currency counts at face value and says so until a dated rate exists. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
+company) is not counted beside a balance held outside it that stands for the wrapper. Where nothing else stands for it, the
+wrapper's own accounts are the only place those dollars are, and they count. Look-through is a view.
 
 ---
 

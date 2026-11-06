@@ -157,7 +157,7 @@ const laws = {
         if (!have) continue;
         n += 1;
         const gap = Math.round(expected) - act;
-        if (Math.abs(gap) > Math.max(tol, act * 0.15)) over += 1;
+        if (Math.abs(gap) > tol) over += 1;
         if (Math.abs(gap) > Math.abs(worst)) { worst = gap; worstM = m; }
       }
       if (!n) { out.push(row("L6", c.contract_id, "skip", { detail: "No rate history to check against." })); continue; }
@@ -308,7 +308,9 @@ const laws = {
     const held = [...V.wrappedAccounts(L)];
     const last = L.balances.months[L.balances.months.length - 1];
     const cents = held.reduce((s, a) => s + L.balances.at(a, last), 0);
-    return wrappers.map((w) => row("L18", w.party_id, held.length ? "open" : "pass", { gap_cents: cents, detail: held.length ? `${money(cents)} held inside it is left out of net worth, so it counts once.` : "Held as one value." }));
+    const owns = (w) => L.ownership.filter((o) => o.subject_type === "account" && o.party_id === w.party_id && o.valid_to == null).map((o) => o.subject_id);
+    const counted = (w) => [...new Set(owns(w))].filter((a) => !held.includes(a) && (L.index.accounts.get(a) || {}).type !== "smsf").reduce((s, a) => s + L.balances.at(a, last), 0);
+    return wrappers.map((w) => (!held.length && counted(w) ? row("L18", w.party_id, "open", { gap_cents: counted(w), detail: `${money(counted(w))} held inside it counts at its own balance, because nothing else stands for it.` }) : row("L18", w.party_id, held.length ? "open" : "pass", { gap_cents: cents, detail: held.length ? `${money(cents)} held inside it is left out of net worth, so it counts once.` : "Held as one value." })));
   },
 
   L20(L) {

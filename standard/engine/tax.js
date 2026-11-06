@@ -56,7 +56,7 @@ function lmito(cents, p) {
 function helpOwed(cents, p, owes) {
   if (!p || !owes) return 0;
   const inc = Math.floor(cents / 100);
-  if (p.marginal) { const m = p.marginal; if (inc <= m.from) return 0; return Math.round((inc <= m.second_from ? (inc - m.from) * m.rate : m.second_base + (inc - m.second_from) * m.second_rate) * 100); }
+  if (p.marginal) { const m = p.marginal; if (inc <= m.from) return 0; if (m.top_from && inc >= m.top_from) return Math.round(inc * m.top_rate * 100); return Math.round((inc <= m.second_from ? (inc - m.from) * m.rate : m.second_base + (inc - m.second_from) * m.second_rate) * 100); }
   let r = 0;
   for (const [from, rate] of p.bands) if (inc >= from) r = rate;
   return Math.round(inc * r * 100);

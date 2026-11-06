@@ -82,12 +82,18 @@ function balances(L) {
   const lastMonth = months[months.length - 1];
   return { months, rows, table, at: (account, month) => (table.get(account) ? table.get(account).get(month > lastMonth ? lastMonth : month) ?? 0 : 0) };
 }
-// A household holds what its members own on the day. A joiner's account counts from the day they join, whatever their papers reach back to.
+// A household holds what its members own on the day: the share of an account that is theirs. A joiner's account counts from the day they join, whatever their
+// papers reach back to, and a joint owner who leaves takes their share with them.
 function heldBy(L) {
   const owners = groupBy(L.ownership.filter((o) => o.subject_type === "account" && o.superseded_at == null), (o) => o.subject_id);
   const members = groupBy(L.memberships || [], (m) => m.party_id);
   const belongs = (party, on) => !members.has(party) || members.get(party).some((m) => m.valid_from <= on && (m.valid_to == null || on < m.valid_to));
-  return (account, on) => !owners.has(account) || activeOn(owners.get(account), on).some((o) => belongs(o.party_id, on));
+  return (account, on) => {
+    if (!owners.has(account)) return 1;
+    const active = activeOn(owners.get(account), on), beneficial = active.filter((o) => o.basis === "beneficial"), rows = beneficial.length ? beneficial : active;
+    const total = rows.reduce((s, o) => s + (o.share_bps ?? 10000), 0);
+    return total ? rows.filter((o) => belongs(o.party_id, on)).reduce((s, o) => s + (o.share_bps ?? 10000), 0) / total : 0;
+  };
 }
 function netWorthGroups(L) { return new Set(["cash", "property", "super", "shares", "crypto", "vehicle", "device", "loans"]); }
 function netWorth(L, opts = {}) {
@@ -95,7 +101,7 @@ function netWorth(L, opts = {}) {
   const X = L.index;
   const inScope = opts.accounts ? new Set(opts.accounts) : null;
   const wrapped = wrappedAccounts(L);
-  const held = heldBy(L);
+  const heldShare = heldBy(L);
   // A trade whose cash never met it stops being a debt once settlement is well past. It is a question by then.
   const stale = L.events.filter((e) => e.unsettled);
   const out = [];
@@ -107,8 +113,9 @@ function netWorth(L, opts = {}) {
       const unsettled = account.startsWith("clearing:settle:") || account === TRANSIT;
       if (!unsettled && (!a || !groups.has(a.reporting_group) || wrapped.has(account))) continue;
       if (inScope && !inScope.has(account) && !unsettled) continue;
-      if (!held(account, row.month_end)) continue;
-      const v = L.balances.at(account, m);
+      const share = heldShare(account, row.month_end);
+      if (!share) continue;
+      const v = Math.round(L.balances.at(account, m) * share);
       row.total += v;
       const group = unsettled ? "unsettled" : a.reporting_group;
       row.groups[group] = (row.groups[group] || 0) + v;
@@ -125,12 +132,15 @@ function netWorth(L, opts = {}) {
 }
 // A dollar counts at one level. An asset owned by a wrapper is inside the wrapper's balance, not beside it.
 function wrappedAccounts(L) {
-  const wrappers = new Set(L.parties.filter((p) => ["smsf", "trust", "company"].includes(p.kind)).map((p) => p.party_id));
+  const wrappers = new Map(L.parties.filter((p) => ["smsf", "trust", "company"].includes(p.kind)).map((p) => [p.party_id, p.kind]));
   const out = new Set();
   if (!wrappers.size) return out;
+  const theirs = new Set(L.ownership.filter((o) => o.subject_type === "account" && wrappers.has(o.party_id) && o.valid_to == null).map((o) => o.subject_id));
+  // Only a balance held outside the wrapper can stand for what is inside it. With none, the wrapper's own accounts are the only place those dollars are.
+  const standing = new Set(L.accounts.filter((a) => [...wrappers.values()].includes(a.type) && !theirs.has(a.account_id)).map((a) => a.type));
   for (const o of L.ownership) if (o.subject_type === "account" && wrappers.has(o.party_id) && o.valid_to == null) {
     const a = L.index.accounts.get(o.subject_id);
-    if (a && a.type !== "smsf") out.add(o.subject_id);
+    if (a && standing.has(wrappers.get(o.party_id)) && a.type !== "smsf") out.add(o.subject_id);
   }
   return out;
 }
@@ -306,9 +316,22 @@ function coverage(L) {
       expected += 1;
       if (isHeld) have += 1; else missing.push(ms[i]);
     }
+    // A busy account that goes quiet for a week has lost lines, whatever its files say. No balance is needed to see it.
+    const quietRuns = s.subject_type === "account" ? silences(L.linesByAccount && L.linesByAccount.get(s.subject_id)) : [];
+    missing.push(...quietRuns);
+    if (quietRuns.length && have === expected) have -= 1;
     rows.push({ stream_id: s.stream_id, name: s.name, expected, have, ratio: expected ? have / expected : 1, missing: missing.slice(-6) });
   }
   return rows;
+}
+function silences(lines) {
+  const days = [...new Set((lines || []).map((l) => l.date))].sort();
+  if (days.length < 20) return [];
+  const gaps = days.slice(1).map((d, i) => daysBetween(days[i], d)), sorted = [...gaps].sort((a, b) => a - b), usual = sorted[Math.floor(gaps.length / 2)], wide = sorted[Math.floor(gaps.length * 0.9)];
+  if (usual > 2) return [];
+  // One or two is a hole. Many is how this account behaves.
+  const runs = gaps.flatMap((g, i) => (g >= 6 && g > 2 * wide ? [`${days[i]} to ${days[i + 1]}`] : []));
+  return runs.length <= 3 ? runs : [];
 }
 // Which periods the deliveries answer, one delivery each. The commonest lag explains most of them; a late one then fills the period it is near.
 function answerPeriods(ms, periods, span, months) {

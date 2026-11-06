@@ -75,7 +75,7 @@ function main() {
     "## What this eval is and is not", "",
     "Truth comes from the Davies world's own simulator, not from a held-out source. The world is generated to land on the v2 Sheet's balances, and the Sheet oracle covers 16 of 97 months.", "",
     "A returning household is given setup, rules and a few decisions, as a person would have given them: terms, ownership, aliases, 94 rules and 9 decisions. A new household gets setup and the public dictionary.", "",
-    "Tax ties to assessments the world generated, using rates seeded from the same numbers, and those assessments were fitted to refunds already in the base history, leaving a labelled credit under a dollar. It proves labels and plumbing, not the law.", "",
+    "Tax ties to assessments the world generated, and those assessments were fitted to refunds already in the base history, leaving a labelled credit under a dollar. It proves labels and plumbing, not the law. The rates come from reference/au.json, reconciled on 7 November 2026 to reference/au-verified.json, an independent read of 39 series with 193 of 235 rows taken from primary government pages. That read corrected the seeded HELP tables, the FY2019 offset and the FY2027 cap. The two FY2019 results that miss are that correction: the fictional refunds were fitted to the offset as first legislated, and the reference holds it as amended.", "",
     "L6 is accepted, not passed, on the two Harbour Bank loans: the base history's interest is a monthly approximation.", "",
     "The two sheet balance misses are a known inconsistency in the base history on LN-HOME in 2025-06 and 2025-07.", "",
     ...(fs.existsSync(path.join(here, "heldout", "BLIND-1.md")) ? heldoutSection() : []),

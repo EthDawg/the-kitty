@@ -10,6 +10,7 @@ const MATCHING = require("../schema/matching.json");
 const WINDOW = Object.fromEntries(Object.entries(MATCHING.windows_days).map(([k, v]) => [k, v.days]));
 const TRANSFER_WORDS = new Set(MATCHING.transfer_words.words), STOP_WORDS = new Set(MATCHING.stop_words.words);
 const AGENT_LINE = /RENT|PROPERTY|AGENT|OWNER|MGMT|REALTY|REAL ESTATE/i;
+const SALE_FLOOR = 5000000;
 // Who a line is with, by the first two words of what the dictionary or the bank calls them. A refund's text differs after that.
 const payee = (l) => String(l.cls.merchant || l.desc).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).slice(0, 2).join(" ");
 
@@ -314,12 +315,30 @@ class Resolver {
       const asset = this.assetOfAccount(line.account, line.date);
       if (asset && this.term("asset", asset, "use", line.date) === "rental") { line.cls.category_id = "RENT-INC"; line.cls.via = "account"; line.cls.asset_id = line.cls.asset_id || asset; }
     }
+    // A contract says what its money is. A line naming its counterparty takes its category, in the direction that category runs. A loan's lines have their own reading.
+    const priced = (this.ctx.setup.contract || []).filter((k) => k.category_id && k.counterparty_party_id && k.kind !== "loan" && this.categories.has(k.category_id));
+    for (const line of this.lines) {
+      if (line.cls.category_id) continue;
+      const k = priced.find((x) => (this.catKind(x.category_id) !== "income" || line.cents > 0) && this.namesParty(line, x.counterparty_party_id));
+      if (k) { line.cls.category_id = k.category_id; line.cls.contract_id = k.contract_id; line.cls.via = "contract"; }
+    }
     // History: what this household decided about the same merchant elsewhere.
     for (const line of this.lines) {
       if (!line.cls.category_id && dict.has(line.cls.norm)) { line.cls.category_id = dict.get(line.cls.norm).category_id; line.cls.via = "history"; }
     }
   }
   catKind(id) { const c = this.categories.get(id); return c ? c.kind : null; }
+  // A party's own name, or an alias, in the line: a person by initial and surname, anyone else by the first two words that are theirs.
+  namesParty(l, id) {
+    const p = this.parties.get(id);
+    if (!p) return false;
+    const words = String(l.desc).toUpperCase().split(/[^A-Z0-9]+/);
+    if (this.aliasRows.some((a) => a.subject_type === "party" && a.subject_id === id && normRef(l.desc).includes(normRef(a.value)))) return true;
+    const parts = String(p.name).toUpperCase().split(/[^A-Z0-9]+/).filter((w) => w.length > 1);
+    if (p.kind === "person") { const first = parts[0], last = parts[parts.length - 1]; return words.some((w, i) => i > 0 && parts.length > 1 && w === last && (words[i - 1] === first || words[i - 1] === first[0])); }
+    const own = parts.filter((w) => !STOP_WORDS.has(w) && w.length > 2).slice(0, 2);
+    return own.length > 0 && own.every((w) => words.includes(w));
+  }
   // Rules scoped to another account do not apply here. A rule with a priority is tried first, highest first, and beats any length.
   scopedModel(account) {
     this.scoped = this.scoped || new Map();
@@ -424,7 +443,7 @@ class Resolver {
       if (net !== p.gross_rent_cents - fees - repairs - other) this.fault("owner_statement_arithmetic", o, `Owner statement ${p.period_end} does not add up.`, "", net);
       if (!net && !p.gross_rent_cents) continue;
       const lo = p.period_start, hi = addDays(p.period_end, WINDOW.rent_disbursement);
-      const candidates = (this.linesByAccount.get(account) || []).filter((l) => !l.claimed && l.date >= lo && l.date <= hi && (AGENT_LINE.test(l.desc) || this.agentHint(l, p)));
+      const candidates = (this.linesByAccount.get(account) || []).filter((l) => !l.claimed && l.date >= lo && l.date <= hi && (AGENT_LINE.test(l.desc) || this.agentHint(l, p) || l.cls.category_id === "RENT-INC"));
       let chosen = null;
       const exact = candidates.find((l) => l.cents === net);
       if (exact) chosen = [exact];
@@ -441,7 +460,7 @@ class Resolver {
     }
     for (const [assetId, rows] of groupBy(short, (x) => x.assetId)) {
       const owed = rows.reduce((s, x) => s + x.net, 0), from = rows.map((x) => x.p.period_start).sort()[0], to = addDays(rows.map((x) => x.p.period_end).sort().pop(), 45);
-      const paid = (this.linesByAccount.get(rows[0].account) || []).filter((l) => !l.claimed && l.cents > 0 && l.date >= from && l.date <= to && AGENT_LINE.test(l.desc) && !/\b(OSKO|PAYID)\b/i.test(l.desc)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key));
+      const paid = (this.linesByAccount.get(rows[0].account) || []).filter((l) => !l.claimed && l.cents > 0 && l.date >= from && l.date <= to && (AGENT_LINE.test(l.desc) || l.cls.category_id === "RENT-INC") && !/\b(OSKO|PAYID)\b/i.test(l.desc)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key));
       let got = 0;
       for (const l of paid) { if (got + l.cents > owed) continue; receipt(l, assetId); got += l.cents; }
       if (got !== owed) this.fault("owner_statement_unmatched", rows[0].o, `Owner statements for ${this.assetName(assetId)} from ${from} disburse ${owed / 100} and the bank lines add to ${got / 100}.`, "Check the account the agent pays into.", owed - got);
@@ -593,6 +612,17 @@ class Resolver {
     if (!c && l.cls.dictKind === "transfer" && !l.cls.unplaced) return true;
     return false;
   }
+  // Money lent out sits on an account that holds the debt. A line naming the borrower moves money to or from that account; it is neither spending nor income.
+  recogniseLending() {
+    for (const k of (this.ctx.setup.contract || []).filter((c) => c.kind === "loan" && c.counterparty_party_id && c.account_id && (this.accounts.get(c.account_id) || {}).class === "asset")) {
+      for (const l of this.lines.filter((x) => !x.claimed && x.account !== k.account_id && this.namesParty(x, k.counterparty_party_id))) {
+        this.claim(l, "transfer");
+        const out = l.cents < 0, cents = Math.abs(l.cents);
+        this.event({ key: `transfer|${l.key}|lent`, kind: "transfer", occurred_on: l.date, description: l.desc, category_id: "TRANSFER", contract_id: k.contract_id, amount_cents: cents, grade: "stated", rule: "contract",
+          witnesses: this.lineWitness(l), fields: { amount: cents }, refs: { from_account: out ? l.account : k.account_id, to_account: out ? k.account_id : l.account }, lines: [l] });
+      }
+    }
+  }
   pairTransfers() {
     // One side reading as a transfer is enough: the other side may be a broker's plain "DEPOSIT". An exact opposite amount on another
     // of the household's own accounts within days is a mate. Everything else stays a question.
@@ -650,17 +680,19 @@ class Resolver {
   saysMoved(l) { return String(l.desc).toUpperCase().split(/[^A-Z0-9]+/).some((w) => TRANSFER_WORDS.has(w)); }
   namesMember(l) {
     const words = String(l.desc).toUpperCase().split(/[^A-Z0-9]+/);
+    const member = (id) => (this.setup.membership || []).some((m) => m.party_id === id && m.valid_from <= l.date && (m.valid_to == null || l.date < m.valid_to));
     return (this.setup.party || []).some((p) => {
-      if (p.kind !== "person") return false;
+      if (p.kind !== "person" || !member(p.party_id)) return false;
       const parts = String(p.name).toUpperCase().split(/\s+/), first = parts[0], last = parts[parts.length - 1];
       return words.some((w, i) => i > 0 && ((parts.length > 1 && w === last && (words[i - 1] === first || words[i - 1] === first[0])) || (w === first && first.length > 2 && ["TO", "FROM"].includes(words[i - 1]))));
     });
   }
   staysHome(d, c) {
     if (this.namesMember(d) || this.namesMember(c) || this.transferHint(d, c) || this.transferHint(c, d)) return true;
-    const words = (l) => new Set(String(l.desc).toUpperCase().split(/[^A-Z0-9]+/).filter((w) => w.length >= 4 && !TRANSFER_WORDS.has(w) && !STOP_WORDS.has(w)));
-    const theirs = words(c);
-    return [...words(d)].some((w) => theirs.has(w));
+    // A shared word can be a town. A shared reference number is the same payment.
+    const numbers = (l) => new Set(String(l.desc).split(/[^0-9]+/).filter((w) => w.length >= 4));
+    const theirs = numbers(c);
+    return [...numbers(d)].some((w) => theirs.has(w));
   }
   transferHint(a, b) {
     const name = this.accountName(b.account).toUpperCase();
@@ -700,11 +732,15 @@ class Resolver {
         this.fault("split_does_not_add", l.key, `The split of ${l.desc} adds to ${total / 100}, not ${l.cents / 100}.`, "Fix the parts. The line stays whole until they add up.", l.cents - total);
       }
       // A credit is a refund only from someone the household paid, or if it says so. A person-to-person payment the dictionary guessed at is not an answer, and it is money nobody has explained.
-      const refund = l.cents > 0 && (/REFUND|REVERSAL|CHARGEBACK|RETURN/i.test(l.witnesses.map((o) => o.payload.description).join(" ")) || (!this.saysMoved(l) && (this.firstPaid().get(payee(l)) || "9999") <= l.date));
+      const refund = l.cents > 0 && (/REFUND|REVERSAL|CHARGEBACK|RETURN/i.test(l.witnesses.map((o) => o.payload.description).join(" ")) || (!this.saysMoved(l) && this.paidBefore(l) >= l.cents));
       if (category && l.cents > 0 && c.via === "dictionary" && this.catKind(category) === "expense" && !refund && this.saysMoved(l)) category = null;
       if (!category) {
         category = "UNCAT";
         this.review.push({ kind: "uncategorised", ref: l.key, question: c.norm || l.desc, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });
+      }
+      // A very large credit no document explains may be an asset leaving. The file that would prove it may not have been read.
+      if (category === "UNCAT" && l.cents >= SALE_FLOOR && /SALE|SETTLEMENT|CONVEYANC|SOLICITOR|VENDOR|PROCEEDS/i.test(l.desc)) {
+        for (const a of this.ctx.setup.asset || []) if (a.kind === "property" && a.account_id) this.review.push({ kind: "possible_sale", ref: `${a.account_id}|${l.key}`, amount_cents: l.cents, what: `${l.desc} of ${l.cents / 100} reads like a sale. Was ${a.name} sold?`, do: "Add the settlement statement, or say what this is. Until then the asset stays on the books." });
       }
       const k = this.catKind(category);
       const isIncome = k === "income";
@@ -715,9 +751,10 @@ class Resolver {
         witnesses: [...this.lineWitness(l), ...(l.docs || []).map((o) => ({ obs_id: o.obs_id, role: "corroborates", amount_cents: l.cents })), ...(l.policyWitness ? [{ obs_id: l.policyWitness.obs_id, role: "corroborates", amount_cents: l.cents }] : [])], fields, refs: { account: l.account, category }, line: l });
     }
   }
-  firstPaid() {
-    if (!this.paid) { this.paid = new Map(); for (const l of this.lines) if (l.cents < 0 && (!this.paid.has(payee(l)) || l.date < this.paid.get(payee(l)))) this.paid.set(payee(l), l.date); }
-    return this.paid;
+  // What the household paid this payee in the year before a credit. A refund cannot be larger.
+  paidBefore(line) {
+    if (!this.paid) this.paid = groupBy(this.lines.filter((l) => l.cents < 0), payee);
+    return (this.paid.get(payee(line)) || []).filter((l) => l.date <= line.date && daysBetween(l.date, line.date) <= 365).reduce((s, l) => s - l.cents, 0);
   }
   assetOfAccount(account, on) {
     const k = activeOn(this.links.filter((x) => x.relation === "serves" && x.from_id === account), on);
@@ -800,10 +837,14 @@ class Resolver {
     this.recogniseTrusts();
     this.recogniseTax();
     this.recogniseUnmatchedWages();
+    this.recogniseLending();
     this.pairTransfers();
     this.recogniseEveryday();
     this.finishOpenings();
     this.revalue();
+    // A file can read clean in another currency. Nothing here converts it, so it is counted at face value and says so.
+    const base = (this.setup.household && this.setup.household[0] && this.setup.household[0].base_currency) || "AUD";
+    for (const a of this.setup.account || []) if (a.currency && a.currency !== base) this.review.push({ kind: "foreign_currency", ref: a.account_id, amount_cents: null, what: `${a.name} is held in ${a.currency} and no rate is held. Net worth counts it at face value.`, do: "Add a dated rate. Until then this balance is not in dollars." });
     return this;
   }
 }

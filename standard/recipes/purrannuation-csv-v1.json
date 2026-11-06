@@ -28,7 +28,8 @@
       "Administration Fee": "fee",
       "Insurance Premium": "insurance",
       "Investment Earnings": "earnings",
-      "Rollover In": "rollover_in"
+      "Rollover In": "rollover_in",
+      "Pension Payment": "pension"
      }
     },
     "description": {

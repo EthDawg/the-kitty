@@ -528,7 +528,7 @@ test("an own transfer with no dictionary word still pairs; two strangers' lines 
   const two = (n) => household(n).person("kim", "Kim Nguyen").person("sam", "Sam Reilly").account("A", "transaction", "cash", [["kim", 10000]]).account("B", "transaction", "cash", [["sam", 10000]]);
   let h = two("own");
   h.line("A", "2026-07-03", "OSKO TO S REILLY HOUSE SHARE", -60000).line("B", "2026-07-03", "OSKO FROM K NGUYEN HOUSE SHARE", 60000);
-  h.line("A", "2026-07-20", "BPAY CEDAR 8841", -25000).line("B", "2026-07-21", "DEPOSIT CEDAR", 25000);
+  h.line("A", "2026-07-20", "BPAY CEDAR 8841", -25000).line("B", "2026-07-21", "DEPOSIT 8841", 25000);
   let L = run(h);
   assert.equal(L.events.filter((e) => e.kind === "transfer").length, 2);
   assert.equal(L.cash[0].spending, 0);
@@ -805,4 +805,108 @@ test("an asset carried at its opening value and sold leaves nothing behind", () 
   const L = run(h);
   assert.equal(L.balances.at("CAR", "2026-03"), 0);
   assert.equal(L.netWorth.find((r) => r.month === "2026-03").total, 800000);
+});
+
+// ---------- shapes the third blind household found. Each failed before its repair. Nothing here reads that household's numbers. ----------
+test("a contract says what its money is: a line naming the counterparty takes its category, in the direction it runs", () => {
+  const h = household("pension").person("a").org("HESTAbby").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.setup.party.find((p) => p.party_id === "HESTAbby").name = "HESTAbby Super";
+  h.setup.contract.push({ contract_id: "ABP", kind: "super_fund", name: "Pension", counterparty_party_id: "HESTAbby", category_id: "SUPER-PENSION" });
+  h.line("BANK", "2026-07-14", "HESTABBY PENSION PAYMENT", 110000).line("BANK", "2026-07-15", "HESTABBY ADVICE FEE", -5000);
+  const L = run(h);
+  assert.equal(L.cash[0].income, 110000, "income with no payslip and no employer");
+  assert.equal(L.cash[0].spending, 5000, "a debit to the same party is not negative income");
+});
+
+test("every public super recipe reads a pension line", () => {
+  for (const [f, code] of [["purrannuation-csv-v1", "Pension Payment"], ["purrannuation-csv-v2", "PENSION"], ["hestabby-app-json", "PENS"]]) {
+    const r = JSON.stringify(require(`../../recipes/${f}.json`));
+    assert.ok(r.includes(`"${code}":"pension"`), f);
+  }
+});
+
+test("a fund's own accounts count once, at their own balances, when nothing else stands for the fund", () => {
+  const h = household("own-fund").person("a").org("FUND", "smsf");
+  h.account("FUNDBANK", "smsf", "super", [["FUND", 10000]]).account("FUNDSHARES", "holding", "super", [["FUND", 10000]]);
+  for (const [id, cents] of [["FUNDBANK", 5000000], ["FUNDSHARES", 7000000]]) { const a = h.setup.account.find((x) => x.account_id === id); a.opening_balance_cents = cents; a.opening_date = "2026-07-01"; }
+  h.line("FUNDBANK", "2026-07-15", "INTEREST", 0);
+  assert.equal(run(h).netWorth.slice(-1)[0].total, 12000000);
+});
+
+test("a joint owner who leaves the household takes their share of the account with them", () => {
+  const h = household("leaver").person("a").person("b").account("JOINT", "savings", "cash", [["a", 5000], ["b", 5000]], { opening_balance_cents: 1000000, opened_on: "2024-01-01" });
+  h.setup.membership.find((m) => m.party_id === "b").valid_to = "2026-03-15";
+  h.line("JOINT", "2026-06-01", "SHOPS", -100);
+  const L = run(h), at = (m) => L.netWorth.find((r) => r.month === m).total;
+  assert.equal(at("2026-02"), 1000000);
+  assert.equal(at("2026-04"), 500000);
+});
+
+test("a credit larger than anything paid to that merchant is not a refund", () => {
+  const h = household("dealer").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.line("BANK", "2026-03-01", "RIDGE MOTORS SERVICE", -45000).line("BANK", "2026-06-10", "RIDGE MOTORS TRADE IN", 2350000).line("BANK", "2026-06-12", "RIDGE MOTORS SERVICE CREDIT", 5000);
+  const m = run(h).cash.find((x) => x.month === "2026-06");
+  assert.equal(m.unexplained, 2350000, "a car sold back, not a refund");
+  assert.equal(m.spending, -5000, "the small one is");
+});
+
+test("a shared word is not evidence of an own transfer; a shared number is", () => {
+  const two = (n) => household(n).person("a").account("A", "transaction", "cash", [["a", 10000]]).account("B", "savings", "cash", [["a", 10000]]);
+  let h = two("word");
+  h.line("A", "2026-04-08", "EFT TO CASTLEMAINE BOWLS CLUB SUBS", -18000).line("B", "2026-04-09", "EFT FROM CASTLEMAINE REALTY TRUST", 18000);
+  assert.equal(run(h).events.filter((e) => e.kind === "transfer").length, 0);
+  h = two("number");
+  h.line("A", "2026-04-08", "BPAY 8841207 BROKER", -18000).line("B", "2026-04-09", "DEPOSIT 8841207", 18000);
+  assert.equal(run(h).events.filter((e) => e.kind === "transfer").length, 1);
+});
+
+test("interest that an undeclared offset explains fails the rate law, whatever its size", () => {
+  const h = household("offset").person("a").account("BANK", "offset", "cash", [["a", 10000]], { opening_balance_cents: 20000000, opened_on: "2026-01-01" }).account("LOAN", "loan", "loans", [["a", 10000]]);
+  h.setup.contract.push({ contract_id: "L", kind: "loan", name: "Loan", account_id: "LOAN" });
+  h.term("contract", "L", "interest_rate", "6", "2026-01-01");
+  h.obs("loan_statement", { account_ref: "LOAN", period_start: "2026-03-01", period_end: "2026-03-31", opening_cents: 30000000, interest_cents: 135000, fees_cents: 0, repayments_cents: 0, redraws_cents: 0, closing_cents: 30135000 });
+  assert.ok(status(run(h), "L6").includes("fail"));
+});
+
+test("an account in another currency says so; a large credit that reads like a sale asks about the asset", () => {
+  const h = household("fx").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).account("UK", "savings", "cash", [["a", 10000]], { currency: "GBP" }).account("HOME", "property", "property", [["a", 10000]], { fidelity: "snapshot" });
+  h.setup.asset.push({ asset_id: "H", kind: "property", name: "Home", account_id: "HOME" });
+  h.line("UK", "2026-06-01", "INTEREST", 100, 1000000);
+  h.line("BANK", "2026-06-02", "LODDON CONVEYANCING TRUST SALE PROCEEDS", 53520586);
+  h.obs("valuation", { subject_ref: "HOME", as_at: "2026-01-01", value_cents: 112000000 });
+  const L = run(h);
+  assert.ok(L.review.some((r) => r.kind === "foreign_currency" && String(r.ref).includes("UK")));
+  assert.ok(L.review.some((r) => r.kind === "possible_sale" && String(r.ref).includes("HOME")));
+});
+
+test("a dividend paid to a fund's bank account clears there", () => {
+  const h = household("fund-div").person("a").org("FUND", "smsf").account("FB", "smsf", "super", [["FUND", 10000]]).account("FBRK", "smsf", "super", [["FUND", 10000]]).account("FSH", "holding", "super", [["FUND", 10000]], { parent_account_id: "FBRK", instrument_id: "ABC" });
+  h.setup.instrument.push({ instrument_id: "ABC", kind: "listed_share", code: "ABC", name: "ABC", currency: "AUD" });
+  h.obs("dividend", { account_ref: "FBRK", instrument_ref: "ABC", pay_date: "2026-09-20", units: "100", franked_cents: 7500, unfranked_cents: 0, franking_credit_cents: 3214, net_cents: 7500 });
+  h.line("FB", "2026-09-20", "ABC FINAL DIV", 7500);
+  const L = run(h);
+  assert.equal(L.balances.at("clearing:income:FB", "2026-09"), 0);
+  assert.ok(!L.review.some((r) => r.kind === "dividend_unpaid"));
+});
+
+test("a week of silence on a busy account is named, even with no balance to test it", () => {
+  const h = household("silence").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.setup.stream.push({ stream_id: "BANK", subject_type: "account", subject_id: "BANK", cadence: "monthly", grace_days: 14, valid_from: "2026-05-01", valid_to: null });
+  const id = stream(h, "f", "BANK");
+  for (let d = 1; d <= 30; d++) { if (d >= 10 && d <= 18) continue; h.line("BANK", `2026-06-${String(d).padStart(2, "0")}`, "SHOPS", -100); }
+  from(h, 0, id);
+  const c = run(h, { asOf: "2026-08-20" }).coverage.find((x) => x.stream_id === "BANK");
+  assert.ok(c.missing.some((m) => /2026-06-09/.test(m)), `named: ${c.missing}`);
+  assert.ok(c.have < c.expected);
+});
+
+test("money lent to someone goes to the account that holds the debt, and comes back the same way", () => {
+  const h = household("lent").person("a", "Sal Whitlock").person("kid", "Karim Whitlock").account("BANK", "transaction", "cash", [["a", 10000]]).account("LOANOUT", "receivable", "loans", [["a", 10000]]);
+  h.setup.membership = h.setup.membership.filter((m) => m.party_id !== "kid");
+  h.setup.contract.push({ contract_id: "K", kind: "loan", name: "Loan to Karim", counterparty_party_id: "kid", account_id: "LOANOUT" });
+  h.line("BANK", "2026-03-12", "OSKO TO K WHITLOCK HOUSE LOAN", -2000000).line("BANK", "2026-04-12", "OSKO FROM K WHITLOCK LOAN", 30000);
+  const L = run(h);
+  assert.equal(L.balances.at("LOANOUT", "2026-04"), 1970000);
+  assert.equal(L.cash.find((m) => m.month === "2026-03").spending, 0);
+  assert.equal(L.cash.find((m) => m.month === "2026-04").income, 0);
 });

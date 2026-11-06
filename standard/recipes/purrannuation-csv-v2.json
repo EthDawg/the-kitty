@@ -28,7 +28,8 @@
       "FEE-ADMIN": "fee",
       "INS-DTPD": "insurance",
       "EARNINGS": "earnings",
-      "ROLL-IN": "rollover_in"
+      "ROLL-IN": "rollover_in",
+      "PENSION": "pension"
      }
     },
     "description": {

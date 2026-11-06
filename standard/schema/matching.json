@@ -16,6 +16,6 @@
     "policy": { "days": 14, "why": "A premium paid around the start of its period." }
   },
   "transfer_words": { "words": ["OSKO", "NPP", "PAYID", "TFR", "XFER", "TRANSFER", "TRANSFERS", "BPAY", "SWEEP", "DEPOSIT", "WITHDRAWAL", "RTGS", "EFT", "INTERBANK"], "why": "Words that say how money moved. With both sides unexplained, opposite to the cent, on two of the household's accounts, one of these or a member's name makes a pair." },
-  "stop_words": { "words": ["FROM", "INTERNET", "BANKING", "PAYMENT", "ONLINE", "ACCOUNT", "BANK", "REFERENCE"], "why": "Words two strangers' lines can share." },
+  "stop_words": { "words": ["THE", "AND", "BANK", "SUPER", "FUND", "TRUST", "GROUP", "PTY", "LTD", "LIMITED", "CREDIT", "UNION", "SOCIETY", "BUILDING", "DEPARTMENT"], "why": "Words in an organisation's name that do not say which organisation it is." },
   "similarity": { "minimum": 0.25, "why": "Two descriptions of one line share at least a quarter of their words." }
 }
