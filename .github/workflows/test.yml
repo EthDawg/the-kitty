@@ -86,3 +86,25 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: kit-screenshots, path: docs/screenshots/kit/ci, if-no-files-found: ignore, retention-days: 7 }
+
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: an independent spreadsheet engine and readers
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends libreoffice-calc
+          pip install openpyxl pypdf
+      - name: the Davies world
+        run: node standard/world/build.js
+      - name: the pack's promises (ties, gaps, evidence, tax file numbers, take-back, one core in two hosts)
+        run: node --test src/household/pack/test.js
+      - name: what the Standard could not answer, still visible
+        run: node --test src/household/pack/fixtures/findings.test.js
+      - name: an independent reader, every formula worked out from nothing
+        run: python3 src/household/pack/test_independent.py --require-soffice

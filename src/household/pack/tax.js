@@ -112,8 +112,12 @@
     const rescFromStatements = statementSaysResc ? sum(statements, (o) => o.payload.resc_cents) : null;
     const it2 = rescFromStatements ?? resc;
     const it2Evidence = statements.map((o) => book.cite(o, f1));
-    push({ id: "memo.it1", section: "memo.items", label: "IT1", name: "Reportable fringe benefits", state: "not_found", evidence_state: "missing", note: "From the income statement. The Standard does not read this field yet, so the pack cannot say it is nil." });
-    gap({ owner: "taxpayer", item: "Reportable fringe benefits (IT1)", why: "Reported, not taxed, and it feeds several income tests.", where: "Income statement, field Reportable fringe benefits. Zero if none shown.", lines: ["memo.it1"] });
+    const rfbaKnown = statements.length > 0 && statements.every((o) => o.payload.rfba_cents !== undefined && o.payload.rfba_cents !== null);
+    const rfba = rfbaKnown ? sum(statements, (o) => o.payload.rfba_cents) : null;
+    if (rfba === null) {
+      push({ id: "memo.it1", section: "memo.items", label: "IT1", name: "Reportable fringe benefits", state: "not_found", evidence_state: "missing", note: "The income statement as read does not carry this field, so the pack cannot say it is nil." });
+      gap({ owner: "taxpayer", item: "Reportable fringe benefits (IT1)", why: "Reported, not taxed, and it feeds several income tests.", where: "Income statement, field Reportable fringe benefits. Zero if none shown.", lines: ["memo.it1"] });
+    } else push({ id: "memo.it1", section: "memo.items", label: "IT1", name: "Reportable fringe benefits", amount_cents: rfba, state: rfba ? "value" : "nil", nil_basis: rfba ? null : "Every income statement held shows none.", evidence: statements.map((o) => book.cite(o, f1)), evidence_state: "held" });
     push(it2 === null ? { id: "memo.it2", section: "memo.items", label: "IT2", name: "Reportable employer super (salary sacrifice only, not compulsory SG)", state: "not_found", evidence_state: "missing" }
       : it2 === 0 ? { id: "memo.it2", section: "memo.items", label: "IT2", name: "Reportable employer super (salary sacrifice only, not compulsory SG)", amount_cents: 0, state: "nil", nil_basis: "Every income statement held shows none.", evidence: it2Evidence, evidence_state: "held" }
         : { id: "memo.it2", section: "memo.items", label: "IT2", name: "Reportable employer super (salary sacrifice only, not compulsory SG)", amount_cents: it2, engine: "RESC", evidence: it2Evidence, evidence_state: statements.length ? "held" : "at_risk" });

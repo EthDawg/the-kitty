@@ -72,7 +72,7 @@
     return p;
   }
 
-  const money = (c) => { if (c === null || c === undefined) return "not found"; const a = Math.abs(c), s = `$${Math.floor(a / 100).toLocaleString("en-AU")}.${String(a % 100).padStart(2, "0")}`; return c < 0 ? `(${s})` : s; };
+  const money = (c) => { if (c === null || c === undefined) return "not found"; const a = Math.abs(c), s = `$${String(Math.floor(a / 100)).replace(/\B(?=(\d{3})+$)/g, ",")}.${String(a % 100).padStart(2, "0")}`; return c < 0 ? `(${s})` : s; };
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const longDate = (d) => { const [y, m, x] = String(d).split("-"); return `${Number(x)} ${MONTHS[Number(m) - 1]} ${y}`; };
   const counts = (p) => { const n = { held: 0, at_risk: 0, missing: 0 }; for (const l of p.lines) if (l.section.endsWith(".summary") || l.fields.counted) if (n[l.evidence_state] !== undefined) n[l.evidence_state]++; return n; };

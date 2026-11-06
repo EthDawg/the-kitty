@@ -179,14 +179,14 @@
     ln.span("RECONCILIATION, this is what lets the accountant confirm nothing is missing", "section");
     const hasLoans = loans.length > 0;
     const rangeSum = (c) => (hasLoans ? `SUM(${c}${l0}:${c}${l1})` : "0");
-    const rec = (name, f, s, key, note) => ln.row([{ v: name, s: s === "zero" ? "totalText" : "wrap" }, null, { f, s, key }, { v: note, s: "muted" }]);
-    ln.merges.push();
+    const wide = (r) => { ln.merges.push(`A${r}:D${r}`, `F${r}:M${r}`); return r; };
+    const rec = (name, f, s, key, note) => wide(ln.row([{ v: name, s: s === "zero" ? "totalText" : "wrap" }, null, null, null, { f, s, key }, { v: note, s: "muted" }]));
     rec("Total interest charged across all loans", rangeSum("E"), "calc", "ln.total", "Should equal the sum of every lender statement");
     rec("Less: deductible", rangeSum("F"), "calc", "ln.ded", "Flows to the property tabs");
     rec("Less: not deductible, private use", rangeSum("G"), "calc", "ln.priv", "Home, car, personal");
     rec("Less: not yet deductible, undrawn", rangeSum("H"), "calc", "ln.undrawn", "Becomes deductible once the funds are used");
     rec("Unexplained difference, must be zero", "ROUND({ln.total}-{ln.ded}-{ln.priv}-{ln.undrawn},2)", "zero", "ln.diff", "If this is not zero, a loan is missing or a statement is short");
-    ln.row([{ v: "Check", s: "wrap" }, null, { f: `IF(AND(COUNTIF(E${l0}:E${Math.max(l0, l1)},"${NF}")=0,{ln.diff}=0),"Reconciles","STOP: not reconciled")`, s: "bold", key: "ln.check" }]);
+    wide(ln.row([{ v: "Check", s: "wrap" }, null, null, null, { f: `IF(AND(COUNTIF(E${l0}:E${Math.max(l0, l1)},"${NF}")=0,{ln.diff}=0),"Reconciles","STOP: not reconciled")`, s: "bold", key: "ln.check" }]));
     ln.gap();
     ln.span("NOTES", "section");
     for (const n of ["Use of funds decides deductibility. A loan secured on your home but used to buy an investment is deductible. A loan secured on an investment but used privately is not.", "If a facility was used for more than one purpose, apportion it by the amount drawn for each and show the percentage.", "If you refinanced mid-year, the old lender's closed accounts still hold interest. Most lenders' annual reports only list open accounts.", "Money sitting in an offset account has not been used yet, so its interest is not deductible until it is drawn."]) ln.span(n, "note");

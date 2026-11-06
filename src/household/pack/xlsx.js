@@ -16,7 +16,7 @@
     input: { color: BLUE, fmt: MONEY, v: "top" }, calc: { fmt: MONEY, v: "top" }, wholeMoney: { fmt: WHOLE, v: "top" }, totalWhole: { b: 1, fmt: WHOLE, top: 1 }, total: { b: 1, fmt: MONEY, top: 1 }, totalText: { b: 1, top: 1 }, zero: { b: 1, fmt: ZERO, top: 1, fill: GREEN },
     blank: { color: BLUE, fmt: MONEY, fill: INPUT, v: "top" }, blankText: { color: BLUE, fill: INPUT, wrap: 1, v: "top" }, pctIn: { color: BLUE, fmt: PCT, v: "top" }, pctCalc: { fmt: PCT, v: "top" }, rate: { color: BLUE, fmt: "0.000", v: "top" }, fx: { color: BLUE, fmt: RATE, v: "top" },
     units: { color: BLUE, fmt: UNITS, v: "top" }, unitsCalc: { fmt: UNITS, v: "top" }, whole: { color: BLUE, fmt: "#,##0", v: "top" }, wholeCalc: { fmt: "#,##0", v: "top" }, date: { color: BLUE, v: "top" },
-    ok: { fill: GREEN, v: "top" }, warn: { fill: AMBER, v: "top", wrap: 1 }, stop: { fill: RED, b: 1, v: "top", wrap: 1 }, indicative: { fill: AMBER, i: 1, v: "top" }, link: { color: LINK, u: 1, v: "top" }, notFound: { fill: RED, b: 1, h: "right", v: "top" },
+    ok: { fill: GREEN, v: "top", h: "center" }, warn: { fill: AMBER, v: "top", wrap: 1, h: "center" }, stop: { fill: RED, b: 1, v: "top", wrap: 1, h: "center" }, indicative: { fill: AMBER, i: 1, v: "top", h: "center", wrap: 1 }, link: { color: LINK, u: 1, v: "top" }, notFound: { fill: RED, b: 1, h: "right", v: "top" },
   };
   const NAMES = Object.keys(STYLES);
 
