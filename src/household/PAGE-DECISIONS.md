@@ -20,6 +20,8 @@ Taken on 7 November 2026 while building, without stopping to ask. Each is a defa
 
 **It can't be made to pass by weakening it.** A differing field needs a written reason, no field may match fewer rows than `parity-baseline.json`, and the money itself is held to zero differences: every transaction's date, account, amount, description and flow, every month's income, spending and net, cash, property, super, loans, goals and payslips.
 
+**Four fields move by machine, and stay out of the totals and the ratchet.** `person` and foreign amount on a line follow which of its witnesses is read first, and that follows a hash of the file's bytes. The world's PDFs are deflated, and deflate's output differs between an arm Mac and an x64 runner. Changing the compression level moves the same fields. A finding for the data model session: those two should not depend on witness order.
+
 **`src/engine.js` is not retired and the demo stays on v2.** The adapter can read Davies. It can't yet state what the sheet computes.
 
 ## Two doors
