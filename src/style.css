@@ -816,5 +816,7 @@ table.rec-tie tbody th{color:var(--ink2);font-weight:600}
 .kh-sheet h1{font-size:26px;letter-spacing:-.02em;margin:0}.kh-sheet .lede{font-size:15px;color:var(--ink2);margin:0}
 .kh-sheet .field label{color:var(--muted)}
 .kh-sheet .field input{background:var(--surface2);color:var(--ink);border-color:var(--line)}
+.card .field label,.field.plain label{color:var(--muted)}
+.card .field input,.card .field select,.field.plain input,.field.plain select{background:var(--surface2);color:var(--ink);border-color:var(--line)}
 .kh-rows{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;font-size:14.5px}
 .kh-homedrop{margin-top:14px;max-width:260px}.kh-homedrop .kh-drop{color:var(--hero-ink)}

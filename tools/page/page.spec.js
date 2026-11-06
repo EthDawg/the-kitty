@@ -437,6 +437,13 @@ test("no connector: there is no Set up my Sheet to press, and it says what a con
   await expect(page.locator("#hnext")).toHaveCount(0);
   await expect(page.locator("#onb")).toContainText("A connector is the permission");
 });
+test("a question on a light card can be read: the field takes the card's ink, not the dark door's", async ({ page }) => {
+  await open(page);
+  await firstFile(page);
+  const ink = await page.locator(".kh-income select").first().evaluate((el) => { const c = getComputedStyle(el).color; return c; });
+  const page_ink = await page.locator(".kh-income .cardhead .q").evaluate((el) => getComputedStyle(el).color);
+  expect(ink).toBe(page_ink);
+});
 test("a stranger's second month: files land right, one answer sticks, the card ties to its statement, a month closes and reopens, and a debt goes in by hand", async ({ page }) => {
   const errors = await open(page);
   await firstFile(page);
