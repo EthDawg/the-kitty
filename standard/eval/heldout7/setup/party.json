@@ -1,0 +1,165 @@
+[
+ {
+  "party_id": "PTY-HARPREET",
+  "kind": "person",
+  "name": "Harpreet Singh",
+  "birth_date": "1986-03-11"
+ },
+ {
+  "party_id": "PTY-SIMRAN",
+  "kind": "person",
+  "name": "Simran Kaur",
+  "birth_date": "1989-08-21"
+ },
+ {
+  "party_id": "PTY-ANAYA",
+  "kind": "person",
+  "name": "Anaya Kaur",
+  "birth_date": "2017-04-19"
+ },
+ {
+  "party_id": "PTY-REET",
+  "kind": "person",
+  "name": "Reet Kaur",
+  "birth_date": "2024-11-12"
+ },
+ {
+  "party_id": "PTY-GURJOT",
+  "kind": "person",
+  "name": "Gurjot Singh",
+  "birth_date": "2001-12-02"
+ },
+ {
+  "party_id": "PTY-BALWINDER",
+  "kind": "person",
+  "name": "Balwinder Singh",
+  "birth_date": "1955-01-30"
+ },
+ {
+  "party_id": "PTY-SURJIT",
+  "kind": "person",
+  "name": "Surjit Kaur",
+  "birth_date": "1959-06-03"
+ },
+ {
+  "party_id": "PTY-AARAV",
+  "kind": "person",
+  "name": "Aarav Patel",
+  "birth_date": "2002-09-14"
+ },
+ {
+  "party_id": "PTY-WESTGATE",
+  "kind": "organisation",
+  "name": "Westgate Linehaul"
+ },
+ {
+  "party_id": "PTY-ARDEER",
+  "kind": "organisation",
+  "name": "Ardeer Aged Care"
+ },
+ {
+  "party_id": "PTY-LAVERTON",
+  "kind": "organisation",
+  "name": "Laverton Home Support"
+ },
+ {
+  "party_id": "PTY-COUNCIL",
+  "kind": "government",
+  "name": "Wyndham Plains Council"
+ },
+ {
+  "party_id": "PTY-BARK",
+  "kind": "organisation",
+  "name": "Bark Bank"
+ },
+ {
+  "party_id": "PTY-WATTLE",
+  "kind": "organisation",
+  "name": "Wattle Credit Union"
+ },
+ {
+  "party_id": "PTY-HARBOUR",
+  "kind": "organisation",
+  "name": "Harbour Bank"
+ },
+ {
+  "party_id": "PTY-SATLUJ",
+  "kind": "organisation",
+  "name": "Satluj Valley Bank"
+ },
+ {
+  "party_id": "PTY-AMEWX",
+  "kind": "organisation",
+  "name": "Amewx"
+ },
+ {
+  "party_id": "PTY-WESTPAW",
+  "kind": "organisation",
+  "name": "Westpaw"
+ },
+ {
+  "party_id": "PTY-PURRANNUATION",
+  "kind": "organisation",
+  "name": "Purrannuation"
+ },
+ {
+  "party_id": "PTY-HESTABBY",
+  "kind": "organisation",
+  "name": "HESTAbby"
+ },
+ {
+  "party_id": "PTY-TAX",
+  "kind": "government",
+  "name": "myGuv"
+ },
+ {
+  "party_id": "PTY-SA",
+  "kind": "government",
+  "name": "Services Australia"
+ },
+ {
+  "party_id": "PTY-HOMEAFFAIRS",
+  "kind": "government",
+  "name": "Home Affairs"
+ },
+ {
+  "party_id": "PTY-PURRSURE",
+  "kind": "organisation",
+  "name": "Purrsure"
+ },
+ {
+  "party_id": "PTY-BUPAW",
+  "kind": "organisation",
+  "name": "Bupaw"
+ },
+ {
+  "party_id": "PTY-VICPAWS",
+  "kind": "government",
+  "name": "VicPaws"
+ },
+ {
+  "party_id": "PTY-POWER",
+  "kind": "organisation",
+  "name": "Werribee Plains Power"
+ },
+ {
+  "party_id": "PTY-WATER",
+  "kind": "organisation",
+  "name": "Little River Water"
+ },
+ {
+  "party_id": "PTY-KITTEN",
+  "kind": "organisation",
+  "name": "Kittenhood OSHC Tarneit"
+ },
+ {
+  "party_id": "PTY-WW",
+  "kind": "organisation",
+  "name": "Whiskerwire"
+ },
+ {
+  "party_id": "PTY-GURDWARA",
+  "kind": "organisation",
+  "name": "Tarneit Gurdwara"
+ }
+]

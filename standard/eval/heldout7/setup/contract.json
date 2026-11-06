@@ -1,0 +1,145 @@
+[
+ {
+  "contract_id": "CON-WESTGATE",
+  "kind": "employment",
+  "name": "Harpreet driving for Westgate",
+  "counterparty_party_id": "PTY-WESTGATE",
+  "holder_party_id": "PTY-HARPREET",
+  "category_id": "SALARY",
+  "started_on": "2018-05-04"
+ },
+ {
+  "contract_id": "CON-ARDEER",
+  "kind": "employment",
+  "name": "Simran at Ardeer",
+  "counterparty_party_id": "PTY-ARDEER",
+  "holder_party_id": "PTY-SIMRAN",
+  "category_id": "SALARY",
+  "started_on": "2021-02-07"
+ },
+ {
+  "contract_id": "CON-LAVERTON",
+  "kind": "employment",
+  "name": "Simran's home care shifts",
+  "counterparty_party_id": "PTY-LAVERTON",
+  "holder_party_id": "PTY-SIMRAN",
+  "category_id": "SALARY",
+  "started_on": "2022-02-07",
+  "ended_on": "2024-09-27"
+ },
+ {
+  "contract_id": "CON-SUPER-H",
+  "kind": "super_fund",
+  "name": "Harpreet's super",
+  "counterparty_party_id": "PTY-HESTABBY",
+  "holder_party_id": "PTY-HARPREET",
+  "account_id": "ACC-SUPER-H"
+ },
+ {
+  "contract_id": "CON-SUPER-S",
+  "kind": "super_fund",
+  "name": "Simran's super",
+  "counterparty_party_id": "PTY-PURRANNUATION",
+  "holder_party_id": "PTY-SIMRAN",
+  "account_id": "ACC-SUPER-S"
+ },
+ {
+  "contract_id": "CON-HOME",
+  "kind": "loan",
+  "name": "Home loan",
+  "counterparty_party_id": "PTY-WESTPAW",
+  "holder_party_id": "PTY-HARPREET",
+  "account_id": "ACC-HOMELOAN",
+  "asset_id": "AST-HOME",
+  "category_id": "MORTGAGE",
+  "started_on": "2019-03-14"
+ },
+ {
+  "contract_id": "CON-HOME-INS",
+  "kind": "insurance",
+  "name": "Home insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-HARPREET",
+  "asset_id": "AST-HOME",
+  "category_id": "HOME-INS"
+ },
+ {
+  "contract_id": "CON-MOTOR",
+  "kind": "insurance",
+  "name": "Car insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-HARPREET",
+  "asset_id": "AST-CAR",
+  "category_id": "CAR"
+ },
+ {
+  "contract_id": "CON-HEALTH",
+  "kind": "insurance",
+  "name": "Private health",
+  "counterparty_party_id": "PTY-BUPAW",
+  "holder_party_id": "PTY-HARPREET",
+  "category_id": "HEALTH"
+ },
+ {
+  "contract_id": "CON-POWER",
+  "kind": "utility",
+  "name": "Electricity",
+  "counterparty_party_id": "PTY-POWER",
+  "holder_party_id": "PTY-HARPREET",
+  "category_id": "UTILITIES"
+ },
+ {
+  "contract_id": "CON-OSHC",
+  "kind": "childcare",
+  "name": "Kittenhood after-school care",
+  "counterparty_party_id": "PTY-KITTEN",
+  "holder_party_id": "PTY-SIMRAN",
+  "category_id": "CHILDCARE"
+ },
+ {
+  "contract_id": "CON-FTB",
+  "kind": "commitment",
+  "name": "Family Tax Benefit",
+  "counterparty_party_id": "PTY-SA",
+  "holder_party_id": "PTY-SIMRAN",
+  "category_id": "x_FTB",
+  "started_on": "2017-09-01"
+ },
+ {
+  "contract_id": "CON-REMIT",
+  "kind": "commitment",
+  "name": "Money home to Harpreet's parents",
+  "counterparty_party_id": "PTY-WW",
+  "holder_party_id": "PTY-HARPREET",
+  "category_id": "x_FAMILY",
+  "started_on": "2016-01-01"
+ },
+ {
+  "contract_id": "CON-GURDWARA",
+  "kind": "subscription",
+  "name": "Monthly gift to the gurdwara",
+  "counterparty_party_id": "PTY-GURDWARA",
+  "holder_party_id": "PTY-HARPREET",
+  "category_id": "DONATION"
+ },
+ {
+  "contract_id": "CON-BOARD",
+  "kind": "commitment",
+  "name": "Gurjot's board",
+  "counterparty_party_id": "PTY-GURJOT",
+  "holder_party_id": "PTY-HARPREET",
+  "category_id": "x_BOARD",
+  "started_on": "2024-02-12",
+  "ended_on": "2026-01-30"
+ },
+ {
+  "contract_id": "CON-LODGER",
+  "kind": "commitment",
+  "name": "Aarav's room",
+  "counterparty_party_id": "PTY-AARAV",
+  "holder_party_id": "PTY-HARPREET",
+  "category_id": "x_BOARD",
+  "started_on": "2024-08-05",
+  "ended_on": "2025-11-24"
+ }
+]

@@ -1,0 +1,11 @@
+[
+ {
+  "household_id": "HH-SK",
+  "name": "Singh-Kaur",
+  "jurisdiction": "AU",
+  "base_currency": "AUD",
+  "fy_start_month": 7,
+  "timezone": "Australia/Melbourne",
+  "standard_version": "household-standard/1"
+ }
+]

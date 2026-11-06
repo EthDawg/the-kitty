@@ -1,0 +1,84 @@
+[
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-WESTGATE",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-H",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-ARDEER",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-S",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-LAVERTON",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-S",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "secures",
+  "from_type": "contract",
+  "from_id": "CON-HOME",
+  "to_type": "asset",
+  "to_id": "AST-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "funds_purpose",
+  "from_type": "contract",
+  "from_id": "CON-HOME",
+  "to_type": "asset",
+  "to_id": "AST-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "share_bps": 10000
+ },
+ {
+  "relation": "paid_by",
+  "from_type": "contract",
+  "from_id": "CON-HOME",
+  "to_type": "account",
+  "to_id": "ACC-JOINT",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "charged_to",
+  "from_type": "account",
+  "from_id": "ACC-CARD",
+  "to_type": "account",
+  "to_id": "ACC-JOINT",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-HOME-INS",
+  "to_type": "asset",
+  "to_id": "AST-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-MOTOR",
+  "to_type": "asset",
+  "to_id": "AST-CAR",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

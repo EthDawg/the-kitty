@@ -1,0 +1,40 @@
+[
+ {
+  "asset_id": "AST-HOME",
+  "kind": "property",
+  "name": "17 Kookaburra Rise, Tarneit",
+  "account_id": "ACC-HOME",
+  "location": "Tarneit VIC",
+  "acquired_on": "2019-03-14"
+ },
+ {
+  "asset_id": "AST-FLAT",
+  "kind": "property",
+  "name": "Flat 3B, Sector 70, Mohali",
+  "account_id": "ACC-FLAT",
+  "location": "Mohali, Punjab",
+  "acquired_on": "2015-11-02"
+ },
+ {
+  "asset_id": "AST-PLOT",
+  "kind": "property",
+  "name": "Plot 114, Moga",
+  "account_id": "ACC-PLOT",
+  "location": "Moga, Punjab",
+  "acquired_on": "2012-05-20",
+  "disposed_on": "2025-09-10"
+ },
+ {
+  "asset_id": "AST-CAR",
+  "kind": "vehicle",
+  "name": "The Hyundai",
+  "account_id": "ACC-CAR"
+ },
+ {
+  "asset_id": "AST-OLDCAR",
+  "kind": "vehicle",
+  "name": "The old Corolla",
+  "account_id": "ACC-OLDCAR",
+  "disposed_on": "2025-11-14"
+ }
+]
