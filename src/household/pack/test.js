@@ -6,7 +6,6 @@ const fs = require("fs"), path = require("path"), vm = require("vm"), zlib = req
 const K = require("./index.js"), NH = require("./node-host.js");
 const { sha256 } = require("../../../standard/intake/sha256.js");
 const { Doc } = require("../../../standard/world/lib/pdf.js");
-const { allocate } = require("../../../standard/engine/util.js");
 
 const heldouts = new Map();
 const heldout = (dir) => { if (!heldouts.has(dir)) heldouts.set(dir, require(`../../../standard/eval/${dir}/run.js`).run()); return heldouts.get(dir); };   // a build runs once a process
@@ -42,7 +41,7 @@ for (const person of PEOPLE) {
     for (const t of ties) assert.equal(Math.round(t.computed * 100), t.cents, `${t.what} at ${t.sheet}!${t.cell}`);
     // and those expected values are the engine's own, read directly, not the pack's copy of them
     const p = packs[person], est = L.tax.estimates.find((e) => e.person === person && e.fy === FY);
-    for (const l of p.lines.filter((x) => x.section.endsWith(".summary") && x.engine && items.has(x.engine))) assert.equal(l.amount_cents, items.get(x_(l)).amount_cents, l.id);
+    for (const l of p.lines.filter((x) => x.section.endsWith(".summary") && x.engine && items.has(x.engine))) assert.equal(l.amount_cents, items.get(l.engine).amount_cents, l.id);
     for (const [id, k] of [["taxable", "taxable_income_cents"], ["gross", "gross_tax_cents"], ["offsets", "offsets_cents"], ["levy", "levy_cents"], ["help", "help_cents"], ["payg", "payg_cents"], ["franking", "franking_cents"], ["result", "result_cents"]]) assert.equal((p.lines.find((l) => l.id === `estimate.${id}`) || {}).amount_cents, est[k], id);
     const front = new Set(ties.filter((t) => t.sheet === "Return Summary").map((t) => t.what));
     for (const label of ["1", "10", "21P", "21Q", "21F", "21X", "D5", "D10"]) assert.ok([...front].some((w) => w.endsWith(`, ${label}`)), `label ${label} is tied`);
@@ -59,8 +58,6 @@ for (const person of PEOPLE) {
     for (const prop of packs[person].scope.properties) assert.equal(r.valueOf(`${prop.section}.agent.diff`), 0, `${prop.name}: agent money out reconciles`);
   });
 }
-const x_ = (l) => l.engine;
-
 test("ownership is applied once: the workbook's share of a joint property is the engine's", () => {
   const r = K.workbookTax.render(packs.MIA), geelong = packs.MIA.scope.properties.find((p) => p.id === "RENTAL"), ballarat = packs.MIA.scope.properties.find((p) => p.id === "RENTAL2");
   assert.equal(geelong.share_bps, 5000); assert.equal(ballarat.share_bps, 10000);
@@ -489,16 +486,19 @@ test("only the Node host touches Node", () => {
 });
 
 // ---------- public files ----------
-test("the examples in docs are what this code makes, and they are fiction", { skip: !fs.existsSync(path.join(NH.repo, "docs", "examples", "tax-pack")) }, () => {
+/* Word for word, not byte for byte. The rebuild test above is strict on one machine. Across machines, zlib can pack the same words differently, which moves the world's PDFs,
+   their hashes and a zip's size, so here the workbook is compared part by part and the manifest by everything but size and hash. */
+test("the examples in docs are what this code makes", { skip: !fs.existsSync(path.join(NH.repo, "docs", "examples", "tax-pack")) }, () => {
   const { examples } = require("./cli.js"), os = require("os"), tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pack-"));
   examples(hh, host, tmp);
-  const open = (bytes) => { const out = new Map(); for (const f of unz(bytes)) { if (f.name.endsWith(".xlsx")) for (const g of unz(f.bytes)) out.set(`${f.name}!${g.name}`, sha256(g.bytes)); else out.set(f.name, sha256(f.bytes)); } return out; };
+  const inner = (bytes) => new Map(unz(bytes).map((g) => [g.name, sha256(g.bytes)]));
+  const words = (bytes) => { const files = unz(bytes), out = new Map(); for (const f of files) { if (f.name.endsWith(".xlsx")) for (const [k, v] of inner(f.bytes)) out.set(`${f.name}!${k}`, v); else if (f.name === "manifest.csv") { const rows = parseCsv(text(f.bytes)), skip = new Set(["bytes", "sha256"]); out.set(f.name, JSON.stringify(rows.map((r) => r.filter((_, i) => !skip.has(rows[0][i]))))); } else out.set(f.name, "present"); } return out; };
   for (const dir of ["tax-pack", "lender-pack"]) for (const f of fs.readdirSync(path.join(tmp, dir))) {
-    const made = open(new Uint8Array(fs.readFileSync(path.join(tmp, dir, f)))), kept = open(new Uint8Array(fs.readFileSync(path.join(NH.repo, "docs", "examples", dir, f))));
+    const made = words(new Uint8Array(fs.readFileSync(path.join(tmp, dir, f)))), kept = words(new Uint8Array(fs.readFileSync(path.join(NH.repo, "docs", "examples", dir, f))));
     assert.deepEqual([...kept.keys()].sort(), [...made.keys()].sort(), f);
     for (const [k, v] of made) assert.equal(kept.get(k), v, `${f}: ${k}`);
   }
+  for (const f of fs.readdirSync(path.join(tmp, "tax-kit"))) assert.deepEqual([...inner(new Uint8Array(fs.readFileSync(path.join(tmp, "tax-kit", f))))], [...inner(new Uint8Array(fs.readFileSync(path.join(NH.repo, "docs", "examples", "tax-kit", f))))], f);
   fs.rmSync(tmp, { recursive: true });
 });
 
-void allocate;
