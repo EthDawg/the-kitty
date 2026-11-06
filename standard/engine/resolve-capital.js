@@ -362,7 +362,7 @@ module.exports = (Resolver) => {
         const amount = v.cents - book;
         if (amount) {
           const e = this.event({ key: `revaluation|${account}|${d}`, kind: "revaluation", occurred_on: d, description: `Revaluation, ${this.accountName(account)}`, amount_cents: amount, grade: "stated", rule: "valuation",
-            witnesses: v.o ? this.w(v.o, "recognises") : [], fields: { amount }, refs: { account } });
+            witnesses: v.o ? this.w(v.o, v.saleDay ? "control" : "recognises") : [], fields: { amount }, refs: { account } });
           e.postings = post(e, schema);
           book = v.cents;
         }

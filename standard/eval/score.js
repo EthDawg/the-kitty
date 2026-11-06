@@ -38,7 +38,9 @@ function score(L, worldRoot) {
   }
   const oracle = T("sheet_oracle.json");
   if (oracle) {
-    const sheetAccounts = [...new Set((oracle.balances || []).map((b) => b.account_id))];
+    // Beta rows on the sheet are fixtures left out of its own net worth, so they are out of this comparison too.
+    const active = (oracle.balances || []).filter((b) => b.status !== "beta");
+    const sheetAccounts = [...new Set(active.map((b) => b.account_id))];
     const cashAccounts = sheetAccounts.filter((a) => (L.index.accounts.get(a) || {}).reporting_group === "cash");
     const cash = new Map(V.cashLens(L, { accounts: cashAccounts }).map((r) => [r.month, r]));
     const inc = [], sp = [], nt = [];
@@ -52,7 +54,7 @@ function score(L, worldRoot) {
     add(cmp("sheet oracle: cash spending by month", sp, 1));
     add(cmp("sheet oracle: cash net by month", nt, 1));
     const bal = [];
-    for (const b of oracle.balances || []) {
+    for (const b of active) {
       if (!L.index.accounts.get(b.account_id)) continue;
       bal.push([`${b.account_id} ${b.month_end}`, toCents(b.balance), L.dailyBalance(b.account_id)(b.month_end)]);
     }

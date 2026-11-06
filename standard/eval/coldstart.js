@@ -28,7 +28,8 @@ function sampleText(d, f) {
   return `container: ${d.meta && d.meta.container}\nlines (first 70 of ${lines.length}), text with double-space cell gaps:\n` + lines.slice(0, 70).map((l) => l.text).join("\n");
 }
 function ask(prompt) {
-  const r = spawnSync("claude", ["-p", "--model", model, "--output-format", "json", "--allowedTools", ""], { input: prompt, encoding: "utf8", maxBuffer: 1 << 26 });
+  // No project context, no tools, no MCP: the prompt is the whole of what the model sees, so the token count is honest.
+  const r = spawnSync("claude", ["-p", "--model", model, "--output-format", "json", "--tools", "", "--strict-mcp-config", "--setting-sources", "", "--system-prompt", "You write JSON recipes. Answer with JSON only.", "--no-session-persistence"], { input: prompt, encoding: "utf8", maxBuffer: 1 << 26, cwd: require("os").tmpdir() });
   if (r.status !== 0) return { error: (r.stderr || r.stdout || "").slice(0, 300) };
   const j = JSON.parse(r.stdout);
   const u = j.usage || {};
@@ -38,7 +39,9 @@ const parse = (t) => { const m = /```(?:json)?\s*([\s\S]*?)```/.exec(t); return 
 
 const families = [...new Set(manifest.files.filter((f) => f.tier === "recipe").map((f) => f.family))].filter((f) => !only || only.split(",").includes(f));
 const results = [];
+const cap = Number(arg("max-usd", "12"));
 for (const family of families) {
+  if (results.reduce((a, r) => a + r.usd, 0) >= cap) { console.log(`Stopped at the US$${cap} cap.`); break; }
   const files = manifest.files.filter((f) => f.family === family);
   const decoded = files.map((f) => { const bytes = new Uint8Array(fs.readFileSync(path.join(world, f.path))); const d = decode(bytes, { inflate }); return { path: f.path, stream: f.stream_id, decoded: d, bytes }; });
   const sample = decoded[Math.floor(decoded.length / 2)];
