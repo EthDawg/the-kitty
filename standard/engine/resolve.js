@@ -265,7 +265,7 @@ class Resolver {
         if (d.verb === "unlink") line.noPair = true;
         if (d.verb === "split") line.split = v.parts;
       }
-      let m = this.ruleFor(line) || Engine.merchant(line.desc, this.scopedModel(line.account));
+      let m = this.ruleFor(line) || Engine.merchant(line.desc, this.scopedModel(line.account, line.cents));
       // A rule learned later does not rewrite history: outside its dates it does not apply, and the line reads as if it were not there.
       const hit = m.source === "rule" && m.rule && m.rule._r;
       if (hit && ((hit.valid_from && line.date < hit.valid_from) || (hit.valid_to && line.date >= hit.valid_to))) m = Engine.merchant(line.desc, { rules: [], merMemo: new Map() });
@@ -318,9 +318,15 @@ class Resolver {
     // A contract says what its money is. A line naming its counterparty takes its category, in the direction that category runs. A loan's lines have their own reading.
     const priced = (this.ctx.setup.contract || []).filter((k) => k.category_id && k.counterparty_party_id && k.kind !== "loan" && this.categories.has(k.category_id));
     for (const line of this.lines) {
-      if (line.cls.category_id) continue;
-      const k = priced.find((x) => (this.catKind(x.category_id) !== "income" || line.cents > 0) && this.namesParty(line, x.counterparty_party_id));
-      if (k) { line.cls.category_id = k.category_id; line.cls.contract_id = k.contract_id; line.cls.via = "contract"; }
+      // What the person set up beats a dictionary guess about money coming in. A contract is what most of a party's lines mean, not all of them: a bond, or a line far above the price, stays a question.
+      if (line.cls.category_id && !(line.cls.via === "dictionary" && line.cents > 0)) continue;
+      if (/\b(BOND|DEPOSIT)\b/i.test(line.desc)) continue;
+      const k = priced.find((x) => {
+        if (this.catKind(x.category_id) === "income" && line.cents <= 0) return false;
+        const price = this.term("contract", x.contract_id, "price_cents", line.date);
+        return !(price != null && Math.abs(line.cents) > 2 * Math.abs(Number(price))) && this.namesParty(line, x.counterparty_party_id);
+      });
+      if (k && (!line.cls.category_id || this.catKind(k.category_id) === "income")) { line.cls.category_id = k.category_id; line.cls.contract_id = k.contract_id; line.cls.via = "contract"; }
     }
     // History: what this household decided about the same merchant elsewhere.
     for (const line of this.lines) {
@@ -340,17 +346,20 @@ class Resolver {
     return own.length > 0 && own.every((w) => words.includes(w));
   }
   // Rules scoped to another account do not apply here. A rule with a priority is tried first, highest first, and beats any length.
-  scopedModel(account) {
+  scopedModel(account, cents) {
     this.scoped = this.scoped || new Map();
-    if (!this.scoped.has(account)) this.scoped.set(account, { rules: this.merchantModel.rules.filter((r) => !r._r.account_id || r._r.account_id === account), merMemo: new Map() });
-    return this.scoped.get(account);
+    const way = cents > 0 ? "credit" : "debit", key = `${account}|${way}`;
+    if (!this.scoped.has(key)) this.scoped.set(key, { rules: this.merchantModel.rules.filter((r) => (!r._r.account_id || r._r.account_id === account) && (!r._r.direction || r._r.direction === way)), merMemo: new Map() });
+    return this.scoped.get(key);
   }
+  // Compiled once, and a miss costs no dictionary scan: a household can carry a long ordered list. The first hit is read in full.
   ruleFor(line) {
-    this.prioritised = this.prioritised || this.merchantModel.rules.filter((r) => r._r.priority != null).sort((a, b) => b._r.priority - a._r.priority);
-    for (const r of this.prioritised) {
-      if (r._r.account_id && r._r.account_id !== line.account) continue;
-      const m = Engine.merchant(line.desc, { rules: [r], merMemo: new Map() });
-      if (m.source === "rule") return m;
+    this.prioritised = this.prioritised || this.merchantModel.rules.filter((r) => r._r.priority != null).sort((a, b) => b._r.priority - a._r.priority).map((r) => ({ r, x: Engine.compileRule(r) }));
+    if (!this.prioritised.length) return null;
+    const probe = Engine.ruleProbe(line.desc), way = line.cents > 0 ? "credit" : "debit";
+    for (const { r, x } of this.prioritised) {
+      if ((r._r.account_id && r._r.account_id !== line.account) || (r._r.direction && r._r.direction !== way)) continue;
+      if (Engine.ruleHit(x, probe)) return Engine.merchant(line.desc, { rules: [r], merMemo: new Map() });
     }
     return null;
   }
@@ -535,7 +544,12 @@ class Resolver {
         for (const it of q.applied) this.event({ key: `loan_applied|${loan}|${it.date}|${it.cents}`, kind: "loan_applied", occurred_on: it.date, description: `Repayment applied, ${this.accountName(loan)}`, contract_id: contract && contract.contract_id, amount_cents: it.cents, grade: "stated", rule: "lender", witnesses: it.witnesses, fields: { amount: it.cents }, refs: { loan } });
         for (const it of q.redraws) {
           const m = this.lines.find((x) => !x.claimed && x.cents === it.cents && monthOf(x.date) === q.m);
-          if (!m) { this.fault("loan_redraw_unmatched", loan, `Redraw of ${it.cents / 100} in ${q.m} has no matching bank line.`, "Is it a new drawing that went straight to a seller?", it.cents); continue; }
+          if (!m) {
+            // Money that went straight to a seller still moved the loan. It posts, and asks.
+            this.fault("loan_redraw_unmatched", loan, `Redraw of ${it.cents / 100} in ${q.m} has no matching bank line.`, "Is it a new drawing that went straight to a seller?", it.cents);
+            this.event({ key: `loan_advance|${loan}|${it.date}|${it.cents}`, kind: "loan_advance", occurred_on: it.date, description: it.desc || `Advance, ${this.accountName(loan)}`, contract_id: contract && contract.contract_id, amount_cents: it.cents, grade: "stated", rule: "lender", witnesses: it.witnesses, fields: { amount: it.cents }, refs: { loan } });
+            continue;
+          }
           this.claim(m, "loan_redraw");
           this.event({ key: `loan_redraw|${m.key}`, kind: "loan_redraw", occurred_on: m.date, description: m.desc, amount_cents: m.cents, grade: "corroborated", rule: "lender+bank", witnesses: [...it.witnesses, ...this.lineWitness(m, "clears")], fields: { amount: m.cents }, refs: { loan, account: m.account }, line: m });
         }
@@ -612,9 +626,9 @@ class Resolver {
     if (!c && l.cls.dictKind === "transfer" && !l.cls.unplaced) return true;
     return false;
   }
-  // Money lent out sits on an account that holds the debt. A line naming the borrower moves money to or from that account; it is neither spending nor income.
+  // Money lent to or borrowed from a person sits on an account that holds the debt. A line naming them moves money to or from it; it is neither spending nor income.
   recogniseLending() {
-    for (const k of (this.ctx.setup.contract || []).filter((c) => c.kind === "loan" && c.counterparty_party_id && c.account_id && (this.accounts.get(c.account_id) || {}).class === "asset")) {
+    for (const k of (this.ctx.setup.contract || []).filter((c) => c.kind === "loan" && c.account_id && (this.parties.get(c.counterparty_party_id) || {}).kind === "person")) {
       for (const l of this.lines.filter((x) => !x.claimed && x.account !== k.account_id && this.namesParty(x, k.counterparty_party_id))) {
         this.claim(l, "transfer");
         const out = l.cents < 0, cents = Math.abs(l.cents);
@@ -647,7 +661,7 @@ class Resolver {
       this.claim(l, "open_transfer");
       this.event({ key: `open_transfer|${l.key}`, kind: "open_transfer", occurred_on: l.date, description: l.desc, category_id: l.cls.category_id || "TRANSFER", amount_cents: l.cents, status: "open", grade: "stated", rule: "unpaired",
         witnesses: this.lineWitness(l), fields: { amount: l.cents }, refs: { account: l.account }, line: l });
-      this.review.push({ kind: "unpaired_transfer", ref: l.key, amount_cents: l.cents, what: `${l.desc} has no other side in the household's accounts.`, do: "Is this someone outside the household? If so it is spending, income or a loan to them." });
+      this.review.push({ kind: "unpaired_transfer", ref: l.key, question: l.cls.norm || l.desc, amount_cents: l.cents, what: `${l.desc} has no other side in the household's accounts.`, do: "Is this someone outside the household? If so it is spending, income or a loan to them." });
     }
   }
   /* Neither side was named a transfer, but both are unexplained, opposite to the cent, days apart, on two of the household's own accounts. A rail word says money moved;
@@ -673,7 +687,7 @@ class Resolver {
     const credits = pool.filter((l) => l.cents > 0);
     for (const d of debits) {
       if (d.claimed) continue;
-      const c = credits.filter((x) => { const fee = -d.cents - x.cents; return fee > 0 && fee <= Math.max(3000, -d.cents * 0.01) && fits(d, x); }).sort(nearest(d))[0];
+      const c = credits.filter((x) => { const fee = -d.cents - x.cents; return fee > 0 && fee <= Math.min(3000, -d.cents * 0.02) && fits(d, x); }).sort(nearest(d))[0];
       if (c) pair(d, c, -d.cents - c.cents);
     }
   }
@@ -723,9 +737,11 @@ class Resolver {
         if (total === l.cents) {
           this.claim(l, "split");
           l.split.forEach((part, i) => {
-            const pk = this.catKind(part.category_id) === "income" ? "income" : part.amount_cents < 0 ? "purchase" : "refund";
-            this.event({ key: `${pk}|${l.key}|${i}`, kind: pk, occurred_on: l.date, description: part.note || l.desc, merchant: c.merchant, category_id: part.category_id, person: part.person || c.person, asset_id: part.asset_id || c.asset_id || this.assetOfAccount(l.account, l.date), amount_cents: part.amount_cents, grade: this.lineGrade(l), rule: "split", claimant: part.claimant,
-              witnesses: i === 0 ? this.lineWitness(l) : this.lineWitness(l, "corroborates"), fields: pk === "purchase" ? { cost: -part.amount_cents } : { amount: part.amount_cents }, refs: { account: l.account, category: part.category_id }, line: i === 0 ? l : undefined });
+            // A part in a pass-through category is someone else's money (SPEC 4.4c): the household's share of the line is a cost, the rest is owed by that party. It posts to receivable:{party}, so the other side clears it.
+            const third = this.catKind(part.category_id) === "pass_through";
+            const pk = third ? (part.amount_cents < 0 ? "on_behalf" : "recovery") : this.catKind(part.category_id) === "income" ? "income" : part.amount_cents < 0 ? "purchase" : "refund";
+            this.event({ key: `${pk}|${l.key}|${i}`, kind: pk, occurred_on: l.date, description: part.note || l.desc, merchant: c.merchant, category_id: part.category_id, person: part.person || c.person, asset_id: part.asset_id || c.asset_id || this.assetOfAccount(l.account, l.date), amount_cents: third ? Math.abs(part.amount_cents) : part.amount_cents, grade: this.lineGrade(l), rule: "split", claimant: part.claimant,
+              witnesses: i === 0 ? this.lineWitness(l) : this.lineWitness(l, "corroborates"), fields: pk === "purchase" ? { cost: -part.amount_cents } : { amount: third ? Math.abs(part.amount_cents) : part.amount_cents }, refs: third ? { account: l.account, party: part.party || part.person || "third-party" } : { account: l.account, category: part.category_id }, line: i === 0 ? l : undefined });
           });
           continue;
         }

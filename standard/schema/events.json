@@ -286,6 +286,23 @@
         ]
       ]
     },
+    "loan_advance": {
+      "family": "loan",
+      "authority": [
+        "loan_statement"
+      ],
+      "legs": [
+        [
+          "clearing:loan:{loan}",
+          "+amount"
+        ],
+        [
+          "{loan}",
+          "-amount"
+        ]
+      ],
+      "note": "A lender's advance with no bank line, such as money paid straight to a seller. The loan moves, and the other side is an open question."
+    },
     "rent_statement": {
       "family": "rental",
       "authority": [
@@ -377,6 +394,23 @@
           "-amount"
         ]
       ]
+    },
+    "super_other": {
+      "family": "super",
+      "authority": [
+        "super_line"
+      ],
+      "legs": [
+        [
+          "{account}",
+          "+amount"
+        ],
+        [
+          "equity:unclassified",
+          "-amount"
+        ]
+      ],
+      "note": "A line the fund states and the model has no meaning for, or a government contribution. The balance moves with it."
     },
     "super_earnings": {
       "family": "super",

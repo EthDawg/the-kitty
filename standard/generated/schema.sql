@@ -334,6 +334,7 @@ CREATE TABLE "rule" (
   "person" TEXT,
   "event_kind" TEXT,
   "priority" INTEGER,
+  "direction" TEXT CHECK ("direction" IN ('credit', 'debit')),
   "account_id" TEXT,
   "activity_id" TEXT,
   "asset_id" TEXT,

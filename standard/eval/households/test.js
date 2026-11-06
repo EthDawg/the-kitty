@@ -1,4 +1,4 @@
-/* Eight real shapes of household, each a small life written as observations. `node --test standard/eval/households/test.js`.
+/* Real shapes of household, each a small life written as observations. `node --test standard/eval/households/test.js`.
    They prove the model tells the truth about the shape. They do not exercise file reading: no BAS or trust statement recipe runs here. */
 "use strict";
 const test = require("node:test"), assert = require("node:assert");
@@ -648,7 +648,7 @@ test("a file with bank references and a file without them still see one line; a 
   const add = (src, d, desc, c) => { const n = g.observations.length; g.line("CARD", d, desc, c); from(g, n, src); };
   add(pdf, "2026-12-01", "OPEN", -100); add(act, "2026-12-01", "OPEN", -100);
   add(pdf, "2026-12-22", "BELLPOST FRESH BELMONT", -27450); add(act, "2027-01-04", "BELLPOST FRESH BELMONT VIC", -27450);
-  add(pdf, "2026-12-20", "NORDIC WOOL OSLO", -21218); add(act, "2026-12-23", "NORDIC WOOL OSLO", -21904);
+  add(pdf, "2026-12-20", "NORDIC WOOL OSLO USD 139.00", -21218); add(act, "2026-12-23", "NORDIC WOOL OSLO USD 139.00", -21904);
   add(pdf, "2027-01-20", "CLOSE", -100); add(act, "2027-01-20", "CLOSE", -100);
   const L = run(g);
   assert.equal(L.events.filter((e) => /BELLPOST/.test(e.description)).length, 1, "thirteen days over Christmas, both streams covering both days");
@@ -909,4 +909,223 @@ test("money lent to someone goes to the account that holds the debt, and comes b
   assert.equal(L.balances.at("LOANOUT", "2026-04"), 1970000);
   assert.equal(L.cash.find((m) => m.month === "2026-03").spending, 0);
   assert.equal(L.cash.find((m) => m.month === "2026-04").income, 0);
+});
+
+// ---------- a share house: one lease, two flatmates who pay the leaseholder their share ----------
+// Sam is the only name on the lease and pays the agent $2,400 a fortnight. Robin and Alex each pay Sam $800 a fortnight. Their money crosses Sam's rails (SPEC 4.4c):
+// it is not Sam's income, and it is not Sam's rent. Sam's own cost is one third. A person says so with a rule for each flatmate and a split of each rent line.
+const shareHouse = (alexPays) => {
+  const h = household("sharehouse").person("sam").account("BANK", "transaction", "cash", [["sam", 10000]]);
+  h.setup.party.push({ party_id: "robin", kind: "person", name: "Robin" }, { party_id: "alex", kind: "person", name: "Alex" });
+  h.rule("RENT TO AGENT", "HOUSING").rule("ROBIN RENT SHARE", "PASS-THROUGH", { person: "robin" }).rule("ALEX RENT SHARE", "PASS-THROUGH", { person: "alex" });
+  ["2026-07-02", "2026-07-16", "2026-07-30"].forEach((day, i) => {
+    h.line("BANK", day, "RENT TO AGENT", -240000).line("BANK", day, "ROBIN RENT SHARE", 80000);
+    if (alexPays > i) h.line("BANK", day, "ALEX RENT SHARE", 80000);
+    h.decisions.push({ decision_id: `split${i}`, target_type: "line", target_ref: `BANK|${day}|-240000`, verb: "split", by: "sam", at: "2026-08-01T00:00:00Z", status: "accepted",
+      value: { parts: [{ amount_cents: -80000, category_id: "HOUSING" }, { amount_cents: -80000, category_id: "PASS-THROUGH", person: "robin" }, { amount_cents: -80000, category_id: "PASS-THROUGH", person: "alex" }] } });
+  });
+  return h;
+};
+
+test("a share house: the flatmates' fortnightly share is not income, and the rent costs the leaseholder only their own third", () => {
+  const L = run(shareHouse(3));
+  assert.equal(L.cash[0].income, 0, "a flatmate's money is not income");
+  assert.equal(L.cash[0].spending, 240000, "three rents of 2,400 cost Sam three shares of 800, not 7,200");
+  assert.equal(L.cash[0].net, -240000, "and the net says what the bank did");
+  assert.equal(L.cash[0].unexplained, 0);
+  assert.deepEqual(L.accrual[0].byCategory, { HOUSING: -240000 }, "the economic lens holds Sam's third and nothing else");
+  assert.equal(L.balances.at("receivable:robin", "2026-07"), 0, "what Sam paid for Robin, and what Robin paid back, meet");
+  assert.equal(L.balances.at("receivable:alex", "2026-07"), 0);
+  assert.equal(L.netWorth[0].total, -240000, "net worth fell by what the rent cost Sam");
+  assert.equal(L.review.length, 0);
+  assert.ok(!L.checks.some((c) => c.status === "fail"), JSON.stringify(L.checks.filter((c) => c.status === "fail")));
+});
+
+test("a flatmate who has not paid yet owes the leaseholder by name; it is not rent and not income", () => {
+  const L = run(shareHouse(2));
+  assert.equal(L.cash[0].spending, 240000, "Sam's cost is still his third of each rent");
+  assert.equal(L.cash[0].income, 0);
+  assert.equal(L.balances.at("receivable:alex", "2026-07"), 80000, "Alex owes one fortnight");
+  assert.equal(L.balances.at("receivable:robin", "2026-07"), 0);
+});
+
+// ---------- round four: what the fourth blind household left, and shapes from a read-only rehearsal on a real household. Fictional cases, no real data. ----------
+test("a long ordered rule list stays cheap, and changes nothing", () => {
+  const build = (rules) => {
+    const h = household("rules").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+    for (let i = 0; i < rules; i++) h.rule(`NOT THIS ONE ${i}`, "SHOPPING", { priority: 200 - i });
+    h.rule("CORNER STORE", "GROCERIES", { priority: 1 });
+    for (let i = 0; i < 13000; i++) { const d = String(1 + (i % 28)).padStart(2, "0"), m = String(1 + (i % 12)).padStart(2, "0"); h.line("BANK", `2025-${m}-${d}`, `CORNER STORE ${i % 400}`, -100 - (i % 50)); }
+    return h;
+  };
+  const timed = (h) => { const t0 = Date.now(), L = run(h); return { L, ms: Date.now() - t0 }; };
+  const few = timed(build(0)), many = timed(build(150));
+  assert.ok(many.ms < few.ms * 3 + 500, `150 rules ${many.ms}ms against ${few.ms}ms with one: a long list used to cost 26 times over`);
+  assert.equal(many.L.bundleHash, few.L.bundleHash, "same answer");
+});
+
+test("a rule can read one direction: the same word is a refund as a credit and a purchase as a debit", () => {
+  const h = household("dir").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).rule("ACME", "SHOPPING", { direction: "debit" }).rule("ACME", "INTEREST", { direction: "credit" });
+  h.line("BANK", "2026-07-01", "ACME STORE", -5000).line("BANK", "2026-07-02", "ACME STORE", 700);
+  const L = run(h);
+  assert.equal(L.cash[0].spending, 5000);
+  assert.equal(L.cash[0].income, 700);
+});
+
+test("a lodged year known only by taxable income and result is stored, shown partial, and asks nothing", () => {
+  const h = household("old").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.line("BANK", "2026-07-02", "SHOPS", -100);
+  h.obs("tax_assessment", { person_ref: "a", fy: "FY2015", version: 1, assessed_on: "2015-10-01", taxable_income_cents: 7000000, result_cents: 120000 });
+  const L = run(h);
+  assert.ok(!L.review.some((r) => /unreadable|tax_result/.test(r.kind)), JSON.stringify(L.review.map((r) => r.kind)));
+  assert.equal(L.returns.returns[0].status, "partial");
+  assert.ok(!status(L, "L4").includes("fail"));
+});
+
+test("a vest table with units only and cancelled tranches is held, posts no income, and fails no law", () => {
+  const h = household("units").person("a").account("PLAN", "brokerage", "shares", [["a", 10000]]);
+  h.setup.instrument.push({ instrument_id: "ACM", kind: "rsu", code: "ACM", name: "Acme", currency: "USD" });
+  h.setup.contract.push({ contract_id: "G", kind: "ess_plan", name: "Grant", holder_party_id: "a", account_id: "PLAN" });
+  for (let i = 0; i < 10; i++) h.obs("vest", { plan_ref: "G", person_ref: "a", instrument_ref: "ACM", vest_date: `2026-0${(i % 9) + 1}-15`, units: "10", ...(i < 4 ? { status: "cancelled" } : {}) });
+  const L = run(h);
+  assert.ok(!L.review.some((r) => r.kind === "unreadable_observation"));
+  assert.equal(L.events.filter((e) => e.kind === "vest").length, 0, "no income without a value");
+  assert.ok(!status(L, "L4").includes("fail"));
+  assert.equal(L.review.filter((r) => r.kind === "vest_without_value").length, 1, "one question, for the grant");
+});
+
+test("one return label on two properties ties by property, and a move between them fails both", () => {
+  const build = (a, b) => {
+    const h = household("two-rentals").person("a").org("AG").account("BANK", "offset", "cash", [["a", 10000]]).account("F1", "property", "property", [["a", 10000]]).account("F2", "property", "property", [["a", 10000]]);
+    h.setup.asset.push({ asset_id: "A1", kind: "property", name: "One", account_id: "F1" }, { asset_id: "A2", kind: "property", name: "Two", account_id: "F2" });
+    h.setup.tax_map.push({ selector_type: "category", selector: "RENT-INC", label: "21P", treatment: "income", basis: "ownership", valid_from: "2000-01-01" });
+    h.term("asset", "A1", "use", "rental", "2000-01-01"); h.term("asset", "A2", "use", "rental", "2000-01-01");
+    for (const id of ["A1", "A2"]) for (const basis of ["legal", "beneficial", "tax"]) h.setup.ownership.push({ subject_type: "asset", subject_id: id, party_id: "a", basis, share_bps: 10000, valid_from: "2000-01-01", valid_to: null, recorded_at: "2000-01-01T00:00:00Z", superseded_at: null });
+    for (const [id, gross] of [["A1", 1000000], ["A2", 500000]]) h.obs("owner_statement", { property_ref: id, period_start: "2025-07-01", period_end: "2026-06-30", gross_rent_cents: gross, fees_cents: 0, disbursed_cents: 0 });
+    h.obs("tax_assessment", { person_ref: "a", fy: "FY2026", version: 1, assessed_on: "2026-09-20", taxable_income_cents: 1500000, gross_tax_cents: 0, payg_credits_cents: 0, result_cents: 0, labels: [{ label: "21P", amount_cents: a, role: "leaf", asset_ref: "A1" }, { label: "21P", amount_cents: b, role: "leaf", asset_ref: "A2" }] });
+    return run(h).checks.filter((c) => c.law === "L11" && /labels/.test(c.scope));
+  };
+  assert.equal(build(1000000, 500000).length, 0, "both right");
+  assert.equal(build(800000, 700000)[0].status, "fail", "the total still ties, and the split does not");
+});
+
+test("a card's posted reading and total reading each tie, and a payment counts once", () => {
+  const h = household("card-basis").person("a").account("CARD", "credit_card", "cash", [["a", 10000]], { opening_balance_cents: -100000, opened_on: "2026-07-01" }).rule("PAYMENT", "TRANSFER");
+  h.line("CARD", "2026-07-03", "SHOPS", -2000).line("CARD", "2026-07-10", "PAYMENT RECEIVED", 50000).line("CARD", "2026-07-20", "SHOPS", -2000);
+  h.obs("balance", { account_ref: "CARD", as_at: "2026-07-05", balance_cents: -102000 });
+  h.obs("balance", { account_ref: "CARD", as_at: "2026-07-11", balance_cents: -102000, balance_kind: "ledger" });
+  h.obs("balance", { account_ref: "CARD", as_at: "2026-07-11", balance_cents: -52000, balance_kind: "total" });
+  h.obs("balance", { account_ref: "CARD", as_at: "2026-07-25", balance_cents: -54000 });
+  assert.ok(!status(run(h), "L3").includes("fail"));
+});
+
+test("a reading taken partway through a day ties to the ledger before the afternoon's lines; a blank closing balance is not a contradiction", () => {
+  const h = household("midday").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-07-01" });
+  h.line("BANK", "2026-07-05", "SHOPS", -1000).line("BANK", "2026-07-10", "CAFE", -500).line("BANK", "2026-07-10", "DINNER", -700).line("BANK", "2026-07-20", "SHOPS", -1000);
+  h.obs("balance", { account_ref: "BANK", as_at: "2026-07-05", balance_cents: 99000 });
+  h.obs("balance", { account_ref: "BANK", as_at: "2026-07-10", balance_cents: 99000, sequence: 1 });
+  h.obs("balance", { account_ref: "BANK", as_at: "2026-07-25", balance_cents: 96800 });
+  assert.ok(!status(run(h), "L3").includes("fail"));
+  const g = household("sweep").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 50000, opened_on: "2026-07-01" });
+  g.line("BANK", "2026-07-05", "SHOPS", -1000, 49000).line("BANK", "2026-07-30", "FEE", -500, 48500).line("BANK", "2026-07-30", "CLOSING SWEEP", -48500);
+  g.obs("balance", { account_ref: "BANK", as_at: "2026-07-31", balance_cents: 0 });
+  assert.ok(!status(run(g), "L3").includes("fail"));
+});
+
+test("a loan advance paid straight to a seller moves the loan, and asks", () => {
+  const h = household("advance").person("a").account("LOAN", "loan", "loans", [["a", 10000]]);
+  h.setup.contract.push({ contract_id: "L", kind: "loan", name: "Loan", account_id: "LOAN" });
+  h.obs("loan_statement", { account_ref: "LOAN", period_start: "2026-07-01", period_end: "2026-07-31", opening_cents: 0, interest_cents: 0, fees_cents: 0, repayments_cents: 0, redraws_cents: 50000000, closing_cents: 50000000 });
+  const L = run(h);
+  assert.equal(L.balances.at("LOAN", "2026-07"), -50000000);
+  assert.ok(!status(L, "L3").includes("fail"));
+  assert.ok(L.review.some((r) => r.kind === "loan_redraw_unmatched"));
+});
+
+test("a card paid from outside the household's accounts settles with one rule, and the clearing account clears", () => {
+  const h = household("outside").person("a").person("b", "Bo Reid").account("CARD", "credit_card", "cash", [["a", 10000]]);
+  h.setup.membership = h.setup.membership.filter((m) => m.party_id !== "b");
+  for (const d of ["01", "08", "15"]) h.line("CARD", `2026-07-${d}`, "PAYMENT RECEIVED THANK YOU", 20000);
+  h.line("CARD", "2026-07-02", "SHOPS", -60000).rule("PAYMENT RECEIVED", "PASS-THROUGH", { person: "b" }).rule("SHOPS", "SHOPPING");
+  const L = run(h);
+  assert.ok(!L.checks.some((c) => c.law === "L2" && c.status === "fail"));
+  assert.equal(L.cash[0].income, 0);
+});
+
+test("a row with no amount is evidence, not an orphan; an odd billing cycle annualises", () => {
+  const h = household("small").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-01-01" });
+  h.line("BANK", "2026-07-01", "SHOPS", -100).line("BANK", "2026-07-01", "NARRATIVE: DISBURSAL TO VENDOR", 0);
+  h.setup.contract.push({ contract_id: "S", kind: "utility", name: "Water", started_on: "2026-01-01" });
+  h.term("contract", "S", "price_cents", "15000", "2026-01-01"); h.term("contract", "S", "billing_months", "3.5", "2026-01-01");
+  const L = run(h);
+  assert.ok(!status(L, "L4").includes("fail"));
+  assert.equal(V.billsCommitted(L, "2026-07").rows.find((r) => r.contract_id === "S").monthly_cents, Math.round(15000 / 3.5));
+});
+
+test("an employer in setup beats a dictionary guess, and a contract is not the only meaning of its counterparty", () => {
+  const Engine = require("../../../src/engine.js");
+  Engine.loadMerchants({ merchants: require("../../../merchants/merchants.json"), categories: require("../../../merchants/categories.json") });
+  try {
+    const h = household("job").person("a").org("WYNDHAM CITY COUNCIL").account("BANK", "transaction", "cash", [["a", 10000]]);
+    h.setup.category.push({ category_id: "RATES-HOME", name: "Rates", kind: "expense", cash_lens: true, economic_lens: true });
+    h.setup.contract.push({ contract_id: "J", kind: "employment", name: "Crossing", counterparty_party_id: "WYNDHAM CITY COUNCIL", holder_party_id: "a", category_id: "SALARY" });
+    h.line("BANK", "2026-07-14", "WYNDHAM CITY COUNCIL PAY", 35476);
+    assert.equal(run(h).events[0].category_id, "SALARY");
+  } finally { Engine.loadMerchants({ merchants: { merchants: [] }, categories: {} }); }
+  const g = household("bond").person("a").org("Lee Agency").account("BANK", "transaction", "cash", [["a", 10000]]);
+  g.setup.contract.push({ contract_id: "R", kind: "lease", name: "Rent", counterparty_party_id: "Lee Agency", category_id: "HOUSING" });
+  g.term("contract", "R", "price_cents", "84000", "2020-01-01");
+  g.line("BANK", "2026-07-03", "LEE AGENCY RENT", -84000).line("BANK", "2026-07-04", "LEE AGENCY BOND", -286000);
+  const L = run(g);
+  assert.equal(L.events.filter((e) => e.category_id === "HOUSING").length, 1, "rent is rent");
+  assert.ok(L.review.some((r) => r.kind === "uncategorised" && /BOND/.test(r.what)), "a bond is a question");
+});
+
+test("a fee is small: a line a quarter away is not a transfer with a fee", () => {
+  const h = household("feecap").person("a", "Ren Tam").account("A", "transaction", "cash", [["a", 10000]]).account("B", "savings", "cash", [["a", 10000]]);
+  h.line("A", "2026-07-02", "OSKO TO R TAM LOAN", -10000).line("B", "2026-07-03", "OSKO FROM CUSTOMER 88", 7604);
+  const L = run(h);
+  assert.equal(L.events.filter((e) => e.kind === "transfer").length, 0);
+});
+
+test("two prices at one shop are two purchases; a repriced line needs a foreign charge or a rounding", () => {
+  const h = household("shop").person("a").account("CARD", "credit_card", "cash", [["a", 10000]]);
+  const pdf = stream(h, "p", "PDF"), csv = stream(h, "c", "CSV");
+  const add = (src, d, desc, c) => { const n = h.observations.length; h.line("CARD", d, desc, c); from(h, n, src); };
+  add(pdf, "2026-07-01", "OPEN", -100); add(csv, "2026-07-01", "OPEN", -100);
+  add(pdf, "2026-07-03", "TOOLERN PROVISIONS", -12140); add(csv, "2026-07-12", "TOOLERN PROVISIONS", -11795);
+  add(pdf, "2026-07-30", "CLOSE", -100); add(csv, "2026-07-30", "CLOSE", -100);
+  assert.equal(run(h).events.filter((e) => /TOOLERN/.test(e.description)).length, 2);
+});
+
+test("money borrowed from a person sits on the account that holds the debt, and a joint owner who was never a member was never ours", () => {
+  const h = household("mum").person("a", "Ren Tam").account("BANK", "transaction", "cash", [["a", 10000]]).account("MUM", "loan", "loans", [["a", 10000]]);
+  h.setup.party.push({ party_id: "m", kind: "person", name: "Rua Tam" });
+  h.setup.contract.push({ contract_id: "M", kind: "loan", name: "From Mum", counterparty_party_id: "m", account_id: "MUM" });
+  h.line("BANK", "2026-03-01", "OSKO FROM R TAM LOAN", 500000).line("BANK", "2026-04-01", "OSKO TO R TAM LOAN", -10000);
+  let L = run(h);
+  assert.equal(L.balances.at("MUM", "2026-04"), -490000);
+  assert.equal(L.cash.find((m) => m.month === "2026-04").spending, 0);
+  const g = household("ex").person("a").account("J", "savings", "cash", [["a", 5000], ["x", 5000]], { opening_balance_cents: 200000, opened_on: "2026-01-01" });
+  g.setup.party.push({ party_id: "x", kind: "person", name: "Former Partner" });
+  g.line("J", "2026-02-01", "INTEREST", 0);
+  L = run(g);
+  assert.equal(L.netWorth.slice(-1)[0].total, 100000);
+});
+
+test("a super line no recipe maps is still read: the file is not refused, and the balance moves with a question", () => {
+  for (const f of ["purrannuation-csv-v1", "purrannuation-csv-v2", "hestabby-app-json"]) assert.ok(JSON.stringify(require(`../../recipes/${f}.json`)).includes('"*":"other"'), f);
+  const h = household("listo").person("a").account("S", "super", "super", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-01-01" });
+  h.obs("super_line", { account_ref: "S", posting_date: "2026-03-01", line_type: "government", description: "LISTO", amount_cents: 41250 });
+  h.obs("super_line", { account_ref: "S", posting_date: "2026-04-01", line_type: "other", description: "ZZ-CODE", amount_cents: 5000 });
+  const L = run(h);
+  assert.equal(L.balances.at("S", "2026-04"), 146250);
+  assert.equal(L.review.filter((r) => r.kind === "unknown_super_line").length, 1, "only the unknown one asks");
+});
+
+test("what a flatmate owes rings as an open item with a name", () => {
+  const L = run(shareHouse(2));
+  const c = L.checks.find((x) => x.law === "L2" && x.scope === "receivable:alex");
+  assert.equal(c.status, "open");
+  assert.ok(L.review.some((r) => r.ref === "receivable:alex"));
 });

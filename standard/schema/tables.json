@@ -413,6 +413,7 @@
         "person:text",
         "event_kind:text",
         "priority:int",
+        "direction:text:enum=credit|debit",
         "account_id:id:fk=account.account_id",
         "activity_id:id:fk=activity.activity_id",
         "asset_id:id:fk=asset.asset_id",

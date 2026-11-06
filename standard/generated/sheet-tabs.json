@@ -472,6 +472,7 @@
         "person",
         "event_kind",
         "priority",
+        "direction",
         "account_id",
         "activity_id",
         "asset_id",

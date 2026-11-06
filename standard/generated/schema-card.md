@@ -15,7 +15,7 @@ contract_note: account_ref* instrument_ref* side* trade_date* settlement_date un
 holding: account_ref* instrument_ref* as_at* units* price value_cents acquired_on sellable_units currency
 dividend: account_ref* instrument_ref* pay_date* units* franked_cents* unfranked_cents* franking_credit_cents* withholding_cents net_cents* drp_units drp_price attributed_later
 distribution: account_ref* instrument_ref* fy* period_end* cash_cents* interest_cents franked_cents franking_credit_cents unfranked_cents foreign_income_cents foreign_credit_cents discount_gain_cents cgt_concession_cents tax_deferred_cents amit_increase_cents amit_decrease_cents
-vest: plan_ref* person_ref* instrument_ref* vest_date* units* price* currency* fx_rate taxable_value_cents* account_ref withheld_units released_units status taxing_point_date cost_paid_cents cost_base_cents
+vest: plan_ref* person_ref* instrument_ref* vest_date* units* price currency fx_rate taxable_value_cents account_ref withheld_units released_units status taxing_point_date cost_paid_cents cost_base_cents
 crypto_txn: wallet_ref* time* type* asset* units* quote_asset quote_units aud_value_cents fee_asset fee_units txid
 price: instrument_ref* as_at* price* currency*
 fx_rate: base* quote* as_at* rate*
@@ -27,7 +27,7 @@ bill: issuer_ref* bill_date* due_on period_start period_end amount_cents* gst_ce
 receipt: merchant_ref* date* total_cents* gst_cents items payment_ref
 childcare_statement: provider_ref* child_ref* period_start* period_end* gross_fee_cents* subsidy_cents* gap_cents*
 health_statement: person_ref* insurer_ref* fy* period_end* premium_cents* rebate_cents* days_covered* benefit_code
-tax_assessment: person_ref* fy* assessed_on* lodged_on version* taxable_income_cents* gross_tax_cents* offsets_cents medicare_levy_cents mls_cents help_cents payg_credits_cents* other_credits_cents result_cents* labels
+tax_assessment: person_ref* fy* assessed_on* lodged_on version* taxable_income_cents* gross_tax_cents offsets_cents medicare_levy_cents mls_cents help_cents payg_credits_cents other_credits_cents result_cents* labels
 prefill: person_ref* fy* period_end* items*
 help_balance: person_ref* as_at* balance_cents* indexation_cents repayment_cents
 work_log: person_ref* fy* period_end* log_kind* hours km label amount_cents
@@ -44,7 +44,7 @@ amortisation_schedule: contract_ref* issued_on* items*
 super_tax_notice: person_ref* fy* assessed_on* amount_cents* due_on election
 
 ## Event kinds
-opening_balance purchase refund income reimbursement gift_in transfer open_transfer wage wage_receipt wage_unmatched loan_interest loan_fee loan_payment loan_applied loan_redraw rent_statement rent_receipt super_contribution super_personal super_rollover super_earnings super_cost trade_buy trade_sell settle_cash settle_difference dividend dividend_receipt drp cost_adjust corporate_action vest crypto_buy crypto_sell crypto_swap crypto_income revaluation asset_purchase asset_payment asset_disposal tax_assessed tax_refund tax_payment help_indexation adjustment on_behalf recovery super_withdrawal super_receipt trust_distribution bas_payment loss_carried cost_base_reset loan_payout loan_takeout capital_return ownership_change crypto_transfer div293_assessed super_release
+opening_balance purchase refund income reimbursement gift_in transfer open_transfer wage wage_receipt wage_unmatched loan_interest loan_fee loan_payment loan_applied loan_redraw loan_advance rent_statement rent_receipt super_contribution super_personal super_rollover super_other super_earnings super_cost trade_buy trade_sell settle_cash settle_difference dividend dividend_receipt drp cost_adjust corporate_action vest crypto_buy crypto_sell crypto_swap crypto_income revaluation asset_purchase asset_payment asset_disposal tax_assessed tax_refund tax_payment help_indexation adjustment on_behalf recovery super_withdrawal super_receipt trust_distribution bas_payment loss_carried cost_base_reset loan_payout loan_takeout capital_return ownership_change crypto_transfer div293_assessed super_release
 
 ## Tables
 setup: household party membership account alias ownership link category instrument asset activity contract term period stream scope tax_map
