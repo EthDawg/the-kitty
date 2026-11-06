@@ -1,0 +1,29 @@
+[
+ {
+  "asset_id": "AST-HOME",
+  "kind": "property",
+  "name": "27 Mangrove Crescent, Norman Gardens",
+  "account_id": "ACC-HOME",
+  "location": "Norman Gardens QLD",
+  "acquired_on": "2018-05-14"
+ },
+ {
+  "asset_id": "AST-UTE",
+  "kind": "vehicle",
+  "name": "The ute",
+  "account_id": "ACC-UTE"
+ },
+ {
+  "asset_id": "AST-BOAT",
+  "kind": "vehicle",
+  "name": "The boat",
+  "account_id": "ACC-BOAT",
+  "disposed_on": "2025-08-22"
+ },
+ {
+  "asset_id": "AST-CAR",
+  "kind": "vehicle",
+  "name": "The Kia",
+  "account_id": "ACC-CAR"
+ }
+]

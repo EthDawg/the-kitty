@@ -1,0 +1,133 @@
+[
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-LUKA-CO",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-L",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-MARI-CO",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-M",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-DENTAL",
+  "to_type": "contract",
+  "to_id": "CON-SUPER-M",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "secures",
+  "from_type": "contract",
+  "from_id": "CON-HOME",
+  "to_type": "asset",
+  "to_id": "AST-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "funds_purpose",
+  "from_type": "contract",
+  "from_id": "CON-HOME",
+  "to_type": "asset",
+  "to_id": "AST-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "share_bps": 10000
+ },
+ {
+  "relation": "offsets",
+  "from_type": "account",
+  "from_id": "ACC-OFFSET",
+  "to_type": "contract",
+  "to_id": "CON-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "paid_by",
+  "from_type": "contract",
+  "from_id": "CON-HOME",
+  "to_type": "account",
+  "to_id": "ACC-OFFSET",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "secures",
+  "from_type": "contract",
+  "from_id": "CON-UTE",
+  "to_type": "asset",
+  "to_id": "AST-UTE",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2026-03-09"
+ },
+ {
+  "relation": "funds_purpose",
+  "from_type": "contract",
+  "from_id": "CON-UTE",
+  "to_type": "asset",
+  "to_id": "AST-UTE",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "share_bps": 10000,
+  "valid_to": "2026-03-09"
+ },
+ {
+  "relation": "paid_by",
+  "from_type": "contract",
+  "from_id": "CON-UTE",
+  "to_type": "account",
+  "to_id": "ACC-JOINT",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2026-03-09"
+ },
+ {
+  "relation": "charged_to",
+  "from_type": "account",
+  "from_id": "ACC-CARD",
+  "to_type": "account",
+  "to_id": "ACC-OFFSET",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "charged_to",
+  "from_type": "account",
+  "from_id": "ACC-CARD2",
+  "to_type": "account",
+  "to_id": "ACC-OFFSET",
+  "valid_from": "2025-03-20",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-HOME-INS",
+  "to_type": "asset",
+  "to_id": "AST-HOME",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-MOTOR",
+  "to_type": "asset",
+  "to_id": "AST-CAR",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]
