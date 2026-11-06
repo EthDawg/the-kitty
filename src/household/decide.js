@@ -32,7 +32,9 @@ async function categorise(store, d, today, by, built) {
   if (d.always) {
     const [account, date] = ref.split("|"), line = (L.linesByAccount.get(account) || []).find((l) => l.key === ref);
     const pattern = Engine.normalise(line ? line.desc : (item && item.question) || "") || (item && item.question);
-    if (pattern) await store.tables.appendNew("rule", [check("rule", { rule_id: idOf("R", pattern, d.category_id), pattern, match: "normalised", merchant: d.merchant, category_id: d.category_id, valid_from: date, provenance: `decided by ${by}`, status: "accepted", recorded_at: stamp(today) })]);
+    // A rule learned from money going out says nothing about money coming back: a refund from the same shop is not a purchase.
+    const direction = Number(ref.split("|")[2]) < 0 ? "debit" : "credit";
+    if (pattern) await store.tables.appendNew("rule", [check("rule", { rule_id: idOf("R", pattern, d.category_id, direction), pattern, match: "normalised", merchant: d.merchant, category_id: d.category_id, direction, valid_from: date, provenance: `decided by ${by}`, status: "accepted", recorded_at: stamp(today) })]);
   }
   return out;
 }

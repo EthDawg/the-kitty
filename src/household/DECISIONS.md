@@ -88,14 +88,18 @@ Davies-sized: 2,369 files, 10,513 observations, 14,008 postings. Chromium 156, h
 
 | | |
 |---|---|
-| Script | 730 KB, 199 KB gzipped |
-| Load | 21 ms |
-| Whole life from nothing, all files, in the page | 1.6 s |
-| One rebuild from what the store holds | 283 ms |
+| Script | 739 KB, 202 KB gzipped |
+| Load | 16 ms |
+| Whole life from nothing, all files, in the page | 1.4 s |
+| One rebuild from what the store holds | 252 ms |
 | Bundle hash, Node and Chromium | `07a1336af73ccd9b`, the same as `standard/eval/run.js` |
 | Hash over every table, Node and Chromium | the same |
 
-The tests were audited by breaking the code on purpose: 39 mutations, each removing one safety (the commit, the dedupe, the hash compare, the guard, the readback, each clock filter, each refusal, the shared data overlay, and so on). All 39 turn a test red. The first pass found one survivor, `as_of` passing `today`, which is why a post-dated line has its own test.
+The tests were audited by breaking the code on purpose: 45 mutations, each removing one safety (the commit, the dedupe, the hash compare, the guard, the readback, each clock filter, each refusal, the shared data overlay, the honest wording, and so on). All 45 turn a test red. The first pass found one survivor, `as_of` passing `today`, which is why a post-dated line has its own test.
+
+## What it says about itself
+
+Blind 5 had 14 of 63 traps silently wrong, so nothing a person reads calls the engine finished. `next` says what a file shows, never that a number is right. "You're up to date" carries "that means your files are in, not that every number is right", every `status` ends by saying The Kitty is experimental and can be wrong in silence, and the skill tells an agent never to vouch for the numbers. A test scans the words.
 
 ## Not proved
 
@@ -103,4 +107,5 @@ The tests were audited by breaking the code on purpose: 39 mutations, each remov
 - **Opening a Sheet is about 40 reads:** one per table, in chunks past 2,500 rows, and Google allows about 60 a minute. Davies-sized households will sit through the pacing.
 - **Two writers.** The named-row write assumes one writer at a time. A person's phone and laptop writing in the same second could collide. Readback would report it.
 - **A person typing a bad value in a yours tab** reaches the engine as is. Only a moved header is caught.
+- **A column added to the standard stops an older Sheet.** `rule.direction` arrived during this build. A Sheet made before such a change fails with `header_changed`, loudly and before any write, because no `update` verb exists yet to add the column. No household is on a Sheet today.
 - **Scan extraction** has no path in the command line.

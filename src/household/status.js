@@ -18,6 +18,8 @@ const DOMAINS = [
   { domain: "insurance", name: "insurance", types: [], asks: "Do you hold insurance of your own?", why: "Renewal dates and premiums are easy to lose track of." },
   { domain: "crypto", name: "crypto", types: ["wallet"], asks: "Do you hold any crypto?", why: "It counts toward what you are worth, and each sale or swap matters at tax time." },
 ];
+// The engine is still being tested on families it was not built around, and blind runs still find it silently wrong. Every status says so.
+const CAVEAT = "The Kitty is experimental. It can read a household wrong without saying so, so check anything you act on. It is not tax advice.";
 const ACCOUNT_CLASSES = new Set(["asset", "liability"]);
 const scopeKey = (s) => `${s.subject_type}|${s.subject_id}|${s.domain}`;
 
@@ -107,10 +109,10 @@ function readiness({ L, view, clock }) {
 function words(s) {
   const r = s.readiness, out = [`${s.household.name}. ${s.clock.as_of ? `Your files reach ${dayYear(s.clock.as_of)}.` : "No files yet."}`];
   if (r.net_worth) out.push(`${money(r.net_worth.cents)} across the ${plural(r.accounts_known, "account")} we know about.`);
-  if (r.cash) out.push(`${monthYear(r.cash.month)}: ${money(r.cash.income_cents)} in, ${money(r.cash.spending_cents)} out${r.cash.unplaced_cents ? `, ${money(r.cash.unplaced_cents)} of it not placed yet` : ""}.`);
+  if (r.cash) out.push(`${monthYear(r.cash.month)}: ${money(r.cash.income_cents)} in, ${money(r.cash.spending_cents)} out${r.cash.unplaced_cents ? `, ${money(r.cash.unplaced_cents)} of it not placed yet` : ""}${r.cash.unexplained_cents ? `, and ${money(r.cash.unexplained_cents)} came in that nobody has explained` : ""}.`);
   if (r.months.length) out.push(`${plural(r.months_closed, "month")} closed of ${r.months.length}. ${r.laws.pass} of the ${r.laws.ran} checks that could run pass.`);
   if (r.coverage.expected) out.push(`${r.coverage.held} of the ${plural(r.coverage.expected, "period")} we expected ${r.coverage.expected === 1 ? "is" : "are"} covered.`);
-  return [...out, ...r.unknown];
+  return [...out, ...r.unknown, CAVEAT];
 }
 async function status(store, { today, built } = {}) {
   const m = await ready(store), b = built || (await rebuildAt(store, { today })), hh = b.view.setup.household[0] || {};
