@@ -17,7 +17,17 @@ const cold = read(path.join(root, "eval", "coldstart.json"));
 const recipes = fs.readdirSync(path.join(root, "recipes")).filter((f) => f.endsWith(".json"));
 const sample = read(path.join(root, "recipes", "southern-activity-csv.json"));
 const manifest = read(path.join(root, ".build", "world", "manifest.json"));
-const data = { view, ladder, sheet: sheet.skipped ? null : sheet, cold, recipes: recipes.length, families: new Set(manifest.files.map((f) => f.family)).size, recipe: JSON.stringify(sample, null, 1).slice(0, 1500) };
+// Each blind run as it was written, then the first household after repairs. A column is added when its file exists.
+const heldout = (f) => {
+  try {
+    const t = fs.readFileSync(path.join(root, "eval", f), "utf8"), row = (name) => (t.split("\n").find((l) => l.startsWith(`| ${name} |`)) || "").split("|").map((c) => c.trim());
+    const said = (re) => (t.match(re) || [])[1] || null;
+    const traps = (row("Traps")[2] || "").match(/(\d+) handled, (\d+) flagged, (\d+) silently wrong, of (\d+)/) || [];
+    return { income: row("Cash income")[2], spending: row("Spending")[2], worth: row("Net worth")[3], extra: said(/(\d+) extra legs/), extraCents: said(/extra legs worth (-?[\d,.]+)/), paired: said(/Own transfers paired as transfers: (\d+ of \d+)/), handled: traps[1], flagged: traps[2], silent: traps[3], of: traps[4], crash: /crashed on the setup/.test(t) };
+  } catch (e) { return null; }
+};
+const blind = [["BLIND-1.md", "The first family, blind"], ["RESULT.md", "The same family, after repairs"]].concat(fs.existsSync(path.join(root, "eval", "heldout2", "BLIND-2.md")) ? [["../heldout2/BLIND-2.md", "A second family, blind"]] : []).map(([f, name]) => ({ name, ...heldout(`heldout/${f}`) }));
+const data = { blind, view, ladder, sheet: sheet.skipped ? null : sheet, cold, recipes: recipes.length, families: new Set(manifest.files.map((f) => f.family)).size, recipe: JSON.stringify(sample, null, 1).slice(0, 1500) };
 const tpl = fs.readFileSync(path.join(root, "site", "explorer.template.html"), "utf8");
 fs.writeFileSync(out, tpl.replace("/*DATA*/", () => `window.DD=${JSON.stringify(data).replace(/</g, "\\u003c")};`));
 console.log(`${out}: ${Math.round(fs.statSync(out).size / 1024)} KB`);

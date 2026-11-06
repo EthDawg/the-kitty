@@ -102,6 +102,12 @@ footer{padding-block:28px;color:var(--muted);font-size:14px}
   <div class="rungs"><div><h3>Same household, same hash</h3><div id="rungsP"></div></div><div><h3>One thing breaks</h3><div id="rungsS"></div></div></div>
 </div></section>
 <section><div class="wrap">
+  <h2>A family it had never seen.</h2>
+  <p class="sub">Everything above was built with the Davies in view, so it cannot show the model works for anyone else. So a worker that could not read the engine simulated a different household, with its own banks, traps and truth, and ran it once. No rules, no decisions, only what a person would answer at onboarding.</p>
+  <div class="tbl"><table id="blind"></table></div>
+  <p class="note" id="blindnote"></p>
+</div></section>
+<section><div class="wrap">
   <h2>Changing a rate must not change the past.</h2>
   <p class="sub">A loan has no interest rate. It has a history of rates, and a history of when each was known. Every view answers two dates: the day the question is about, and the day it is asked. In 2025 the lender cut the rate, then backdated the cut by a week. Move the dates.</p>
   <div class="time"><div id="timeplot"></div><div class="ctl">
@@ -190,6 +196,13 @@ footer{padding-block:28px;color:var(--muted);font-size:14px}
 
   // ---------- ladder ----------
   const rung = (r, word) => `<div class="rung"><span class="tag ${r.ok ? "pass" : "fail"}">${r.ok ? word : "breaks"}</span><span>${esc(r.name)}</span></div>`;
+  const B = D.blind.filter((b) => b.income);
+  const blindRow = (label, f) => `<tr><th scope="row">${label}</th>${B.map((b) => `<td class="num">${esc(f(b))}</td>`).join("")}</tr>`;
+  $("blind").innerHTML = `<thead><tr><th scope="col">Measure</th>${B.map((b) => `<th scope="col" class="num">${esc(b.name)}</th>`).join("")}</tr></thead><tbody>${[
+    blindRow("Months of income exact", (b) => b.income), blindRow("Months of spending exact", (b) => b.spending), blindRow("Net worth, mean error a month", (b) => `$${b.worth}`),
+    blindRow("Card lines counted twice", (b) => b.extra), blindRow("Own transfers paired", (b) => b.paired), blindRow("Traps handled", (b) => `${b.handled} of ${b.of}`), blindRow("Flagged for a person", (b) => b.flagged), blindRow("Silently wrong", (b) => b.silent), blindRow("Rebuild crashed", (b) => (b.crash ? "yes" : "no")),
+  ].join("")}</tbody>`;
+  $("blindnote").textContent = "The first column is what shipped before anyone looked. It is kept as written. Each repair came with a failing fixture and read none of that family's numbers, but the family is why the repairs exist, so the second column shows only that they work. Only a new blind family can show they generalise.";
   $("rungsP").innerHTML = D.ladder.filter((r) => r.kind === "presentation").map((r) => rung(r, "same")).join("");
   $("rungsS").innerHTML = D.ladder.filter((r) => r.kind === "semantic").map((r) => rung(r, "rang")).join("");
 
