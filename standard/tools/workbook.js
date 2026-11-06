@@ -49,7 +49,7 @@ function build(L, setup, intake) {
   const cf = [["month", "income", "spending", "unexplained", "net"]];
   months.forEach((m, i) => {
     const r = i + 2;
-    const sumKind = (kind, sign, odd = "FALSE") => `${sign}SUMIFS(${R("amount_cents")},${R("reporting_group")},"cash",${R("month")},$A${r},${R("category_kind")},"${kind}",${R("cash_lens")},TRUE,${R("unexplained")},${odd})/100`;
+    const sumKind = (kind, sign, odd = "FALSE") => `${sign}SUMIFS(${R("amount_cents")},${R("reporting_group")},"cash",${R("month")},$A${r},${R("category_kind")},"${kind}",${R("cash_lens")},TRUE,${R("unexplained")},${odd},${R("held_from")},"<="&$A${r},${R("held_to")},">"&$A${r})/100`;
     cf.push([m, { f: sumKind("income", ""), money: true }, { f: `${sumKind("expense", "-")}${sumKind("suspense", "-")}`, money: true }, { f: sumKind("suspense", "", "TRUE"), money: true }, { f: `B${r}-C${r}+D${r}`, money: true }]);
   });
   const fyLabel = [...new Set(months.map((m) => { const y = +m.slice(0, 4), mo = +m.slice(5); return `FY${mo >= 7 ? y + 1 : y}`; }))];

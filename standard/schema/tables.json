@@ -354,7 +354,7 @@
         "party_id:id:req:fk=party.party_id",
         "fy:text:req",
         "version:int:req",
-        "status:text:req:enum=lodged|assessed|amended",
+        "status:text:req:enum=lodged|assessed|amended|partial",
         "lodged_on:date",
         "assessed_on:date",
         "taxable_income_cents:cents",

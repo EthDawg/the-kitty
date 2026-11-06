@@ -26,7 +26,7 @@ const heldout = (f) => {
     return { income: row("Cash income")[2], spending: row("Spending")[2], worth: row("Net worth")[3], extra: said(/(\d+) extra legs/), extraCents: said(/extra legs worth (-?[\d,.]+)/), paired: said(/Own transfers paired as transfers: (\d+ of \d+)/), handled: traps[1], flagged: traps[2], silent: traps[3], of: traps[4], crash: /crashed on the setup/.test(t), curve };
   } catch (e) { return null; }
 };
-const blind = [["heldout/BLIND-1.md", "First"], ["heldout2/BLIND-2.md", "Second"], ["heldout3/BLIND-3.md", "Third"], ["heldout4/BLIND-4.md", "Fourth"], ["heldout5/BLIND-5.md", "Fifth"]].filter(([f]) => fs.existsSync(path.join(root, "eval", f))).map(([f, name]) => ({ name, ...heldout(f) }));
+const blind = [["heldout/BLIND-1.md", "First"], ["heldout2/BLIND-2.md", "Second"], ["heldout3/BLIND-3.md", "Third"], ["heldout4/BLIND-4.md", "Fourth"], ["heldout5/BLIND-5.md", "Fifth"], ["heldout6/BLIND-6.md", "Sixth"], ["heldout7/BLIND-7.md", "Seventh"]].filter(([f]) => fs.existsSync(path.join(root, "eval", f))).map(([f, name]) => ({ name, ...heldout(f) }));
 const data = { blind, view, ladder, sheet: sheet.skipped ? null : sheet, cold, recipes: recipes.length, families: new Set(manifest.files.map((f) => f.family)).size, recipe: JSON.stringify(sample, null, 1).slice(0, 1500) };
 const tpl = fs.readFileSync(path.join(root, "site", "explorer.template.html"), "utf8");
 fs.writeFileSync(out, tpl.replace("/*DATA*/", () => `window.DD=${JSON.stringify(data).replace(/</g, "\\u003c")};`));

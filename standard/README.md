@@ -118,8 +118,9 @@ The blind level is the one that tests what tuning cannot, and it is the one that
 | Third | 55 | 16 | 27 | 12 |
 | Fourth | 69 | 33 | 24 | 12 |
 | Fifth | 63 | 32 | 17 | 14 |
+| Sixth | 65 | 37 | 10 | 18 |
 
-Each family was built to be harder than the last, so these are not runs of one test. Each defect becomes a fixture and a repair, and only a new blind household shows whether a repair generalises. A score after repair proves only that the repair works. Repairs do hold: of the 31 shapes the fifth family repeated, none got worse. New shapes are where silence still comes from, so the standard is not finished. A person's answers are still what makes most of these numbers exact, and the last column is not yet zero.
+Each family was built to be harder than the last, so these are not runs of one test. Each defect becomes a fixture and a repair, and only a new blind household shows whether a repair generalises. A score after repair proves only that the repair works. Most repairs hold, but not all: of the 37 shapes the sixth family repeated, 5 got worse, every one from a rule of ours that read a name as proof, and that rule has been narrowed. New shapes are still where silence comes from, so the standard is not finished. A person's answers are still what makes most of these numbers exact, and the last column is not yet zero.
 
 ## Compared with
 

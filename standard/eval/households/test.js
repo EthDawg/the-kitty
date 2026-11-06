@@ -1293,3 +1293,105 @@ test("the CGT discount is read from the reference, and a label the draft has and
   const tie = L.checks.find((c) => c.law === "L11" && /labels/.test(c.scope));
   assert.ok(tie && /10/.test(tie.detail), "interest of 50.00 is on the draft and not on the return");
 });
+
+// ---------- round six: a crash from a real shape, and what the sixth blind household found. Fictional cases. ----------
+test("two equal advances on one day, or a row with no amount on a loan, never stop a rebuild", () => {
+  const h = household("twins").person("a").account("LOAN", "loan", "loans", [["a", 10000]]);
+  h.setup.contract.push({ contract_id: "L", kind: "loan", name: "Loan", account_id: "LOAN" });
+  h.line("LOAN", "2026-07-01", "ADVANCE TO VENDOR", -2500000).line("LOAN", "2026-07-01", "ADVANCE TO VENDOR", -2500000).line("LOAN", "2026-07-01", "NARRATIVE: DISBURSAL", 0).line("LOAN", "2026-07-01", "NARRATIVE: DISBURSAL", 0);
+  h.line("LOAN", "2026-07-02", "FEE", -5000).line("LOAN", "2026-07-02", "FEE", -5000);
+  const L = run(h);
+  assert.equal(L.balances.at("LOAN", "2026-07"), -5010000, "both advances and both fees count");
+});
+
+test("a partial lodged year conforms to its own enum", () => {
+  const def = require("../../schema/tables.json").tables.tax_return.columns.find((c) => c.startsWith("status"));
+  assert.ok(/partial/.test(def), def);
+});
+
+test("a mid-day reading ties to a run of the day's lines, not to any subset that happens to add up", () => {
+  const build = (reading) => {
+    const h = household("subset").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-07-01" });
+    h.line("BANK", "2026-07-02", "START", -100).line("BANK", "2026-07-10", "ONE", -1000).line("BANK", "2026-07-10", "TWO", -300).line("BANK", "2026-07-10", "THREE", -700).line("BANK", "2026-07-20", "END", -100);
+    h.obs("balance", { account_ref: "BANK", as_at: "2026-07-02", balance_cents: 99900 });
+    h.obs("balance", { account_ref: "BANK", as_at: "2026-07-10", balance_cents: reading, sequence: 1 });
+    h.obs("balance", { account_ref: "BANK", as_at: "2026-07-25", balance_cents: 97800 });
+    return status(run(h), "L3");
+  };
+  assert.ok(!build(98900).includes("fail"), "after the first line");
+  assert.ok(!build(98600).includes("fail"), "after the first two");
+  assert.ok(build(98200).includes("fail"), "ONE and THREE add to it but are not a run: a coincidence is not a tie");
+});
+
+const carer = () => {
+  const h = household("carer").person("d", "Dee Bonetti").org("Services Australia").account("BANK", "transaction", "cash", [["d", 10000]]);
+  h.setup.category.push({ category_id: "x_CARER", name: "Carer payments", kind: "income", cash_lens: true, economic_lens: true });
+  h.setup.contract.push({ contract_id: "C", kind: "benefit", name: "Carer Payment", counterparty_party_id: "Services Australia", category_id: "x_CARER", started_on: "2026-01-01", ended_on: "2026-12-31" });
+  return h;
+};
+test("a contract's name is not proof: an amount far from its pattern, or a date outside it, stays a question", () => {
+  const h = carer();
+  for (const d of ["02-05", "02-19", "03-05", "03-19", "04-02"]) h.line("BANK", `2026-${d}`, "SERVICES AUSTRALIA PAYMENT", 90000 + Number(d.slice(3)));
+  h.line("BANK", "2026-03-10", "SERVICES AUSTRALIA MEDICARE 41", 4120);
+  h.line("BANK", "2026-03-12", "SERVICES AUSTRALIA LUMP", 1512000);
+  h.line("BANK", "2025-06-01", "SERVICES AUSTRALIA PAYMENT", 90000);
+  const L = run(h), carerLines = L.events.filter((e) => e.category_id === "x_CARER");
+  assert.equal(carerLines.length, 5, "the five that fit");
+  assert.ok(L.review.some((r) => /LUMP/.test(r.what)), "the lump asks");
+  assert.equal(L.review.filter((r) => r.kind === "uncategorised" && r.amount_cents === 90000).length, 1, "the one before the contract asks");
+});
+
+test("a person's money stays theirs: an account in the memo group is no own transfer, is not asked about, and asks about no house", () => {
+  const h = household("poa").person("d", "Dee Bonetti").account("BANK", "transaction", "cash", [["d", 10000]]).account("MUM", "transaction", "memo", [["d", 10000]]).account("HOME", "property", "property", [["d", 10000]], { fidelity: "snapshot" });
+  h.setup.asset.push({ asset_id: "H", kind: "property", name: "Home", account_id: "HOME" });
+  h.line("MUM", "2026-03-01", "OSKO TO D BONETTI BOARD", -18000).line("BANK", "2026-03-01", "OSKO FROM D BONETTI POA", 18000);
+  h.line("MUM", "2026-03-05", "CHEMIST", -2000).line("MUM", "2026-03-06", "CONVEYANCING SALE PROCEEDS", 61234000);
+  const L = run(h);
+  assert.equal(L.events.filter((e) => e.kind === "transfer").length, 0, "crossing the boundary is not a transfer");
+  assert.ok(!L.review.some((r) => /CHEMIST/.test(r.what)), "her lines are not the household's questions");
+  assert.ok(!L.review.some((r) => r.kind === "possible_sale"), "and her sale is not the household's house");
+  assert.ok(L.review.some((r) => /POA/.test(r.what)), "the credit that reached the household asks");
+});
+
+test("an account held wholly for someone else earns the household nothing", () => {
+  const h = household("held-for").person("d", "Dee Bonetti").account("JT", "savings", "cash", [["d", 10000]], { opening_balance_cents: 1200000, opened_on: "2026-01-01" }).rule("INTEREST", "INTEREST");
+  h.setup.party.push({ party_id: "m", kind: "person", name: "Assunta Bonetti" });
+  h.setup.ownership = h.setup.ownership.filter((o) => !(o.basis === "beneficial"));
+  h.setup.ownership.push({ subject_type: "account", subject_id: "JT", party_id: "m", basis: "beneficial", share_bps: 10000, valid_from: "2000-01-01", valid_to: null, recorded_at: "2000-01-01T00:00:00Z", superseded_at: null });
+  h.line("JT", "2026-06-28", "INTEREST PAID", 8090);
+  assert.equal(run(h).cash.find((m) => m.month === "2026-06").income, 0);
+});
+
+test("any account closed in setup leaves net worth, and a balance left at closing asks", () => {
+  const h = household("forgiven").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-01-01" }).account("OWED", "loan", "loans", [["a", 10000]], { opening_balance_cents: -2300000, opened_on: "2026-01-01", closed_on: "2026-02-20" });
+  h.line("BANK", "2026-04-01", "SHOPS", -100);
+  const L = run(h);
+  assert.equal(L.netWorth.find((r) => r.month === "2026-01").total, 100000 - 2300000);
+  assert.equal(L.netWorth.find((r) => r.month === "2026-03").total, 100000, "a debt forgiven in a will is gone");
+  assert.ok(L.review.some((r) => r.kind === "closed_with_balance" && r.ref === "OWED"));
+});
+
+test("a file naming a number the account does not hold is held out and asked about, even on an open account", () => {
+  const h = household("number").person("a").account("SAVE", "savings", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2026-01-01" });
+  h.setup.alias.push({ subject_type: "account", subject_id: "SAVE", value: "114455", valid_from: "2000-01-01", valid_to: null });
+  h.setup.stream.push({ stream_id: "SAVE", subject_type: "account", subject_id: "SAVE", cadence: "quarterly", valid_from: "2026-01-01" });
+  const a = stream(h, "a", "SAVE"), b = stream(h, "b", "SAVE");
+  let n = h.observations.length;
+  h.obs("txn_line", { account_ref: "114455", posting_date: "2026-03-01", description: "SHOPS", amount_cents: -100 }); from(h, n, a);
+  n = h.observations.length;
+  h.obs("txn_line", { account_ref: "998877", posting_date: "2026-05-10", description: "TERM DEPOSIT WITHDRAWAL", amount_cents: -42000000 }); from(h, n, b);
+  const L = run(h);
+  assert.equal(L.balances.at("SAVE", "2026-05"), 99900);
+  assert.equal(L.review.filter((r) => r.kind === "lines_for_another_account").length, 1);
+  assert.ok(!status(L, "L4").includes("fail"));
+});
+
+test("an authorisation in an early download gives way to the posting when a later file covers its day, even when a statement shares that stream's line", () => {
+  const h = household("auth").person("a").account("CARD", "credit_card", "cash", [["a", 10000]]);
+  const early = stream(h, "e", "CSV"), late = stream(h, "l", "CSV"), pdf = stream(h, "p", "PDF");
+  const add = (src, d, desc, c) => { const n = h.observations.length; h.line("CARD", d, desc, c); from(h, n, src); };
+  add(early, "2026-03-20", "OPEN", -100); add(early, "2026-03-24", "WISHPAW MARKET US USD 78.00", -12118); add(early, "2026-03-31", "MID", -100);
+  add(pdf, "2026-03-20", "OPEN", -100); add(pdf, "2026-03-24", "WISHPAW MARKET US USD 78.00", -12240); add(pdf, "2026-03-31", "MID", -100); add(pdf, "2026-04-10", "CLOSE", -100);
+  add(late, "2026-03-22", "OTHER", -100); add(pdf, "2026-03-22", "OTHER", -100); add(late, "2026-03-31", "MID", -100); add(late, "2026-04-02", "WISHPAW MARKET US USD 78.00", -12240); add(late, "2026-04-10", "CLOSE", -100);
+  assert.equal(run(h).events.filter((e) => /WISHPAW/.test(e.description)).length, 1);
+});

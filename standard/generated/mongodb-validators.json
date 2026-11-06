@@ -1482,7 +1482,8 @@
           "enum": [
             "lodged",
             "assessed",
-            "amended"
+            "amended",
+            "partial"
           ]
         },
         "lodged_on": {

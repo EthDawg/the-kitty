@@ -136,13 +136,14 @@ function collapse(items) {
       if ([...A].some((x) => B.has(x)) || similarity(a.desc, b.desc) < 0.5) continue;
       const oneStream = [...streamsOf(a)].some((x) => streamsOf(b).has(x));
       // Inside one stream the proof is a later download covering the day and no longer showing the earlier amount: the authorisation became the posting.
-      const overtaken = oneStream && (fileCovers(b, a.date) || fileCovers(a, b.date));
+      const seenBy = (l, day) => [...sourcesOf(l)].some((src) => { const r = span.get(`${src}|${l.account}`); return r && r.lo <= day && day <= r.hi; });
+      const overtaken = oneStream && (seenBy(b, a.date) || seenBy(a, b.date));
       if (oneStream && !overtaken) continue;
       if (!oneStream && !(streamCovers(a, b.date) && streamCovers(b, a.date))) {
         faults.push({ kind: "possible_duplicate", ref: `${a.account}|${a.date}|${a.cents}`, account: a.account, cents: a.cents, what: `${a.desc} appears as ${a.cents / 100} and ${b.cents / 100} in two files. One charge or two?` });
         continue;
       }
-      const keep = overtaken ? (fileCovers(b, a.date) ? b : a) : (a.issuedOn || "") >= (b.issuedOn || "") ? a : b, drop = keep === a ? b : a, later = a.date > b.date ? a.date : b.date, earlier = a.date > b.date ? b.date : a.date;
+      const keep = overtaken ? (seenBy(b, a.date) ? b : a) : (a.issuedOn || "") >= (b.issuedOn || "") ? a : b, drop = keep === a ? b : a, later = a.date > b.date ? a.date : b.date, earlier = a.date > b.date ? b.date : a.date;
       keep.witnesses.push(...drop.witnesses); keep.date = later; if (earlier !== later && !keep.valueDate) keep.valueDate = earlier;
       repriced.add(drop);
       faults.push({ kind: "restated_line", ref: `${keep.account}|${later}|${keep.cents}`, account: keep.account, cents: a.cents - b.cents, what: `${keep.desc} shows ${a.cents / 100} in one file and ${b.cents / 100} in the other. The ledger holds ${keep.cents / 100}.` });

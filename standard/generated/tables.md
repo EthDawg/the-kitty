@@ -354,7 +354,7 @@ A return or assessment as it happened, materialised from a tax_assessment observ
 | `party_id` | id | required; → party |
 | `fy` | text | required |
 | `version` | int | required |
-| `status` | text | required; lodged, assessed, amended |
+| `status` | text | required; lodged, assessed, amended, partial |
 | `lodged_on` | date |  |
 | `assessed_on` | date |  |
 | `taxable_income_cents` | cents |  |

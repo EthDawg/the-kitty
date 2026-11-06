@@ -18,6 +18,9 @@ function cashLens(L, opts = {}) {
   // A purchase counts when it was charged, unless the household keeps its books by the day the bank posted it. Balances always move on the posting.
   const posted = (L.households || []).some((h) => h.budget_date === "posted");
   const when = (e) => (posted ? e.occurred_on : e.charged_on || e.occurred_on);
+  // An account held wholly for someone else earns and spends nothing of the household's.
+  const heldShare = heldBy(L), ours = new Map();
+  const isOurs = (account, m) => { const k = `${account}|${m}`; if (!ours.has(k)) ours.set(k, heldShare(account, monthEnd(m)) > 0); return ours.get(k); };
   const months = new Map();
   const bucket = (m) => { if (!months.has(m)) months.set(m, { month: m, income: 0, spending: 0, unexplained: 0, net: 0, byCategory: {} }); return months.get(m); };
   for (const p of L.postings) {
@@ -25,6 +28,7 @@ function cashLens(L, opts = {}) {
     const e = X.events.get(p.event_id);
     const cat = X.categories.get(e.category_id);
     const m = bucket(monthOf(when(e)));
+    if (!isOurs(p.account_id, m.month)) continue;
     // Money in that nobody has explained is neither income nor a refund. It is shown on its own until a person says.
     if (e.unexplained) { m.unexplained += p.amount_cents; continue; }
     if (!cat || cat.kind === "transfer" || cat.kind === "capital" || cat.cash_lens === false) { continue; }
@@ -91,9 +95,9 @@ function heldBy(L) {
   const belongs = (party, on) => (members.has(party) ? members.get(party).some((m) => m.valid_from <= on && (m.valid_to == null || on < m.valid_to)) : !people.has(party));
   const accounts = new Map(L.accounts.map((a) => [a.account_id, a]));
   return (account, on) => {
-    // An asset carried at a value is gone from the day setup closes it, whatever value it last showed.
+    // An account is gone from the day setup closes it, whatever it last showed.
     const a = accounts.get(account);
-    if (a && a.fidelity === "snapshot" && a.closed_on && on >= a.closed_on) return 0;
+    if (a && a.closed_on && on >= a.closed_on) return 0;
     if (!owners.has(account)) return 1;
     const active = activeOn(owners.get(account), on), beneficial = active.filter((o) => o.basis === "beneficial"), rows = beneficial.length ? beneficial : active;
     const total = rows.reduce((s, o) => s + (o.share_bps ?? 10000), 0);

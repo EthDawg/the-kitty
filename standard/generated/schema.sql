@@ -284,7 +284,7 @@ CREATE TABLE "tax_return" (
   "party_id" TEXT NOT NULL,
   "fy" TEXT NOT NULL,
   "version" INTEGER NOT NULL,
-  "status" TEXT NOT NULL CHECK ("status" IN ('lodged', 'assessed', 'amended')),
+  "status" TEXT NOT NULL CHECK ("status" IN ('lodged', 'assessed', 'amended', 'partial')),
   "lodged_on" TEXT,
   "assessed_on" TEXT,
   "taxable_income_cents" INTEGER,

@@ -69,18 +69,22 @@ class Resolver {
     const hit = rows.find((r) => r.valid_from <= (on || "9999") && (r.valid_to == null || (on || "0") < r.valid_to));
     return hit ? hit.subject_id : rows.length ? rows[0].subject_id : null;
   }
-  accountOf(o, ref, on) {
-    if (ref != null && ref !== "") {
-      if (this.accounts.has(ref)) return ref;
-      const a = this.alias("account", ref, on);
-      if (a) return a;
-      // A masked number: match on its digits' tail.
-      const tail = normRef(ref).replace(/[^0-9]/g, "");
-      if (tail.length >= 4) {
-        const hit = this.aliasRows.find((r) => r.subject_type === "account" && normRef(r.value).replace(/[^0-9]/g, "").endsWith(tail));
-        if (hit) return hit.subject_id;
-      }
+  accountByRef(ref, on) {
+    if (ref == null || ref === "") return null;
+    if (this.accounts.has(ref)) return ref;
+    const a = this.alias("account", ref, on);
+    if (a) return a;
+    // A masked number: match on its digits' tail.
+    const tail = normRef(ref).replace(/[^0-9]/g, "");
+    if (tail.length >= 4) {
+      const hit = this.aliasRows.find((r) => r.subject_type === "account" && normRef(r.value).replace(/[^0-9]/g, "").endsWith(tail));
+      if (hit) return hit.subject_id;
     }
+    return null;
+  }
+  accountOf(o, ref, on) {
+    const named = this.accountByRef(ref, on);
+    if (named) return named;
     const src = this.sources.get(o.source_id);
     const st = src && this.streams.get(src.stream_id);
     if (st && st.subject_type === "account") return st.subject_id;
@@ -181,6 +185,11 @@ class Resolver {
 
   // ---------- events ----------
   event(e) {
+    // Two facts can share a key: two equal advances on a loan on one day. A bad row never stops a rebuild, so the second is numbered. Outside a loan's own lines, it asks.
+    this.keysSeen = this.keysSeen || new Map();
+    const n = (this.keysSeen.get(e.key) || 0) + 1;
+    this.keysSeen.set(e.key, n);
+    if (n > 1) { if (!e.kind.startsWith("loan_")) this.review.push({ kind: "repeated_fact", ref: e.key, amount_cents: e.amount_cents ?? null, what: `${e.description || e.kind} appears ${n} times with one identity.`, do: "Check whether this is one thing seen twice." }); e.key = `${e.key}|${n}`; }
     const key = e.key;
     e.event_id = `ev_${hash64(key)}`;
     e.witnesses = e.witnesses || [];
@@ -213,6 +222,9 @@ class Resolver {
       const account = this.accountOf(o, p.account_ref, date);
       if (!account) { this.fault("unresolved_account", o, `No account for ${p.account_ref} on ${date}.`, "Add an alias for this account."); return; }
       const src = this.sources.get(o.source_id);
+      // A file naming a number this account does not hold is another account's file in the wrong folder. It stays evidence and asks once. A household that gave no numbers cannot tell.
+      const digits = normRef(p.account_ref).replace(/[^0-9]/g, "");
+      if (digits.length >= 4 && !this.accountByRef(p.account_ref, date) && this.aliasRows.some((r) => r.subject_type === "account" && r.subject_id === account && /\d{4}/.test(normRef(r.value)))) { (this.foreign = this.foreign || new Map()).set(o.source_id, [...(this.foreign.get(o.source_id) || []), { o, account }]); return; }
       // A line well after an account closed cannot be that account's. It is usually another account's file in the wrong folder, so it stays evidence and asks once per file.
       const closed = (this.accounts.get(account) || {}).closed_on;
       if (closed && date > addDays(closed, CLOSED_GRACE)) { (this.strays = this.strays || new Map()).set(o.source_id, [...(this.strays.get(o.source_id) || []), { o, account }]); return; }
@@ -225,6 +237,11 @@ class Resolver {
     for (const [src, rows] of this.strays || []) {
       const name = (this.sources.get(src) || {}).name || src, account = rows[0].account;
       this.review.push({ kind: "lines_after_close", ref: `${account}|${src}`, amount_cents: rows.reduce((t, r) => t + (r.o.payload.amount_cents || 0), 0), what: `${name} holds ${rows.length} lines dated after ${this.accountName(account)} closed. They are not in the ledger.`, do: "Is this another account's file? Move it, or say the account was still open." });
+      this.heldOnly = [...(this.heldOnly || []), ...rows.map((r) => r.o)];
+    }
+    for (const [src, rows] of this.foreign || []) {
+      const name = (this.sources.get(src) || {}).name || src, account = rows[0].account;
+      this.review.push({ kind: "lines_for_another_account", ref: `${account}|${src}`, amount_cents: rows.reduce((t, r) => t + (r.o.payload.amount_cents || 0), 0), what: `${name} sits with ${this.accountName(account)} and names account ${rows[0].o.payload.account_ref}, which it does not hold. Its ${rows.length} lines are not in the ledger.`, do: "Is this another account's file? Add the number, or move the file." });
       this.heldOnly = [...(this.heldOnly || []), ...rows.map((r) => r.o)];
     }
     const { lines, faults } = collapse(items);
@@ -329,6 +346,21 @@ class Resolver {
     // Two contracts with one party, in two categories: its name alone does not say which. An amount can, and the policy step reads that.
     const meanings = groupBy(priced, (k) => k.counterparty_party_id);
     const entities = (this.setup.party || []).filter((p) => OWN_ENTITY.has(p.kind));
+    /* A name is not proof. A contract covers its own dates and the amounts its lines usually run at. Anything else that names the party stays a question:
+       a lump from a benefit's payer, a Medicare refund beside a pension, a parent's money through the same name. Pay varies more than a fixed payment does. */
+    const inDates = (k, d) => (!k.started_on || d >= addDays(k.started_on, -31)) && (!k.ended_on || d <= addDays(k.ended_on, 31));
+    const typical = new Map();
+    for (const [party, ks] of meanings) {
+      const amounts = this.lines.filter((l) => this.namesParty(l, party) && ks.some((k) => inDates(k, l.date))).map((l) => Math.abs(l.cents)).sort((a, b) => a - b);
+      if (amounts.length >= 3) typical.set(party, amounts[Math.floor(amounts.length / 2)]);
+    }
+    const fits = (k, line) => {
+      if (!inDates(k, line.date)) return false;
+      const usual = typical.get(k.counterparty_party_id);
+      if (!usual) return true;
+      const r = Math.abs(line.cents) / usual;
+      return k.kind === "employment" ? r >= 0.25 && r <= 3 : r >= 0.5 && r <= 1.5;
+    };
     for (const line of this.lines) {
       // A guess from the dictionary never stands over the household's own company or trust. A question beats a quiet wrong number.
       if (line.cls.via === "dictionary" && entities.some((p) => this.namesParty(line, p.party_id))) { line.cls.category_id = null; line.cls.via = null; }
@@ -338,7 +370,7 @@ class Resolver {
       const k = priced.find((x) => {
         if (this.catKind(x.category_id) === "income" && line.cents <= 0) return false;
         const price = this.term("contract", x.contract_id, "price_cents", line.date);
-        if (new Set(meanings.get(x.counterparty_party_id).map((y) => y.category_id)).size > 1) return false;
+        if (new Set(meanings.get(x.counterparty_party_id).map((y) => y.category_id)).size > 1 || !fits(x, line)) return false;
         return !(price != null && Math.abs(line.cents) > 2 * Math.abs(Number(price))) && this.namesParty(line, x.counterparty_party_id);
       });
       if (k && (!line.cls.category_id || this.catKind(k.category_id) === "income")) { line.cls.category_id = k.category_id; line.cls.contract_id = k.contract_id; line.cls.via = "contract"; }
@@ -351,6 +383,12 @@ class Resolver {
   catKind(id) { const c = this.categories.get(id); return c ? c.kind : null; }
   // A party's own name, or an alias, in the line: a person by initial and surname, anyone else by the first two words that are theirs.
   namesParty(l, id) {
+    this.named = this.named || new Map();
+    const key = `${id}|${l.desc}`;
+    if (!this.named.has(key)) this.named.set(key, this.readsParty(l, id));
+    return this.named.get(key);
+  }
+  readsParty(l, id) {
     const p = this.parties.get(id);
     if (!p) return false;
     const words = String(l.desc).toUpperCase().split(/[^A-Z0-9]+/);
@@ -517,6 +555,7 @@ class Resolver {
       const period = (m) => { if (!periods.has(m)) periods.set(m, { m, doc: null, interest: [], fees: [], applied: [], redraws: [], payout: null }); return periods.get(m); };
       for (const o of docs) period(monthOf(o.payload.period_end)).doc = o;
       for (const l of lines) {
+        if (!l.cents) { this.claim(l, "narrative"); continue; }             // a row that explains a disbursal and moves nothing
         const q = period(monthOf(l.date));
         this.claim(l, "loan_line");
         const item = { date: l.date, cents: Math.abs(l.cents), witnesses: this.lineWitness(l), desc: l.desc };
@@ -634,6 +673,7 @@ class Resolver {
   split(cents, parts) { return require("./util").allocate(cents, parts); }
 
   // ---------- step: own transfers, once everything with a better explanation has claimed its lines ----------
+  inMemo(l) { return (this.accounts.get(l.account) || {}).reporting_group === "memo"; }
   isTransferLine(l) {
     if (l.noPair) return false;
     const c = l.cls.category_id;
@@ -663,7 +703,8 @@ class Resolver {
     for (const leg of legs) {
       if (leg.claimed) continue;
       const unexplained = (c) => this.isTransferLine(c) || !c.cls.category_id || c.cls.category_id === "UNCAT";
-      const mates = (byCents.get(-leg.cents) || []).filter((c) => !c.claimed && c.account !== leg.account && unexplained(c) && Math.abs(daysBetween(leg.date, c.date)) <= WINDOW.transfer)
+      // Money crossing into someone else's account has left the household. It is not a transfer between its own.
+      const mates = (byCents.get(-leg.cents) || []).filter((c) => !c.claimed && c.account !== leg.account && this.inMemo(c) === this.inMemo(leg) && unexplained(c) && Math.abs(daysBetween(leg.date, c.date)) <= WINDOW.transfer)
         .sort((a, b) => Number(this.isTransferLine(b)) - Number(this.isTransferLine(a)) || Math.abs(daysBetween(leg.date, a.date)) - Math.abs(daysBetween(leg.date, b.date)) || this.transferHint(b, leg) - this.transferHint(a, leg) || cmp(a.key, b.key));
       if (!mates.length) continue;
       const d = leg.cents < 0 ? leg : mates[0], c = leg.cents < 0 ? mates[0] : leg;
@@ -678,7 +719,7 @@ class Resolver {
       this.claim(l, "open_transfer");
       this.event({ key: `open_transfer|${l.key}`, kind: "open_transfer", occurred_on: l.date, description: l.desc, category_id: l.cls.category_id || "TRANSFER", amount_cents: l.cents, status: "open", grade: "stated", rule: "unpaired",
         witnesses: this.lineWitness(l), fields: { amount: l.cents }, refs: { account: l.account }, line: l });
-      this.review.push({ kind: "unpaired_transfer", ref: l.key, question: l.cls.norm || l.desc, amount_cents: l.cents, what: `${l.desc} has no other side in the household's accounts.`, do: "Is this someone outside the household? If so it is spending, income or a loan to them." });
+      if (!this.inMemo(l)) this.review.push({ kind: "unpaired_transfer", ref: l.key, question: l.cls.norm || l.desc, amount_cents: l.cents, what: `${l.desc} has no other side in the household's accounts.`, do: "Is this someone outside the household? If so it is spending, income or a loan to them." });
     }
   }
   /* Neither side was named a transfer, but both are unexplained, opposite to the cent, days apart, on two of the household's own accounts. A rail word says money moved;
@@ -686,7 +727,7 @@ class Resolver {
      make that a stranger. The same evidence pairs two sides that differ by a small fee taken off the way through. */
   pairUnexplained() {
     const open = this.lines.filter((l) => !l.claimed && !l.noPair && !l.excluded && (!l.cls.category_id || l.cls.category_id === "UNCAT"));
-    const cash = (l) => { const a = this.accounts.get(l.account); return a && !["loans", "super"].includes(a.reporting_group); };
+    const cash = (l) => { const a = this.accounts.get(l.account); return a && !["loans", "super", "memo"].includes(a.reporting_group); };
     const pool = open.filter(cash), byCents = groupBy(pool, (l) => l.cents);
     const debits = pool.filter((l) => l.cents < 0).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key));
     const nearest = (d) => (a, b) => Math.abs(daysBetween(d.date, a.date)) - Math.abs(daysBetween(d.date, b.date)) || similarity(b.desc, d.desc) - similarity(a.desc, d.desc) || cmp(a.key, b.key);
@@ -771,10 +812,11 @@ class Resolver {
       if (category && l.cents > 0 && (c.via === "dictionary" || c.via === "contract") && this.catKind(category) === "expense" && this.largestPaid(l) > 0 && l.cents > this.largestPaid(l)) category = null;
       if (!category) {
         category = "UNCAT";
-        this.review.push({ kind: "uncategorised", ref: l.key, question: c.norm || l.desc, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });
+        // A line on someone else's account is out of every number, so it is no question of the household's.
+        if (!this.inMemo(l)) this.review.push({ kind: "uncategorised", ref: l.key, question: c.norm || l.desc, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });
       }
       // A very large credit no document explains may be an asset leaving. The file that would prove it may not have been read.
-      if (category === "UNCAT" && l.cents >= SALE_FLOOR && /SALE|SETTLEMENT|CONVEYANC|SOLICITOR|VENDOR|PROCEEDS/i.test(l.desc)) {
+      if (category === "UNCAT" && !this.inMemo(l) && l.cents >= SALE_FLOOR && /SALE|SETTLEMENT|CONVEYANC|SOLICITOR|VENDOR|PROCEEDS/i.test(l.desc)) {
         for (const a of this.ctx.setup.asset || []) if (a.kind === "property" && a.account_id) this.review.push({ kind: "possible_sale", ref: `${a.account_id}|${l.key}`, amount_cents: l.cents, what: `${l.desc} of ${l.cents / 100} reads like a sale. Was ${a.name} sold?`, do: "Add the settlement statement, or say what this is. Until then the asset stays on the books." });
       }
       const k = this.catKind(category);
@@ -884,6 +926,12 @@ class Resolver {
     this.recogniseEveryday();
     this.finishOpenings();
     this.revalue();
+    // An account closed in setup leaves the books on that day. A balance still on it is a question: money unaccounted for, or a debt forgiven.
+    for (const a of this.setup.account || []) {
+      if (!a.closed_on || a.fidelity === "snapshot") continue;
+      const left = this.events.filter((e) => e.occurred_on <= a.closed_on).flatMap((e) => (e.postings || []).filter((p) => p.account_id === a.account_id)).reduce((t, p) => t + p.amount_cents, 0);
+      if (left) this.review.push({ kind: "closed_with_balance", ref: a.account_id, amount_cents: left, what: `${a.name} was closed on ${a.closed_on} with ${left / 100} still on it.`, do: "Say where it went." });
+    }
     // A file can read clean in another currency. Nothing here converts it, so it is counted at face value and says so.
     const base = (this.setup.household && this.setup.household[0] && this.setup.household[0].base_currency) || "AUD";
     for (const a of this.setup.account || []) if (a.currency && a.currency !== base) this.review.push({ kind: "foreign_currency", ref: a.account_id, amount_cents: null, what: `${a.name} is held in ${a.currency} and no rate is held. Net worth counts it at face value.`, do: "Add a dated rate. Until then this balance is not in dollars." });

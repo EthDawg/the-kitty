@@ -89,14 +89,16 @@ function rebuild(input) {
     dailyCache.set(account, at);
     return at;
   };
-  // Can this reading be reached: the day's lines in some part, or the close before a recent credit had posted?
+  // Can this reading be reached? The day's lines in file order, a run from either end: any subset could add up by chance. Or the close before the latest credits had posted.
   L.reachedOn = (account, date, cents) => {
-    const moves = postings.filter((p) => p.account_id === account).map((p) => ({ d: V.balanceDate(L.index.events.get(p.event_id), account), c: p.amount_cents }));
-    const today = moves.filter((m) => m.d === date).map((m) => m.c), close = L.dailyBalance(account)(date), before = close - today.reduce((s, c) => s + c, 0);
-    const some = (list, base) => { for (let mask = 0; mask < 1 << list.length; mask++) { let v = base; for (let i = 0; i < list.length; i++) if (mask & (1 << i)) v += list[i]; if (v === cents) return true; } return false; };
-    if (today.length <= 12 && some(today, before)) return true;
-    const recent = moves.filter((m) => m.c > 0 && m.d <= date && m.d >= addDays(date, -5)).map((m) => -m.c).slice(0, 8);
-    return some(recent, close);
+    const today = (L.linesByAccount.get(account) || []).filter((l) => l.date === date).sort((a, b) => a.seq - b.seq).map((l) => l.cents);
+    const close = L.dailyBalance(account)(date), before = close - today.reduce((s, c) => s + c, 0);
+    const walk = (list) => { let v = before; for (const c of list) { v += c; if (v === cents) return true; } return false; };
+    if (before === cents || walk(today) || walk([...today].reverse())) return true;
+    const recent = (L.linesByAccount.get(account) || []).filter((l) => l.cents > 0 && l.date <= date && l.date >= addDays(date, -5)).sort((a, b) => cmp(b.date, a.date) || b.seq - a.seq);
+    let v = close;
+    for (const l of recent) { v -= l.cents; if (v === cents) return true; }
+    return false;
   };
   L.unitsOn = (ref, date, accountRef) => R.unitsOn(ref, date, accountRef);
   L.cashOnlyCategoryFlow = (m) => {
