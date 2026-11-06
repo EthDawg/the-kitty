@@ -3,7 +3,7 @@
 "use strict";
 const { hash64, stableStringify, fmtUnits } = require("./util");
 
-function toBundle(L, { setup, tablesSchema, decisions = [], rules = [], recipes = [], version, mode }) {
+function toBundle(L, { setup, tablesSchema, decisions = [], rules = [], recipes = [], version, mode, workbooks = [{ name: "household", tables: null }] }) {
   const pick = (name, cols) => (row) => { const out = {}; for (const c of cols) if (row[c] !== undefined) out[c] = row[c]; return out; };
   const columns = (t) => tablesSchema.tables[t].columns.map((c) => c.split(":")[0]);
   const events = L.events.map((e) => ({ ...e, witnesses: undefined, postings: undefined, fields: undefined, refs: undefined, line: undefined, lines: undefined }));
@@ -25,7 +25,8 @@ function toBundle(L, { setup, tablesSchema, decisions = [], rules = [], recipes 
     const body = rows.map((r) => stableStringify(r)).join("\n");
     out.tables[t] = body ? `${body}\n` : "";
     // A household that separates writers or audiences lists several workbooks, with the key that partitions the table between them.
-    out.manifest.tables[t] = { rows: rows.length, hash: hash64(body), class: classOf(def.plane), plane: def.plane, workbooks: [{ name: "household", partition: null }] };
+    const homes = workbooks.filter((w) => w.tables && w.tables.includes(t));
+    out.manifest.tables[t] = { rows: rows.length, hash: hash64(body), class: classOf(def.plane), plane: def.plane, workbooks: (homes.length ? homes : workbooks.slice(0, 1)).map((w) => ({ name: w.name, partition: w.partition ?? null })) };
   }
   return out;
 }

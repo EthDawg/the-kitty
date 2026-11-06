@@ -301,10 +301,16 @@ function derive({ L, R, reference, setup }) {
     const rid = `ret_${person}_${fy}_v${p.version}`;
     const lines = (Array.isArray(p.labels) ? p.labels : []).filter((l) => l.role === "leaf" && l.label);
     let bad = 0, worst = null;
-    for (const l of lines) {
-      const got = (items.get(`${person}|${fy}|${l.label}`) || { amount_cents: 0 }).amount_cents;
-      const gap = Math.trunc(got / 100) * 100 - Math.trunc(l.amount_cents / 100) * 100;
-      if (Math.abs(gap) > 100) { bad += 1; if (!worst || Math.abs(gap) > Math.abs(worst.gap)) worst = { label: l.label, gap }; }
+    // One label can sit on several lines, one per property. Each is read against that property, and lines that name none are read together.
+    const compare = (label, got, want) => {
+      const gap = Math.trunc(got / 100) * 100 - Math.trunc(want / 100) * 100;
+      if (Math.abs(gap) > 100) { bad += 1; if (!worst || Math.abs(gap) > Math.abs(worst.gap)) worst = { label, gap }; }
+    };
+    for (const [label, rows] of groupBy(lines, (l) => l.label)) {
+      const item = items.get(`${person}|${fy}|${label}`) || { amount_cents: 0, by_activity: {} };
+      const each = rows.length > 1 && rows.every((l) => l.asset_ref || l.activity_ref);
+      if (each) for (const l of rows) compare(label, (item.by_activity || {})[l.asset_ref || l.activity_ref] || 0, l.amount_cents);
+      else compare(label, item.amount_cents, rows.reduce((s, l) => s + l.amount_cents, 0));
     }
     if (lines.length) out.labelTies.push({ person, fy, labels: lines.length, bad, worst, rid });
   }
@@ -360,7 +366,7 @@ function materialiseReturns(R) {
     const p = o.payload;
     const party_id = R.partyOf(p.person_ref, p.assessed_on);
     const return_id = `ret_${party_id}_${p.fy}_v${p.version}`;
-    returns.push({ return_id, party_id, fy: p.fy, version: p.version, status: p.version > 1 ? "amended" : "assessed", lodged_on: p.lodged_on || null, assessed_on: p.assessed_on, taxable_income_cents: p.taxable_income_cents, tax_cents: p.gross_tax_cents, credits_cents: p.payg_credits_cents, result_cents: p.result_cents, source_id: o.source_id, supersedes_return_id: p.version > 1 ? `ret_${party_id}_${p.fy}_v${p.version - 1}` : null });
+    returns.push({ return_id, party_id, fy: p.fy, version: p.version, status: p.gross_tax_cents == null || p.payg_credits_cents == null ? "partial" : p.version > 1 ? "amended" : "assessed", lodged_on: p.lodged_on || null, assessed_on: p.assessed_on, taxable_income_cents: p.taxable_income_cents, tax_cents: p.gross_tax_cents, credits_cents: p.payg_credits_cents, result_cents: p.result_cents, source_id: o.source_id, supersedes_return_id: p.version > 1 ? `ret_${party_id}_${p.fy}_v${p.version - 1}` : null });
     const rows = Array.isArray(p.labels) ? p.labels : Object.entries(p.labels || {}).map(([label, amount_cents]) => ({ label, amount_cents, role: "leaf" }));
     rows.forEach((r, i) => lines.push({ line_id: r.line_id || `${return_id}_${i + 1}`, return_id, label: r.label ?? null, section: r.section ?? null, role: r.role || "leaf", rolls_up_to: r.rolls_up_to ?? null, amount_cents: r.amount_cents, note: r.note ?? null }));
   }

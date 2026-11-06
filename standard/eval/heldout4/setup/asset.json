@@ -1,0 +1,16 @@
+[
+ {
+  "asset_id": "AST-CAR-A",
+  "kind": "vehicle",
+  "name": "The Mazda",
+  "account_id": "ACC-CAR-A",
+  "disposed_on": "2025-03-12"
+ },
+ {
+  "asset_id": "AST-CAR-B",
+  "kind": "vehicle",
+  "name": "The Toyota",
+  "account_id": "ACC-CAR-B",
+  "acquired_on": "2025-03-29"
+ }
+]

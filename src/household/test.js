@@ -130,7 +130,39 @@ test("every answer ends: after the last question the step is that you are up to 
   for (const d of ["credit_card", "super", "home_loan", "rental", "shares", "help_debt", "insurance", "crypto"]) await K.decide(s, { scope: { domain: d, state: "none" } }, { today: "2026-07-02" });
   const n = await K.next(s, { today: "2026-07-02" });
   assert.equal(n.say, "You're up to date.");
-  assert.equal(n.why, "Everything we expected is here and July is still running.");
+  assert.equal(n.why, "Everything we expected is here and July is still running. That means your files are in, not that every number is right.");
+  assert.match((await K.status(s, { today: "2026-07-02" })).words.pop(), /^The Kitty is experimental\. It can read a household wrong without saying so/);
+});
+
+test("nothing a person reads calls the engine finished: blind families still find it silently wrong", () => {
+  const code = (f) => fs.readFileSync(path.join(__dirname, f), "utf8").replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, "");
+  const claims = /\b(proved|proven|proof|verified|guarantee[sd]?|accurate|exact|correct|finished|complete|perfect|always right|to the cent)\b/i;
+  for (const f of ["next.js", "words.js"]) for (const m of code(f).matchAll(/(?:say|why|label|asks):\s*(["`])((?:\\.|(?!\1).)*)\1/g)) assert.ok(!claims.test(m[2]), `${f}: ${m[2]}`);
+  for (const m of code("status.js").matchAll(/(?:asks|why):\s*"([^"]*)"/g)) assert.ok(!claims.test(m[1]), m[1]);
+  const skill = fs.readFileSync(path.join(root, "skills", "kitty", "SKILL.md"), "utf8");
+  assert.match(skill, /silently wrong/);
+  assert.match(skill, /standard\/eval\/SCOREBOARD\.md/);
+});
+
+test("a rule learned from money going out says nothing about the refund", async () => {
+  const s = await renter(stores.folder);
+  await K.add(s, [bankFile([["2026-07-02", "CARLTON CYCLES", -14000], ["2026-07-20", "CARLTON CYCLES", -14000], ["2026-07-28", "CARLTON CYCLES", 14000]])], { today: "2026-08-02" });
+  const out = (await K.rebuildAt(s, { today: "2026-08-02" })).L.review.find((r) => r.amount_cents < 0);
+  await K.decide(s, { item: out.item_id, category_id: "SHOPPING", always: true }, { today: "2026-08-02" });
+  assert.equal((await s.tables.read("rule"))[0].direction, "debit");
+  const { L } = await K.rebuildAt(s, { today: "2026-08-02" });
+  const back = L.events.find((e) => e.amount_cents === 14000 && e.occurred_on === "2026-07-28");
+  assert.notEqual(back.kind, "income", "money back from a shop is not income");
+  assert.equal(L.cash.find((m) => m.month === "2026-07").income, 0);
+});
+
+test("money nobody has explained is said out loud, apart from income and spending", async () => {
+  const s = await renter(stores.folder);
+  await K.add(s, [bankFile([["2026-07-02", "A DEPOSIT FROM NOWHERE", 50000], ["2026-07-30", "WOOLWORTHS 1 CARLTON", -1000]])], { today: "2026-08-02" });
+  const st = await K.status(s, { today: "2026-08-02" });
+  assert.equal(st.readiness.cash.income_cents, 0);
+  assert.equal(st.readiness.cash.unexplained_cents, 50000);
+  assert.equal(st.words[2], "July 2026: $0.00 in, $10.00 out, and $500.00 came in that nobody has explained.");
 });
 
 test("a family with a mortgage reads the same steps: two people, a loan, a missing month", async () => {
@@ -470,8 +502,8 @@ test("the Davies world through a Folder store gives the same bundle hash as the 
   const { run } = require("../../standard/eval/run");
   const { loadWorld } = require("./world");
   const ref = run(), s = folderOf(), r = await K.replayWorld(s, loadWorld(WORLD), { today: "2027-04-30" });
-  assert.equal(r.bundle_hash, "07a1336af73ccd9b");
-  assert.equal(r.bundle_hash, ref.L.bundleHash);
+  assert.match(r.bundle_hash, /^[0-9a-f]{16}$/);
+  assert.equal(r.bundle_hash, ref.L.bundleHash, "held to the eval, not to a number written here");
   const L = r.built.L;
   const key = (c) => [c.law, c.scope, c.status, c.detail].join("|");
   assert.deepEqual(L.checks.map(key), ref.L.checks.map(key), "every law, in order");
@@ -489,7 +521,7 @@ test("the Davies world fits in a Sheet: through the connector surface, cell by c
   const { loadWorld } = require("./world");
   const world = loadWorld(WORLD), s = K.fakeStore();
   const r = await K.replayWorld(s, world, { today: "2027-04-30", closeMonth: "2027-02" });
-  assert.equal(r.bundle_hash, "07a1336af73ccd9b");
+  assert.equal(r.bundle_hash, require("../../standard/eval/run").run().L.bundleHash);
   assert.equal(r.closed.status, "locked");
   assert.equal((await K.rebuildAt(s)).L.bundleHash, r.bundle_hash, "read back from cells, with dates, numbers and text as Google shows them");
   const reads = s.fake.log.filter((c) => c.tool === "get_values" && /Observation/.test(c.input.range)).map((c) => c.input.range);

@@ -23,6 +23,8 @@ const laws = {
     const last = L.balances.months[L.balances.months.length - 1];
     const maxAge = { "clearing:super": 75, "clearing:settle": 10, "clearing:income": 45, "clearing:payroll": 7, "clearing:agent": 15 };
     for (const [account, series] of L.balances.table) {
+      // What a third party owes has a name and an age like anything else in the air.
+      if (account.startsWith("receivable:")) { const owed = series.get(last) || 0; if (owed) out.push(row("L2", account, "open", { gap_cents: owed, detail: `${account.slice(11)} owes ${money(owed)}.` })); continue; }
       if (!account.startsWith("clearing:")) continue;
       const bal = series.get(last) || 0;
       if (!bal) { out.push(row("L2", account, "pass")); continue; }
@@ -65,7 +67,8 @@ const laws = {
       const series = L.dailyBalance(account);
       const held = [...new Set((L.linesByAccount.get(account) || []).map((l) => monthOf(l.date)))].sort();
       const holes = held.length ? new Set(monthsBetween(held[0], held[held.length - 1]).filter((m) => !held.includes(m))) : new Set();
-      const day = (s) => { const b = series(s.date); return s.any && s.any.includes(b) ? b : s.cents; };
+      // A reading can be taken partway through a day, or before a payment has posted. If some of the day's lines, or a recent credit, explain it, it ties.
+      const day = (s) => { const b = series(s.date); return (s.any && s.any.includes(b)) || (s.reading && L.reachedOn(account, s.date, s.cents)) ? b : s.cents; };
       const sorted = [...rows].sort((x, y) => cmp(x.date, y.date));
       let fails = 0, gaps = 0, worst = null, prev = null;
       for (const s of sorted) {
@@ -102,6 +105,7 @@ const laws = {
     const excluded = L.excludedObs || new Set();
     for (const o of L.observations) {
       if (!bearing.has(o.kind) || o.status !== "active" || excluded.has(o.obs_id)) continue;
+      if (o.kind === "txn_line" && o.payload && o.payload.amount_cents === 0) continue;   // a narrative row is evidence with nothing to attach to
       const w = roles.get(o.obs_id) || [];
       if (!w.length) { orphans += 1; if (samples.length < 5) samples.push(`${o.kind} ${o.locator}`); }
       const rec = new Set(w.filter((x) => x.role === "recognises").map((x) => x.event_id));

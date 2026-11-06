@@ -29,7 +29,10 @@
       "Insurance Premium": "insurance",
       "Investment Earnings": "earnings",
       "Rollover In": "rollover_in",
-      "Pension Payment": "pension"
+      "Pension Payment": "pension",
+      "Rollover Out": "rollover_out",
+      "Government Contribution": "government",
+      "*": "other"
      }
     },
     "description": {

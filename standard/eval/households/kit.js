@@ -6,7 +6,7 @@ const CATS = [
   ["INTEREST", "income", 1, 1], ["DIVIDEND", "income", 1, 1], ["TRUST-DIST", "income", 1, 1], ["RENT-INC", "income", 1, 1], ["ESS-INCOME", "income", 0, 1], ["CRYPTO-INCOME", "income", 0, 1], ["GIFT-IN", "income", 0, 1], ["SUPER-PENSION", "income", 1, 0], ["SUPER-EARN", "income", 0, 1],
   ["BUSINESS-INC", "income", 1, 1], ["TAX-REFUND", "transfer", 0, 0], ["INCOME-TAX", "expense", 0, 1], ["HELP-INDEX", "expense", 0, 1],
   ["MORTGAGE", "expense", 1, 0], ["HOME-INT", "expense", 0, 1], ["RENT-INT", "expense", 1, 1], ["RENT-MGMT", "expense", 1, 1], ["RENT-REPAIR", "expense", 1, 1], ["RENT-OTHER", "expense", 1, 1],
-  ["SUPER-FEES", "expense", 0, 1], ["SUPER-INS", "expense", 0, 1], ["SUPER-TAX", "expense", 0, 1], ["FEES", "expense", 1, 1], ["GROCERIES", "expense", 1, 1], ["SUBS", "expense", 1, 1], ["SHOPPING", "expense", 1, 1], ["HOUSING", "expense", 1, 1], ["CAPITAL", "capital", 0, 0], ["TRANSFER", "transfer", 0, 0], ["CC-PAY", "transfer", 0, 0], ["UNCAT", "suspense", 1, 1],
+  ["SUPER-FEES", "expense", 0, 1], ["SUPER-INS", "expense", 0, 1], ["SUPER-TAX", "expense", 0, 1], ["FEES", "expense", 1, 1], ["GROCERIES", "expense", 1, 1], ["SUBS", "expense", 1, 1], ["SHOPPING", "expense", 1, 1], ["HOUSING", "expense", 1, 1], ["CAPITAL", "capital", 0, 0], ["PASS-THROUGH", "pass_through", 0, 0], ["TRANSFER", "transfer", 0, 0], ["CC-PAY", "transfer", 0, 0], ["UNCAT", "suspense", 1, 1],
 ];
 function household(name) {
   const h = {

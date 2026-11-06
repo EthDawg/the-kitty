@@ -40,7 +40,10 @@
       "INS": "insurance",
       "EARN": "earnings",
       "ROLLIN": "rollover_in",
-      "PENS": "pension"
+      "PENS": "pension",
+      "ROLLOUT": "rollover_out",
+      "LISTO": "government",
+      "*": "other"
      }
     },
     "description": {
