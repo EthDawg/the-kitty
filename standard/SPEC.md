@@ -618,11 +618,13 @@ extension several households need is a gap in the standard, and it is proposed u
 ## 13. Upgrades
 
 Nobody forks. A household depends on the base; it never copies it. Rule 1 is already the mechanism: originals survive and
-new logic arrives by rebuilding. That breaks only when logic lives in a household's copy.
+new logic arrives by rebuilding. That breaks only when logic lives in a household's copy. So the Sheet holds every number and
+owns every original. A formula in a generated tab is fine, because an update can replace it. A formula whose only home is a
+household's copy is not. A private page is a pin, not a fork: the same build, unedited, rebuilt to update.
 
 | Layer | What | How it updates |
 |---|---|---|
-| App | Engine, widgets, import core. No household holds a copy | On open |
+| App | Engine, widgets, import core. No household holds a copy | On open, or on rebuild for a pin |
 | Shared data | Tax tables, dictionary, recipes, default categories, tax map | On open, read through the household's overrides |
 | Standard | Tables, terms, laws | Additive by default, a migration when not |
 | Household | Setup, Evidence, Judgement, Plan, `x_` | Never touched by an update |
@@ -635,10 +637,11 @@ ignore what they do not know. A new law starts at `hold` for one release. Older 
 in an older app is read-only with a reason. Migrations are pure functions over Originals, chained, and run in CI on every
 test household. Tax tables are facts, not features, so dated law packs apply even to a household that pins.
 
-**An update** is a dry-run rebuild plus a metric diff: "nothing you entered changes; three numbers move, and here is why;
-locked years stay as they are". Accepting backs up, writes a plan, reads it back. A locked period is never moved: if new
-logic would change one, it raises a reopen proposal with the amount. An update can find someone money. It cannot rewrite a
-lodged year.
+**An update** is a dry-run rebuild plus a metric diff, tax drafts included: "nothing you entered changes; three numbers move,
+and here is why; locked years stay as they are". Accepting backs up, writes a plan, reads it back. A locked period is never
+moved: if new logic would change one, it raises a reopen proposal with the amount it touches and every number that would
+move. An update can find someone money. It cannot rewrite a lodged year: a different reading of one is reported with its
+amount and goes no further.
 
 **People will type in the sheet.** A hand edit in a managed tab becomes a proposed decision, never a silent overwrite.
 Anything that writes a managed tab MUST first compare the stored hash and stop on a mismatch. Two-way sync is not built yet.
