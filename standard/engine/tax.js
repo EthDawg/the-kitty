@@ -212,9 +212,9 @@ function derive({ L, R, reference, setup }) {
   for (const [k, p] of lodged) {
     const [person, fy] = k.split("|");
     const est = out.estimates.find((x) => x.person === person && x.fy === fy);
-    if (!est) { out.ties.push({ person, fy, status: "gap", lodged: p.taxable_income_cents, derived: null, gap: null, detail: "No derived draft for this year." }); continue; }
+    if (!est) { out.ties.push({ person, fy, status: "gap", lodged: p.taxable_income_cents, derived: null, gap: null, result_gap: null, detail: "No derived draft for this year." }); continue; }
     const gap = est.taxable_income_cents - p.taxable_income_cents;
-    out.ties.push({ person, fy, status: Math.abs(gap) <= 100 ? "pass" : "fail", lodged: p.taxable_income_cents, derived: est.taxable_income_cents, gap, detail: Math.abs(gap) <= 100 ? "Taxable income ties." : "Derived taxable income differs from the assessment." });
+    out.ties.push({ person, fy, status: Math.abs(gap) <= 100 ? "pass" : "fail", lodged: p.taxable_income_cents, derived: est.taxable_income_cents, gap, lodged_result: p.result_cents, derived_result: est.result_cents, result_gap: est.result_cents - p.result_cents, detail: Math.abs(gap) <= 100 ? "Taxable income ties." : "Derived taxable income differs from the assessment." });
   }
 
   // ---------- caps ----------

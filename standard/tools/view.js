@@ -15,7 +15,7 @@ const tablesDoc = JSON.parse(fs.readFileSync(path.join(root, "schema", "tables.j
 const STEPS = [
   { id: "income", name: "Income statements", kinds: ["income_statement"], person: true },
   { id: "payslips", name: "Payslips", kinds: ["payslip"], person: true },
-  { id: "interest", name: "Bank interest", kinds: ["txn_line"], any: true },
+  { id: "interest", name: "Bank interest", events: (e) => e.category_id === "INTEREST" },
   { id: "dividends", name: "Dividends and tax statements", kinds: ["dividend", "distribution"], scope: "shares" },
   { id: "rental", name: "Rental statements and loan interest", kinds: ["owner_statement"], scope: "property" },
   { id: "super", name: "Super contributions", kinds: ["super_statement", "super_line"], scope: "super" },
@@ -28,13 +28,16 @@ function readiness(L, R, fy, person) {
   const { start, stop } = fyRange(fy);
   const inYear = (o) => { const p = o.payload; const d = p.fy ? null : o.occurred_on || p.period_end || p.pay_date || p.as_at || p.posting_date; return p.fy ? p.fy === fy : d >= start && d < stop; };
   const mine = (o) => { const ref = o.payload.person_ref; return !ref || R.partyOf(ref, stop) === person; };
+  const optional = new Set(["dividends", "rental", "health", "prefill"]);
   const steps = STEPS.map((s) => {
-    const held = s.kinds.flatMap((k) => (R.byKind.get(k) || []).filter((o) => inYear(o) && (!s.person || mine(o))));
-    return { id: s.id, name: s.name, state: held.length ? "held" : "missing", count: held.length };
+    const held = s.events ? L.events.filter((e) => s.events(e) && e.occurred_on >= start && e.occurred_on < stop).length : s.kinds.flatMap((k) => (R.byKind.get(k) || []).filter((o) => inYear(o) && (!s.person || mine(o)))).length;
+    const state = held ? "held" : "missing";
+    // A step counts toward the percentage when this household has it, or when every household must.
+    return { id: s.id, name: s.name, state, count: held, counts: state === "held" || !optional.has(s.id) };
   });
-  const relevant = steps.filter((s) => s.state === "held" || !["dividends", "rental", "health", "prefill"].includes(s.id));
+  const relevant = steps.filter((s) => s.counts);
   const held = relevant.filter((s) => s.state === "held").length;
-  return { pct: relevant.length ? Math.round((held / relevant.length) * 100) : 0, steps };
+  return { pct: relevant.length ? Math.round((held / relevant.length) * 100) : 0, held, needed: relevant.length, steps };
 }
 
 function build() {
@@ -59,7 +62,16 @@ function build() {
       items: L.tax ? (L.tax.items || []).filter((i) => i.party_id === p.party_id && i.fy === fy).map((i) => ({ label: i.label, amount_cents: i.amount_cents, method: i.method, evidence: i.evidence })) : [] };
   }) }));
 
-  const sample = (kind, pick) => { const e = L.events.filter((x) => x.kind === kind && (!pick || pick(x))).pop(); if (!e) return null; const t = V.explain(L, e.event_id); return { kind, date: e.occurred_on, description: e.description, amount_cents: e.amount_cents, grade: e.grade, postings: t.postings.map((p) => ({ target: p.account_id || `category ${p.category_id}`, amount_cents: p.amount_cents })), witnesses: t.witnesses }; };
+  const targetName = (p) => {
+    if (p.category_id) return (X.categories.get(p.category_id) || {}).name || p.category_id;
+    const a = X.accounts.get(p.account_id);
+    if (a && a.name !== a.account_id) return a.name;
+    const m = /^(clearing|ato|equity|memo|receivable):(.*)$/.exec(p.account_id || "");
+    if (!m) return p.account_id;
+    const rest = m[2].split(":").map((x) => (X.accounts.get(x) || {}).name || (L.parties.find((q) => q.party_id === x) || {}).name || x).join(", ");
+    return { clearing: `Waiting to clear: ${rest}`, ato: `Tax position: ${rest}`, equity: `Equity: ${rest}`, memo: rest, receivable: `Owed by ${rest}` }[m[1]];
+  };
+  const sample = (kind, pick) => { const e = L.events.filter((x) => x.kind === kind && (!pick || pick(x))).pop(); if (!e) return null; const t = V.explain(L, e.event_id); return { kind, date: e.occurred_on, description: e.description, amount_cents: e.amount_cents, grade: e.grade, postings: t.postings.map((p) => ({ target: targetName(p), amount_cents: p.amount_cents })), witnesses: t.witnesses }; };
 
   // Open any number: net worth to groups to accounts to the latest events to the exact line of the exact file.
   const lastNw = L.netWorth.filter((r) => r.month <= "2027-01").pop() || L.netWorth[L.netWorth.length - 1];
@@ -69,7 +81,7 @@ function build() {
   const drill = { month: lastNw.month, total_cents: lastNw.total, groups: inner.filter((g) => lastNw.groups[g]).map((g) => ({ group: g, total_cents: lastNw.groups[g], accounts: L.accounts.filter((a) => a.reporting_group === g).map((a) => {
     const bal = L.balances.at(a.account_id, lastNw.month);
     const ps = (eventsByAccount.get(a.account_id) || []).map((p) => ({ p, e: X.events.get(p.event_id) })).filter((x) => x.e.occurred_on <= monthEnd(lastNw.month)).sort((x, y) => cmp(y.e.occurred_on, x.e.occurred_on)).slice(0, 4);
-    return { id: a.account_id, name: a.name, balance_cents: bal, recent: ps.map(({ e }) => { const t = V.explain(L, e.event_id); return { date: e.occurred_on, kind: e.kind, description: e.description, amount_cents: e.amount_cents, grade: e.grade, postings: t.postings.map((q) => ({ target: q.account_id || `category ${q.category_id}`, amount_cents: q.amount_cents })), witnesses: t.witnesses }; }) };
+    return { id: a.account_id, name: a.name, balance_cents: bal, recent: ps.map(({ e }) => { const t = V.explain(L, e.event_id); return { date: e.occurred_on, kind: e.kind, description: e.description, amount_cents: e.amount_cents, grade: e.grade, postings: t.postings.map((q) => ({ target: targetName(q), amount_cents: q.amount_cents })), witnesses: t.witnesses }; }) };
   }).filter((a) => a.balance_cents) })) };
   const rateTerms = L.terms.filter((t) => t.term === "interest_rate" && t.subject_id === "C-HOME").map((t) => ({ value: t.value, valid_from: t.valid_from, valid_to: t.valid_to, recorded_at: String(t.recorded_at).slice(0, 10), superseded_at: t.superseded_at ? String(t.superseded_at).slice(0, 10) : null }));
 

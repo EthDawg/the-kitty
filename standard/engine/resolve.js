@@ -287,7 +287,8 @@ class Resolver {
         const l = cand[0];
         this.claim(l, "wage_receipt");
         this.event({ key: `wage_receipt|${l.key}`, kind: "wage_receipt", occurred_on: l.date, description: l.desc, merchant: this.name(employer), category_id: "SALARY", person, amount_cents: l.cents, grade: "corroborated", rule: "payslip+bank",
-          witnesses: [...this.lineWitness(l, "clears")], fields: { amount: l.cents }, refs: { account: l.account, employer }, line: l });
+          witnesses: [...this.lineWitness(l, "clears"), { obs_id: o.obs_id, role: "corroborates", amount_cents: p.net_cents }], fields: { amount: l.cents }, refs: { account: l.account, employer }, line: l });
+        ev.witnesses.push({ obs_id: l.witnesses[0].obs_id, role: "corroborates", amount_cents: l.cents });
         ev.grade = "corroborated";
       } else {
         this.fault("payslip_without_deposit", o, `Payslip of ${p.pay_date} shows net ${p.net_cents / 100} with no bank line.`, "Find the deposit, or check the account the employer pays into.", p.net_cents);
