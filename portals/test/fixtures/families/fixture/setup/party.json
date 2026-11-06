@@ -1,0 +1,12 @@
+[
+ {
+  "party_id": "WREN",
+  "kind": "person",
+  "name": "Wren Testcat"
+ },
+ {
+  "party_id": "ASH",
+  "kind": "person",
+  "name": "Ash Testcat"
+ }
+]

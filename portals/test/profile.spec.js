@@ -24,16 +24,12 @@ test("the profile is a new life and claims nothing of the benchmark world", () =
   const names = setup("party").filter((p) => p.kind === "person").map((p) => p.name);
   expect(names.sort(), "the world keeps its own people").toEqual(["Ava Davies", "Jordan Davies", "Mia Davies"]);
   expect(JSON.stringify(P.people)).not.toMatch(/Jordan|\bMia\b|\bAva\b/);
-  expect(fs.readFileSync(path.join(ROOT, "life", "davies", "RENAME.md"), "utf8")).toContain("Status: parked");
 });
 
-test("each named sign-in stands on a real person in the benchmark world", () => {
+test("each one-click sign-in in the benchmark world is a real person in it", () => {
   const parties = Object.fromEntries(setup("party").map((p) => [p.party_id, p]));
-  for (const c of CAST.people) {
-    expect(parties[c.party_id].name, c.id).toBe(`${c.papers_say} ${CAST.family_name}`);
-    expect(c.names).toEqual(expect.arrayContaining([c.first_name.toLowerCase(), c.papers_say.toLowerCase()]));
-  }
-  expect(CAST._about).toContain("stand in");
+  expect(CAST.people.map((c) => c.first_name)).toEqual(["Jordan", "Mia", "Ava"]);
+  for (const c of CAST.people) expect(parties[c.party_id].name, c.id).toBe(`${c.first_name} ${CAST.family_name}`);
 });
 
 test("PROFILE.md is written from the JSON", () => {

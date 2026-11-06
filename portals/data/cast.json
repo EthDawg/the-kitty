@@ -1,9 +1,10 @@
 {
-  "_about": "Who signs in to these portals by name. The portals hold the benchmark world of 2019 to 2027, so these are its people. Danny and Daisy's own life is a separate, generated one, and until it is loaded here their names stand in for Jordan and Mia. This file is that stand-in and nothing else: life/davies/profile.json is who the family is.",
+  "_about": "Who signs in by name to the benchmark world. These are the people in its files. A generated family brings its own people.",
   "shared_mail": "the.davies@mail.example",
   "family_name": "Davies",
   "people": [
-    { "id": "danny", "first_name": "Danny", "party_id": "JORDAN", "papers_say": "Jordan", "names": ["danny", "danny davies", "jordan", "jordan davies"] },
-    { "id": "daisy", "first_name": "Daisy", "party_id": "MIA", "papers_say": "Mia", "names": ["daisy", "daisy davies", "mia", "mia davies"] }
+    { "id": "jordan", "first_name": "Jordan", "party_id": "JORDAN" },
+    { "id": "mia", "first_name": "Mia", "party_id": "MIA" },
+    { "id": "ava", "first_name": "Ava", "party_id": "AVA" }
   ]
 }

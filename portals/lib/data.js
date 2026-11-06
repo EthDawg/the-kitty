@@ -5,6 +5,7 @@ const BRANDS = [...require("../public/brands.json"), ...require("../public/vault
 const Clock = require("./clock");
 const { holds } = require("./people");
 const { OPEN } = require("./view");
+const { BENCHMARK } = require("./families");
 
 const brandById = Object.fromEntries(BRANDS.map((b) => [b.id, b]));
 const accountById = Object.fromEntries(D.accounts.map((a) => [a.id, a]));
@@ -35,7 +36,8 @@ const balanceAt = (accountId, to) => balanceBefore(accountId, addDays(to, 1));
 const monthsOf = (first, last) => D.months.filter((m) => m >= first && m <= last);
 // the last day this view can see, and the first, and the most one download may cover
 const lastDay = (view) => Clock.upTo(view, monthEnd(lastMonth));
-const firstDay = (view) => { const y = view.rules.back_years; if (!y) return null; const at = view.as_of || lastDay(view); return `${Number(at.slice(0, 4)) - y}${at.slice(4)}`; };
+const yearsBefore = (iso, y) => `${Number(iso.slice(0, 4)) - y}${iso.slice(4)}`;
+const firstDay = (view) => (view.rules.back_years ? yearsBefore(view.today || lastDay(view), view.rules.back_years) : null);
 const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1;
 const fits = (view, from, to) => !view.rules.window_days || daysBetween(from, to) <= view.rules.window_days;
 const fysBetween = (fromIso, toIso) => { const out = []; for (let fy = fyOf(toIso); fy >= fyOf(fromIso); fy--) out.push(fy); return out; };
@@ -44,7 +46,7 @@ const fysBetween = (fromIso, toIso) => { const out = []; for (let fy = fyOf(toIs
 // the other portals list properties, employments and policies.
 const accountsFor = (brandId, view = OPEN) => {
   const b = brandById[brandId];
-  if (!b) return [];
+  if (!b || view.family !== BENCHMARK) return []; // a generated family's portals hold files as delivered, nothing generated on the way out
   const out = [];
   const asAt = lastDay(view);
   const seen = (id, from) => from <= asAt && holds(view.person, id, asAt);
@@ -73,7 +75,7 @@ const accountsFor = (brandId, view = OPEN) => {
   if (b.kind === "payroll") {
     for (const e of D.employments) {
       const mine = D.payslips.filter((p) => p[1] === e.person && p[2] === e.employer && p[0] <= asAt);
-      if (!mine.length || (view.person && view.person.papers_say !== e.person)) continue;
+      if (!mine.length || (view.person && view.person.first_name !== e.person)) continue;
       out.push({ id: `${e.person}@${e.employer}`, kind: "payroll", name: `${e.person} Davies`, number: e.employer, type: `Employee ${e.person.toUpperCase().slice(0, 3)}-${String(1000 + mine.length)} · fortnightly`, owner: e.person, opened: mine[0][0], from: mine[0][0], in_sheet: true,
         balance: null, as_at: asAt, formats: [["pdf", "Payslips (PDF)"], ["csv", "Payslips (CSV, the period-close shape)"], ["income", "Income statement for the financial year (PDF)"]] });
     }
@@ -160,4 +162,4 @@ const documents = (brandId, accountId, view = OPEN) => {
 
 const validDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || "") && !Number.isNaN(Date.parse(s));
 
-module.exports = { D, BRANDS, brandById, accountById, lastMonth, today, monthEnd, addDays, fmtMonth, fmtDate, fyOf, fyStart, fyEnd, fyLabel, txRows, balanceBefore, balanceAt, round2, accountsFor, presets, documents, validDate, lastDay, firstDay, daysBetween, fits };
+module.exports = { D, BRANDS, brandById, accountById, lastMonth, today, monthEnd, addDays, fmtMonth, fmtDate, fyOf, fyStart, fyEnd, fyLabel, txRows, balanceBefore, balanceAt, round2, accountsFor, presets, documents, validDate, lastDay, firstDay, yearsBefore, daysBetween, fits };

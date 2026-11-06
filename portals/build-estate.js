@@ -1,6 +1,6 @@
-/* The Drive and the inbox, built from the vault and estate-plan.js. Called by build-vault.js. Writes estate/drive.json, estate/mail.json, estate/text.json
-   and estate/truth.json (kept from clients), puts the files it makes in estate/files/made/, and writes life/davies/ESTATE.md, what each chapter finds where.
-   Deterministic: the same world makes the same bytes. */
+/* The benchmark world's Drive and inbox, built from its vault and estate-plan.js. Called by build-vault.js. Writes drive.json, mail.json, text.json and
+   truth.json (kept from clients) to estate/benchmark/, puts the files it makes in public/vault/made/, and writes life/davies/ESTATE.md, what each chapter
+   finds where. A generated family brings its own Drive and inbox: see build-family.js. Deterministic: the same world makes the same bytes. */
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -9,7 +9,6 @@ const crypto = require("crypto");
 const { PDFDocument } = require("pdf-lib");
 const P = require("./estate-plan");
 const CAST = require("./data/cast.json");
-const Clock = require("./lib/clock");
 const { textOf } = require("./lib/read");
 const Mime = require("./lib/mime");
 const TYPES = require("./lib/file-types");
@@ -40,19 +39,18 @@ const invoicePdf = (inv, names) => {
   return Buffer.from(d.finish());
 };
 
-async function buildEstate({ ESTATE, vault, access, repoRoot }) {
-  const MADE_DIR = path.join(ESTATE, "files", "made");
-  fs.mkdirSync(MADE_DIR, { recursive: true });
-  const read = (rel) => fs.readFileSync(path.join(ESTATE, "files", rel));
+async function buildEstate({ ESTATE, PUBLIC, vault, access, repoRoot }) {
+  fs.mkdirSync(path.join(PUBLIC, "vault", "made"), { recursive: true });
+  const read = (rel) => fs.readFileSync(path.join(PUBLIC, rel));
   const byName = new Map();
   for (const f of vault.files) { if (!byName.has(f.name)) byName.set(f.name, f); }
   const need = (name) => { const f = byName.get(name); if (!f) throw new Error(`estate-plan names ${name}, and the world has no such file`); return f; };
 
-  // the benchmark world's estate speaks with the benchmark world's names
   const personIdOf = Object.fromEntries(CAST.people.map((p) => [p.party_id, p.id]));
-  const worldName = Object.fromEntries(CAST.people.map((p) => [p.papers_say.toLowerCase(), `${p.papers_say} ${CAST.family_name}`]));
-  const firstName = Object.fromEntries(CAST.people.map((p) => [p.papers_say.toLowerCase(), p.papers_say]));
-  const words = { joint: `${CAST.people[0].papers_say} and ${CAST.people[1].papers_say} ${CAST.family_name}` };
+  const adults = CAST.people.filter((p) => P.BOTH.includes(p.id));
+  const worldName = Object.fromEntries(adults.map((p) => [p.id, `${p.first_name} ${CAST.family_name}`]));
+  const firstName = Object.fromEntries(adults.map((p) => [p.id, p.first_name]));
+  const words = { joint: `${adults[0].first_name} and ${adults[1].first_name} ${CAST.family_name}` };
   const MAILBOX = CAST.shared_mail;
   const addr = (who) => {
     if (who === "joint") return `${words.joint} <${MAILBOX}>`;
@@ -74,8 +72,8 @@ async function buildEstate({ ESTATE, vault, access, repoRoot }) {
     else if (m.kind === "png") bytes = Buffer.from(scan(m.lines(words), m.id, deflate));
     else if (m.kind === "invoice") bytes = invoicePdf(m.invoice, m.invoice.client === "joint" ? words.joint : m.invoice.client);
     else if (m.kind === "edit") { const src = read(need(m.from).path).toString("utf8").split("\n"); const i = src.findIndex((l, n) => n > 0 && /\d/.test(l)); src[i] = src[i].replace(/(\d+)(\r?)$/, (_, h, cr) => `${Number(h) + 6}${cr}`); bytes = Buffer.from(src.join("\n")); }
-    const rel = `made/${m.title.replace(/[^\w.() -]/g, "_")}`;
-    fs.writeFileSync(path.join(ESTATE, "files", rel), bytes);
+    const rel = `vault/made/${m.title.replace(/[^\w.() -]/g, "_")}`;
+    fs.writeFileSync(path.join(PUBLIC, rel), bytes);
     const row = { title: m.title, source: m.source, path: rel, size: bytes.length, sha256: sha256(bytes), type: typeOf(m.title), saved: m.saved, truth: m.truth, tags: m.tags || [] };
     made.set(m.title, { ...row, plan: m });
     truth[row.sha256] = { what: m.truth, tags: row.tags, name: m.source };
@@ -88,7 +86,7 @@ async function buildEstate({ ESTATE, vault, access, repoRoot }) {
   const driveFiles = [];
   const add = (row) => {
     const id = shortId("f", `${row.folder}/${row.title}`);
-    driveFiles.push({ id, title: row.title, parentId: folderId(row.folder), mimeType: row.type, people: peopleOf[row.folder], owner: row.owner, createdTime: row.saved, modifiedTime: row.saved, exists_from: row.saved, size: row.size, sha256: row.sha256, path: row.path, source: row.source });
+    driveFiles.push({ id, title: row.title, parentId: folderId(row.folder), mimeType: row.type, people: peopleOf[row.folder], owner: row.owner, createdTime: row.saved, modifiedTime: row.saved, delivered_on: row.saved, size: row.size, sha256: row.sha256, path: row.path, source: row.source });
     if (row.note) truth[`drive:${id}`] = row.note;
     return id;
   };
@@ -97,11 +95,11 @@ async function buildEstate({ ESTATE, vault, access, repoRoot }) {
     const home = P.HOMES.find((h) => (h.name ? h.name.test(f.name) : h.stream === f.stream));
     if (!home) throw new Error(`no home in the Drive for ${f.name}`);
     homed.add(f.path);
-    add({ title: f.name, folder: home.folder, owner: home.owner, saved: f.exists_from, size: f.size, sha256: f.sha256, path: f.path, type: f.type.split(";")[0], source: f.name });
+    add({ title: f.name, folder: home.folder, owner: home.owner, saved: f.delivered_on, size: f.size, sha256: f.sha256, path: f.path, type: f.type.split(";")[0], source: f.name });
   }
   for (const c of P.COPIES) {
     const f = need(c.from);
-    if (c.saved < f.exists_from) throw new Error(`${c.from} is saved before it exists`);
+    if (c.saved < f.delivered_on) throw new Error(`${c.from} is saved before it exists`);
     add({ title: c.as || c.from, folder: c.folder, owner: c.owner, saved: c.saved, size: f.size, sha256: f.sha256, path: f.path, type: f.type.split(";")[0], source: c.from, note: c.truth });
   }
   for (const m of made.values()) if (m.plan.folder) add({ title: m.title, folder: m.plan.folder, owner: m.plan.owner, saved: m.saved, size: m.size, sha256: m.sha256, path: m.path, type: m.type, source: m.source, note: m.truth });
@@ -118,22 +116,22 @@ async function buildEstate({ ESTATE, vault, access, repoRoot }) {
     const id = shortId("m", `${m.date}|${m.subject}|${m.from}|${m.key || ""}`);
     const attachments = (m.attachments || []).map((a, i) => ({ id: `${id}.${i}`, ...a }));
     const body = m.body || "";
-    messages.push({ id, threadId: m.thread ? `t_${m.thread}` : `t_${id.slice(2)}`, source: m.source || null, from: m.from, to: m.to, subject: m.subject, date: m.date, exists_from: m.date, people: m.people, labels: m.labels || ["INBOX"], snippet: body.replace(/\s+/g, " ").slice(0, 120), body, attachments });
+    messages.push({ id, threadId: m.thread ? `t_${m.thread}` : `t_${id.slice(2)}`, source: m.source || null, from: m.from, to: m.to, subject: m.subject, date: m.date, delivered_on: m.date, people: m.people, labels: m.labels || ["INBOX"], snippet: body.replace(/\s+/g, " ").slice(0, 120), body, attachments });
   };
   for (const f of vault.files) {
     if (f.name.endsWith(".eml")) {
       const e = Mime.parse(read(f.path));
-      send({ key: f.path, source: f.name, from: e.from, to: e.to, subject: e.subject, date: f.exists_from, people: holders(f.stream), body: e.text, labels: f.stream === "RECEIPTS" ? ["INBOX", "CATEGORY_PURCHASES"] : ["INBOX", "CATEGORY_UPDATES"] });
+      send({ key: f.path, source: f.name, from: e.from, to: e.to, subject: e.subject, date: f.delivered_on, people: holders(f.stream), body: e.text, labels: f.stream === "RECEIPTS" ? ["INBOX", "CATEGORY_PURCHASES"] : ["INBOX", "CATEGORY_UPDATES"] });
       continue;
     }
     const s = P.SENDERS[f.family];
     if (!s) continue;
     const special = !s.only || s.only.test(f.name);
-    send({ key: f.path, from: s.from, to: addr(holders(f.stream).length === 2 ? "joint" : Object.keys(firstName).find((k) => personIdOf[k.toUpperCase()] === holders(f.stream)[0])), subject: s.subject(f), date: f.exists_from, people: holders(f.stream), body: s.body(f), attachments: [attachRow(f.name), ...(special && s.attach ? s.attach.map(attachRow) : [])] });
+    send({ key: f.path, from: s.from, to: addr(holders(f.stream).length > 1 ? "joint" : holders(f.stream)[0]), subject: s.subject(f), date: f.delivered_on, people: holders(f.stream), body: s.body(f), attachments: [attachRow(f.name), ...(special && s.attach ? s.attach.map(attachRow) : [])] });
   }
   for (const n of P.NOTICES) for (const f of vault.files.filter((x) => x.stream === n.stream)) {
     const who = holders(n.stream);
-    send({ key: f.path, from: n.from, to: addr(who.length === 2 ? "joint" : Object.keys(firstName).find((k) => personIdOf[k.toUpperCase()] === who[0])), subject: n.subject, date: f.exists_from, people: who, labels: ["INBOX", "CATEGORY_UPDATES"], body: `${n.body}\n\nA parody; fictional.` });
+    send({ key: f.path, from: n.from, to: addr(who.length > 1 ? "joint" : who[0]), subject: n.subject, date: f.delivered_on, people: who, labels: ["INBOX", "CATEGORY_UPDATES"], body: `${n.body}\n\nA parody; fictional.` });
   }
   for (let y = 2019, i = 0; y <= 2027; y++) for (let m = 1; m <= 12; m++) {
     const date = `${y}-${String(m).padStart(2, "0")}-${String(3 + (i * 7) % 24).padStart(2, "0")}`;
@@ -158,26 +156,26 @@ async function buildEstate({ ESTATE, vault, access, repoRoot }) {
   bytesOut("truth.json", truth);
 
   // ---- what each chapter finds where
-  const inDrive = (t, at) => driveFiles.filter((f) => f.exists_from <= at && t.test(f.source)).length;
-  const inMail = (t, at) => messages.filter((m) => m.exists_from <= at && ((m.source && t.test(m.source)) || m.attachments.some((a) => t.test(a.source)))).length;
-  const onPortal = (t, at) => vault.files.filter((f) => f.exists_from <= at && !["gmeow", "litterbox"].includes(f.brand) && t.test(f.name)).length;
+  const inDrive = (t, at) => driveFiles.filter((f) => f.delivered_on <= at && t.test(f.source)).length;
+  const inMail = (t, at) => messages.filter((m) => m.delivered_on <= at && ((m.source && t.test(m.source)) || m.attachments.some((a) => t.test(a.source)))).length;
+  const onPortal = (t, at) => vault.files.filter((f) => f.delivered_on <= at && !["gmeow", "litterbox"].includes(f.brand) && t.test(f.name)).length;
   const place = (t, at) => {
     if (!t) return "Nowhere yet";
     const d = inDrive(t, at), m = inMail(t, at), p = onPortal(t, at), out = [];
     if (d) out.push("Drive"); if (m) out.push("Email"); if (p) out.push("Portal");
     return !out.length ? "Nowhere yet" : out.length === 1 ? `${out[0]} only` : out.join(", ");
   };
-  const chapters = Clock.CHAPTERS.filter((c) => P.NEEDS.some((n) => n[0] === c.chapter)).map((c) => {
+  const chapters = P.CHAPTERS.filter((c) => P.NEEDS.some((n) => n[0] === c.chapter)).map((c) => {
     const needs = P.NEEDS.filter((n) => n[0] === c.chapter).map(([, label, t, note]) => ({ label, where: place(t, c.today), note: note || "" }));
     for (const n of needs) if (P.NEEDS.find((x) => x[1] === n.label)[2] && n.where === "Nowhere yet") throw new Error(`chapter ${c.chapter}: "${n.label}" should exist and the estate does not hold it at ${c.today}`);
     return { chapter: c.chapter, label: c.label, as_of: c.today, needs,
-      drive: driveFiles.filter((f) => f.exists_from <= c.today).length, email: messages.filter((m) => m.exists_from <= c.today).length, portal: vault.files.filter((f) => f.exists_from <= c.today && !["gmeow", "litterbox"].includes(f.brand)).length };
+      drive: driveFiles.filter((f) => f.delivered_on <= c.today).length, email: messages.filter((m) => m.delivered_on <= c.today).length, portal: vault.files.filter((f) => f.delivered_on <= c.today && !["gmeow", "litterbox"].includes(f.brand)).length };
   });
   const missing = chapters.flatMap((c) => c.needs.filter((n) => n.where === "Nowhere yet").map((n) => ({ chapter: c.chapter, ...n })));
   const md = ["# What each chapter finds, and where", "",
     "Generated by `portals/build-estate.js` from `estate-plan.js` and the built estate, each line checked at that chapter's clock. A person or an agent must not read this page during a run: it describes the answers.", "",
-    "**This is the estate of the benchmark world**, the 2019 to 2027 household the portals hold today, with Danny and Daisy standing in for Jordan and Mia. Danny and Daisy's own generated life will bring its own evidence. Where it does, a line below that says \"Nowhere yet\" stops being a gap.", "",
-    `The Drive holds ${driveFiles.length} files in ${folders.length} folders. The inbox holds ${messages.length} messages. The portals hold ${vault.files.filter((f) => !["gmeow", "litterbox"].includes(f.brand)).length} files as delivered, and the seven original portals generate more on request.`, "",
+    "**This is the estate of the benchmark world**, the 2019 to 2027 household of Jordan, Mia and Ava, read at each chapter's day. Danny and Daisy's generated life brings its own evidence and its own map, in `life/world/out/<family>/mess.json`.", "",
+    `The benchmark's Drive holds ${driveFiles.length} files in ${folders.length} folders. The inbox holds ${messages.length} messages. The portals hold ${vault.files.filter((f) => !["gmeow", "litterbox"].includes(f.brand)).length} files as delivered, and the seven original portals generate more on request.`, "",
     "A note on the mess. The Drive has exact duplicates, a scan called `scan0003.pdf` that is the Geelong contract, a scan of a child's drawing, a screenshot of a receipt, a folder called `tax stuff`, four misfiled documents and a stale draft of a log. Two documents are missing altogether.", "",
     ...chapters.flatMap((c) => [`## Chapter ${c.chapter}, ${c.label}`, "", `Clock: ${c.as_of}. By then: ${c.drive} files in the Drive, ${c.email} messages, ${c.portal} files on portals.`, "", "| Needed | Where it is | Note |", "|---|---|---|", ...c.needs.map((n) => `| ${n.label} | ${n.where} | ${n.note} |`), ""]),
   ].join("\n");

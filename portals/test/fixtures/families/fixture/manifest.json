@@ -1,0 +1,144 @@
+{
+ "schema": "life-manifest/1",
+ "world": "fixture/1",
+ "family": "fixture",
+ "household": "The Testcat household (fictional)",
+ "window": {
+  "from": "2026-07-01",
+  "to": "2027-03-31"
+ },
+ "streams": [
+  {
+   "brand": "ping",
+   "id": "EVERY-A",
+   "name": "Wren's everyday"
+  },
+  {
+   "brand": "commbark",
+   "id": "EVERY-B",
+   "name": "Ash's everyday"
+  },
+  {
+   "brand": "westpaw",
+   "id": "JOINT",
+   "name": "Joint account"
+  }
+ ],
+ "files": [
+  {
+   "brand": "ping",
+   "stream": "EVERY-A",
+   "year": "2027",
+   "date": "2027-01-09",
+   "name": "Transactions.csv",
+   "size": 83,
+   "type": "text/csv",
+   "path": "sources/EVERY-A/2027-01-09/Transactions.csv",
+   "sha256": "bd46b21a66cd66cc1d446ee1545ec95665ab00bf15d754d25401a69059a079e3",
+   "person": "wren",
+   "visible_to": [
+    "wren"
+   ],
+   "delivered_on": "2027-01-09",
+   "where": "portal",
+   "origin": "portal",
+   "family": "fixture"
+  },
+  {
+   "brand": "ping",
+   "stream": "EVERY-A",
+   "year": "2027",
+   "date": "2027-02-09",
+   "name": "Transactions-2.csv",
+   "size": 83,
+   "type": "text/csv",
+   "path": "sources/EVERY-A/2027-02-09/Transactions-2.csv",
+   "sha256": "199f83b7bd4cb06412ae46242abd8f1724939de53eddda1ed7cc7c348ffa7a4e",
+   "person": "wren",
+   "visible_to": [
+    "wren"
+   ],
+   "delivered_on": "2027-02-09",
+   "where": "portal",
+   "origin": "portal",
+   "family": "fixture"
+  },
+  {
+   "brand": "commbark",
+   "stream": "EVERY-B",
+   "year": "2027",
+   "date": "2027-01-20",
+   "name": "CSVData.csv",
+   "size": 48,
+   "type": "text/csv",
+   "path": "sources/EVERY-B/2027-01-20/CSVData.csv",
+   "sha256": "67591f2c2dd54c6fa6ef68b55ee15769249b8945a3d10a4d172d4a6c74150ee1",
+   "person": "ash",
+   "visible_to": [
+    "ash"
+   ],
+   "delivered_on": "2027-01-20",
+   "where": "portal",
+   "origin": "portal",
+   "family": "fixture"
+  },
+  {
+   "brand": "westpaw",
+   "stream": "JOINT",
+   "year": "2027",
+   "date": "2027-03-02",
+   "name": "Data.csv",
+   "size": 128,
+   "type": "text/csv",
+   "path": "sources/JOINT/2027-03-02/Data.csv",
+   "sha256": "bbbbc13151ad6970669f8d9ae43ae71402d18c6ebdacdae48f1202bd078035c2",
+   "person": "wren",
+   "visible_to": [
+    "ash",
+    "wren"
+   ],
+   "delivered_on": "2027-03-02",
+   "where": "portal",
+   "origin": "portal",
+   "family": "fixture"
+  },
+  {
+   "brand": "accountantish",
+   "stream": "TAX-A",
+   "year": "2026",
+   "date": "2026-09-14",
+   "name": "Tax-Return-Wren-FY2026.csv",
+   "size": 64,
+   "type": "text/csv",
+   "path": "sources/TAX-A/2026-09-14/Tax-Return-Wren-FY2026.csv",
+   "sha256": "aa61f5c075c5f6f4503c944cf2f2f974060705abf03182c1127035d8a97e81aa",
+   "person": "wren",
+   "visible_to": [
+    "wren"
+   ],
+   "delivered_on": "2026-09-14",
+   "where": "email",
+   "origin": "email",
+   "family": "agent-return-pdf"
+  },
+  {
+   "brand": "family",
+   "stream": "DED-A",
+   "year": "2026",
+   "date": "2026-08-01",
+   "name": "Deductions-FY2026.csv",
+   "size": 22,
+   "type": "text/csv",
+   "path": "sources/DED-A/2026-08-01/Deductions-FY2026.csv",
+   "sha256": "b2b7c742d1ac46b4b866ac7524cac21502aee177d888d2df7b08df92f88407f6",
+   "person": "wren",
+   "visible_to": [
+    "wren"
+   ],
+   "delivered_on": "2026-08-01",
+   "where": "drive",
+   "origin": "drive",
+   "family": "fixture"
+  }
+ ]
+}

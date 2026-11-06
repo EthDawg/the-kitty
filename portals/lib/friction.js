@@ -1,6 +1,6 @@
-// One document at a time. A named person who asks for a second download inside the portal's gap waits, the way a real site makes
-// you wait. The stamp lives in a cookie for that portal, so it holds across serverless instances. Second factors are in login.js;
-// history and window limits are read by lib/data.js and lib/exports.js from the same rule row.
+// One document at a time. A named person who asks for a second export inside the portal's gap waits, the way a real site makes you wait. The
+// stamp lives in a cookie for that portal, so it holds across serverless instances. Files as delivered are static and cannot be held back this
+// way. Second factors are in login.js; history and window limits are read by lib/data.js and lib/exports.js from the same rule row.
 "use strict";
 const { cookies, json, secure } = require("./http");
 

@@ -1,19 +1,11 @@
 {
-  "_about": "Tabby Tax, a parody tax practice. It answers from this script, the way a real practice works from a new-client checklist. It takes emailed PDFs and a zip and it does not open cloud links.",
-  "practice": { "name": "Tabby Tax", "address": "hello@tabbytax.example", "from": "Tess at Tabby Tax <hello@tabbytax.example>", "signoff": "Tess\nTabby Tax\nA parody practice. Fictional, and nothing here is tax advice." },
-  "checklist": [
-    { "id": "return-daisy", "label": "Daisy's full FY2026 return with all schedules", "kinds": ["full_return"], "person": "daisy", "fy": 2026 },
-    { "id": "return-danny", "label": "Danny's full FY2026 return with all schedules", "kinds": ["full_return"], "person": "danny", "fy": 2026 },
-    { "id": "contract-geelong", "label": "Geelong: the purchase contract", "kinds": ["contract_of_sale"], "property": "geelong" },
-    { "id": "settlement-geelong", "label": "Geelong: the settlement statement", "kinds": ["settlement_statement"], "property": "geelong" },
-    { "id": "invoice-geelong", "label": "Geelong: the legal invoices", "kinds": ["legal_invoice"], "property": "geelong" },
-    { "id": "schedule-geelong", "label": "Geelong: the depreciation schedule", "kinds": ["depreciation_schedule"], "property": "geelong" },
-    { "id": "contract-ballarat", "label": "Ballarat: the purchase contract", "kinds": ["contract_of_sale"], "property": "ballarat" },
-    { "id": "settlement-ballarat", "label": "Ballarat: the settlement statement", "kinds": ["settlement_statement"], "property": "ballarat" },
-    { "id": "invoice-ballarat", "label": "Ballarat: the legal invoices", "kinds": ["legal_invoice"], "property": "ballarat" },
-    { "id": "schedule-ballarat", "label": "Ballarat: the depreciation schedule", "kinds": ["depreciation_schedule"], "property": "ballarat" },
-    { "id": "year-summary", "label": "This year's figures: your workbook or tax pack, as a PDF, a spreadsheet or inside a zip", "kinds": ["tax_pack"] }
-  ],
+  "_about": "Tabby Tax, a parody tax practice. It answers from this script, the way a real practice works from a new-client checklist. It takes PDFs and a zip and it does not open cloud links. Each family has its own checklist. It stores nothing: the page holds the conversation.",
+  "practice": {
+    "name": "Tabby Tax",
+    "address": "hello@tabbytax.example",
+    "from": "Tess at Tabby Tax <hello@tabbytax.example>",
+    "signoff": "Tess\nTabby Tax\nA parody practice. Fictional, and nothing here is tax advice."
+  },
   "words": {
     "welcome": "Thanks for getting in touch. New clients send us the same list, so we can pick up where your last agent left off.",
     "cloud": "Thanks, but we can't open cloud links here: our insurer and our file system both say no. Please send the files themselves, as PDFs attached to an email, or as one zip.",
@@ -27,5 +19,173 @@
     "dupe": "{name} is the same file as {other}, so we've kept one.",
     "still_need": "Here's what we still need:",
     "done": "That's everything on our list, thank you. We'll start on the returns and come back to you with drafts to sign."
+  },
+  "checklists": {
+    "benchmark": [
+      {
+        "id": "return-mia",
+        "label": "Mia's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "mia",
+        "fy": 2026
+      },
+      {
+        "id": "return-jordan",
+        "label": "Jordan's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "jordan",
+        "fy": 2026
+      },
+      {
+        "id": "contract-geelong",
+        "label": "Geelong: the purchase contract",
+        "kinds": [
+          "contract_of_sale"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "settlement-geelong",
+        "label": "Geelong: the settlement statement",
+        "kinds": [
+          "settlement_statement"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "invoice-geelong",
+        "label": "Geelong: the legal invoices",
+        "kinds": [
+          "legal_invoice"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "schedule-geelong",
+        "label": "Geelong: the depreciation schedule",
+        "kinds": [
+          "depreciation_schedule"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "contract-ballarat",
+        "label": "Ballarat: the purchase contract",
+        "kinds": [
+          "contract_of_sale"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "settlement-ballarat",
+        "label": "Ballarat: the settlement statement",
+        "kinds": [
+          "settlement_statement"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "invoice-ballarat",
+        "label": "Ballarat: the legal invoices",
+        "kinds": [
+          "legal_invoice"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "schedule-ballarat",
+        "label": "Ballarat: the depreciation schedule",
+        "kinds": [
+          "depreciation_schedule"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "year-summary",
+        "label": "This year's figures: your workbook or tax pack, as a PDF, a spreadsheet or inside a zip",
+        "kinds": [
+          "tax_pack"
+        ]
+      }
+    ],
+    "default": [
+      {
+        "id": "prior-return",
+        "label": "Your full prior-year return with all schedules",
+        "kinds": [
+          "full_return"
+        ]
+      },
+      {
+        "id": "year-summary",
+        "label": "This year's figures: your workbook or tax pack, as a PDF, a spreadsheet or inside a zip",
+        "kinds": [
+          "tax_pack"
+        ]
+      }
+    ],
+    "davies": [
+      {
+        "id": "return-daisy",
+        "label": "Daisy's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "daisy",
+        "fy": 2026
+      },
+      {
+        "id": "return-danny",
+        "label": "Danny's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "danny",
+        "fy": 2026
+      },
+      {
+        "id": "income-daisy",
+        "label": "Daisy's FY2027 income statement",
+        "kinds": [
+          "income_statement"
+        ],
+        "person": "daisy",
+        "fy": 2027
+      },
+      {
+        "id": "income-danny",
+        "label": "Danny's FY2027 income statement",
+        "kinds": [
+          "income_statement"
+        ],
+        "person": "danny",
+        "fy": 2027
+      },
+      {
+        "id": "health",
+        "label": "Your private health statements",
+        "kinds": [
+          "health_statement"
+        ]
+      },
+      {
+        "id": "shares",
+        "label": "Danny's share plan statement",
+        "kinds": [
+          "share_plan"
+        ]
+      },
+      {
+        "id": "year-summary",
+        "label": "This year's figures: your workbook or tax pack, as a PDF, a spreadsheet or inside a zip",
+        "kinds": [
+          "tax_pack"
+        ]
+      }
+    ]
   }
 }

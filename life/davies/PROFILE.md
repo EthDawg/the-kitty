@@ -4,7 +4,7 @@ Generated from [profile.json](profile.json) by `build-profile.js`. Edit the JSON
 
 The Digital Davies: a fictional Australian family used to test The Kitty and for future builds and demos. Every person, employer and address here is invented. This file is the single source for who they are.
 
-This is a new life, generated forward from their early thirties. It is not the 2019 to 2027 benchmark world, whose Jordan, Mia and Ava stay as they are. See RENAME.md.
+This is a new life, generated forward from their early thirties. It is not the 2019 to 2027 benchmark world, whose Jordan, Mia and Ava stay as they are.
 
 Each fact in the JSON says where it came from. **Canon** is the project owner's. **Brief** is the programme brief. **Generator** agrees with `life/davies/life.json`. **Invented** is ours to change.
 

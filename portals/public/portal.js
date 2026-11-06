@@ -5,6 +5,11 @@
   "use strict";
   const $ = (s, el = document) => el.querySelector(s);
   const brandId = location.pathname.replace(/^\/|\/$/g, "").split("/")[0];
+  // The page's ?today= and ?family= go with every request and every link, because the server keeps neither.
+  const asked = new URLSearchParams(location.search);
+  const carried = ["today", "family"].filter((k) => asked.get(k)).map((k) => [k, asked.get(k)]);
+  const withRun = (url) => { if (!carried.length) return url; const u = new URL(url, location.origin); for (const [k, v] of carried) u.searchParams.set(k, v); return u.pathname + u.search; };
+  const family = asked.get("family") || "";
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const aud = (n) => (n == null ? "" : new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(n));
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -61,11 +66,11 @@
   const overview = () => {
     state.account = null; nav(0);
     const w = WORDS[brand.kind];
-    if (!data.accounts.length) { $("#view").innerHTML = `<div class="greet">${greeting()}, ${esc(firstName())}.</div><div class="card"><div class="eyebrow">${esc(w.list)}</div><p class="small" style="margin-top:6px">${data.person ? `Nothing at ${esc(brand.name)} is in ${esc(data.person.first_name)}'s name${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.` : `${esc(brand.name)} holds nothing yet${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.`}</p></div>`; return; }
+    if (!data.accounts.length) { $("#view").innerHTML = `<div class="greet">${greeting()}, ${esc(firstName())}.</div><div class="card"><div class="eyebrow">${esc(w.list)}</div><p class="small" style="margin-top:6px">${data.person ? `Nothing at ${esc(brand.name)} is in ${esc(data.person.first_name)}'s name${data.today ? ` on ${fmtDate(data.today)}` : ""}.` : `${esc(brand.name)} holds nothing yet${data.today ? ` on ${fmtDate(data.today)}` : ""}.`}</p></div>`; return; }
     const liquid = data.accounts.filter((a) => a.kind === "bank" && a.balance != null).reduce((s, a) => s + a.balance, 0);
     const owing = data.accounts.filter((a) => a.kind === "loan").reduce((s, a) => s + a.balance, 0);
     $("#view").innerHTML = `<div class="greet">${greeting()}, ${esc(firstName())}.</div>
-      <p class="muted small" style="margin-bottom:14px">${esc(w.list)} held since ${fmtDate(data.accounts.reduce((m, a) => (a.from < m ? a.from : m), data.accounts[0].from))}. Records run to ${fmtDate(data.today)}.${rulesLine()}</p>
+      <p class="muted small" style="margin-bottom:14px">${esc(w.list)} held since ${fmtDate(data.accounts.reduce((m, a) => (a.from < m ? a.from : m), data.accounts[0].from))}. Records run to ${fmtDate(data.records_to)}.${rulesLine()}</p>
       <div class="grid side">
         <div><div class="card"><div class="eyebrow" style="margin-bottom:10px">${esc(w.list)}</div><div class="acctlist">${data.accounts.map((a) => accountRow(a)).join("")}</div>
           ${brand.kind === "bank" || brand.kind === "card" ? `<div class="totals">${liquid ? `<span><b class="num">${aud(liquid)}</b>in accounts</span>` : ""}${owing ? `<span><b class="num">${aud(-owing)}</b>owing on loans</span>` : ""}</div>` : ""}</div></div>
@@ -83,13 +88,13 @@
   const params = (a, extra = {}) => new URLSearchParams({ brand: brandId, account: a.id, from: $("#from") ? $("#from").value : "", to: $("#to") ? $("#to").value : "", ...extra });
   const loadRows = async (a, o) => {
     const qs = new URLSearchParams({ brand: brandId, account: a.id, from: o.from, to: o.to, q: o.q || "", page: String(o.page || 1), size: String(o.size || 50) });
-    const r = await fetch(`/api/accounts?${qs}`, { headers: { Accept: "application/json" } });
+    const r = await fetch(withRun(`/api/accounts?${qs}`), { headers: { Accept: "application/json" } });
     return r.json();
   };
   const numeric = (c) => /amount|balance|opening|closing|interest|repayments|gross|tax|super|net|premium|debit|credit|charges|payments|money/i.test(c);
   const table = (j, a) => {
     if (j.error) return `<p class="error">${esc(j.error)}</p>`;
-    const cell = (v, i) => { const c = j.columns[i]; if (String(v).startsWith("pdf:")) { const d = v.slice(4); return `<td><a class="btn secondary small" href="/api/export?${params(a, { from: d, to: d, format: "pdf" })}">PDF</a></td>`; } if (i === 0 && /^\d{4}-\d{2}-\d{2}$/.test(v)) return `<td>${fmtDate(v)}</td>`; const cls = numeric(c) ? "r" + (/credit|payments|money in/i.test(c) && v ? " cr" : "") : i === 1 ? "desc" : ""; return `<td class="${cls}">${esc(v)}</td>`; };
+    const cell = (v, i) => { const c = j.columns[i]; if (String(v).startsWith("pdf:")) { const d = v.slice(4); return `<td><a class="btn secondary small" href="${withRun(`/api/export?${params(a, { from: d, to: d, format: "pdf" })}`)}">PDF</a></td>`; } if (i === 0 && /^\d{4}-\d{2}-\d{2}$/.test(v)) return `<td>${fmtDate(v)}</td>`; const cls = numeric(c) ? "r" + (/credit|payments|money in/i.test(c) && v ? " cr" : "") : i === 1 ? "desc" : ""; return `<td class="${cls}">${esc(v)}</td>`; };
     return `<div class="tablewrap"><table><thead><tr>${j.columns.map((c) => `<th class="${numeric(c) ? "r" : ""}">${esc(c)}</th>`).join("")}</tr></thead>
       <tbody>${j.rows.map((row) => `<tr>${row.map(cell).join("")}</tr>`).join("") || `<tr><td colspan="${j.columns.length}" class="muted">Nothing in this period.</td></tr>`}</tbody></table></div>`;
   };
@@ -130,7 +135,7 @@
     $("#export-open").addEventListener("click", () => { const p = $("#exportpanel"); p.hidden = !p.hidden; $("#export-open").setAttribute("aria-expanded", String(!p.hidden)); });
     $("#exportbtn").addEventListener("click", () => {
       const fmt = $("input[name=format]:checked").value;
-      const url = `/api/export?${params(a, { format: fmt })}`;
+      const url = withRun(`/api/export?${params(a, { format: fmt })}`);
       $("#exportstatus").textContent = "Your download is on its way.";
       const link = document.createElement("a"); link.href = url; link.rel = "noopener"; document.body.appendChild(link); link.click(); link.remove();
       setTimeout(() => { $("#exportstatus").textContent = "Downloaded. Save it, unchanged, under sources/<account>/<today>/ and run the importer."; }, 1200);
@@ -159,29 +164,29 @@
       <div class="pagehead"><div><h1>Statements & documents</h1><p class="muted small">${esc(a.name)} · ${esc(a.number)}</p></div></div>
       <div class="grid side"><div><div class="card"><div class="eyebrow" style="margin-bottom:10px">${esc(WORDS[brand.kind].list)}</div><div class="acctlist">${data.accounts.map((x) => `<a class="acct" href="#/documents/${encodeURIComponent(x.id)}" ${x.id === a.id ? 'aria-current="true"' : ""}><span><span class="name">${esc(x.name)}</span><br><span class="sub">${esc(x.number)}</span></span></a>`).join("")}</div></div></div>
       <div><div class="card" id="docs"><p class="muted small">Loading…</p></div></div></div>`;
-    const r = await fetch(`/api/accounts?${new URLSearchParams({ brand: brandId, account: a.id, docs: "1" })}`, { headers: { Accept: "application/json" } });
+    const r = await fetch(withRun(`/api/accounts?${new URLSearchParams({ brand: brandId, account: a.id, docs: "1" })}`), { headers: { Accept: "application/json" } });
     const j = await r.json();
     const n = j.groups.reduce((s, g) => s + g.docs.length, 0);
-    $("#docs").innerHTML = `<div class="eyebrow">${n.toLocaleString("en-AU")} documents by financial year</div>` + j.groups.map((g, i) => `<details class="fy" ${i === 0 ? "open" : ""}><summary><span>${esc(g.group)}</span><span class="count">${g.docs.length} documents</span></summary><ul>${g.docs.map((d) => `<li><span>${esc(d.label)}<br><span class="small muted">${fmtDate(d.from)}${d.from !== d.to ? ` to ${fmtDate(d.to)}` : ""}</span></span><span class="links">${d.formats.map(([f, label]) => `<a href="/api/export?${new URLSearchParams({ brand: brandId, account: a.id, from: d.from, to: d.to, format: f })}" data-doc="${esc(d.kind)}">${esc(label)}</a>`).join("")}</span></li>`).join("")}</ul></details>`).join("");
+    $("#docs").innerHTML = `<div class="eyebrow">${n.toLocaleString("en-AU")} documents by financial year</div>` + j.groups.map((g, i) => `<details class="fy" ${i === 0 ? "open" : ""}><summary><span>${esc(g.group)}</span><span class="count">${g.docs.length} documents</span></summary><ul>${g.docs.map((d) => `<li><span>${esc(d.label)}<br><span class="small muted">${fmtDate(d.from)}${d.from !== d.to ? ` to ${fmtDate(d.to)}` : ""}</span></span><span class="links">${d.formats.map(([f, label]) => `<a href="${withRun(`/api/export?${new URLSearchParams({ brand: brandId, account: a.id, from: d.from, to: d.to, format: f })}`)}" data-doc="${esc(d.kind)}">${esc(label)}</a>`).join("")}</span></li>`).join("")}</ul></details>`).join("");
   };
 
   // ---- files as delivered: by stream and year, as the clock and the person may see them. Nothing here is generated on the way out.
   let vault;
-  const loadVault = async () => { const r = await fetch(`/api/files?brand=${encodeURIComponent(brandId)}`, { headers: { Accept: "application/json" } }).catch(() => null); vault = r && r.ok ? await r.json() : { error: r ? (await r.json().catch(() => ({}))).error : "Could not reach the portal." }; return vault; };
+  const loadVault = async () => { const r = await fetch(withRun(`/api/files?brand=${encodeURIComponent(brandId)}`), { headers: { Accept: "application/json" } }).catch(() => null); vault = r && r.ok ? await r.json() : { error: r ? (await r.json().catch(() => ({}))).error : "Could not reach the portal." }; return vault; };
   const size = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
   const fileRow = (f) => `<li><span class="file">${esc(f.name)}<br><span class="small muted">Delivered ${fmtDate(f.date)} · ${size(f.size)}</span></span><span class="links"><a href="/${encodeURI(f.path)}" download="${esc(f.name)}" data-file="${esc(f.name)}" data-sha256="${esc(f.sha256)}">${esc(f.name.split(".").pop().toUpperCase())}</a></span></li>`;
   const files = async (streamId) => {
-    state.account = null; nav(brand.vault ? 0 : 2);
+    state.account = null; const filesOnly = brand.vault || family; if (!family) nav(brand.vault ? 0 : 2);
     const v = await loadVault();
     const streams = v.streams || [];
-    if (!streams.length) { $("#view").innerHTML = `<div class="card"><div class="eyebrow">Nothing filed yet</div><p class="small" style="margin-top:6px">${v.error ? esc(v.error) : data.person ? `${esc(brand.name)} holds nothing in ${esc(data.person.first_name)}'s name${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.` : `${esc(brand.name)} holds nothing yet${data.as_of ? ` on ${fmtDate(data.as_of)}` : ""}.`}</p></div>`; return; }
+    if (!streams.length) { $("#view").innerHTML = `<div class="card"><div class="eyebrow">Nothing filed yet</div><p class="small" style="margin-top:6px">${v.error ? esc(v.error) : data.person ? `${esc(brand.name)} holds nothing in ${esc(data.person.first_name)}'s name${data.today ? ` on ${fmtDate(data.today)}` : ""}.` : `${esc(brand.name)} holds nothing yet${data.today ? ` on ${fmtDate(data.today)}` : ""}.`}</p></div>`; return; }
     const s = streams.find((x) => x.id === streamId) || streams[0];
     const list = v.files.filter((f) => f.brand === brandId && f.stream === s.id).sort((a, b) => (a.date === b.date ? (a.name < b.name ? 1 : -1) : a.date < b.date ? 1 : -1));
     const years = [...new Set(list.map((f) => f.year))];
     const total = streams.reduce((n, x) => n + x.files, 0);
     const first = streams.map((x) => x.first).sort()[0], last = streams.map((x) => x.last).sort().pop();
     const words = `${total.toLocaleString("en-AU")} files delivered from ${fmtDate(first)} to ${fmtDate(last)}, each one exactly as it arrived.`;
-    $("#view").innerHTML = `${brand.vault ? `<div class="greet">${greeting()}, ${esc(firstName())}.</div><p class="muted small" style="margin-bottom:14px">${words}</p>` : `<div class="pagehead"><div><h1>Files as delivered</h1><p class="muted small">${words}</p></div></div>`}
+    $("#view").innerHTML = `${filesOnly ? `<div class="greet">${greeting()}, ${esc(firstName())}.</div><p class="muted small" style="margin-bottom:14px">${words}</p>` : `<div class="pagehead"><div><h1>Files as delivered</h1><p class="muted small">${words}</p></div></div>`}
       <div class="grid side">
         <div><div class="card"><div class="eyebrow" style="margin-bottom:10px">Documents</div><div class="acctlist">${streams.map((x) => `<a class="acct" href="#/files/${encodeURIComponent(x.id)}" data-stream="${esc(x.id)}" ${x.id === s.id ? 'aria-current="true"' : ""}><span><span class="name">${esc(x.name)}</span><br><span class="sub">${x.files.toLocaleString("en-AU")} ${x.files === 1 ? "file" : "files"} · ${x.first.slice(0, 4)}${x.first.slice(0, 4) === x.last.slice(0, 4) ? "" : ` to ${x.last.slice(0, 4)}`}</span></span></a>`).join("")}</div></div></div>
         <div><div class="card" id="docs"><div class="eyebrow">${esc(s.name)} · by year delivered</div>${years.map((y, i) => { const mine = list.filter((f) => f.year === y); return `<details class="fy" data-year="${esc(y)}" ${i === 0 ? "open" : ""}><summary><span>${esc(y)}</span><span class="count">${mine.length} ${mine.length === 1 ? "file" : "files"}</span></summary><ul>${mine.map(fileRow).join("")}</ul></details>`; }).join("")}</div>
@@ -191,7 +196,7 @@
   };
 
   // what this portal limits, in its own words, for a named person
-  const rulesLine = () => { const r = data.rules || {}, p = data.person, bits = []; if (r.back_years) bits.push(`keeps ${r.back_years} years online`); if (r.window_days) bits.push(`exports at most ${r.window_days} days at a time`); if (r.gap_seconds) bits.push("hands over one document at a time"); return `${bits.length ? ` ${esc(brand.name)} ${bits.join(", ")}.` : ""}${p && p.papers_say !== p.first_name ? ` The papers here say ${esc(p.papers_say)}.` : ""}`; };
+  const rulesLine = () => { const r = data.rules || {}, bits = []; if (r.back_years) bits.push(`keeps ${r.back_years} years online`); if (r.window_days) bits.push(`exports at most ${r.window_days} days at a time`); if (r.gap_seconds) bits.push("hands over one document at a time"); return bits.length ? ` ${esc(brand.name)} ${bits.join(", ")}.` : ""; };
 
   // ---- routing, sign-in, boot
   const route = () => {
@@ -199,8 +204,9 @@
     const h = location.hash || "#/";
     const m = h.match(/^#\/(account|documents|files)(?:\/(.+))?$/);
     window.scrollTo(0, 0);
-    if (window.KittyEstate && KittyEstate[brand.kind]) { $("#nav").hidden = true; return KittyEstate[brand.kind]({ $, esc, fmtDate, brand, brandId, data, firstName, greeting, hash: h }); }
-    if (brand.vault || (m && m[1] === "files")) files(m && m[1] === "files" && m[2] ? decodeURIComponent(m[2]) : ""); else if (m && m[2] && m[1] === "account") account(m[2]); else if (m && m[2]) documents(m[2]); else overview();
+    if (window.KittyEstate && KittyEstate[brand.kind]) { $("#nav").hidden = true; return KittyEstate[brand.kind]({ $, esc, fmtDate, brand, brandId, data, firstName, greeting, hash: h, withRun }); }
+    if (family) $("#nav").hidden = true; // a generated family's portals hold files as delivered
+    if (brand.vault || family || (m && m[1] === "files")) files(m && m[1] === "files" && m[2] ? decodeURIComponent(m[2]) : ""); else if (m && m[2] && m[1] === "account") account(m[2]); else if (m && m[2]) documents(m[2]); else overview();
   };
   window.addEventListener("hashchange", route);
   // Sign-in has two doors, and a code may follow either. `pending` is who is part way through, so the code goes with the right door.
@@ -208,7 +214,7 @@
   const askForCode = (j) => { $("#codebox").hidden = false; $("#codeshown").textContent = j.code; $("#codehow").textContent = j.how; $("#code").required = true; $("#usecode").focus(); };
   const signInWith = async (who, code) => {
     $("#loginbtn").disabled = true; $("#loginerror").hidden = true;
-    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId, ...who, code }) });
+    const r = await fetch(withRun("/api/login"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId, ...who, code }) });
     const j = await r.json().catch(() => ({}));
     $("#loginbtn").disabled = false;
     if (j.needs_code) { pending = who; if (who.person) { $("#name").required = false; $("#password").required = false; } askForCode(j); }
@@ -220,19 +226,18 @@
   $("#loginform").addEventListener("submit", (e) => { e.preventDefault(); signInWith(pending && pending.person ? pending : { name: $("#name").value, password: $("#password").value }, $("#code").value); });
   $("#usecode").addEventListener("click", () => signInWith(pending, $("#codeshown").textContent));
   const showQuick = async () => {
-    const r = await fetch("/api/login", { headers: { Accept: "application/json" } }).catch(() => null);
+    const r = await fetch(withRun("/api/login"), { headers: { Accept: "application/json" } }).catch(() => null);
     if (!r || !r.ok) return;
     const { people } = await r.json();
     $("#quick").innerHTML = people.map((p) => `<button class="btn" type="button" data-person="${esc(p.id)}">Continue as ${esc(p.first_name)}</button>`).join("");
     for (const b of $("#quick").querySelectorAll("[data-person]")) b.addEventListener("click", () => signInWith({ person: b.dataset.person }));
     $("#quick").hidden = !people.length;
   };
-  $("#signout").addEventListener("click", async () => { await fetch("/api/logout", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId }) }); data = null; location.hash = ""; load(); });
-  const showClock = () => { const c = $("#clockline"); c.hidden = !data.as_of; if (data.as_of) c.textContent = `The clock says ${fmtDate(data.as_of)}. Nothing later exists yet.`; };
-  // ?today=2027-01-31 or ?chapter=1 on any portal sets the clock for the whole run
-  const setClockFromUrl = async () => { const q = new URLSearchParams(location.search), today = q.get("today"), as_of = q.get("as_of"), chapter = q.get("chapter"); if (today == null && as_of == null && chapter == null) return; await fetch("/api/clock", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ today, as_of, chapter }) }); };
+  $("#signout").addEventListener("click", async () => { await fetch(withRun("/api/logout"), { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId, family }) }); data = null; location.hash = ""; load(); });
+  const showClock = () => { const c = $("#clockline"); c.hidden = !data.today; if (data.today) c.textContent = `Today is ${fmtDate(data.today)}. Nothing delivered later is listed.`; };
   const load = async () => {
-    const r = await fetch(`/api/accounts?brand=${encodeURIComponent(brandId)}`, { headers: { Accept: "application/json" } });
+    const r = await fetch(withRun(`/api/accounts?brand=${encodeURIComponent(brandId)}`), { headers: { Accept: "application/json" } });
+    if (!r.ok && r.status !== 401) { const j = await r.json().catch(() => ({})); $("#signin").hidden = true; $("#view").hidden = false; $("#view").innerHTML = `<p class="error">${esc(j.error || "This portal could not open.")}</p>`; return; }
     if (r.status === 401) { $("#signin").hidden = false; $("#view").hidden = true; $("#nav").hidden = true; $("#who").hidden = true; $("#loginbrand").value = brandId; showQuick(); if (new URLSearchParams(location.search).get("error")) { $("#loginerror").textContent = "Any name will do, and the password is demo."; $("#loginerror").hidden = false; } $("#name").focus(); return; }
     data = await r.json();
     $("#signin").hidden = true; $("#view").hidden = false; $("#who").hidden = false; $("#whoname").textContent = `Signed in as ${data.person ? data.person.full_name : data.name}`;
@@ -245,7 +250,8 @@
     if (!brand) { location.replace("/"); return; }
     applyBrand(brand);
     $("#brandswitch").innerHTML = brands.map((b) => `<option value="${b.id}" ${b.id === brandId ? "selected" : ""}>${esc(b.name)}</option>`).join("");
-    $("#brandswitch").addEventListener("change", (e) => { location.href = `/${e.target.value}`; });
-    setClockFromUrl().then(load);
+    $("#brandswitch").addEventListener("change", (e) => { location.href = withRun(`/${e.target.value}`); });
+    document.querySelector(".demo a").href = withRun("/");
+    load();
   });
 })();

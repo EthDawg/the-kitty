@@ -79,11 +79,11 @@ jobs:
         run: |
           node life/davies/build-profile.js --check
           node standard/world/build.js
-          node portals/build-vault.js
+          node portals/build-vault.js --fixture
           git diff --exit-code -- life/davies/ESTATE.md
       - run: npx playwright install --with-deps chromium
         working-directory: portals
-      - name: sign in, download every shape, import, reconcile, repeat appends nothing; the clock, the people, the estate and the accountant
+      - name: sign in, download every shape, import, reconcile, repeat appends nothing; the clock, the people, the families, the estate and the accountant
         run: npx playwright test
         working-directory: portals
       - uses: actions/upload-artifact@v4

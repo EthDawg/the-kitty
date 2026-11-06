@@ -1,6 +1,6 @@
-// Sign-in is a cookie per brand: any name, the password "demo". Nothing is stored anywhere. A named person may also get a mock
-// second factor, shown on screen. The Drive and mail connectors take the same sign-in as a bearer token, because that is how a
-// connector works. Neither is a real secret: this is a parody with a fictional household behind it.
+// Sign-in is a cookie per brand and family: one click as a person, or any name with the password "demo". Nothing is stored anywhere. A person
+// may also get a mock second factor, shown on screen. The Drive and mail connectors take the same sign-in as a bearer token, because that is how
+// a connector works. Neither is a real secret: this is a parody with a fictional household behind it.
 "use strict";
 const crypto = require("crypto");
 const { cookies } = require("./http");
@@ -9,14 +9,14 @@ const PASSWORD = "demo";
 // One account, two doors: Gmeow and Litterbox sign in together, the way a mail account and its drive do.
 const ACCOUNT = ["gmeow", "litterbox"];
 const doorsOf = (brand) => (ACCOUNT.includes(brand) ? ACCOUNT : [brand]);
-const cookieName = (brand) => `kp_${brand}`;
+const cookieName = (brand, family) => (family && family !== "benchmark" ? `kp_${family}_${brand}` : `kp_${brand}`);
 
-const signInCookie = (brand, name, isSecure) =>
-  `${cookieName(brand)}=${encodeURIComponent(name)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
-const signOutCookie = (brand, isSecure) => `${cookieName(brand)}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isSecure ? "; Secure" : ""}`;
+const signInCookie = (brand, name, isSecure, family) =>
+  `${cookieName(brand, family)}=${encodeURIComponent(name)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? "; Secure" : ""}`;
+const signOutCookie = (brand, isSecure, family) => `${cookieName(brand, family)}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isSecure ? "; Secure" : ""}`;
 
-const who = (req, brand) => {
-  const name = cookies(req)[cookieName(brand)];
+const who = (req, brand, family) => {
+  const name = cookies(req)[cookieName(brand, family)];
   return name && name.length <= 60 ? name : null;
 };
 

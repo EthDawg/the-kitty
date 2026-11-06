@@ -13,13 +13,13 @@ const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex"
 const local = (p) => JSON.parse(fs.readFileSync(path.join(__dirname, "..", p), "utf8"));
 
 test.beforeAll(() => {
-  if (fs.existsSync(path.join(__dirname, "..", "estate", "vault.json"))) return;
+  if (fs.existsSync(path.join(__dirname, "..", "estate", "benchmark", "vault.json"))) return;
   for (const script of ["standard/world/build.js", "portals/build-vault.js"]) execFileSync("node", [script], { cwd: ROOT, stdio: "pipe" });
 });
 
 test("two new portals sign in and hand over the world's files byte for byte, and every world file has one home", async ({ page }) => {
   const manifest = JSON.parse(fs.readFileSync(path.join(WORLD, "manifest.json"), "utf8"));
-  const vault = local("estate/vault.json");
+  const vault = local("estate/benchmark/vault.json");
   const brands = [...local("public/brands.json"), ...local("public/vault-brands.json")];
   const holders = brands.filter((b) => !b.holdsNoFiles);
   const types = require("../lib/file-types");
@@ -33,13 +33,15 @@ test("two new portals sign in and hand over the world's files byte for byte, and
     expect([...new Set(vault.files.map((f) => f.brand))].sort()).toEqual(holders.map((b) => b.id).sort());
   });
 
-  await test.step("vercel.json routes every portal and keeps the vault behind the function that asks the clock and the person", () => {
+  await test.step("vercel.json routes every portal and serves every file type the way server.js does", () => {
     const route = config.rewrites.find((r) => r.destination === "/portal");
     const routed = route.source.match(/\(([^)]+)\)/)[1].split("|").sort();
     expect(routed).toEqual(brands.map((b) => b.id).sort());
-    expect(config.rewrites.find((r) => r.source === "/vault/:path*").destination).toBe("/api/files?path=:path*");
-    expect(fs.existsSync(path.join(__dirname, "..", "public", "vault")), "no file is static").toBe(false);
-    expect(fs.existsSync(path.join(__dirname, "..", "public", "vault.json")), "no listing is static").toBe(false);
+    expect(config.headers.some((h) => h.source === "/vault/(.*)" && h.headers.some((x) => x.key === "Content-Disposition" && x.value === "attachment"))).toBe(true);
+    for (const [ext, type] of Object.entries(types)) {
+      const rule = config.headers.find((h) => h.source === `/vault/(.*)\\${ext}`);
+      expect(rule?.headers[0], ext).toEqual({ key: "Content-Type", value: type });
+    }
   });
 
   const take = async (brand, stream, ext) => {
@@ -67,26 +69,32 @@ test("two new portals sign in and hand over the world's files byte for byte, and
   };
 
   await test.step("a PDF from Bupaw", async () => { expect((await take("bupaw", "PHI-M", ".pdf")).bytes.subarray(0, 5).toString()).toBe("%PDF-"); });
-  await test.step("a file answers to its own portal's sign-in", async () => {
+  await test.step("the files are static, as llms.txt says, and the listing is not", async () => {
     const f = vault.files.find((x) => x.brand === "waterbowl");
-    expect((await page.request.get(`/${f.path}`)).status()).toBe(401);
+    const anon = await page.request.get(`/${f.path}`);
+    expect(anon.status(), "no sign-in stops a fetch of an address").toBe(200);
+    expect((await page.request.get("/vault.json")).status()).toBe(404);
+    expect((await page.request.get("/estate/benchmark/vault.json")).status()).toBe(404);
+    expect((await page.request.get(`/api/files?brand=waterbowl`)).status(), "the list needs a sign-in").toBe(401);
   });
   await test.step("a CSV from Purrannuation, a separate sign-in", async () => { expect((await take("purrannuation", "SUPER-J", ".csv")).bytes.toString()).toContain("Investment"); });
 
   await test.step("scans, email and workbooks download with their own content types", async () => {
     for (const [ext, brand] of [[".png", "litterbox"], [".eml", "gmeow"], [".xlsx", "litterbox"], [".html", "kittenhood"], [".ofx", "ping"], [".qif", "commbark"]]) {
-      await page.request.post("/api/login", { data: { brand, name: "A visitor", password: "demo" }, headers: { Accept: "application/json" } });
       const f = vault.files.find((x) => x.brand === brand && x.name.endsWith(ext));
       const r = await page.request.get(`/${f.path}`);
       expect(r.status(), f.path).toBe(200);
       expect(r.headers()["content-type"], f.path).toBe(types[ext]);
-      expect(r.headers()["content-disposition"], f.path).toMatch(/^attachment/);
+      expect(r.headers()["content-disposition"], f.path).toBe("attachment");
       expect(sha256(await r.body()), f.path).toBe(f.sha256);
     }
   });
 
   await test.step("an original portal keeps its exports and adds the files as delivered", async () => {
-    await page.goto("/ping"); // signed in by the step above
+    await page.goto("/ping");
+    await page.fill("#name", "A visitor");
+    await page.fill("#password", "demo");
+    await page.click("#loginbtn");
     await expect(page.locator(".greet")).toBeVisible();
     await page.click('nav.primary a[href="#/files"]');
     await expect(page.locator(".pagehead h1")).toHaveText("Files as delivered");

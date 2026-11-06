@@ -1,6 +1,6 @@
 # The Kitty's demo portals
 
-> Parody websites for a fictional Australian family, the Davies. Nothing here is real: no real bank, no real money, no real person, no real tax advice. They exist so The Kitty, an open source household money project, can be tested end to end by a person or an agent. Source: https://github.com/EthDawg/the-kitty
+> Parody websites for fictional Australian families. Nothing here is real: no real bank, no real money, no real person, no real tax advice. They exist so The Kitty, an open source household money project, can be tested end to end by a person or an agent. Source: https://github.com/EthDawg/the-kitty
 
 ## What is fictional
 
@@ -10,43 +10,41 @@ Everything. Every institution is a parody with an original name and mark. Every 
 
 You never need to type a password here. Every portal has a one-click sign-in.
 
-- **One click, no password.** Press "Continue as Daisy" or "Continue as Danny" on any portal's sign-in page. You then see only what that person holds, with the friction a real site has.
-- **An agent, without a browser.** `POST /api/login` with JSON `{"brand": "westpaw", "person": "daisy"}`, and keep the cookie. `GET /api/login` lists the people.
+- **One click, no password.** Press "Continue as Mia", or whoever is offered, on any portal's sign-in page. You then see only what that person holds, with the friction a real site has.
+- **An agent, without a browser.** `POST /api/login` with JSON `{"brand": "westpaw", "person": "mia"}`, and keep the cookie. `GET /api/login` lists the people.
 - **The mock code.** Some portals then ask for a code. It is on screen, because a real site would text it. Press "Use this code". Without a browser, the response carries `needs_code: true` and the code, so post again with `code`.
 - **Any name.** People who want it can type any name with the password `demo`. That shows the whole household, with no friction, so it is not how a run plays a person.
 
-For now Danny and Daisy stand in for Jordan and Mia, the people in these files. Typing those names with the password does the same.
+Gmeow and Litterbox share one sign-in, the way a mail account and its drive do. The list of portals is /brands.json and /vault-brands.json.
 
-The list of portals is /brands.json and /vault-brands.json.
+## Which family
 
-## The friction
-
-A named person meets limits that differ by portal: history only goes back so many years, one export covers only so many days, documents come one at a time (a 429 with `Retry-After` means wait), and some sign-ins need a code. These are deliberate. Work with them.
+The default is the benchmark household: Jordan, Mia and Ava, 2019 to 2027. A generated family is chosen with `?family=<id>` on any address or API call, and it has its own people and its own files. An unknown family is a 404.
 
 ## The clock
 
-The world runs from March 2019 to March 2027. A clock makes the sites behave as they did on one day: nothing later exists.
+One request parameter: `?today=2027-01-31`, a date. A listing then shows what had been delivered by that day, and accounts stop at it. It goes on every request, because the server keeps nothing. A portal's page carries it for you once it is in the address. With no `today`, everything is listed.
 
-- `?today=2027-01-31` on any API call, or `?chapter=1`. `?as_of=` means the same.
-- `POST /api/clock` with `{"today": "2027-01-31"}` or `{"chapter": 1}` sets it for every portal in this browser. An empty `today` takes it off.
-- `?today=` or `?chapter=` on a portal's page does the same.
+## What the clock and the person do not do
+
+**The files are static.** Every file has a plain address under /vault/, and anyone with the address can fetch it, whoever is signed in and whatever `today` says. The clock and the person filter what is listed. They do not hide a file. A run plays fair by working from the listings and not guessing addresses.
+
+## The friction
+
+A named person meets limits that differ by portal: history only goes back so many years, one export covers only so many days, exports come one at a time (a 429 with `Retry-After` means wait), and some sign-ins need a code. These are deliberate. Work with them.
 
 ## Drive and mail
 
-Litterbox (/litterbox) is the family's Drive. Gmeow (/gmeow) is the family's inbox. Both have a JSON API with the same shape as a real connector, so an agent can use them the way it uses the real thing. Sign in with brand `litterbox` or `gmeow`. Use the cookie, or the `token` from the login response as `Authorization: Bearer <token>`.
+Litterbox (/litterbox) is the family's Drive. Gmeow (/gmeow) is the family's inbox. Both are read-only, with a JSON API the same shape as a real connector, so an agent can use them the way it uses the real thing. Sign in with brand `litterbox` or `gmeow`. Use the cookie, or the `token` from the login response as `Authorization: Bearer <token>`.
 
-- `GET /api/drive` lists the tools. `POST /api/drive/search_files` with `{"query": "title contains 'tax' and modifiedTime > '2024-01-01T00:00:00Z'"}`. Also `read_file_content`, `download_file_content`, `get_file_metadata`, `list_recent_files` and `create_file`.
-- `GET /api/mail` lists the tools. `GET /api/mail/search_threads?query=from:paws has:attachment`. Also `get_thread`, `get_attachment` and `send_message`.
+- `GET /api/drive` lists the tools. `POST /api/drive/search_files` with `{"query": "title contains 'tax' and modifiedTime > '2024-01-01T00:00:00Z'"}`. Also `read_file_content`, `download_file_content`, `get_file_metadata` and `list_recent_files`.
+- `GET /api/mail` lists the tools. `GET /api/mail/search_threads?query=from:paws has:attachment`. Also `get_thread` and `get_attachment`.
 
-The Drive is messy on purpose, like a real one. A scan has no text layer, so read the image.
-
-Mail reaches the household and Tabby Tax. Nothing leaves this fictional world.
-
-What you upload or send belongs to your run alone, and other runs cannot see it.
+The Drive is messy on purpose, like a real one. A scan has no text layer, so read the image. You cannot upload here or send mail: nothing on this site changes.
 
 ## An accountant
 
-Tabby Tax (/tabbytax) is a parody tax practice with a script. Email `hello@tabbytax.example` from Gmeow. It takes PDFs and a zip, and it does not open cloud links. It asks what a real practice asks.
+Tabby Tax (/tabbytax) is a parody tax practice with a script. It takes PDFs and a zip, and it does not open cloud links. It asks what a real practice asks. It keeps nothing. In a browser, the page holds the conversation. An agent signs in with brand `tabbytax`, then `POST /api/tabby/message` with `{"body": "...", "attachments": [{"filename": "...", "content": "<base64>"}], "state": <the state from its last reply>}`. `GET /api/tabby/checklist` shows what it wants.
 
 ## Rules for agents
 
