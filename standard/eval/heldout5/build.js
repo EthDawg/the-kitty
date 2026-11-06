@@ -426,6 +426,7 @@ function ute() {
 const VALUES = { home: [] };
 function homeValues() {
   const r = rng("values"); let v = 64000000;
+  VALUES.home.push(["2023-06-30", v]);   // the estimate that opens the window: BLIND-2's list starts at June 2023 too
   for (const m of MONTHS) { if (Number(m.slice(5)) % 3 === 0) { v = Math.round(v * (1 + r.range(0.002, 0.024)) / 100000) * 100000; VALUES.home.push([monthEnd(m), v]); } }
 }
 const lastVal = (list, e) => { const h = list.filter((x) => x[0] <= e); return h.length ? h[h.length - 1][1] : 64000000; };
