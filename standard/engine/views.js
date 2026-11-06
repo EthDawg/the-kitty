@@ -1,6 +1,6 @@
 /* Views: pure functions over the ledger. Each metric is named in schema/metrics.json. Two lenses, one ledger (SPEC 6.5). */
 "use strict";
-const { groupBy, cmp, monthOf, monthEnd, nextMonth, monthsBetween, fyOf, fyRange, allocate, addDays } = require("./util");
+const { groupBy, cmp, monthOf, monthEnd, nextMonth, monthsBetween, fyOf, fyRange, allocate, addDays, daysBetween } = require("./util");
 const { activeOn, termAt } = require("./temporal");
 
 function ledgerIndex(L) {
@@ -19,17 +19,19 @@ function cashLens(L, opts = {}) {
   const posted = (L.households || []).some((h) => h.budget_date === "posted");
   const when = (e) => (posted ? e.occurred_on : e.charged_on || e.occurred_on);
   const months = new Map();
-  const bucket = (m) => { if (!months.has(m)) months.set(m, { month: m, income: 0, spending: 0, net: 0, byCategory: {} }); return months.get(m); };
+  const bucket = (m) => { if (!months.has(m)) months.set(m, { month: m, income: 0, spending: 0, unexplained: 0, net: 0, byCategory: {} }); return months.get(m); };
   for (const p of L.postings) {
     if (!p.account_id || !isCash(p.account_id)) continue;
     const e = X.events.get(p.event_id);
     const cat = X.categories.get(e.category_id);
     const m = bucket(monthOf(when(e)));
+    // Money in that nobody has explained is neither income nor a refund. It is shown on its own until a person says.
+    if (e.unexplained) { m.unexplained += p.amount_cents; continue; }
     if (!cat || cat.kind === "transfer" || cat.kind === "capital" || cat.cash_lens === false) { continue; }
     m.byCategory[e.category_id] = (m.byCategory[e.category_id] || 0) + p.amount_cents;
     if (cat.kind === "income") m.income += p.amount_cents; else m.spending -= p.amount_cents;
   }
-  for (const m of months.values()) m.net = m.income - m.spending;
+  for (const m of months.values()) m.net = m.income - m.spending + m.unexplained;
   return [...months.values()].sort((a, b) => cmp(a.month, b.month));
 }
 
@@ -52,7 +54,7 @@ function accrualLens(L) {
 }
 
 // ---------- position ----------
-const TRANSIT = "clearing:transit";
+const TRANSIT = "clearing:transit", SETTLE_DAYS = require("../schema/matching.json").windows_days.settle.days;
 // A balance moves on the day its own account moved. The legs of a transfer can do that on different days.
 function balanceDate(e, account) { return (e.leg_dates && e.leg_dates[account]) || e.occurred_on; }
 function balances(L) {
@@ -86,6 +88,13 @@ function netWorth(L, opts = {}) {
   const X = L.index;
   const inScope = opts.accounts ? new Set(opts.accounts) : null;
   const wrapped = wrappedAccounts(L);
+  // A household holds what its members own on the day. A joiner's account counts from the day they join, whatever their papers reach back to.
+  const owners = groupBy(L.ownership.filter((o) => o.subject_type === "account" && o.superseded_at == null), (o) => o.subject_id);
+  const members = groupBy(L.memberships || [], (m) => m.party_id);
+  const belongs = (party, on) => !members.has(party) || members.get(party).some((m) => m.valid_from <= on && (m.valid_to == null || on < m.valid_to));
+  const held = (account, on) => !owners.has(account) || activeOn(owners.get(account), on).some((o) => belongs(o.party_id, on));
+  // A trade whose cash never met it stops being a debt once settlement is well past. It is a question by then.
+  const stale = L.events.filter((e) => e.unsettled);
   const out = [];
   for (const m of L.balances.months) {
     const row = { month: m, month_end: monthEnd(m), total: 0, groups: {} };
@@ -95,11 +104,18 @@ function netWorth(L, opts = {}) {
       const unsettled = account.startsWith("clearing:settle:") || account === TRANSIT;
       if (!unsettled && (!a || !groups.has(a.reporting_group) || wrapped.has(account))) continue;
       if (inScope && !inScope.has(account) && !unsettled) continue;
+      if (!held(account, row.month_end)) continue;
       const v = L.balances.at(account, m);
       row.total += v;
       const group = unsettled ? "unsettled" : a.reporting_group;
       row.groups[group] = (row.groups[group] || 0) + v;
     }
+    for (const e of stale) {
+      if (e.occurred_on > row.month_end || daysBetween(e.settled_on || e.occurred_on, row.month_end) <= SETTLE_DAYS) continue;
+      const v = (e.postings || []).filter((p) => String(p.account_id).startsWith("clearing:settle:")).reduce((s, p) => s + p.amount_cents, 0);
+      row.total -= v; row.groups.unsettled = (row.groups.unsettled || 0) - v;
+    }
+    if (!row.groups.unsettled) delete row.groups.unsettled;
     out.push(row);
   }
   return out;
@@ -229,12 +245,19 @@ function spokenSpans(L) {
   for (const o of L.observations) {
     const src = source.get(o.source_id), st = src && src.stream_id;
     if (!st) continue;
-    const r = span.get(o.source_id) || { stream: st, lo: null, hi: null, delivered: L.receipts && L.receipts.length ? src.captured_at : src.issued_on || src.captured_at };
+    const r = span.get(o.source_id) || { stream: st, lo: null, hi: null, closes: null, delivered: L.receipts && L.receipts.length ? src.captured_at : src.issued_on || src.captured_at };
+    if (o.kind === "statement") r.closes = { lo: o.payload.period_start, hi: o.payload.period_end, opens: o.payload.opening_cents, ends: o.payload.closing_cents };
     for (const f of SPOKEN_DAYS) { const d = o.payload && o.payload[f]; if (typeof d !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(d)) continue; if (!r.lo || d < r.lo) r.lo = d; if (!r.hi || d > r.hi) r.hi = d; }
     span.set(o.source_id, r);
   }
   for (const r of span.values()) if (r.lo) { if (!byStream.has(r.stream)) byStream.set(r.stream, []); byStream.get(r.stream).push(r); }
   return byStream;
+}
+// Statements chain: each opens where the last closed. Where one does not, and days are missing between them, a statement is missing, named by the month it would have closed in, even when its neighbours reach into that month.
+function statementHoles(rows) {
+  const chain = rows.map((r) => r.closes).filter((c) => c && c.lo && c.hi).sort((a, b) => cmp(a.lo, b.lo)), holes = new Set();
+  chain.slice(1).forEach((c, i) => { if (daysBetween(chain[i].hi, c.lo) > 7 && c.opens !== chain[i].ends) holes.add(monthOf(addDays(c.lo, -1))); });
+  return holes;
 }
 function coverage(L) {
   /* A period is held if a file speaks for it, whenever the file was downloaded. In a stream whose files say nothing about their dates, each delivery
@@ -254,7 +277,8 @@ function coverage(L) {
     const grace = s.grace_days ?? 45;
     let expected = 0, have = 0; const missing = [];
     const ms = monthsBetween(start, end);
-    const speaks = (i) => (spoken.get(s.stream_id) || []).some((r) => r.lo <= monthEnd(ms[Math.min(i + step - 1, ms.length - 1)]) && r.hi >= `${ms[i]}-01`);
+    const holes = statementHoles(spoken.get(s.stream_id) || []);
+    const speaks = (i) => !ms.slice(i, i + step).some((m) => holes.has(m)) && (spoken.get(s.stream_id) || []).some((r) => r.lo <= monthEnd(ms[Math.min(i + step - 1, ms.length - 1)]) && r.hi >= `${ms[i]}-01`);
     const silent = []; for (let i = 0; i < ms.length; i += step) if (!speaks(i)) silent.push(i);
     const answered = answerPeriods(ms, silent, step + Math.ceil(grace / 30), quiet(s.stream_id).map((x) => monthOf(x.day)));
     if (s.cadence === "fortnightly") {

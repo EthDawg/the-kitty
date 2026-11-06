@@ -1,11 +1,13 @@
 /* Shares, ETFs, RSUs and crypto. Holdings are carried at market; tax cost lives in lots.
    A sale never moves net worth by itself: proceeds leave the holding and the next price moves the rest. */
 "use strict";
-const { groupBy, cmp, addDays, daysBetween, parseUnits, fmtUnits, unitsValueCents, fyOf, UNIT_SCALE } = require("./util");
+const { groupBy, cmp, addDays, daysBetween, parseUnits, fmtUnits, unitsValueCents, fyOf, UNIT_SCALE, subsetSum } = require("./util");
 
 const nz = (v) => (v == null ? 0 : v);
 const CGT_MONTHS = 12;
-const WINDOW_SETTLE = require("../schema/matching.json").windows_days.settle.days;
+const { settle: { days: WINDOW_SETTLE }, wire: { days: WINDOW_WIRE } } = require("../schema/matching.json").windows_days;
+const WIRE_CUT = 0.05;
+const audFee = (p) => (p.fee_asset === "AUD" ? Math.round(Number(p.fee_units || 0) * 100) : 0);
 
 module.exports = (Resolver) => {
   const P = Resolver.prototype;
@@ -32,7 +34,7 @@ module.exports = (Resolver) => {
   };
 
   P.holdingsOfInstrument = function (instrument) {
-    return [...new Set((this.tradeLog || []).filter((t) => t.instrument === instrument && t.holding).map((t) => t.holding))];
+    return [...new Set((this.tradeLog || []).filter((t) => t.instrument === instrument).flatMap((t) => [t.holding, t.to]).filter(Boolean))];
   };
 
   P.recogniseMarkets = function () {
@@ -45,12 +47,20 @@ module.exports = (Resolver) => {
       const closest = (a, b) => Math.abs(daysBetween(date, a.date)) - Math.abs(daysBetween(date, b.date)) || cmp(a.key, b.key);
       let hit = this.lines.filter((l) => near(l) && l.account === cash).sort(closest)[0];
       if (!hit) {
-        const away = this.lines.filter((l) => near(l) && l.account !== cash && (!l.cls.category_id || l.cls.category_id === "UNCAT" || this.isTransferLine(l)) && (this.accounts.get(l.account) || {}).reporting_group === "cash");
+        const away = this.lines.filter((l) => near(l) && l.account !== cash && loose(l));
         if (away.length === 1) hit = away[0];
       }
       if (!hit) return null;
       this.claim(hit, role);
       return hit;
+    };
+    const loose = (l) => (!l.cls.category_id || l.cls.category_id === "UNCAT" || this.isTransferLine(l)) && (this.accounts.get(l.account) || {}).reporting_group === "cash";
+    // A sale abroad reaches the bank as a wire, days later, at another day's rate. One such line is the sale; the difference is what getting it here cost or made.
+    const wireFor = (cents, date) => {
+      const lands = this.lines.filter((l) => !l.claimed && l.cents > 0 && Math.abs(cents - l.cents) <= cents * WIRE_CUT && daysBetween(date, l.date) >= -2 && daysBetween(date, l.date) <= WINDOW_WIRE && loose(l) && /\b(WIRE|SWIFT|TELEGRAPHIC|TT|USD|FX)\b/i.test(l.desc));
+      if (lands.length !== 1) return null;
+      this.claim(lands[0], "settle_cash");
+      return lands[0];
     };
 
     for (const o of this.collapseDocs("contract_note")) {
@@ -63,19 +73,23 @@ module.exports = (Resolver) => {
       const cents = p.consideration_cents;
       const key = `${account}|${instrument}|${p.side}|${p.trade_date}|${p.units}`;
       const person = this.personOfAccount(holding, p.trade_date);
-      const line = settleMatch(cash, p.side === "buy" ? -cents : cents, p.settlement_date || p.trade_date, "", key);
+      const settles = p.settlement_date || p.trade_date, exactLine = settleMatch(cash, p.side === "buy" ? -cents : cents, settles, "", key);
+      const line = exactLine || (p.side === "sell" ? wireFor(cents, settles) : null);
       const through = line ? line.account : cash;
+      let trade;
       if (p.side === "buy") {
-        this.event({ key: `trade_buy|${key}`, kind: "trade_buy", occurred_on: p.trade_date, settled_on: p.settlement_date, description: `Buy ${p.units} ${p.instrument_ref}`, person, amount_cents: cents, grade: "stated", rule: "contract_note", witnesses: this.docWitness(o),
+        trade = this.event({ key: `trade_buy|${key}`, kind: "trade_buy", occurred_on: p.trade_date, settled_on: p.settlement_date, description: `Buy ${p.units} ${p.instrument_ref}`, person, amount_cents: cents, grade: "stated", rule: "contract_note", witnesses: this.docWitness(o),
           fields: { consideration: cents }, refs: { holding, cash_account: through }, holding, units: String(p.units), instrument_id: instrument });
         log({ kind: "buy", date: p.trade_date, instrument, holding, person, units: parseUnits(p.units), cost: cents - nz(p.brokerage_cents), incidental: nz(p.brokerage_cents), ref: key, o });
       } else {
-        this.event({ key: `trade_sell|${key}`, kind: "trade_sell", occurred_on: p.trade_date, settled_on: p.settlement_date, description: `Sell ${p.units} ${p.instrument_ref}`, person, amount_cents: cents, grade: "stated", rule: "contract_note", witnesses: this.docWitness(o),
+        trade = this.event({ key: `trade_sell|${key}`, kind: "trade_sell", occurred_on: p.trade_date, settled_on: p.settlement_date, description: `Sell ${p.units} ${p.instrument_ref}`, person, amount_cents: cents, grade: "stated", rule: "contract_note", witnesses: this.docWitness(o),
           fields: { proceeds: cents }, refs: { holding, cash_account: through }, holding, units: `-${p.units}`, instrument_id: instrument });
         log({ kind: "sell", date: p.trade_date, instrument, holding, person, units: parseUnits(p.units), proceeds: cents, ref: key, o });
       }
-      if (line) this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "note+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: through }, line });
-      else this.fault("trade_unsettled", o, `Trade on ${p.trade_date} has no cash line in ${cash}.`, "", cents);
+      if (line) {
+        this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "note+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: through }, line });
+        if (!exactLine) this.event({ key: `settle_difference|${line.key}`, kind: "settle_difference", occurred_on: line.date, description: `Cost of the wire, ${line.desc}`, category_id: "FEES", amount_cents: cents - line.cents, grade: "stated", rule: "note+wire", witnesses: this.lineWitness(line, "corroborates"), fields: { amount: cents - line.cents }, refs: { account: through, category: "FEES" } });
+      } else { trade.unsettled = true; this.fault("trade_unsettled", o, `Trade on ${p.trade_date} has no cash line in ${cash}.`, "", cents); }
     }
 
     for (const o of this.collapseDocs("dividend")) {
@@ -150,10 +164,16 @@ module.exports = (Resolver) => {
       log({ kind: "buy", date: p.vest_date, instrument, holding, person, units: parseUnits(released), cost: p.cost_base_cents ?? p.taxable_value_cents + nz(p.cost_paid_cents), incidental: 0, ref: `vest|${key}`, o, ess: true });
     }
 
-    const settleCrypto = (cash, cents, on, key) => {
-      const line = settleMatch(cash, cents, on, "", key);
-      if (line) this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "exchange+bank", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: cash }, line });
-      else this.fault("trade_unsettled", key, `Crypto trade on ${on} has no line in ${cash}.`, "", cents);
+    // A trade's cash side, on the exchange's AUD fee or without it. What finds no line of its own waits to be matched by sum.
+    const waiting = [];
+    const bankLine = (line) => this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "exchange+bank", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: line.account }, line });
+    const paidAt = (t, cents, account) => { t.ev.fields[t.field] = Math.abs(cents); t.ev.amount_cents = Math.abs(cents); t.ev.refs.cash_account = account; };
+    const settleCrypto = (ev, field, cash, cents, gross, on, key) => {
+      const t = { ev, field, cash, cents, gross, on, key };
+      const plain = settleMatch(cash, cents, on, "", key), line = plain || (gross !== cents ? settleMatch(cash, gross, on, "", key) : null);
+      if (!line) { waiting.push(t); return; }
+      paidAt(t, plain ? cents : gross, line.account);
+      bankLine(line);
     };
     for (const o of this.collapseDocs("crypto_txn")) {
       const p = o.payload;
@@ -167,14 +187,12 @@ module.exports = (Resolver) => {
       const cash = this.cashHubOf(wallet);
       switch (p.type) {
         case "buy":
-          this.event({ key: `crypto_buy|${key}`, kind: "crypto_buy", occurred_on: on, description: `Buy ${p.units} ${p.asset}`, person, amount_cents: value, grade: "stated", rule: "crypto", witnesses: this.docWitness(o), fields: { cost: value }, refs: { wallet, cash_account: cash }, holding: wallet, units: String(p.units), instrument_id: instrument });
-          log({ kind: "buy", date: on, instrument, holding: wallet, person, units: parseUnits(p.units), cost: value, incidental: 0, ref: key, o });
-          settleCrypto(cash, -value, on, key);
+          settleCrypto(this.event({ key: `crypto_buy|${key}`, kind: "crypto_buy", occurred_on: on, description: `Buy ${p.units} ${p.asset}`, person, amount_cents: value, grade: "stated", rule: "crypto", witnesses: this.docWitness(o), fields: { cost: value }, refs: { wallet, cash_account: cash }, holding: wallet, units: String(p.units), instrument_id: instrument }), "cost", cash, -value, -(value + audFee(p)), on, key);
+          log({ kind: "buy", date: on, instrument, holding: wallet, person, units: parseUnits(p.units), cost: value, incidental: audFee(p), ref: key, o });
           break;
         case "sell":
-          this.event({ key: `crypto_sell|${key}`, kind: "crypto_sell", occurred_on: on, description: `Sell ${p.units} ${p.asset}`, person, amount_cents: value, grade: "stated", rule: "crypto", witnesses: this.docWitness(o), fields: { proceeds: value }, refs: { wallet, cash_account: cash }, holding: wallet, units: `-${p.units}`, instrument_id: instrument });
+          settleCrypto(this.event({ key: `crypto_sell|${key}`, kind: "crypto_sell", occurred_on: on, description: `Sell ${p.units} ${p.asset}`, person, amount_cents: value, grade: "stated", rule: "crypto", witnesses: this.docWitness(o), fields: { proceeds: value }, refs: { wallet, cash_account: cash }, holding: wallet, units: `-${p.units}`, instrument_id: instrument }), "proceeds", cash, value, value - audFee(p), on, key);
           log({ kind: "sell", date: on, instrument, holding: wallet, person, units: parseUnits(p.units), proceeds: value, ref: key, o });
-          settleCrypto(cash, value, on, key);
           break;
         case "swap": {
           const to = this.instrumentOf(p.quote_asset, on);
@@ -194,6 +212,16 @@ module.exports = (Resolver) => {
           this.fault("unknown_crypto_type", o, `Crypto type ${p.type} is not known.`);
       }
     }
+    // One deposit can fund several buys and one withdrawal can carry several sales. The amounts say which.
+    for (const l of this.lines.filter((x) => !x.claimed && loose(x)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key))) {
+      const near = waiting.filter((t) => Math.sign(t.gross) === Math.sign(l.cents) && Math.abs(daysBetween(l.date, t.on)) <= WINDOW_SETTLE).map((t) => ({ t, cents: t.gross }));
+      const hit = near.length > 1 ? subsetSum(near, Math.abs(l.cents)) : null;
+      if (!hit) continue;
+      this.claim(l, "settle_cash");
+      for (const { t } of hit) { paidAt(t, t.gross, l.account); waiting.splice(waiting.indexOf(t), 1); }
+      bankLine(l);
+    }
+    for (const t of waiting) { t.ev.unsettled = true; this.fault("trade_unsettled", t.key, `Crypto trade on ${t.on} has no line in ${t.cash}.`, "", t.cents); }
     // Moving a coin between one's own wallets is nothing happening. Pair by transaction id; an unpaired move out needs a person.
     for (const [txid, group] of groupBy(this.cryptoMoves || [], (m) => m.p.txid || m.key)) {
       const out = group.find((m) => m.p.type === "transfer_out"), inn = group.find((m) => m.p.type === "transfer_in");
@@ -246,6 +274,21 @@ module.exports = (Resolver) => {
         const value = p.value_cents != null ? p.value_cents : unitsValueCents(parseUnits(p.units), p.price);
         const row = perAccount.get(k) || { holding, date, cents: 0, o };
         row.cents += value;
+        perAccount.set(k, row);
+      }
+    }
+    // A price is a fact about an instrument. A wallet with no statement of its own is worth what a statement elsewhere says a unit is worth.
+    const stated = new Set([...perAccount.values()].map((r) => r.holding));
+    for (const [date, rows] of prices) for (const o of rows) {
+      const p = o.payload, instrument = this.instrumentOf(p.instrument_ref, date), each = parseUnits(p.units);
+      if (!instrument || !each) continue;
+      const worth = p.value_cents != null ? p.value_cents : unitsValueCents(each, p.price);
+      for (const holding of this.holdingsOfInstrument(instrument)) {
+        if (stated.has(holding)) continue;
+        const units = this.unitsOn(instrument, date, holding);
+        if (units <= 0n) continue;
+        const k = `${holding}|${date}`, row = perAccount.get(k) || { holding, date, cents: 0, o };
+        row.cents += Math.round(worth * Number(units) / Number(each));
         perAccount.set(k, row);
       }
     }

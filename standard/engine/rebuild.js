@@ -48,7 +48,7 @@ function rebuild(input) {
     asOf: asOf || latestDate(R),
     accounts: [...(setup.account || []), ...auto],
     categories: setup.category || [], parties: setup.party || [], contracts: setup.contract || [], assets: setup.asset || [], ownership: setup.ownership || [],
-    households: setup.household || [], links: setup.link || [], streams: setup.stream || [], periods: setup.period || [], budgets: setup.budget || [], activities: setup.activity || [],
+    households: setup.household || [], memberships: setup.membership || [], links: setup.link || [], streams: setup.stream || [], periods: setup.period || [], budgets: setup.budget || [], activities: setup.activity || [],
     sources: sources || [], observations: R.obs, decisions, events: R.events, postings, witnesses, terms: R.terms, termIdx: indexTerms(R.terms), lines: R.lines, linesByAccount: R.linesByAccount,
   };
   L.index = V.ledgerIndex(L);

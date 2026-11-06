@@ -2,7 +2,7 @@
 /* Scores the engine on the second household it has never seen. Builds the Reyes-Wolaks, ingests their files, rebuilds with only their onboarding setup and the public dictionary and
    recipes, and compares every number with the simulation's truth. No decisions, no rules. Nothing here adjusts anything to improve a score. Report shape from eval/heldout/run.js.
 
-   node standard/eval/heldout2/run.js        prints the table and writes BLIND-2.md beside this file */
+   node standard/eval/heldout2/run.js        prints the table and writes RESULT.md beside this file. BLIND-2.md is the first run, kept as written */
 "use strict";
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const STD = path.join(__dirname, "..", "..");
@@ -32,7 +32,7 @@ function run() {
   const schema = { events: read(path.join(STD, "schema", "events.json")), metrics: read(path.join(STD, "schema", "metrics.json")) };
   const reference = read(path.join(STD, "reference", "au.json"), null);
   const receipts = (intake.files || []).map((f) => { const parts = f.path.split("/"); return { stream_id: parts[1], day: parts[2] }; });
-  const once = (setup) => rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions: [], rules: [], schema, reference, receipts });
+  const once = (setup, rules = []) => rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions: [], rules, schema, reference, receipts });
   const setup = loadSetup(); let L, crash = null, used = setup;
   const where = (e) => { const ls = String(e.stack).split("\n").filter((x) => /engine\//.test(x)).map((x) => x.trim().replace(/^.*standard\//, "standard/").replace(/\)$/, "")); return { at: ls[0] || "", via: ls[1] || "" }; };
   try { L = once(setup); } catch (e) {
@@ -40,7 +40,7 @@ function run() {
     used = restateSuperLinks(setup);
     try { L = once(used); crash.recovered = true; } catch (e2) { crash.second = { message: e2.message, ...where(e2) }; console.log(JSON.stringify(crash, null, 1)); console.log(String(e2.stack).split("\n").slice(0, 12).join("\n")); process.exit(1); }
   }
-  return { L, truth, intake, manifest, setup: used, crash, built };
+  return { L, truth, intake, manifest, setup: used, crash, built, again: (rules) => once(used, rules) };
 }
 
 // ---------- reading the engine's output ----------
@@ -48,11 +48,15 @@ function Reader(L, setup) {
   const cats = new Map(L.categories.map((c) => [c.category_id, c])), bal = {};
   for (const r of L.balances.rows) { const a = (bal[r.account_id] = bal[r.account_id] || {}); a[r.month_end.slice(0, 7)] = r.balance_cents; }
   const events = new Map();
-  for (const e of L.events) for (const p of e.postings || []) { if (!p.account_id) continue; const k = `${p.account_id}|${p.amount_cents}`; if (!events.has(k)) events.set(k, []); events.get(k).push(e); }
+  for (const e of L.events) {
+    for (const p of e.postings || []) { if (!p.account_id) continue; const k = `${p.account_id}|${p.amount_cents}`; if (!events.has(k)) events.set(k, []); events.get(k).push(e); }
+    // A transfer can book a line in two parts, the transfer and the fee inside it. The line is still found by its own amount.
+    for (const l of e.lines || []) { const k = `${l.account}|${l.cents}`; if (!(events.get(k) || []).includes(e)) { if (!events.has(k)) events.set(k, []); events.get(k).push(e); } }
+  }
   const cashAcct = new Set(L.accounts.filter((a) => a.reporting_group === "cash").map((a) => a.account_id));
   // what the cash lens does with an event: an entry that nets to nothing across cash accounts is a wash whatever its category
   const treat = (ev) => {
-    const c = cats.get(ev.category_id); if (!c) return "neither";
+    const c = cats.get(ev.category_id); if (!c || ev.unexplained) return "neither";
     if ((ev.postings || []).filter((p) => cashAcct.has(p.account_id)).reduce((t, p) => t + p.amount_cents, 0) === 0) return "neither";
     if (c.kind === "income" && c.cash_lens) return "income"; if ((c.kind === "expense" || c.kind === "suspense") && c.cash_lens) return "spending"; return "neither";
   };
@@ -255,7 +259,9 @@ function report(r) {
   try { head = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: STD }).toString().trim(); dirty = execFileSync("git", ["status", "--porcelain", "--", "engine", "intake", "schema", "recipes", "reference"], { cwd: STD }).toString().trim() ? " with uncommitted changes under standard/" : ""; } catch (e) { /* no git, no matter */ }
   const out = [];
   const p = (s = "") => out.push(s);
-  p("# Second held-out household: Reyes-Wolak");
+  p("# Second held-out household: Reyes-Wolak, after repairs");
+  p();
+  p("**This run is not blind.** The blind result is [BLIND-2.md](BLIND-2.md), kept as it was written. The engine then took one repair per shape, each with a failing fixture under `eval/households/`. The scorer reads one new field, `unexplained`, the money in that nobody has explained.");
   p();
   p(`Generated by \`node standard/eval/heldout2/run.js\`. Engine at ${head}${dirty}. Bundle ${L.bundleHash}. ${intake.sources.length} sources, ${intake.observations.length} observations, ${L.events.length} events, ${intake.unknown_files.length} unread, ${intake.faults.length} intake faults. No decisions, no rules. Public recipes and dictionary, and one family's onboarding answers.`);
   p();
@@ -293,6 +299,15 @@ function report(r) {
   p();
   p("| Trap | Dollars | What |\n|---|---:|---|");
   for (const t of dollarsF.slice(0, 10)) p(`| ${t.id} | ${money(t.flaggedCents)} | ${t.name} |`);
+  p();
+  const curveRows = require("../heldout/answers").curve(L, truth, r.setup, r.again);
+  p("## What a person's answers buy");
+  p();
+  p("One question per merchant, in dollar order, answered the way truth would. Truth stands in for the person, so this shows what the questions are worth.");
+  p();
+  p("| Answers | Share of unanswered dollars | Income exact | Spending exact | Questions left |");
+  p("|---:|---:|---:|---:|---:|");
+  for (const x of curveRows) p(`| ${x.answers} | ${(x.share * 100).toFixed(1)}% | ${x.income} of 36 | ${x.spending} of 36 | ${x.left} |`);
   p();
   p("## Line by line");
   p();
@@ -366,7 +381,7 @@ function report(r) {
   p("## Seen but not planted");
   p();
   for (const n of SEEN) p(`- ${n}`);
-  fs.writeFileSync(path.join(__dirname, "BLIND-2.md"), `${out.join("\n")}\n`);
+  fs.writeFileSync(path.join(__dirname, "RESULT.md"), `${out.join("\n")}\n`);
   console.log(out.join("\n"));
 }
 const NOTES = [

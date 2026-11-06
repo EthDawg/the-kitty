@@ -31,7 +31,13 @@
         "L2"
       ],
       "stability": "stable",
-      "doc": "cash.income minus cash.spending."
+      "doc": "cash.income minus cash.spending, plus cash.unexplained."
+    },
+    "cash.unexplained": {
+      "lens": "cash",
+      "grain": "month",
+      "unit": "cents",
+      "doc": "Money in that nobody has explained: not income, not a refund. Part of cash.net, shown apart until a person says what it is."
     },
     "cash.savings_rate": {
       "unit": "ratio",

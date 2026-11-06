@@ -31,13 +31,13 @@ function run() {
   const schema = { events: read(path.join(STD, "schema", "events.json")), metrics: read(path.join(STD, "schema", "metrics.json")) };
   const reference = read(path.join(STD, "reference", "au.json"), null);
   const receipts = (intake.files || []).map((f) => { const parts = f.path.split("/"); return { stream_id: parts[1], day: parts[2] }; });
-  const once = (setup) => rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions: [], rules: [], schema, reference, receipts });
+  const once = (setup, rules = []) => rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions: [], rules, schema, reference, receipts });
   const setup = loadSetup(); let L, crash = null, used = setup;
   try { L = once(setup); } catch (e) {
     crash = { message: e.message, at: (String(e.stack).split("\n").find((x) => /engine\//.test(x)) || "").trim().replace(/^.*standard\//, "standard/").replace(/\)$/, ""), via: (String(e.stack).split("\n").filter((x) => /engine\//.test(x))[1] || "").trim().replace(/^.*standard\//, "standard/").replace(/\)$/, "") };
     used = restateSuperLinks(setup); L = once(used);
   }
-  return { L, truth, intake, manifest, setup: used, crash };
+  return { L, truth, intake, manifest, setup: used, crash, again: (rules) => once(used, rules) };
 }
 
 // ---------- reading the engine's output ----------
@@ -45,11 +45,15 @@ function Reader(L, setup) {
   const cats = new Map(L.categories.map((c) => [c.category_id, c])), bal = {};
   for (const r of L.balances.rows) { const a = (bal[r.account_id] = bal[r.account_id] || {}); a[r.month_end.slice(0, 7)] = r.balance_cents; }
   const events = new Map();
-  for (const e of L.events) for (const p of e.postings || []) { if (!p.account_id) continue; const k = `${p.account_id}|${p.amount_cents}`; if (!events.has(k)) events.set(k, []); events.get(k).push(e); }
+  for (const e of L.events) {
+    for (const p of e.postings || []) { if (!p.account_id) continue; const k = `${p.account_id}|${p.amount_cents}`; if (!events.has(k)) events.set(k, []); events.get(k).push(e); }
+    // A transfer can book a line in two parts, the transfer and the fee inside it. The line is still found by its own amount.
+    for (const l of e.lines || []) { const k = `${l.account}|${l.cents}`; if (!(events.get(k) || []).includes(e)) { if (!events.has(k)) events.set(k, []); events.get(k).push(e); } }
+  }
   const cashAcct = new Set(L.accounts.filter((a) => a.reporting_group === "cash").map((a) => a.account_id));
   // what the cash lens does with an event: an entry that nets to nothing across cash accounts is a wash whatever its category
   const treat = (ev) => {
-    const c = cats.get(ev.category_id); if (!c) return "neither";
+    const c = cats.get(ev.category_id); if (!c || ev.unexplained) return "neither";
     if ((ev.postings || []).filter((p) => cashAcct.has(p.account_id)).reduce((t, p) => t + p.amount_cents, 0) === 0) return "neither";
     if (c.kind === "income" && c.cash_lens) return "income"; if ((c.kind === "expense" || c.kind === "suspense") && c.cash_lens) return "spending"; return "neither";
   };
@@ -220,6 +224,15 @@ function report(r) {
   const asks = new Map(); for (const x of L.review.filter((i) => i.kind === "uncategorised")) asks.set(x.question, (asks.get(x.question) || 0) + Math.abs(x.amount_cents));
   const byValue = [...asks.values()].sort((a, b) => b - a), total = byValue.reduce((a, b) => a + b, 0), top = byValue.slice(0, 30).reduce((a, b) => a + b, 0);
   p(`Spending left uncategorised: ${(T.uncategorised_share * 100).toFixed(1)}% of the dollars. Every merchant is invented, so the dictionary knows few of them; uncategorised spending still counts as spending. The ${L.review.filter((i) => i.kind === "uncategorised").length} lines are ${asks.size} questions, one per merchant, and the first 30 cover ${(top / (total || 1) * 100).toFixed(1)}% of their dollars.`);
+  p();
+  const curveRows = require("./answers").curve(L, truth, r.setup, r.again);
+  p("## What a person's answers buy");
+  p();
+  p("One question per merchant, in dollar order, answered the way truth would. Truth stands in for the person, so this shows what the questions are worth.");
+  p();
+  p("| Answers | Share of unanswered dollars | Income exact | Spending exact | Questions left |");
+  p("|---:|---:|---:|---:|---:|");
+  for (const x of curveRows) p(`| ${x.answers} | ${(x.share * 100).toFixed(1)}% | ${x.income} of 36 | ${x.spending} of 36 | ${x.left} |`);
   p();
   p("## Line by line");
   p();

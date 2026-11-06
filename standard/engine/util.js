@@ -109,4 +109,15 @@ function groupBy(rows, f) {
 const sum = (rows, f) => rows.reduce((s, r) => s + (f ? f(r) : r), 0);
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-module.exports = { UNIT_SCALE, monthOf, monthEnd, addDays, daysBetween, nextMonth, monthsBetween, fyOf, fyRange, parseUnits, fmtUnits, unitsValueCents, allocate, hash64, stableStringify, byKey, groupBy, sum, cmp };
+// Which of these lines add to the target, each counted by its size. Largest lines first, so the first few are the likely ones.
+function subsetSum(lines, target) {
+  const items = lines.slice(0, 16);
+  for (let mask = 1; mask < 1 << items.length; mask++) {
+    let s = 0;
+    for (let i = 0; i < items.length; i++) if (mask & (1 << i)) s += Math.abs(items[i].cents);
+    if (s === target) return items.filter((_, i) => mask & (1 << i));
+  }
+  return null;
+}
+
+module.exports = { subsetSum, UNIT_SCALE, monthOf, monthEnd, addDays, daysBetween, nextMonth, monthsBetween, fyOf, fyRange, parseUnits, fmtUnits, unitsValueCents, allocate, hash64, stableStringify, byKey, groupBy, sum, cmp };

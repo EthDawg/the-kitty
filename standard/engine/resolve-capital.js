@@ -1,10 +1,10 @@
 /* Capital events, super, tax settlement, opening balances and revaluation. Added to Resolver as methods. */
 "use strict";
-const { groupBy, cmp, addDays, daysBetween, monthOf } = require("./util");
+const { groupBy, cmp, addDays, daysBetween, monthOf, subsetSum } = require("./util");
 const { activeOn } = require("./temporal");
 
 const nz = (v) => (v == null ? 0 : v);
-const DEPOSIT_DAYS = require("../schema/matching.json").windows_days.settlement_deposit.days;
+const { settlement_deposit: { days: DEPOSIT_DAYS }, tax_result: { days: TAX_DAYS } } = require("../schema/matching.json").windows_days;
 
 module.exports = (Resolver) => {
   const P = Resolver.prototype;
@@ -234,13 +234,18 @@ module.exports = (Resolver) => {
       latest.set(key, o);
       const want = delta;
       if (!want) continue;
-      const m = this.lines.filter((l) => !l.claimed && l.cents === want && l.date >= addDays(p.assessed_on, -10) && l.date <= addDays(p.assessed_on, 60))
+      const inWindow = (l) => !l.claimed && l.date >= addDays(p.assessed_on, -10) && l.date <= addDays(p.assessed_on, TAX_DAYS);
+      const m = this.lines.filter((l) => inWindow(l) && l.cents === want)
         .sort((a, b) => Math.abs(daysBetween(p.assessed_on, a.date)) - Math.abs(daysBetween(p.assessed_on, b.date)) || cmp(a.key, b.key))[0];
-      if (!m) { (this.unmatchedTax = this.unmatchedTax || []).push({ person, cents: want, o }); this.fault("tax_result_unmatched", o, `${p.fy} assessment for ${this.name(person)} shows ${want / 100} and no bank line matches.`, "Find the refund, or the payment. It may have gone to an old account.", want); continue; }
+      // A bill can be paid in parts. Lines that name the tax office and add to it to the cent.
+      const parts = m ? [m] : want < 0 ? subsetSum(this.lines.filter((l) => inWindow(l) && l.cents < 0 && /\b(ATO|TAX)\b/i.test(l.desc)).sort((a, b) => a.cents - b.cents || cmp(a.key, b.key)), -want) : null;
+      if (!parts) { (this.unmatchedTax = this.unmatchedTax || []).push({ person, cents: want, o }); this.fault("tax_result_unmatched", o, `${p.fy} assessment for ${this.name(person)} shows ${want / 100} and no bank line matches.`, "Find the refund, or the payment. It may have gone to an old account.", want); continue; }
       const kind = want > 0 ? "tax_refund" : "tax_payment";
-      this.claim(m, kind);
-      this.event({ key: `${kind}|${m.key}`, kind, occurred_on: m.date, description: m.desc, category_id: "TAX-REFUND", person, amount_cents: Math.abs(want), grade: "corroborated", rule: "assessment+bank",
-        witnesses: this.lineWitness(m, "clears"), fields: { amount: Math.abs(want) }, refs: { account: m.account, person }, line: m });
+      for (const l of parts) {
+        this.claim(l, kind);
+        this.event({ key: `${kind}|${l.key}`, kind, occurred_on: l.date, description: l.desc, category_id: "TAX-REFUND", person, amount_cents: Math.abs(l.cents), grade: "corroborated", rule: "assessment+bank",
+          witnesses: this.lineWitness(l, "clears"), fields: { amount: Math.abs(l.cents) }, refs: { account: l.account, person }, line: l });
+      }
     }
     for (const o of this.collapseDocs("super_tax_notice")) {
       const p = o.payload; const person = this.partyOf(p.person_ref, p.assessed_on);
@@ -292,6 +297,12 @@ module.exports = (Resolver) => {
     for (const o of this.collapseDocs("super_statement")) {
       const p = o.payload; const a = this.accountOf(o, p.account_ref, p.period_end);
       if (a) note(a, p.period_start, p.opening_cents, o);
+    }
+    // A HELP debt has no statement chain. Its first stated balance is where it opens.
+    for (const o of this.byKind.get("help_balance") || []) {
+      const p = o.payload, person = this.partyOf(p.person_ref, p.as_at);
+      const acct = (this.ctx.setup.account || []).find((a) => a.type === "help_debt" && this.ownersOf("account", a.account_id, p.as_at).some((x) => x.party_id === person));
+      if (acct && Number.isInteger(p.balance_cents)) note(acct.account_id, p.as_at, -p.balance_cents, o);
     }
     for (const a of this.ctx.setup.account || []) {
       if (a.class !== "asset" && a.class !== "liability") continue;
@@ -388,14 +399,3 @@ module.exports = (Resolver) => {
     return null;
   };
 };
-
-function subsetSum(lines, target) {
-  const items = lines.slice(0, 16);
-  const n = items.length;
-  for (let mask = 1; mask < 1 << n; mask++) {
-    let s = 0;
-    for (let i = 0; i < n; i++) if (mask & (1 << i)) s -= items[i].cents;
-    if (s === target) return items.filter((_, i) => mask & (1 << i));
-  }
-  return null;
-}

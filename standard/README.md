@@ -109,7 +109,7 @@ observations.
 
 Some oracle figures were computed by Google Sheets formulas, not by this engine. The scoreboard says plainly what the eval is given and where its truth comes from.
 
-The blind level is the one that tests what tuning cannot, and it is the one that hurt. The first blind household, under [`eval/heldout/`](eval/heldout/), crashed the rebuild, doubled 88 card lines and hid a missing month, on a model that scored 100% on the Davies. That result is [kept as it was written](eval/heldout/BLIND-1.md). Each defect became a fixture and a repair, then a new blind household tests whether the repairs generalise. A score after repair proves only that the repair works.
+The blind level is the one that tests what tuning cannot, and it is the one that hurt. The first blind household crashed the rebuild, doubled 88 card lines and hid a missing month, on a model that scored 100% on the Davies. The repairs did not make the second family easy: 17 of its 56 traps were silently wrong, one of them caused by a repair. Both results are [kept as they were written](eval/heldout/BLIND-1.md). Each defect becomes a fixture and a repair, and a new blind household then tests whether the repairs generalise. A score after repair proves only that the repair works.
 
 ## Compared with
 

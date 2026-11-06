@@ -38,9 +38,10 @@ function structure(decoded) {
   const lines = (decoded.lines || []).filter((l) => l.page === 1);
   const seq = []; let n = 0;
   for (const l of lines) {
-    const classes = l.cells.map(cls);
-    if (classes.length >= 3 && classes[0] === "D" && classes.slice(1).includes("$")) break;
-    seq.push(classes.join("")); n += 1;
+    const classes = l.cells.map(cls), numbers = classes.filter((x) => x === "$" || x === "N").length;
+    // The first data row ends the layout, whatever its first cell is: how many rows follow, and how a price is rounded, are values.
+    if (classes.length >= 3 && (numbers >= 2 || (classes[0] === "D" && classes.slice(1).includes("$")))) break;
+    seq.push(classes.join("").replace(/\$/g, "N")); n += 1;
     if (n >= 10) break;
   }
   const out = { c, seq };

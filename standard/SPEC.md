@@ -336,6 +336,9 @@ therefore a **multiset**, never a hash set:
   show the line there is saying so, and a stream speaks for a day even when the file that speaks is next month's. Two
   files of one stream that do not overlap are not two views of a line. Where nothing proves it, it stays two and asks.
 - A line that gets two dates keeps both. Its balance moves on the posting; the other date is when it was charged.
+- The same charge at two amounts, a cent's rounding or a foreign charge repriced on the way through, is one charge when
+  coverage proves it. The later-issued document's amount stands and the difference is a question. A later download that
+  covers a day and no longer shows an amount has replaced it.
 - If the bank gave a stable `reference`, that is the identity.
 - Otherwise, within a group, the true count is the **largest count any single source shows**. A source can repeat a
   charge; two sources cannot add one.
@@ -386,6 +389,11 @@ reverse, `clearing:payroll:NORTHWIND` is non-zero, it has an age, and it names t
 covers card repayments, own-account transfers, rental disbursements, loan repayments, dividends, super contributions,
 broker settlements, tax refunds and reimbursements.
 
+A two-sided fact need not arrive whole. One statement can clear several credits, and one deposit several buys, so a clearing
+account is matched by sums where amounts prove it. A managing agent is an account: what it pays clears what it owes, however
+it arrives, and what is left is what it still holds. A refinance need not name itself: a final repayment no bank line paid,
+a new lender opening near that date owing that much, and any cash taken out landing in the bank are one event.
+
 ### 6.5 Two lenses, one ledger
 
 Budgets and tax disagree about a mortgage repayment, and both are right. **Cash lens:** $3,912 left the bank for housing.
@@ -398,6 +406,9 @@ transaction has to pick, and then one view is wrong for ever. Both are read from
   no category, so it is neither income nor spending. A card purchase counts when charged; the repayment is a transfer.
   Where a line shows both dates, the month is the charge date, unless the household's `budget_date` is `posted`. Balances
   move on the posting either way, so statements tie.
+- **Money in that nobody has explained** is neither. A credit is a refund only from someone the household has paid, or if
+  it says so. Otherwise it stands apart as `unexplained`, in the month's net and in the queue, so it can never turn
+  spending negative or pass as income.
 - **Economic lens** sums postings on categories with `economic_lens = true`. Interest counts; principal does not. It is
   not strict accrual: income lands on the date the evidence gives. No household books wages by the day.
 
@@ -413,8 +424,11 @@ net_worth(end) - net_worth(start) = income - expenses + revaluation
 Under law L1 this identity holds by construction, so alone it proves nothing. Law L8 therefore tests it against
 independent evidence: net worth as posted against net worth as sources stated it, every month that has a stated figure
 for every account. Revaluation is an event, posted from a dated valuation, to an equity account. Headline net worth
-excludes `clearing` and the `tax` position, with one exception: `clearing:settle` is a debt or a receivable, because a buy
-between trade and settlement has raised holdings and has not yet lowered cash. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
+excludes `clearing` and the `tax` position, with two exceptions, both real money between two places. `clearing:settle` is a
+debt or a receivable, because a buy between trade and settlement has raised holdings and has not yet lowered cash; once
+settlement is well past with no cash line, it is a question and leaves the headline. `clearing:transit` is a transfer that
+has left one account and not reached the other. A household holds what its members own on the day, so a joiner's accounts
+count from their membership date, whatever their year-end papers reach back to. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
 company) is not counted beside the wrapper's balance. Look-through is a view.
 
 ---

@@ -388,12 +388,13 @@ test("the holes the audit found: drift without a declared basis, a held amount, 
   h.line("CARD", "2026-07-01", "OPEN A", -100); h.line("CARD", "2026-07-03", "SHOP ONE", -9900); h.line("CARD", "2026-07-09", "CLOSE A", -200);
   h.observations.slice(3).forEach((o) => { o.source_id = "s2"; });
   assert.equal(run(h).events.filter((e) => /SHOP ONE/.test(e.description)).length, 1, "one charge");
-  // a charge a cent apart stays two, and asks
+  // a charge a cent apart, both files covering both days, is one charge, and asks which amount
   h = two("cent");
   h.line("CARD", "2026-07-01", "OPEN A", -100).line("CARD", "2026-07-02", "SHOP FX", -9900).line("CARD", "2026-07-09", "CLOSE A", -200);
   h.line("CARD", "2026-07-01", "OPEN A", -100); h.line("CARD", "2026-07-02", "SHOP FX", -9901); h.line("CARD", "2026-07-09", "CLOSE A", -200);
   h.observations.slice(3).forEach((o) => { o.source_id = "s2"; });
-  assert.ok(run(h).review.some((r) => r.kind === "possible_duplicate"));
+  assert.ok(run(h).review.some((r) => r.kind === "restated_line"));
+  assert.equal(run(h).events.filter((e) => /SHOP FX/.test(e.description)).length, 1);
   // a hold at 50 that posts at 58
   h = two("hold");
   h.obs("txn_line", { account_ref: "CARD", posting_date: "2026-07-02", description: "SHOP FUEL STATION", amount_cents: -5000, status: "pending" });
@@ -598,4 +599,200 @@ test("a charge in one month that posts in the next: spending reads the charge, t
   assert.equal(L.balances.at("CARD", "2026-07"), -100, "posted in August");
   h.setup.household[0].budget_date = "posted";
   assert.equal(run(h).cash.find((m) => m.month === "2026-07").spending, 100, "a household can keep its books by the posting");
+});
+
+// ---------- shapes the second blind household found. Each failed before its repair. Nothing here reads that household's numbers. ----------
+test("a line the dictionary can name but not place is asked, never parked in UNCAT in silence", () => {
+  const Engine = require("../../../src/engine.js");
+  Engine.loadMerchants({ merchants: require("../../../merchants/merchants.json"), categories: require("../../../merchants/categories.json") });
+  try {
+    const h = household("gov").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+    h.line("BANK", "2026-07-04", "SERVICES AUSTRALIA 7731", 150000);
+    h.line("BANK", "2026-07-05", "BPAY NOWHERE COUNCIL 6641", -40000);
+    const L = run(h);
+    assert.ok(L.review.some((r) => r.kind === "uncategorised" && /SERVICES AUSTRALIA/.test(r.what)));
+    assert.equal(L.cash[0].spending, 40000, "and a BPAY to a biller is still spending, not a transfer");
+  } finally { Engine.loadMerchants({ merchants: { merchants: [] }, categories: {} }); }
+});
+
+test("money in that nobody has explained is not negative spending; a refund from a shop you paid is", () => {
+  const h = household("in").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.line("BANK", "2026-07-02", "WOOLLEN FOX HOBART", -5000).line("BANK", "2026-07-20", "WOOLLEN FOX HOBART", 2000);
+  h.line("BANK", "2026-07-21", "DIRECT CREDIT 88123 QVX", 150000);
+  const L = run(h), m = L.cash[0];
+  assert.equal(m.spending, 3000, "the refund nets, the stranger's credit does not");
+  assert.equal(m.unexplained, 150000);
+  assert.equal(m.net, 147000);
+  assert.ok(L.review.some((r) => /QVX/.test(r.what)));
+});
+
+test("a credit from an account that serves a rental, saying rent, is rent", () => {
+  const h = household("rent").person("a").account("BANK", "offset", "cash", [["a", 10000]]).account("FLAT", "property", "property", [["a", 10000]]);
+  h.setup.asset.push({ asset_id: "UNIT", kind: "property", name: "Unit", account_id: "FLAT" });
+  h.setup.link.push({ relation: "serves", from_type: "account", from_id: "BANK", to_type: "asset", to_id: "UNIT", valid_from: "2000-01-01", recorded_at: "2000-01-01T00:00:00Z" });
+  h.term("asset", "UNIT", "use", "rental", "2000-01-01");
+  h.line("BANK", "2026-07-04", "OSKO FROM R TENANT RENT JUL", 128000);
+  assert.equal(run(h).cash[0].income, 128000);
+});
+
+test("a file with bank references and a file without them still see one line; a late posting is one line; two amounts for one charge are one, and ask", () => {
+  const h = household("mix").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+  const csv = stream(h, "c", "BANK-CSV"), ofx = stream(h, "o", "BANK-OFX");
+  const put = (src, f) => { const n = h.observations.length; f(); from(h, n, src); };
+  put(csv, () => { h.line("BANK", "2026-07-01", "OPEN", -100).line("BANK", "2026-07-18", "Visa Purchase 18/07 MARINA ROLLS GEELONG", -2057).line("BANK", "2026-07-31", "CLOSE", -100); });
+  put(ofx, () => { h.obs("txn_line", { account_ref: "BANK", posting_date: "2026-07-01", description: "OPEN", amount_cents: -100, reference: "FIT1" }); h.obs("txn_line", { account_ref: "BANK", posting_date: "2026-07-18", description: "Visa Purchase 18/07 MARINA ROLLS", amount_cents: -2057, reference: "FIT2" }); h.obs("txn_line", { account_ref: "BANK", posting_date: "2026-07-31", description: "CLOSE", amount_cents: -100, reference: "FIT3" }); });
+  assert.equal(run(h).events.filter((e) => /MARINA/.test(e.description)).length, 1, "a reference on one side does not make two lines");
+
+  const g = household("late").person("a").account("CARD", "credit_card", "cash", [["a", 10000]]);
+  const pdf = stream(g, "p", "PDF"), act = stream(g, "a", "ACT");
+  const add = (src, d, desc, c) => { const n = g.observations.length; g.line("CARD", d, desc, c); from(g, n, src); };
+  add(pdf, "2026-12-01", "OPEN", -100); add(act, "2026-12-01", "OPEN", -100);
+  add(pdf, "2026-12-22", "BELLPOST FRESH BELMONT", -27450); add(act, "2027-01-04", "BELLPOST FRESH BELMONT VIC", -27450);
+  add(pdf, "2026-12-20", "NORDIC WOOL OSLO", -21218); add(act, "2026-12-23", "NORDIC WOOL OSLO", -21904);
+  add(pdf, "2027-01-20", "CLOSE", -100); add(act, "2027-01-20", "CLOSE", -100);
+  const L = run(g);
+  assert.equal(L.events.filter((e) => /BELLPOST/.test(e.description)).length, 1, "thirteen days over Christmas, both streams covering both days");
+  assert.equal(L.events.filter((e) => /NORDIC/.test(e.description)).length, 1, "one foreign charge, repriced on the way through");
+  assert.ok(L.review.some((r) => r.kind === "restated_line"), "and the disagreement is a question");
+});
+
+test("a stranger's name does not make a pair; a transfer with a fee taken off does", () => {
+  const two = (n) => household(n).person("kim", "Kim Wolak").person("sam", "Sam Reilly").account("A", "transaction", "cash", [["kim", 10000]], { name: "Harbour Everyday" }).account("B", "transaction", "cash", [["sam", 10000]], { name: "Wattle Saver" });
+  let h = two("strangers");
+  h.line("A", "2026-05-12", "OSKO TO B NOWAK SECOND HAND BIKE", -40000).line("B", "2026-05-13", "OSKO FROM H WOLAK BIRTHDAY", 40000);
+  let L = run(h);
+  assert.equal(L.events.filter((e) => e.kind === "transfer").length, 0, "a relative with the family surname is not a member");
+  assert.equal(L.cash[0].spending, 40000);
+  h = two("fee");
+  h.line("A", "2026-06-17", "INTERBANK TFR TO WATTLE", -800000).line("B", "2026-06-18", "TFR FROM HARBOUR", 798200);
+  L = run(h);
+  assert.equal(L.events.filter((e) => e.kind === "transfer").length, 1);
+  assert.equal(L.cash[0].spending, 1800, "only the fee is spending");
+  assert.equal(L.balances.at("A", "2026-06"), -800000);
+  assert.equal(L.balances.at("B", "2026-06"), 798200);
+});
+
+test("a refinance can arrive as a final repayment on the old loan and an opening on the new one, with cash taken out", () => {
+  const h = household("refi").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 5000000, opened_on: "2026-01-01" }).account("OLD", "loan", "loans", [["a", 10000]]).account("NEW", "loan", "loans", [["a", 10000]]);
+  h.setup.contract.push({ contract_id: "L1", kind: "loan", name: "Ridge loan", account_id: "OLD" }, { contract_id: "L2", kind: "loan", name: "Harbour loan", account_id: "NEW" });
+  const st = (acct, s, e, open, rep, close) => h.obs("loan_statement", { account_ref: acct, period_start: s, period_end: e, opening_cents: open, interest_cents: 0, fees_cents: 0, repayments_cents: rep, redraws_cents: 0, closing_cents: close });
+  st("OLD", "2026-01-01", "2026-01-31", 40000000, 200000, 39800000);
+  h.line("BANK", "2026-01-15", "RIDGE LOAN REPAYMENT", -200000);
+  st("OLD", "2026-02-01", "2026-02-28", 39800000, 39800000, 0);
+  h.line("BANK", "2026-02-10", "RIDGE LOAN REPAYMENT", -180000);
+  h.line("BANK", "2026-02-14", "WESTPAW LOAN DRAWDOWN 5531", 1500000);
+  st("NEW", "2026-03-01", "2026-03-31", 41120000, 0, 41120000);
+  const L = run(h);
+  assert.equal(L.balances.at("NEW", "2026-01"), 0, "the new loan does not exist before it is drawn");
+  assert.equal(L.balances.at("NEW", "2026-03"), -41120000);
+  assert.equal(L.balances.at("clearing:loan:OLD", "2026-03"), 0);
+  assert.equal(L.cash.find((m) => m.month === "2026-02").income, 0, "cash from a loan is not income");
+  assert.equal(L.balances.at("OLD", "2026-03"), 0);
+});
+
+test("a HELP debt opens where its first balance says, and a bill paid in two parts clears the assessment", () => {
+  const h = household("help").person("a", "Imo Reyes").account("BANK", "transaction", "cash", [["a", 10000]]).account("HELP", "help_debt", "loans", [["a", 10000]]);
+  h.obs("help_balance", { person_ref: "a", as_at: "2025-07-01", balance_cents: 2000000 });
+  h.obs("tax_assessment", { person_ref: "a", fy: "FY2026", version: 1, assessed_on: "2026-10-08", taxable_income_cents: 9000000, gross_tax_cents: 2000000, payg_credits_cents: 1000000, result_cents: -871153, help_cents: 0 });
+  h.line("BANK", "2026-11-05", "BPAY ATO TAX 6610", -435600).line("BANK", "2026-12-03", "BPAY ATO TAX 6610", -435553).line("BANK", "2026-12-20", "SHOPS", -100);
+  const L = run(h);
+  assert.equal(L.balances.at("HELP", "2026-12"), -2000000);
+  assert.ok(!L.review.some((r) => r.kind === "tax_result_unmatched"));
+  assert.equal(L.events.filter((e) => e.kind === "tax_payment").length, 2);
+  assert.equal(L.cash.find((m) => m.month === "2026-11").spending, 0, "tax paid is not a purchase");
+});
+
+test("an agent is an account: what it pays clears what it owes, however it arrives, and rent is income whatever the dictionary calls the agent", () => {
+  const h = household("agent").person("a").account("BANK", "offset", "cash", [["a", 10000]]).account("FLAT", "property", "property", [["a", 10000]]).rule("GOLDFIELDS REALTY", "RENT-MGMT");
+  h.setup.asset.push({ asset_id: "UNIT", kind: "property", name: "Unit", account_id: "FLAT" });
+  h.setup.link.push({ relation: "serves", from_type: "account", from_id: "BANK", to_type: "asset", to_id: "UNIT", valid_from: "2000-01-01", recorded_at: "2000-01-01T00:00:00Z" });
+  h.term("asset", "UNIT", "use", "rental", "2000-01-01");
+  const os = (s, e, extra = {}) => h.obs("owner_statement", { property_ref: "UNIT", period_start: s, period_end: e, gross_rent_cents: 260000, fees_cents: 13600, disbursed_cents: 246400, ...extra });
+  os("2026-01-01", "2026-01-31"); h.line("BANK", "2026-02-03", "GOLDFIELDS REALTY TRUST 7710", 246400);
+  // paid thirteen days late
+  os("2026-02-01", "2026-02-28"); h.line("BANK", "2026-03-13", "GOLDFIELDS REALTY TRUST 7710", 246400);
+  // two credits for one statement, the second a month on
+  os("2026-03-01", "2026-03-31"); h.line("BANK", "2026-04-02", "GOLDFIELDS REALTY TRUST 7710", 123400).line("BANK", "2026-05-02", "GOLDFIELDS REALTY TRUST 7710", 123000);
+  // a repair inside the fees box, with its own line
+  os("2026-04-01", "2026-04-30", { fees_cents: 74840, disbursed_cents: 185160, lines: [{ date: "2026-04-12", description: "Plumber", schedule_line: "Repairs", money_out_cents: 61240 }, { date: "2026-04-30", description: "Management fee", schedule_line: "Management", money_out_cents: 13600 }] });
+  h.line("BANK", "2026-05-04", "GOLDFIELDS REALTY TRUST 7710", 185160);
+  const L = run(h);
+  assert.equal(L.balances.at("clearing:agent:UNIT", "2026-05"), 0, "nothing left in the agent's hands");
+  assert.ok(!L.review.some((r) => r.kind === "owner_statement_unmatched"));
+  assert.equal(L.cash.find((m) => m.month === "2026-02").income, 246400, "income, not a refund of fees");
+  assert.equal(L.accrual.find((m) => m.month === "2026-04").byCategory["RENT-REPAIR"], -61240, "the repair is a repair");
+});
+
+test("a US sale lands as a smaller wire, days later; the gap is a cost. A trade whose cash never comes stops counting as owed", () => {
+  const h = household("wire").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).account("PLAN", "brokerage", "shares", [["a", 10000]], { fidelity: "snapshot", parent_account_id: "BANK" });
+  h.setup.instrument.push({ instrument_id: "ABC", kind: "listed_share", code: "ABC", name: "ABC", currency: "USD" });
+  h.obs("holding", { account_ref: "PLAN", instrument_ref: "ABC", as_at: "2026-02-28", units: "100", price: "300.00", value_cents: 3000000 });
+  h.obs("contract_note", { account_ref: "PLAN", instrument_ref: "ABC", side: "sell", trade_date: "2026-03-12", settlement_date: "2026-03-14", units: "80", price: "300.00", brokerage_cents: 0, consideration_cents: 2404153 });
+  h.line("BANK", "2026-03-20", "ETREAT WIRE USD 15583.05 REF 2026", 2385167);
+  h.obs("contract_note", { account_ref: "PLAN", instrument_ref: "ABC", side: "sell", trade_date: "2026-04-28", settlement_date: "2026-04-30", units: "20", price: "300.00", brokerage_cents: 0, consideration_cents: 600000 });
+  h.line("BANK", "2026-06-02", "SHOPS", -100);
+  const L = run(h);
+  assert.equal(L.balances.at("clearing:settle:BANK", "2026-03"), 0, "the wire and its difference clear the sale");
+  assert.equal(L.cash.find((m) => m.month === "2026-03").income, 0, "a sale is not income");
+  assert.equal(L.cash.find((m) => m.month === "2026-03").unexplained || 0, 0);
+  const w = (m) => L.netWorth.find((r) => r.month === m);
+  assert.equal(w("2026-04").groups.unsettled, 600000, "owed while settlement is near");
+  assert.ok(!w("2026-06").groups.unsettled, "a question, not an asset, long after");
+  assert.ok(L.review.some((r) => r.kind === "trade_unsettled"));
+});
+
+test("a coin in a wallet with no statement is worth the exchange's price; lots are read per wallet; one deposit can fund two buys", () => {
+  const h = household("coin").person("a").account("BANK", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 1000000, opened_on: "2026-01-01" }).account("EX", "crypto_wallet", "crypto", [["a", 10000]], { parent_account_id: "BANK" }).account("COLD", "crypto_wallet", "crypto", [["a", 10000]]);
+  h.setup.instrument.push({ instrument_id: "BTC", kind: "crypto", code: "BTC", name: "Bitcoin", currency: "AUD" }, { instrument_id: "ETH", kind: "crypto", code: "ETH", name: "Ether", currency: "AUD" });
+  const tx = (p) => h.obs("crypto_txn", { wallet_ref: "EX", quote_asset: "AUD", ...p });
+  h.line("BANK", "2026-04-22", "COINPURR AUD DEPOSIT 8841", -400000);
+  tx({ time: "2026-04-23T03:12:00Z", type: "buy", asset: "BTC", units: "0.60000000", quote_units: "2487.50", aud_value_cents: 248750, fee_asset: "AUD", fee_units: "12.50", txid: "T1" });
+  tx({ time: "2026-04-24T02:41:00Z", type: "buy", asset: "ETH", units: "0.20000000", quote_units: "1492.50", aud_value_cents: 149250, fee_asset: "AUD", fee_units: "7.50", txid: "T2" });
+  h.obs("crypto_txn", { wallet_ref: "EX", time: "2026-05-02T00:00:00Z", type: "transfer_out", asset: "BTC", units: "0.40000000", fee_units: "0.00010000", txid: "M1" });
+  h.obs("crypto_txn", { wallet_ref: "COLD", time: "2026-05-02T00:10:00Z", type: "transfer_in", asset: "BTC", units: "0.39990000", txid: "M1" });
+  h.obs("holding", { account_ref: "EX", instrument_ref: "BTC", as_at: "2026-05-31", units: "0.20000000", price: "5000.00", value_cents: 100000 });
+  h.obs("holding", { account_ref: "EX", instrument_ref: "ETH", as_at: "2026-05-31", units: "0.20000000", price: "7000.00", value_cents: 140000 });
+  const L = run(h);
+  assert.ok(!L.review.some((r) => r.kind === "trade_unsettled"), "the deposit paid for both, fees and all");
+  assert.equal(L.cash.find((m) => m.month === "2026-04").spending, 0);
+  assert.equal(L.balances.at("COLD", "2026-05"), 199950, "0.3999 at the exchange's price");
+  assert.ok(!status(L, "L7").includes("fail"), "each wallet against its own statement");
+});
+
+test("a member's accounts count from the day they join, whatever their year-end papers reach back to", () => {
+  const h = household("join").person("a").person("tom").account("A", "transaction", "cash", [["a", 10000]], { opening_balance_cents: 100000, opened_on: "2024-01-01" }).account("S", "super", "super", [["tom", 10000]]);
+  h.setup.membership.find((m) => m.party_id === "tom").valid_from = "2025-03-24";
+  h.obs("super_statement", { account_ref: "S", period_start: "2024-07-01", period_end: "2025-06-30", opening_cents: 16000000, closing_cents: 17000000, employer_cents: 500000, earnings_cents: 500000 });
+  h.line("A", "2025-07-02", "SHOPS", -100);
+  const L = run(h);
+  assert.equal(L.netWorth.find((r) => r.month === "2024-12").total, 100000, "not his yet");
+  assert.equal(L.netWorth.find((r) => r.month === "2025-07").total, 100000 - 100 + 17000000);
+});
+
+test("a statement that was never downloaded shows, even when its neighbours reach into the month", () => {
+  const h = household("gap").person("a").account("CARD", "credit_card", "cash", [["a", 10000]]);
+  h.setup.stream.push({ stream_id: "STM", subject_type: "account", subject_id: "CARD", cadence: "monthly", grace_days: 14, valid_from: "2026-01-15", valid_to: null });
+  h.setup.stream[0].valid_from = "2025-10-15";
+  for (const [s, e] of [["2025-10-15", "2025-11-14"], ["2025-11-15", "2025-12-14"], ["2025-12-15", "2026-01-14"], ["2026-01-15", "2026-02-14"], ["2026-02-15", "2026-03-14"], ["2026-03-15", "2026-04-14"], ["2026-05-15", "2026-06-14"], ["2026-06-15", "2026-07-14"]]) {
+    const id = `f${e}`; stream(h, id, "STM"); const n = h.observations.length;
+    h.obs("statement", { account_ref: "CARD", period_start: s, period_end: e, opening_cents: -Number(s.slice(5, 7)), closing_cents: -Number(e.slice(5, 7)) }); from(h, n, id);
+  }
+  const c = run(h, { asOf: "2026-07-20" }).coverage.find((x) => x.stream_id === "STM");
+  assert.ok(c.missing.includes("2026-05"), `named: ${c.missing}`);
+  assert.ok(c.have < c.expected);
+});
+
+test("one childcare debit for two children attaches both statements", () => {
+  const h = household("ccs").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).rule("KITTENHOOD", "SHOPPING");
+  for (const child of ["Noa", "Ari"]) h.obs("childcare_statement", { provider_ref: "Kittenhood", child_ref: child, period_start: "2026-03-01", period_end: "2026-03-31", gross_fee_cents: 187200, subsidy_cents: 131040, gap_cents: 56160 });
+  h.line("BANK", "2026-04-02", "KITTENHOOD ELC", -112320);
+  assert.ok(!status(run(h), "L4").includes("fail"));
+});
+
+test("a fingerprint is the layout: another row, or a price with a different number of decimals, is the same format", () => {
+  const { fingerprint } = require("../../intake/fingerprint");
+  const doc = (rows) => ({ meta: { container: "html", title: "Coinpurr holdings" }, lines: [{ page: 1, cells: ["Coinpurr", "Holdings"] }, { page: 1, cells: ["Asset", "Units", "Price", "Value"] }, ...rows.map((cells) => ({ page: 1, cells })) ] });
+  const two = doc([["BTC", "0.5", "101,250.00", "50,625.00"], ["ETH", "2.0", "4,410.5", "8,821.00"]]);
+  const three = doc([["BTC", "0.5", "101,250.5", "50,625.25"], ["ETH", "2.0", "4,410.25", "8,820.50"], ["SOL", "9.1", "211.00", "1,920.10"]]);
+  assert.equal(fingerprint(two), fingerprint(three));
 });

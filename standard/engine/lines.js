@@ -7,6 +7,7 @@ const { groupBy, cmp, daysBetween } = require("./util");
 const MATCH = require("../schema/matching.json");
 
 const PENDING_DAYS = MATCH.windows_days.pending.days, DRIFT_DAYS = MATCH.windows_days.date_drift.days, SIMILAR = MATCH.similarity.minimum;
+const STREAM_JOIN_DAYS = 7, REPRICED = 0.05;
 
 const words = (s) => new Set(String(s || "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length > 1));
 function similarity(a, b) {
@@ -76,7 +77,7 @@ function collapse(items) {
   for (const [k, r] of span) { const [src, account] = k.split("|"); const key = `${streamOfSource.get(src)}|${account}`; if (!streamDays.has(key)) streamDays.set(key, []); streamDays.get(key).push({ ...r }); }
   for (const [key, rows] of streamDays) {
     const merged = [];
-    for (const r of rows.sort((a, b) => cmp(a.lo, b.lo))) { const top = merged[merged.length - 1]; if (top && daysBetween(top.hi, r.lo) <= DRIFT_DAYS) { if (r.hi > top.hi) top.hi = r.hi; } else merged.push(r); }
+    for (const r of rows.sort((a, b) => cmp(a.lo, b.lo))) { const top = merged[merged.length - 1]; if (top && daysBetween(top.hi, r.lo) <= STREAM_JOIN_DAYS) { if (r.hi > top.hi) top.hi = r.hi; } else merged.push(r); }
     streamDays.set(key, merged);
   }
   const sourcesOf = (l) => new Set(l.witnesses.map((o) => o.source_id));
@@ -91,9 +92,11 @@ function collapse(items) {
       if (merged.has(a)) continue;
       for (let j = i + 1; j < sorted.length; j++) {
         const b = sorted[j];
-        if (merged.has(b) || daysBetween(a.date, b.date) > DRIFT_DAYS || a.date === b.date) continue;
+        if (merged.has(b) || daysBetween(a.date, b.date) > DRIFT_DAYS) continue;
         const A = sourcesOf(a), B = sourcesOf(b);
         if ([...A].some((x) => B.has(x))) continue;                         // one source showing both means two charges
+        // Same day, same amount, two files: the multiset rule, for a pair the reference pass kept apart because only one side has a reference.
+        if (a.date === b.date) { a.witnesses.push(...b.witnesses); if (!a.ref) a.ref = b.ref; if (a.balanceAfter == null) a.balanceAfter = b.balanceAfter; merged.add(b); break; }
         const declared = a.dateBasis && b.dateBasis && a.dateBasis !== b.dateBasis;
         if (similarity(a.desc, b.desc) < SIMILAR) continue;
         const oneStream = [...streamsOf(a)].some((x) => streamsOf(b).has(x));
@@ -116,17 +119,32 @@ function collapse(items) {
   }
   if (merged.size) { const live = lines.filter((l) => !merged.has(l)); lines.length = 0; lines.push(...live); }
 
-  // The same charge a cent apart, from two sources covering both days, cannot be proved one or two. It stays two and becomes a question.
-  for (const [, group] of groupBy(lines, (l) => l.account)) {
+  /* The same charge at two amounts: a cent's rounding, or a foreign charge repriced between authorisation and posting. Each stream is complete for the
+     other's day and neither shows a second charge, so it is one charge. The later-issued document's amount stands and the difference is a question.
+     Where the coverage does not prove it, it stays two and asks. */
+  const repriced = new Set();
+  for (const [, group] of groupBy(lines.filter((l) => !merged.has(l)), (l) => l.account)) {
     const sorted = [...group].sort((a, b) => cmp(a.date, b.date) || a.cents - b.cents);
     for (let i = 0; i < sorted.length; i++) for (let j = i + 1; j < sorted.length && daysBetween(sorted[i].date, sorted[j].date) <= DRIFT_DAYS; j++) {
       const a = sorted[i], b = sorted[j];
-      if (a.cents === b.cents || Math.abs(a.cents - b.cents) > Math.max(5, Math.abs(a.cents) * 0.01)) continue;
+      if (repriced.has(a) || repriced.has(b) || a.cents === b.cents || Math.sign(a.cents) !== Math.sign(b.cents) || Math.abs(a.cents - b.cents) > Math.max(5, Math.abs(a.cents) * REPRICED)) continue;
       const A = sourcesOf(a), B = sourcesOf(b);
       if ([...A].some((x) => B.has(x)) || similarity(a.desc, b.desc) < 0.5) continue;
-      faults.push({ kind: "possible_duplicate", ref: `${a.account}|${a.date}|${a.cents}`, account: a.account, cents: a.cents, what: `${a.desc} appears as ${a.cents / 100} and ${b.cents / 100} in two files. One charge or two?` });
+      const oneStream = [...streamsOf(a)].some((x) => streamsOf(b).has(x));
+      // Inside one stream the proof is a later download covering the day and no longer showing the earlier amount: the authorisation became the posting.
+      const overtaken = oneStream && (fileCovers(b, a.date) || fileCovers(a, b.date));
+      if (oneStream && !overtaken) continue;
+      if (!oneStream && !(streamCovers(a, b.date) && streamCovers(b, a.date))) {
+        faults.push({ kind: "possible_duplicate", ref: `${a.account}|${a.date}|${a.cents}`, account: a.account, cents: a.cents, what: `${a.desc} appears as ${a.cents / 100} and ${b.cents / 100} in two files. One charge or two?` });
+        continue;
+      }
+      const keep = overtaken ? (fileCovers(b, a.date) ? b : a) : (a.issuedOn || "") >= (b.issuedOn || "") ? a : b, drop = keep === a ? b : a, later = a.date > b.date ? a.date : b.date, earlier = a.date > b.date ? b.date : a.date;
+      keep.witnesses.push(...drop.witnesses); keep.date = later; if (earlier !== later && !keep.valueDate) keep.valueDate = earlier;
+      repriced.add(drop);
+      faults.push({ kind: "restated_line", ref: `${keep.account}|${later}|${keep.cents}`, account: keep.account, cents: a.cents - b.cents, what: `${keep.desc} shows ${a.cents / 100} in one file and ${b.cents / 100} in the other. The ledger holds ${keep.cents / 100}.` });
     }
   }
+  if (repriced.size) { const live = lines.filter((l) => !repriced.has(l)); lines.length = 0; lines.push(...live); }
 
   // A pending line is a witness that expires: replaced by its posted form, kept only while nothing later has covered its date.
   const coverage = new Map();
@@ -155,7 +173,7 @@ function makeLine(best, group) {
   const longest = group.reduce((a, x) => (String(x.desc).length > String(a).length ? x.desc : a), best.desc);
   return {
     account: best.account, date: best.date, valueDate: best.valueDate || null, cents: best.cents, desc: longest, ref: best.ref || null,
-    seq: best.seq, dateBasis: best.dateBasis || null, balanceAfter: group.map((x) => x.balanceAfter).find((v) => v != null) ?? null, cardMember: best.cardMember || null,
+    seq: best.seq, dateBasis: best.dateBasis || null, issuedOn: best.issuedOn || null, balanceAfter: group.map((x) => x.balanceAfter).find((v) => v != null) ?? null, cardMember: best.cardMember || null,
     foreignAmount: best.foreignAmount || null, foreignCurrency: best.foreignCurrency || null,
     witnesses: group.map((x) => x.obs), claimed: null, cls: null,
   };

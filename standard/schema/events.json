@@ -457,6 +457,20 @@
         ]
       ]
     },
+    "settle_difference": {
+      "family": "trade",
+      "legs": [
+        [
+          "clearing:settle:{account}",
+          "-amount"
+        ],
+        [
+          "cat:{category}",
+          "+amount"
+        ]
+      ],
+      "note": "What a sale lost between its proceeds and the wire that landed."
+    },
     "dividend": {
       "family": "income",
       "authority": [
@@ -903,6 +917,23 @@
           "+fee"
         ]
       ]
+    },
+    "loan_takeout": {
+      "family": "loan",
+      "authority": [
+        "loan_statement"
+      ],
+      "legs": [
+        [
+          "clearing:loan:{old_loan}",
+          "+amount"
+        ],
+        [
+          "{new_loan}",
+          "-amount"
+        ]
+      ],
+      "note": "A refinance that never names itself: the old lender shows a repayment no bank line paid, and the new lender opens owing it."
     },
     "capital_return": {
       "family": "trade",

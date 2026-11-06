@@ -12,6 +12,7 @@ const people = (L) => L.parties.filter((p) => p.kind === "person").map((p) => p.
 const REGISTRY = {
   "cash.income": (L) => L.cash.map((m) => ({ grain: m.month, value: m.income })),
   "cash.spending": (L) => L.cash.flatMap((m) => Object.entries(m.byCategory).filter(([, v]) => v < 0 || L.index.categories.get(m) ).map(([c, v]) => ({ grain: `${m.month}|${c}`, value: -v }))),
+  "cash.unexplained": (L) => L.cash.filter((m) => m.unexplained).map((m) => ({ grain: m.month, value: m.unexplained })),
   "cash.net": (L) => L.cash.map((m) => ({ grain: m.month, value: m.net })),
   "cash.savings_rate": (L) => L.cash.filter((m) => m.income).map((m) => ({ grain: m.month, value: +(m.net / m.income).toFixed(4) })),
   "budget.variance": (L) => L.balances.months.flatMap((m) => V.budgetVariance(L, m).map((b) => ({ grain: `${m}|${b.category_id}`, value: b.variance_cents }))),

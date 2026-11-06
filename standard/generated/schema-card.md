@@ -44,7 +44,7 @@ amortisation_schedule: contract_ref* issued_on* items*
 super_tax_notice: person_ref* fy* assessed_on* amount_cents* due_on election
 
 ## Event kinds
-opening_balance purchase refund income reimbursement gift_in transfer open_transfer wage wage_receipt wage_unmatched loan_interest loan_fee loan_payment loan_applied loan_redraw rent_statement rent_receipt super_contribution super_personal super_rollover super_earnings super_cost trade_buy trade_sell settle_cash dividend dividend_receipt drp cost_adjust corporate_action vest crypto_buy crypto_sell crypto_swap crypto_income revaluation asset_purchase asset_payment asset_disposal tax_assessed tax_refund tax_payment help_indexation adjustment on_behalf recovery super_withdrawal super_receipt trust_distribution bas_payment loss_carried cost_base_reset loan_payout capital_return ownership_change crypto_transfer div293_assessed super_release
+opening_balance purchase refund income reimbursement gift_in transfer open_transfer wage wage_receipt wage_unmatched loan_interest loan_fee loan_payment loan_applied loan_redraw rent_statement rent_receipt super_contribution super_personal super_rollover super_earnings super_cost trade_buy trade_sell settle_cash settle_difference dividend dividend_receipt drp cost_adjust corporate_action vest crypto_buy crypto_sell crypto_swap crypto_income revaluation asset_purchase asset_payment asset_disposal tax_assessed tax_refund tax_payment help_indexation adjustment on_behalf recovery super_withdrawal super_receipt trust_distribution bas_payment loss_carried cost_base_reset loan_payout loan_takeout capital_return ownership_change crypto_transfer div293_assessed super_release
 
 ## Tables
 setup: household party membership account alias ownership link category instrument asset activity contract term period stream scope tax_map
@@ -56,7 +56,7 @@ tax: tax_item
 control: check_result review_item metric_value run
 
 ## Metrics
-cash.income cash.spending cash.net cash.savings_rate budget.variance economic.income economic.expense income.receipts income.total income.taxable income.surcharge income.composition position.balance position.cash position.net_worth position.net_worth_by_group position.net_worth_by_owner position.free_cash loan.interest loan.principal_paid loan.rate_on loan.expected_interest activity.net_income property.cost_base super.contributions super.cap_used shares.holdings shares.realised_gain tax.item tax.estimate tax.readiness things.refresh_due bills.committed evidence.coverage forecast.cash forecast.tax advice.tax_return
+cash.income cash.spending cash.net cash.unexplained cash.savings_rate budget.variance economic.income economic.expense income.receipts income.total income.taxable income.surcharge income.composition position.balance position.cash position.net_worth position.net_worth_by_group position.net_worth_by_owner position.free_cash loan.interest loan.principal_paid loan.rate_on loan.expected_interest activity.net_income property.cost_base super.contributions super.cap_used shares.holdings shares.realised_gain tax.item tax.estimate tax.readiness things.refresh_due bills.committed evidence.coverage forecast.cash forecast.tax advice.tax_return
 
 ## Laws
 L1 Conservation; L2 Clearing; L3 Continuity; L4 One claim; L5 Payslip; L6 Interest; L7 Holdings; L8 Roll-forward; L9 Ownership; L10 Timeline; L11 Tax tie; L12 Seal; L13 Coverage; L14 Super tie; L15 Provenance; L16 Cap; L17 Bound; L18 One level; L19 BAS sales tie; L20 Plausibility
