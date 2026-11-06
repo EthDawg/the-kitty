@@ -23,10 +23,9 @@ test("with no clock every portal holds what it always held", async () => {
 
 test("a clock hides rows, months, statements and files from after it, in every layer", async () => {
   await signIn(ctx, "westpaw", VISITOR);
-  await setClock(ctx, { chapter: 1 });
+  await setClock(ctx, { today: "2027-01-31" });
   const j = await getJson(ctx, "/api/accounts?brand=westpaw");
   expect(j.as_of).toBe("2027-01-31");
-  expect(j.chapter).toBe(1);
   expect(j.today).toBe("2027-01-31");
   expect(last(j.months)).toBe("2027-01");
   const evd = j.accounts.find((a) => a.id === "ACC-EVD");
@@ -87,6 +86,18 @@ test("an account opened after the clock is not there, and a loan shows its balan
   expect(r.headers()["content-disposition"], "falls back to the last period that existed, not a later one").toContain("2020");
 });
 
+test("a chapter stands on the day the life plays it, and the clock's words are today or as_of", async () => {
+  await signIn(ctx, "westpaw", VISITOR);
+  const set = await setClock(ctx, { chapter: 1 });
+  expect(set).toMatchObject({ today: "2027-01-16", chapter: 1 });
+  expect((await getJson(ctx, "/api/accounts?brand=westpaw")).chapter).toBe(1);
+  expect((await getJson(ctx, "/api/accounts?brand=westpaw&chapter=4")).as_of).toBe("2027-10-31");
+  expect((await getJson(ctx, "/api/accounts?brand=westpaw&today=2026-06-30")).as_of).toBe("2026-06-30");
+  expect((await getJson(ctx, "/api/accounts?brand=westpaw&as_of=2026-06-30")).as_of).toBe("2026-06-30");
+  expect((await getJson(ctx, "/api/clock")).chapters.find((c) => c.chapter === 6)).toEqual({ chapter: 6, today: "2036-03-31" });
+  expect(JSON.stringify((await getJson(ctx, "/api/clock")).chapters), "the days, not the story").not.toContain("separate");
+});
+
 test("a clock written wrongly is refused, and one clock holds across every portal in a browser", async () => {
   await signIn(ctx, "westpaw", VISITOR);
   expect((await ctx.get("/api/accounts?brand=westpaw&as_of=31-01-2027")).status()).toBe(400);
@@ -109,6 +120,6 @@ test("a chapter link sets the clock in a browser, and the page says so", async (
   await page.fill("#password", "demo");
   await page.click("#loginbtn");
   await expect(page.locator(".greet")).toBeVisible();
-  await expect(page.locator("#clockline")).toContainText("31 Jan 2027");
-  await expect(page.locator(".acct").first()).toContainText("as at 31 Jan 2027");
+  await expect(page.locator("#clockline")).toContainText("16 Jan 2027");
+  await expect(page.locator(".acct").first()).toContainText("as at 16 Jan 2027");
 });

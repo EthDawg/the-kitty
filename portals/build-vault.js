@@ -2,8 +2,8 @@
 /* The vault: every file the Davies world delivers, copied unchanged into estate/files/vault/ and listed in estate/vault.json for the portals to hand over.
    From a checkout: node standard/world/build.js && node portals/build-vault.js. The `streams` in brands.json and vault-brands.json say which portal holds
    what; a world file with no home or two homes, a stream no file uses, or a copy that fails its hash stops the build. It also writes estate/access.json,
-   who holds what from the world's ownership tables, and estate/people.json, the family profile. estate/ is gitignored, and sits outside public/ so a file
-   is only ever handed over by api/files.js, which asks the clock and the person first. public/vault-stats.json keeps the landing page's counts. */
+   who holds what from the world's ownership tables. estate/ is gitignored, and sits outside public/ so a file is only ever handed over by api/files.js,
+   which asks the clock and the person first. public/vault-stats.json keeps the landing page's counts. */
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -15,7 +15,6 @@ const PUBLIC = path.join(__dirname, "public");
 const ESTATE = path.join(__dirname, "estate");
 const VAULT = path.join(ESTATE, "files", "vault");
 const INDEX = path.join(ESTATE, "vault.json");
-const PROFILE = path.resolve(__dirname, "..", "life", "davies", "profile.json");
 const { buildEstate } = require("./build-estate");
 const stop = (lines) => { console.error(`build-vault: ${[lines].flat().join("\n  ")}`); process.exit(1); };
 const read = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
@@ -82,10 +81,9 @@ for (const c of Object.keys(contracts)) { const rows = holdersOf("contract", c);
 for (const o of ownership) subjects[o.subject_id] = owners(o.subject_type, o.subject_id);
 for (const [id, parties] of Object.entries(RULES.access)) if (Array.isArray(parties)) subjects[id] = parties.map(always);
 fs.writeFileSync(path.join(ESTATE, "access.json"), `${JSON.stringify({ subjects })}\n`);
-fs.copyFileSync(PROFILE, path.join(ESTATE, "people.json"));
 
 console.log(`${files.length} files for ${new Set(files.map((f) => f.brand)).size} portals in estate/files/vault`);
 
-buildEstate({ ESTATE, vault: { streams, files }, access: { subjects }, profile: read(PROFILE), repoRoot: path.resolve(__dirname, "..") }).then((r) => {
+buildEstate({ ESTATE, vault: { streams, files }, access: { subjects }, repoRoot: path.resolve(__dirname, "..") }).then((r) => {
   console.log(`the Drive holds ${r.drive} files in ${r.folders} folders, the inbox ${r.mail} messages, and ${r.missing} things a chapter needs exist nowhere yet`);
 }).catch((e) => stop(e.message));

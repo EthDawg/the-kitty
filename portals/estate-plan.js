@@ -101,9 +101,9 @@ const PROMOS = ["JB Hi-Fur <deals@jbhifur.example>|Massive tech sale, this weeke
    life/davies/ESTATE.md, so this table cannot quietly go stale. `file` matches a file's real name, whatever it has been renamed to. No `file`
    means nothing in the world could be it yet. */
 const NEEDS = [
-  [1, "Everyday joint, the last three months", /Harbour-Transactions-ACC-EVD-2027-01/],
+  [1, "Everyday joint, the last three months", /Harbour-Transactions-ACC-EVD-2026-12/],
   [1, "Daisy's latest payslip", /Pawroll-Payslip-Mia-2027-01/],
-  [2, "A card in Daisy's own name", null, "The only card is Danny's. The brief has Daisy adding a card."],
+  [2, "A card in Daisy's own name", null, "The only card here is Danny's. The generated life gives Daisy one."],
   [2, "Danny's card statements", /Amewx-Statement-2027-01/],
   [2, "Daisy's latest super statement", /HESTAbby-Statement-2026-12-31/],
   [2, "Daisy's HELP balance", /myGuv-HELP-account-FY2026/],
@@ -138,7 +138,7 @@ const NEEDS = [
   [5, "Wills and powers of attorney", null, "No world domain writes them."],
   [5, "A year of bank files after March 2027", null, "The world ends on 31 March 2027."],
   [6, "Salt's pocket money", null, "Memo money, no document. The account has to be made."],
-  [6, "School fees, George's and Evie's birth papers", null, "The world ends on 31 March 2027."],
+  [6, "School fees, birth papers for the younger two", null, "The world ends on 31 March 2027."],
   [7, "ABN registration, client invoices, BAS", null, "The world records no business."],
   [8, "A second store to move to", null, "A real Microsoft demo account does not exist yet. The Drive API is the swap point."],
   [9, "Salt's TFN, first payslip and super", null, "The world ends on 31 March 2027."],

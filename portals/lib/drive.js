@@ -10,13 +10,14 @@ const { has } = require("./clock");
 const { textOf } = require("./read");
 const { parseQuery } = require("./drive-query");
 const { today } = require("./data");
+const { CAST } = require("./people");
 
 const FOLDER = "application/vnd.google-apps.folder";
 const MAX_BYTES = 3.4 * 1024 * 1024; // a Vercel function takes 4.5 MB, and base64 adds a third
 class DriveError extends Error { constructor(status, message) { super(message); this.status = status; } }
 
 const rfc = (d) => (d && d.length === 10 ? `${d}T09:00:00Z` : d);
-const fullName = (id) => { const p = readEstate("people.json").people.find((x) => x.id === id); return p ? `${p.first_name} ${p.family_name}` : id; };
+const fullName = (id) => { const p = CAST.people.find((x) => x.id === id); return p ? `${p.first_name} ${CAST.family_name}` : id; };
 
 class FakeDrive {
   constructor(view) { this.view = view; }

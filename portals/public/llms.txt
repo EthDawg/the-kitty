@@ -10,7 +10,7 @@ Everything. Every institution is a parody with an original name and mark. Every 
 
 Any name with the password `demo` signs in and shows the whole household. Nothing is stored.
 
-Sign in as `Danny` or `Daisy` to be that person. You then see only what they hold, with the friction a real site has. The files still say Jordan and Mia, the family's old names, until a rename lands. Those names sign in too.
+Sign in as `Danny` or `Daisy` to be that person. You then see only what they hold, with the friction a real site has. For now they stand in for Jordan and Mia, the people in these files, and those names sign in too.
 
 - A browser: open a portal, such as /westpaw, and use the form.
 - An agent: `POST /api/login` with JSON `{"brand": "westpaw", "name": "Daisy", "password": "demo"}`, and keep the cookie.
@@ -26,9 +26,9 @@ A named person meets limits that differ by portal: history only goes back so man
 
 The world runs from March 2019 to March 2027. A clock makes the sites behave as they did on one day: nothing later exists.
 
-- `?as_of=2027-01-31` on any API call, or `?chapter=1`.
-- `POST /api/clock` with `{"as_of": "2027-01-31"}` or `{"chapter": 1}` sets it for every portal in this browser. An empty `as_of` takes it off.
-- `?as_of=` or `?chapter=` on a portal's page does the same.
+- `?today=2027-01-31` on any API call, or `?chapter=1`. `?as_of=` means the same.
+- `POST /api/clock` with `{"today": "2027-01-31"}` or `{"chapter": 1}` sets it for every portal in this browser. An empty `today` takes it off.
+- `?today=` or `?chapter=` on a portal's page does the same.
 
 ## Drive and mail
 

@@ -191,7 +191,7 @@
   };
 
   // what this portal limits, in its own words, for a named person
-  const rulesLine = () => { const r = data.rules || {}, p = data.person, bits = []; if (r.back_years) bits.push(`keeps ${r.back_years} years online`); if (r.window_days) bits.push(`exports at most ${r.window_days} days at a time`); if (r.gap_seconds) bits.push("hands over one document at a time"); return `${bits.length ? ` ${esc(brand.name)} ${bits.join(", ")}.` : ""}${p && p.world_first_name !== p.first_name ? ` The papers still say ${esc(p.world_first_name)}.` : ""}`; };
+  const rulesLine = () => { const r = data.rules || {}, p = data.person, bits = []; if (r.back_years) bits.push(`keeps ${r.back_years} years online`); if (r.window_days) bits.push(`exports at most ${r.window_days} days at a time`); if (r.gap_seconds) bits.push("hands over one document at a time"); return `${bits.length ? ` ${esc(brand.name)} ${bits.join(", ")}.` : ""}${p && p.papers_say !== p.first_name ? ` The papers here say ${esc(p.papers_say)}.` : ""}`; };
 
   // ---- routing, sign-in, boot
   const route = () => {
@@ -218,8 +218,8 @@
   });
   $("#signout").addEventListener("click", async () => { await fetch("/api/logout", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ brand: brandId }) }); data = null; location.hash = ""; load(); });
   const showClock = () => { const c = $("#clockline"); c.hidden = !data.as_of; if (data.as_of) c.textContent = `The clock says ${fmtDate(data.as_of)}. Nothing later exists yet.`; };
-  // ?as_of=2027-01-31 or ?chapter=1 on any portal sets the clock for the whole run
-  const setClockFromUrl = async () => { const q = new URLSearchParams(location.search), as_of = q.get("as_of"), chapter = q.get("chapter"); if (as_of == null && chapter == null) return; await fetch("/api/clock", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ as_of, chapter }) }); };
+  // ?today=2027-01-31 or ?chapter=1 on any portal sets the clock for the whole run
+  const setClockFromUrl = async () => { const q = new URLSearchParams(location.search), today = q.get("today"), as_of = q.get("as_of"), chapter = q.get("chapter"); if (today == null && as_of == null && chapter == null) return; await fetch("/api/clock", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ today, as_of, chapter }) }); };
   const load = async () => {
     const r = await fetch(`/api/accounts?brand=${encodeURIComponent(brandId)}`, { headers: { Accept: "application/json" } });
     if (r.status === 401) { $("#signin").hidden = false; $("#view").hidden = true; $("#nav").hidden = true; $("#who").hidden = true; $("#loginbrand").value = brandId; if (new URLSearchParams(location.search).get("error")) { $("#loginerror").textContent = "Any name will do, and the password is demo."; $("#loginerror").hidden = false; } $("#name").focus(); return; }

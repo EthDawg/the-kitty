@@ -73,7 +73,7 @@ const accountsFor = (brandId, view = OPEN) => {
   if (b.kind === "payroll") {
     for (const e of D.employments) {
       const mine = D.payslips.filter((p) => p[1] === e.person && p[2] === e.employer && p[0] <= asAt);
-      if (!mine.length || (view.person && view.person.world_first_name !== e.person)) continue;
+      if (!mine.length || (view.person && view.person.papers_say !== e.person)) continue;
       out.push({ id: `${e.person}@${e.employer}`, kind: "payroll", name: `${e.person} Davies`, number: e.employer, type: `Employee ${e.person.toUpperCase().slice(0, 3)}-${String(1000 + mine.length)} · fortnightly`, owner: e.person, opened: mine[0][0], from: mine[0][0], in_sheet: true,
         balance: null, as_at: asAt, formats: [["pdf", "Payslips (PDF)"], ["csv", "Payslips (CSV, the period-close shape)"], ["income", "Income statement for the financial year (PDF)"]] });
     }

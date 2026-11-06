@@ -16,7 +16,7 @@ const rulesFor = (brandId) => RULES.portals[brandId] || NO_FRICTION;
 // the clock a request carries: the query wins, then a token, then the cookie. A clock written wrongly is refused, not ignored.
 const clockOf = (req, token) => {
   const qs = query(req);
-  const raw = qs.as_of || (qs.chapter != null && qs.chapter !== "" ? `chapter-${qs.chapter}` : "") || (token && token.as_of) || cookies(req)[Clock.cookieName];
+  const raw = qs.today || qs.as_of || (qs.chapter != null && qs.chapter !== "" ? `chapter-${qs.chapter}` : "") || (token && token.as_of) || cookies(req)[Clock.cookieName];
   const clock = Clock.parse(raw);
   if (!clock) { const e = new Error("A clock is a date, YYYY-MM-DD, or a chapter number."); e.status = 400; throw e; }
   return clock;

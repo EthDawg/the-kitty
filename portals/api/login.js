@@ -21,7 +21,8 @@ module.exports = async (req, res) => {
     if (!body.code) return json(res, 200, { needs_code: true, code: codeFor(brand.id, name), how });
     if (!codeOk(brand.id, name, body.code)) return json(res, 401, { error: "That code is not right. Use the one on screen.", needs_code: true, code: codeFor(brand.id, name), how });
   }
-  const clock = body.as_of || body.chapter != null ? Clock.parse(body.as_of || `chapter-${body.chapter}`) : null;
+  const wanted = body.today || body.as_of;
+  const clock = wanted || body.chapter != null ? Clock.parse(wanted || `chapter-${body.chapter}`) : null;
   const run = (tokenOf(req) || {}).run || cookies(req).kp_run || newRun();
   const set = [...doorsOf(brand.id).map((b) => signInCookie(b, name, secure(req))), runCookie(run, secure(req))];
   if (clock) set.push(Clock.setCookie(clock, secure(req)));

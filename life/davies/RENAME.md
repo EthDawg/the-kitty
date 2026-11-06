@@ -1,6 +1,9 @@
 # Rename plan: Jordan, Mia and Ava become Danny, Daisy and Salt
 
-**Status: a plan, not done.** It touches `standard/world`, so it waits until the data model session has landed PR 24.
+**Status: parked. Do not run this.** The programme brief decided there is no rename: Danny and Daisy are a new generated life, and the
+2019 to 2027 benchmark world keeps Jordan, Mia and Ava. Folding them together later is the project owner's call. This page stays as the
+counted cost of doing so. It would touch `standard/world`, so it could not start before PR 24 lands.
+
 Counted on commit `db7ef3c`, branch `standard/household-model`. Count again before starting.
 
 | Old | Canon | World id |
@@ -9,7 +12,7 @@ Counted on commit `db7ef3c`, branch `standard/household-model`. Count again befo
 | Mia Davies | Daisy Davies | `MIA` |
 | Ava Davies | Salt Davies | `AVA` |
 
-George and Evie are new. Neither appears in the world yet.
+George and Evie are new. Neither appears in the benchmark world. If this ever ran, the birth years would need settling too: the benchmark has 1985, 1987 and 2022, and the profile has 1993, 1995 and 2028.
 
 ## How many
 
@@ -64,8 +67,7 @@ The lowercase `ava` and `mia` rows are mostly sign-in test names and need a look
    name must be checked. The portals' `streams` labels ("Jordan's payslips") move to the profile.
 6. **`Card Member` is a real column.** `JORDAN DAVIES` in the card export becomes `DANNY DAVIES`. Both `lib/shapes.js` and
    `standard/world/domains/banks.js` write it, and `period-close` tests carry it.
-7. **Sign-in keeps both.** `sign_in.names` in the profile accepts the old names until nothing outside the repo uses them, so a
-   blind run in progress does not lose its way.
+7. **Sign-in keeps both.** `portals/data/cast.json` accepts both sets of names today, so a blind run in progress does not lose its way.
 
 ## Leave alone
 
@@ -85,4 +87,4 @@ The lowercase `ava` and `mia` rows are mostly sign-in test names and need a look
 2. `standard/world` reads the profile. Party ids change with it.
 3. Regenerate the world, `portals/data/months.json`, `sources/`, fixtures and snapshots.
 4. Fix the hand-written tests. Re-lock the eval in its own commit.
-5. Rename the sheets, then redeploy the portals, then drop the old names from `sign_in.names` last.
+5. Rename the sheets, then redeploy the portals, then drop the old names from `portals/data/cast.json` last.

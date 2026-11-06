@@ -47,13 +47,14 @@ household keeps itself.
 
 Every read passes through one view of the request, `lib/view.js`: when (the clock), who (the person) and how (that portal's friction).
 
-**The clock lives in `lib/clock.js`, between the API and the data.** A request carries an `as_of`: `?as_of=2027-01-31` or `?chapter=1`,
+**The clock lives in `lib/clock.js`, between the API and the data.** A request carries a `today`: `?today=2027-01-31` (or `?as_of=`) or `?chapter=1`,
 a bearer token, or the `kp_as_of` cookie set by `POST /api/clock`. `lib/data.js`, `lib/exports.js`, `lib/vault.js`, `lib/drive.js` and `lib/mail.js`
 ask it through `has()` and `upTo()` and hold no rule of their own. A row exists from its date, a statement from its issue date, an assessment
 from its assessed date (the world's `issued_on`). No clock means everything the portals hold, as before. The chapter dates are in `lib/clock.js`.
 
-**Sign-in chooses a person.** Any name and `demo` still sees the whole household with no friction. A name in `life/davies/profile.json`, old or
-new, is that person. `estate/access.json` says who holds what, written by `build-vault.js` from the world's ownership tables, and it follows the
+**Sign-in chooses a person.** Any name and `demo` still sees the whole household with no friction. A name in `data/cast.json` is that person. These
+portals hold the benchmark world, so its people are the ones who sign in; Danny and Daisy's names stand in for Jordan and Mia until their own generated life
+is loaded. `estate/access.json` says who holds what, written by `build-vault.js` from the world's ownership tables, and it follows the
 date: the saver is joint until 1 July 2024. `data/portal-rules.json` holds the one exception, the card, where the world splits the cost and the
 card company signs in its member.
 
@@ -80,7 +81,7 @@ other. It uses Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set and a temporary f
 | `build-data.py` | Builds `data/months.json` from `history.py`, `data/snapshot.json` (every month the sheet holds, unchanged) and `period-close/simulate.py` run in a scratch copy (the two months ahead). `--check` fails if the committed file is stale; `--write-sources` writes the history as bank files under `../sources/`; `public/stats.json` is written alongside. |
 | `data/months.json` | The one dataset the portals serve: accounts, transactions, payslips, loans by month, properties by month, policies by period. |
 | `public/` | The pages: `index.html` (the landing), `portal.html` + `portal.js` + `portal.css` (one app for every brand: overview, activity, documents, files as delivered), `brands.json` (the seven) and `vault-brands.json` (the seventeen, same shape) as the registry, `marks.js` (the original wordmarks). |
-| `build-vault.js` | Copies the world's files into `estate/files/vault/<stream>/<delivered date>/` and writes `estate/vault.json` (brand, stream, year, date, `exists_from`, file name, size, content type, path, hash), `estate/access.json` and `estate/people.json`, then runs `build-estate.js`. `streams` in each registry row says which portal holds what. A file with no home or two, a stream with no files, or a copy that misses its hash stops the build. `estate/` is gitignored and sits outside `public/`, so nothing is static. |
+| `build-vault.js` | Copies the world's files into `estate/files/vault/<stream>/<delivered date>/` and writes `estate/vault.json` (brand, stream, year, date, `exists_from`, file name, size, content type, path, hash) and `estate/access.json`, then runs `build-estate.js`. `streams` in each registry row says which portal holds what. A file with no home or two, a stream with no files, or a copy that misses its hash stops the build. `estate/` is gitignored and sits outside `public/`, so nothing is static. |
 | `build-estate.js`, `estate-plan.js` | The Drive, the inbox and the files only the estate holds, and `life/davies/ESTATE.md`. |
 | `api/` | `login`, `logout`, `accounts` (list, paged activity, documents), `export` (the download), `files` (the vault, by list or by file), `clock`, and `estate` (the two connectors). |
 | `lib/` | `view.js`, `clock.js`, `people.js`, `friction.js` (the estate rules above), `data.js` (indexes, presets, documents), `shapes.js` (the exact CSV shapes, byte-for-byte what `period-close/adapters.py` writes), `pdf.js` (pdf-lib documents), `exports.js`, `vault.js`, `drive.js`, `drive-query.js`, `mail.js`, `tabby.js`, `runstore.js`, `read.js`, `mime.js`, `zip.js`, `http.js`, `auth.js`. |
