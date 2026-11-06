@@ -1,66 +1,237 @@
 {
   "_about": "Every category_id on the sheet's Categories tab, with the brand icon (an id from brand/icons/icons.json, used as #i-<icon>) and a hue for the category's disc, swatch and jar bubble. A merchant entry may override the icon (a fuel station under Fuel and transport shows the pump, not the tram). Unknown ids fall back by group, then to 'receipt'.",
   "categories": {
-    "SALARY": {"icon": "salary", "hue": "#17986A"},
-    "INTEREST": {"icon": "interest", "hue": "#0E9F9E"},
-    "RENT-INC": {"icon": "property-invest", "hue": "#1E9E6A"},
-    "MORTGAGE": {"icon": "loan", "hue": "#5B3DF5"},
-    "RATES-HOME": {"icon": "property", "hue": "#4A5BD1"},
-    "HOME-INS": {"icon": "insurance", "hue": "#3F63D6"},
-    "HOME-MAINT": {"icon": "tools", "hue": "#C97A2B"},
-    "GROCERIES": {"icon": "groceries", "hue": "#5BA32F"},
-    "UTILITIES": {"icon": "utilities", "hue": "#D1A41D"},
-    "TELCO": {"icon": "phone", "hue": "#1C9FB5"},
-    "TRANSPORT": {"icon": "transport", "hue": "#2B8CD6"},
-    "CAR": {"icon": "car", "hue": "#2D6FD3"},
-    "HEALTH": {"icon": "health", "hue": "#D43D5C"},
-    "CHILDCARE": {"icon": "kids", "hue": "#1FA67A"},
-    "DINING": {"icon": "dining", "hue": "#E0632A"},
-    "SUBS": {"icon": "recurring", "hue": "#7B4DE3"},
-    "SHOPPING": {"icon": "shopping", "hue": "#D6338A"},
-    "KIDS-ACT": {"icon": "kids", "hue": "#2FA868"},
-    "HOLIDAYS": {"icon": "travel", "hue": "#1FA2A8"},
-    "GIFTS": {"icon": "gifts", "hue": "#D4409C"},
-    "PERSONAL": {"icon": "beauty", "hue": "#B64BD8"},
-    "RENT-INT": {"icon": "loan", "hue": "#C27306"},
-    "RENT-MGMT": {"icon": "property-invest", "hue": "#C98518"},
-    "RENT-RATES": {"icon": "property-invest", "hue": "#C96A1E"},
-    "RENT-STRATA": {"icon": "property-invest", "hue": "#C99420"},
-    "RENT-INS": {"icon": "insurance", "hue": "#C85F2A"},
-    "RENT-REPAIR": {"icon": "tools", "hue": "#C4502E"},
-    "WORK-EQUIP": {"icon": "laptop", "hue": "#8A9A1E"},
-    "WORK-OTHER": {"icon": "work", "hue": "#7E9A2A"},
-    "DONATION": {"icon": "giving", "hue": "#2E9E4F"},
-    "FEES": {"icon": "fees", "hue": "#C83C3C"},
-    "TRANSFER": {"icon": "transfer", "hue": "#9A93B2"},
-    "CC-PAY": {"icon": "card", "hue": "#9A93B2"},
-    "UNCAT": {"icon": "review", "hue": "#8E8A9E"}
+    "SALARY": {
+      "icon": "salary",
+      "hue": "#17986A"
+    },
+    "INTEREST": {
+      "icon": "interest",
+      "hue": "#0E9F9E"
+    },
+    "RENT-INC": {
+      "icon": "property-invest",
+      "hue": "#1E9E6A"
+    },
+    "MORTGAGE": {
+      "icon": "loan",
+      "hue": "#5B3DF5"
+    },
+    "RATES-HOME": {
+      "icon": "property",
+      "hue": "#4A5BD1"
+    },
+    "HOME-INS": {
+      "icon": "insurance",
+      "hue": "#3F63D6"
+    },
+    "HOME-MAINT": {
+      "icon": "tools",
+      "hue": "#C97A2B"
+    },
+    "GROCERIES": {
+      "icon": "groceries",
+      "hue": "#5BA32F"
+    },
+    "UTILITIES": {
+      "icon": "utilities",
+      "hue": "#D1A41D"
+    },
+    "TELCO": {
+      "icon": "phone",
+      "hue": "#1C9FB5"
+    },
+    "TRANSPORT": {
+      "icon": "transport",
+      "hue": "#2B8CD6"
+    },
+    "CAR": {
+      "icon": "car",
+      "hue": "#2D6FD3"
+    },
+    "HEALTH": {
+      "icon": "health",
+      "hue": "#D43D5C"
+    },
+    "CHILDCARE": {
+      "icon": "kids",
+      "hue": "#1FA67A"
+    },
+    "DINING": {
+      "icon": "dining",
+      "hue": "#E0632A"
+    },
+    "SUBS": {
+      "icon": "recurring",
+      "hue": "#7B4DE3"
+    },
+    "SHOPPING": {
+      "icon": "shopping",
+      "hue": "#D6338A"
+    },
+    "KIDS-ACT": {
+      "icon": "kids",
+      "hue": "#2FA868"
+    },
+    "HOLIDAYS": {
+      "icon": "travel",
+      "hue": "#1FA2A8"
+    },
+    "GIFTS": {
+      "icon": "gifts",
+      "hue": "#D4409C"
+    },
+    "PERSONAL": {
+      "icon": "beauty",
+      "hue": "#B64BD8"
+    },
+    "RENT-INT": {
+      "icon": "loan",
+      "hue": "#C27306"
+    },
+    "RENT-MGMT": {
+      "icon": "property-invest",
+      "hue": "#C98518"
+    },
+    "RENT-RATES": {
+      "icon": "property-invest",
+      "hue": "#C96A1E"
+    },
+    "RENT-STRATA": {
+      "icon": "property-invest",
+      "hue": "#C99420"
+    },
+    "RENT-INS": {
+      "icon": "insurance",
+      "hue": "#C85F2A"
+    },
+    "RENT-REPAIR": {
+      "icon": "tools",
+      "hue": "#C4502E"
+    },
+    "WORK-EQUIP": {
+      "icon": "laptop",
+      "hue": "#8A9A1E"
+    },
+    "WORK-OTHER": {
+      "icon": "work",
+      "hue": "#7E9A2A"
+    },
+    "DONATION": {
+      "icon": "giving",
+      "hue": "#2E9E4F"
+    },
+    "FEES": {
+      "icon": "fees",
+      "hue": "#C83C3C"
+    },
+    "TRANSFER": {
+      "icon": "transfer",
+      "hue": "#9A93B2"
+    },
+    "CC-PAY": {
+      "icon": "card",
+      "hue": "#9A93B2"
+    },
+    "UNCAT": {
+      "icon": "review",
+      "hue": "#8E8A9E"
+    }
   },
   "groups": {
-    "Income": {"icon": "income", "hue": "#17986A"},
-    "Housing": {"icon": "property", "hue": "#5B3DF5"},
-    "Essentials": {"icon": "groceries", "hue": "#0E9F9E"},
-    "Lifestyle": {"icon": "shopping", "hue": "#7B4DE3"},
-    "Property": {"icon": "property-invest", "hue": "#C27306"},
-    "Work and giving": {"icon": "work", "hue": "#7E9A2A"},
-    "Fees": {"icon": "fees", "hue": "#C83C3C"},
-    "Transfers": {"icon": "transfer", "hue": "#9A93B2"},
-    "Uncategorised": {"icon": "review", "hue": "#8E8A9E"}
+    "Income": {
+      "icon": "income",
+      "hue": "#17986A"
+    },
+    "Housing": {
+      "icon": "property",
+      "hue": "#5B3DF5"
+    },
+    "Essentials": {
+      "icon": "groceries",
+      "hue": "#0E9F9E"
+    },
+    "Lifestyle": {
+      "icon": "shopping",
+      "hue": "#7B4DE3"
+    },
+    "Property": {
+      "icon": "property-invest",
+      "hue": "#C27306"
+    },
+    "Work and giving": {
+      "icon": "work",
+      "hue": "#7E9A2A"
+    },
+    "Fees": {
+      "icon": "fees",
+      "hue": "#C83C3C"
+    },
+    "Transfers": {
+      "icon": "transfer",
+      "hue": "#9A93B2"
+    },
+    "Uncategorised": {
+      "icon": "review",
+      "hue": "#8E8A9E"
+    }
   },
   "kinds": {
-    "valuation": {"icon": "stack", "hue": "#5B3DF5"},
-    "trade": {"icon": "shares", "hue": "#17986A"},
-    "property": {"icon": "property", "hue": "#C27306"},
-    "super": {"icon": "super", "hue": "#5B3DF5"},
-    "smsf": {"icon": "smsf", "hue": "#5B3DF5"},
-    "shares": {"icon": "shares", "hue": "#17986A"},
-    "crypto": {"icon": "crypto", "hue": "#F2A900"},
-    "loan": {"icon": "loan", "hue": "#C27306"},
-    "vehicle": {"icon": "car", "hue": "#2D6FD3"},
-    "device": {"icon": "laptop", "hue": "#8A9A1E"},
-    "offset": {"icon": "offset", "hue": "#5B3DF5"},
-    "savings": {"icon": "stack", "hue": "#0E9F9E"},
-    "transaction": {"icon": "cash", "hue": "#0E9F9E"},
-    "credit card": {"icon": "card", "hue": "#9A93B2"}
+    "valuation": {
+      "icon": "stack",
+      "hue": "#5B3DF5"
+    },
+    "trade": {
+      "icon": "shares",
+      "hue": "#17986A"
+    },
+    "property": {
+      "icon": "property",
+      "hue": "#C27306"
+    },
+    "super": {
+      "icon": "super",
+      "hue": "#5B3DF5"
+    },
+    "smsf": {
+      "icon": "smsf",
+      "hue": "#5B3DF5"
+    },
+    "shares": {
+      "icon": "shares",
+      "hue": "#17986A"
+    },
+    "crypto": {
+      "icon": "crypto",
+      "hue": "#F2A900"
+    },
+    "loan": {
+      "icon": "loan",
+      "hue": "#C27306"
+    },
+    "vehicle": {
+      "icon": "car",
+      "hue": "#2D6FD3"
+    },
+    "device": {
+      "icon": "laptop",
+      "hue": "#8A9A1E"
+    },
+    "offset": {
+      "icon": "offset",
+      "hue": "#5B3DF5"
+    },
+    "savings": {
+      "icon": "stack",
+      "hue": "#0E9F9E"
+    },
+    "transaction": {
+      "icon": "cash",
+      "hue": "#0E9F9E"
+    },
+    "credit card": {
+      "icon": "card",
+      "hue": "#9A93B2"
+    }
   }
 }

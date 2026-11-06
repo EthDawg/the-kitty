@@ -82,17 +82,20 @@ function balances(L) {
   const lastMonth = months[months.length - 1];
   return { months, rows, table, at: (account, month) => (table.get(account) ? table.get(account).get(month > lastMonth ? lastMonth : month) ?? 0 : 0) };
 }
+// A household holds what its members own on the day. A joiner's account counts from the day they join, whatever their papers reach back to.
+function heldBy(L) {
+  const owners = groupBy(L.ownership.filter((o) => o.subject_type === "account" && o.superseded_at == null), (o) => o.subject_id);
+  const members = groupBy(L.memberships || [], (m) => m.party_id);
+  const belongs = (party, on) => !members.has(party) || members.get(party).some((m) => m.valid_from <= on && (m.valid_to == null || on < m.valid_to));
+  return (account, on) => !owners.has(account) || activeOn(owners.get(account), on).some((o) => belongs(o.party_id, on));
+}
 function netWorthGroups(L) { return new Set(["cash", "property", "super", "shares", "crypto", "vehicle", "device", "loans"]); }
 function netWorth(L, opts = {}) {
   const groups = netWorthGroups(L);
   const X = L.index;
   const inScope = opts.accounts ? new Set(opts.accounts) : null;
   const wrapped = wrappedAccounts(L);
-  // A household holds what its members own on the day. A joiner's account counts from the day they join, whatever their papers reach back to.
-  const owners = groupBy(L.ownership.filter((o) => o.subject_type === "account" && o.superseded_at == null), (o) => o.subject_id);
-  const members = groupBy(L.memberships || [], (m) => m.party_id);
-  const belongs = (party, on) => !members.has(party) || members.get(party).some((m) => m.valid_from <= on && (m.valid_to == null || on < m.valid_to));
-  const held = (account, on) => !owners.has(account) || activeOn(owners.get(account), on).some((o) => belongs(o.party_id, on));
+  const held = heldBy(L);
   // A trade whose cash never met it stops being a debt once settlement is well past. It is a question by then.
   const stale = L.events.filter((e) => e.unsettled);
   const out = [];
@@ -333,4 +336,4 @@ function explain(L, eventId) {
   }) };
 }
 
-module.exports = { balanceDate, commitments, ledgerIndex, cashLens, accrualLens, balances, netWorth, netWorthByOwner, activityNet, loanTable, refreshPlan, billsCommitted, budgetVariance, coverage, explain, wrappedAccounts };
+module.exports = { balanceDate, heldBy, commitments, ledgerIndex, cashLens, accrualLens, balances, netWorth, netWorthByOwner, activityNet, loanTable, refreshPlan, billsCommitted, budgetVariance, coverage, explain, wrappedAccounts };

@@ -26,13 +26,15 @@ function parity() {
     const e = nw.get(r[0]);
     if (!e) continue;
     nh.slice(1, -1).forEach((g, i) => { checked += 1; if (cents(r[i + 1]) !== (e.groups[g] || 0)) miss.push([r[0], g, r[i + 1], e.groups[g]]); });
-    checked += 1; if (cents(r[r.length - 1]) !== e.total) miss.push([r[0], "total", r[r.length - 1], e.total]);
+    // The workbook sums what sits on accounts. Money in the air between two places is the engine's own line.
+    const onAccounts = e.total - (e.groups.unsettled || 0);
+    checked += 1; if (cents(r[r.length - 1]) !== onAccounts) miss.push([r[0], "total", r[r.length - 1], onAccounts]);
   }
   const cash = new Map(L.cash.map((r) => [r.month, r]));
   const [, ...crows] = table("Cash Flow");
   for (const r of crows) {
-    const e = cash.get(r[0]) || { income: 0, spending: 0, net: 0 };
-    for (const [i, k] of [[1, "income"], [2, "spending"], [3, "net"]]) { checked += 1; if (cents(r[i]) !== e[k]) miss.push([r[0], k, r[i], e[k]]); }
+    const e = cash.get(r[0]) || { income: 0, spending: 0, unexplained: 0, net: 0 };
+    for (const [i, k] of [[1, "income"], [2, "spending"], [3, "unexplained"], [4, "net"]]) { checked += 1; if (cents(r[i]) !== e[k]) miss.push([r[0], k, r[i], e[k]]); }
   }
   fs.rmSync(dir, { recursive: true, force: true });
   return { checked, exact: checked - miss.length, misses: miss.slice(0, 6) };

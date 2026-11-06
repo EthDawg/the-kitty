@@ -850,25 +850,11 @@
       "patterns": [
         "\\bCENTRELINK\\b",
         "\\bSERVICES AUSTRALIA\\b",
+        "\\bFAMILY TAX BENEFIT\\b",
         "\\bCHILD CARE SUBSIDY\\b",
         "\\bCCS\\b"
       ],
       "category_id": "UNCAT",
-      "hue": "#004B8D",
-      "website": "servicesaustralia.gov.au",
-      "kind": "government"
-    },
-    {
-      "id": "services-australia-payment",
-      "name": "Services Australia",
-      "patterns": [
-        "\\bSERVICES AUSTRALIA PPL\\b",
-        "\\bSERVICES AUSTRALIA CHILD SUPPORT\\b",
-        "\\bPARENTAL LEAVE PAY\\b",
-        "\\bCHILD SUPPORT\\b",
-        "\\bFAMILY TAX BENEFIT\\b"
-      ],
-      "category_id": "GOV-PAY",
       "hue": "#004B8D",
       "website": "servicesaustralia.gov.au",
       "kind": "government"

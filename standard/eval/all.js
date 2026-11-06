@@ -93,7 +93,7 @@ function main() {
     const problems = [];
     if (rungs.some((r) => !r.ok)) problems.push("a ladder rung broke");
     if (hh.fail) problems.push(`${hh.fail} households fail`);
-    if (par.misses && par.misses.length) problems.push("the sheet disagrees with the engine");
+    if (par.misses && par.misses.length) problems.push(`the sheet disagrees with the engine: ${JSON.stringify(par.misses)}`);
     if (fs.existsSync(lockedPath)) { const was = JSON.parse(fs.readFileSync(lockedPath, "utf8")); if (was.fingerprint !== lock.fingerprint) problems.push(`locked numbers moved: ${was.fingerprint} to ${lock.fingerprint}. If this is intended, run --write and say why in the commit.`); }
     if (problems.length) { console.error(`\n${problems.join("\n")}`); process.exitCode = 1; }
   }
