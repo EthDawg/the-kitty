@@ -1,0 +1,234 @@
+[
+ {
+  "term_id": "TERM-001",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-FIXED",
+  "term": "interest_rate",
+  "value": "5.89",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-002",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-FIXED",
+  "term": "rate_type",
+  "value": "fixed",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-03-01"
+ },
+ {
+  "term_id": "TERM-003",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-FIXED",
+  "term": "fixed_until",
+  "value": "2025-03-01",
+  "unit": "date",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-004",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-FIXED",
+  "term": "rate_type",
+  "value": "variable",
+  "unit": null,
+  "valid_from": "2025-03-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-005",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-FIXED",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-006",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-VAR",
+  "term": "interest_rate",
+  "value": "6.34",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-007",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-VAR",
+  "term": "rate_type",
+  "value": "variable",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-008",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-VAR",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-009",
+  "subject_type": "contract",
+  "subject_id": "CON-INV-PING",
+  "term": "interest_rate",
+  "value": "6.49",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-010",
+  "subject_type": "contract",
+  "subject_id": "CON-INV-PING",
+  "term": "repayment_type",
+  "value": "interest_only",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-011",
+  "subject_type": "contract",
+  "subject_id": "CON-INV-NEW",
+  "term": "interest_rate",
+  "value": "5.99",
+  "unit": "pct",
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-012",
+  "subject_type": "contract",
+  "subject_id": "CON-INV-NEW",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-013",
+  "subject_type": "contract",
+  "subject_id": "CON-IM-EMP",
+  "term": "base_salary_cents",
+  "value": "16100000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-014",
+  "subject_type": "contract",
+  "subject_id": "CON-IM-EMP",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-015",
+  "subject_type": "contract",
+  "subject_id": "CON-IM-EMP",
+  "term": "leave_status",
+  "value": "parental_leave",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2023-10-02"
+ },
+ {
+  "term_id": "TERM-016",
+  "subject_type": "contract",
+  "subject_id": "CON-TOM-EMP1",
+  "term": "base_salary_cents",
+  "value": "12300000",
+  "unit": "cents",
+  "valid_from": "2025-03-24",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-017",
+  "subject_type": "contract",
+  "subject_id": "CON-TOM-EMP1",
+  "term": "pay_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2025-03-24",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-018",
+  "subject_type": "contract",
+  "subject_id": "CON-TOM-EMP2",
+  "term": "base_salary_cents",
+  "value": "11800000",
+  "unit": "cents",
+  "valid_from": "2026-02-02",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-019",
+  "subject_type": "contract",
+  "subject_id": "CON-TOM-EMP2",
+  "term": "pay_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2026-02-02",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-020",
+  "subject_type": "contract",
+  "subject_id": "CON-AGENT1",
+  "term": "agent_fee_pct",
+  "value": "7",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-021",
+  "subject_type": "contract",
+  "subject_id": "CON-AGENT2",
+  "term": "agent_fee_pct",
+  "value": "6.5",
+  "unit": "pct",
+  "valid_from": "2024-10-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-022",
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "term": "use",
+  "value": "owner_occupied",
+  "unit": null,
+  "valid_from": "2019-11-22",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-023",
+  "subject_type": "asset",
+  "subject_id": "AST-RENTAL",
+  "term": "use",
+  "value": "rental",
+  "unit": null,
+  "valid_from": "2021-03-16",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

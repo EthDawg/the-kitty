@@ -1,0 +1,89 @@
+#!/usr/bin/env node
+/* The page's window on the standard: data/standard-view.json, generated from a replay. The page reads this file; it computes nothing.
+   node standard/tools/view.js [--out path] */
+"use strict";
+const fs = require("fs"), path = require("path");
+const { run } = require("../eval/run");
+const V = require("../engine/views");
+const Tax = require("../engine/tax");
+const { fyRange, fyOf, monthEnd, cmp } = require("../engine/util");
+
+const root = path.join(__dirname, "..");
+const checks = JSON.parse(fs.readFileSync(path.join(root, "schema", "checks.json"), "utf8")).laws;
+const metrics = JSON.parse(fs.readFileSync(path.join(root, "schema", "metrics.json"), "utf8")).metrics;
+const tablesDoc = JSON.parse(fs.readFileSync(path.join(root, "schema", "tables.json"), "utf8"));
+
+function build() {
+  const { L, s } = run();
+  const R = L.resolver;
+  const X = L.index;
+  const people = L.parties.filter((p) => p.kind === "person" && (L.resolver.ctx.setup.membership || []).some((m) => m.party_id === p.party_id && m.role === "adult"));
+  const lastMonths = L.netWorth.slice(-24);
+  const lawRows = Object.entries(checks).map(([id, c]) => {
+    const rows = L.checks.filter((x) => x.law === id);
+    const counts = rows.reduce((m, r) => { m[r.status] = (m[r.status] || 0) + 1; return m; }, {});
+    const status = counts.fail ? "fail" : counts.gap ? "gap" : counts.open ? "open" : counts.pass ? "pass" : "skip";
+    return { id, name: c.name, claim: c.claim, status, counts, worst: (rows.find((r) => r.status === "fail") || rows.find((r) => r.status === "gap") || rows[0] || {}).detail || null };
+  });
+  const fys = [...new Set(L.periods.filter((p) => p.kind === "fy").map((p) => p.period_id))].sort();
+  const fyList = fys.length ? fys : [...new Set(L.events.map((e) => fyOf(e.occurred_on)))].sort();
+  const years = fyList.map((fy) => ({ fy, people: people.map((p) => {
+    const est = L.tax ? (L.tax.estimates || []).find((x) => x.person === p.party_id && x.fy === fy) : null;
+    const tie = L.tax ? (L.tax.ties || []).find((x) => x.person === p.party_id && x.fy === fy) : null;
+    const assess = (R.collapseDocs("tax_assessment") || []).filter((o) => R.partyOf(o.payload.person_ref, o.payload.assessed_on) === p.party_id && o.payload.fy === fy).sort((a, b) => b.payload.version - a.payload.version)[0];
+    return { person: p.party_id, name: p.name.split(" ")[0], status: assess ? "lodged" : "open", readiness: Tax.readinessFor(L, R, fy, p.party_id), lodged: assess ? { version: assess.payload.version, taxable_income_cents: assess.payload.taxable_income_cents, result_cents: assess.payload.result_cents, assessed_on: assess.payload.assessed_on } : null, derived: est || null, tie: tie || null,
+      items: L.tax ? (L.tax.items || []).filter((i) => i.party_id === p.party_id && i.fy === fy && !["M2-DAYS", "18H-DIST"].includes(i.label)).map((i) => ({ label: i.label, amount_cents: i.amount_cents, method: i.method, evidence: i.evidence })) : [] };
+  }) }));
+
+  const targetName = (p) => {
+    if (p.category_id) return (X.categories.get(p.category_id) || {}).name || p.category_id;
+    const a = X.accounts.get(p.account_id);
+    if (a && a.name !== a.account_id) return a.name;
+    const m = /^(clearing|ato|equity|memo|receivable):(.*)$/.exec(p.account_id || "");
+    if (!m) return p.account_id;
+    const rest = m[2].split(":").map((x) => (X.accounts.get(x) || {}).name || (L.parties.find((q) => q.party_id === x) || {}).name || x).join(", ");
+    return { clearing: `Waiting to clear: ${rest}`, ato: `Tax position: ${rest}`, equity: `Equity: ${rest}`, memo: rest, receivable: `Owed by ${rest}` }[m[1]];
+  };
+  const sample = (kind, pick) => { const e = L.events.filter((x) => x.kind === kind && (!pick || pick(x))).pop(); if (!e) return null; const t = V.explain(L, e.event_id); return { kind, date: e.occurred_on, description: e.description, amount_cents: e.amount_cents, grade: e.grade, postings: t.postings.map((p) => ({ target: targetName(p), amount_cents: p.amount_cents })), witnesses: t.witnesses }; };
+
+  // Open any number: net worth to groups to accounts to the latest events to the exact line of the exact file.
+  const lastNw = L.netWorth.filter((r) => r.month <= "2027-01").pop() || L.netWorth[L.netWorth.length - 1];
+  const inner = ["cash", "property", "super", "shares", "crypto", "vehicle", "device", "loans"];
+  const eventsByAccount = new Map();
+  for (const p of L.postings) if (p.account_id) { if (!eventsByAccount.has(p.account_id)) eventsByAccount.set(p.account_id, []); eventsByAccount.get(p.account_id).push(p); }
+  const drill = { month: lastNw.month, total_cents: lastNw.total, groups: inner.filter((g) => lastNw.groups[g]).map((g) => ({ group: g, total_cents: lastNw.groups[g], accounts: L.accounts.filter((a) => a.reporting_group === g).map((a) => {
+    const bal = L.balances.at(a.account_id, lastNw.month);
+    const ps = (eventsByAccount.get(a.account_id) || []).map((p) => ({ p, e: X.events.get(p.event_id) })).filter((x) => x.e.occurred_on <= monthEnd(lastNw.month)).sort((x, y) => cmp(y.e.occurred_on, x.e.occurred_on)).slice(0, 4);
+    return { id: a.account_id, name: a.name, balance_cents: bal, recent: ps.map(({ e }) => { const t = V.explain(L, e.event_id); return { date: e.occurred_on, kind: e.kind, description: e.description, amount_cents: e.amount_cents, grade: e.grade, postings: t.postings.map((q) => ({ target: targetName(q), amount_cents: q.amount_cents })), witnesses: t.witnesses }; }) };
+  }).filter((a) => a.balance_cents) })) };
+  const rateTerms = L.terms.filter((t) => t.term === "interest_rate" && t.subject_id === "C-HOME").map((t) => ({ value: t.value, valid_from: t.valid_from, valid_to: t.valid_to, recorded_at: String(t.recorded_at).slice(0, 10), superseded_at: t.superseded_at ? String(t.superseded_at).slice(0, 10) : null }));
+
+  return {
+    drill, rate_history: rateTerms,
+    generated: { standard_version: tablesDoc.version, bundle_hash: L.bundleHash, as_of: L.asOf, files: s.run.files, observations: s.run.observations, events: s.run.events, postings: s.run.postings, seconds: +(s.run.ingest_s + s.run.rebuild_s).toFixed(2), note: "Generated by standard/tools/view.js from a blow-away replay of the fictional Davies household. The page reads this file and computes nothing." },
+    model: { tables: Object.keys(tablesDoc.tables).length, planes: Object.entries(tablesDoc.planes).map(([id, about]) => ({ id, about, tables: Object.entries(tablesDoc.tables).filter(([, t]) => t.plane === id).map(([n, t]) => ({ name: n, temporal: t.temporal, doc: t.doc })) })) },
+    proof: { sections: s.sections.map((r) => ({ name: r.name, exact: r.exact, checked: r.checked, pct: r.pct })), laws: lawRows, review: s.review },
+    years,
+    net_worth: lastMonths.map((m) => ({ month: m.month, total_cents: m.total, groups: m.groups })),
+    cash: L.cash.slice(-24).map((m) => ({ month: m.month, income_cents: m.income, spending_cents: m.spending, net_cents: m.net })),
+    activities: L.activityNet.map((a) => ({ fy: a.fy, activity: a.activity, name: (X.accounts.get(a.activity) || L.assets.find((x) => x.asset_id === a.activity) || {}).name || a.activity, income_cents: a.income, expense_cents: a.expense, net_cents: a.net })),
+    things: L.refresh,
+    coverage: L.coverage.map((c) => ({ stream: c.stream_id, name: c.name, expected: c.expected, have: c.have, missing: c.missing })),
+    traces: [sample("wage_receipt"), sample("loan_payment"), sample("purchase", (e) => e.category_id === "GROCERIES"), sample("transfer"), sample("dividend"), sample("vest"), sample("tax_refund")].filter(Boolean),
+    metrics: Object.entries(metrics).map(([id, m]) => ({ id, doc: m.doc, lens: m.lens, stability: m.stability })),
+    experimental: [
+      { id: "collect", title: "Collect statements", button: "Start computer use", status: "Mock", today: "The list of what is missing is real. Nothing is fetched yet.", open: ["Skills, or a harness like Jev?", "How a second factor reaches a person", "Which browser and whose session"] },
+      { id: "tax_pack", title: "Tax pack", button: "Download tax pack", status: "Baseline", today: "A real file: lines, evidence list and gaps for the year.", open: ["The accountant's preferred shape", "One generic pack, or one per audience"] },
+      { id: "advice", title: "Tax return check", button: "Run tax return advice", status: "Mock", today: "The draft and its ties to lodged history are real. A model's reading is not wired.", open: ["Connect the Australian Tax MCP as a host capability", "How to keep record and advice apart on the page"] },
+      { id: "reconcile", title: "Reconciliation", button: "Run reconciliation", status: "Baseline", today: "Every law, by scope, with the gap, from the last replay.", open: ["Who confirms a close", "What a person does about a gap on a phone"] },
+    ],
+  };
+}
+if (require.main === module) {
+  const i = process.argv.indexOf("--out");
+  const out = i > 0 ? process.argv[i + 1] : path.join(root, "..", "data", "standard-view.json");
+  const v = build();
+  fs.writeFileSync(out, JSON.stringify(v));
+  console.log(`${out}: ${fs.statSync(out).size} bytes. ${v.proof.sections.length} proof sections, ${v.years.length} years.`);
+}
+module.exports = { build };

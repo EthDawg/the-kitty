@@ -1,0 +1,85 @@
+{
+ "id": "etreat-sale-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^E\\*Treat$",
+  "^Stock plans",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "account_ref": {
+   "below": "^Plan account$"
+  },
+  "instrument_ref": {
+   "below": "^Security$"
+  },
+  "trade_date": {
+   "below": "^Trade date$",
+   "as": "date"
+  },
+  "settlement_date": {
+   "below": "^Settlement date$",
+   "as": "date"
+  },
+  "reference": {
+   "below": "^Reference$"
+  },
+  "units": {
+   "right": "^Quantity$",
+   "as": "units"
+  },
+  "price": {
+   "right": "^Price \\(USD\\)$"
+  },
+  "usd": {
+   "right": "^Proceeds \\(USD\\)$",
+   "as": "cents"
+  },
+  "brokerage_cents": {
+   "right": "^Commission \\(USD\\)$",
+   "as": "cents"
+  },
+  "consideration_cents": {
+   "right": "^Net proceeds \\(AUD\\)$",
+   "as": "cents"
+  },
+  "fx": {
+   "right": "^Exchange rate"
+  },
+  "side": {
+   "const": "sell"
+  },
+  "currency": {
+   "const": "USD"
+  }
+ },
+ "emit": [
+  {
+   "kind": "contract_note",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "product",
+   "a": "units",
+   "b": "price",
+   "equals": "usd"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:4b7ee416c62bbf696574db13"
+ ],
+ "match": [
+  "^E\\*Treat$",
+  "^Sold \\d+ "
+ ]
+}

@@ -1,0 +1,77 @@
+{
+ "id": "deductions-xlsx",
+ "tier": "table",
+ "container": "xlsx",
+ "table": {
+  "sheet": "Worksheet",
+  "header": 4,
+  "skip_tail": 1
+ },
+ "values": {
+  "person": {
+   "at": [
+    1,
+    0
+   ],
+   "regex": ", (.+)$"
+  },
+  "fy": {
+   "at": [
+    2,
+    1
+   ]
+  },
+  "period_end": {
+   "at": [
+    3,
+    1
+   ],
+   "as": "excel_date"
+  },
+  "total": {
+   "at": [
+    -1,
+    2
+   ],
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "work_log",
+   "fields": {
+    "person_ref": {
+     "value": "person"
+    },
+    "fy": {
+     "value": "fy"
+    },
+    "period_end": {
+     "value": "period_end"
+    },
+    "log_kind": {
+     "const": "expense"
+    },
+    "label": {
+     "col": "Label"
+    },
+    "amount_cents": {
+     "col": "Amount",
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "kind_sum",
+   "kind": "work_log",
+   "field": "amount_cents",
+   "equals": "total"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:eb32373f6fc4494a53ed76c2"
+ ]
+}

@@ -1,0 +1,252 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "scheme": "account_number",
+  "value": "714220938116",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-04-01"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "scheme": "account_number",
+  "value": "714220951077",
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TOM",
+  "scheme": "account_number",
+  "value": "0061820475",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "scheme": "card_last4",
+  "value": "77132",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "scheme": "account_number",
+  "value": "CT-6624190",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "scheme": "hin",
+  "value": "X0031177",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-FIXED",
+  "scheme": "loan_number",
+  "value": "553 110 881",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-VAR",
+  "scheme": "loan_number",
+  "value": "553 110 882",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-PING",
+  "scheme": "loan_number",
+  "value": "PNG-30017733",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-NEW",
+  "scheme": "loan_number",
+  "value": "553 110 905",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-IM",
+  "scheme": "member_number",
+  "value": "HST-7731046",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-TOM",
+  "scheme": "member_number",
+  "value": "PUR-5120884",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PLAN",
+  "scheme": "account_number",
+  "value": "ETR-5588213",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-COLD",
+  "scheme": "wallet_address",
+  "value": "bc1qxf7k2hd9m3w0t6pzr4",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-IM",
+  "scheme": "name",
+  "value": "Imogen Reyes",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-TOM",
+  "scheme": "name",
+  "value": "Tomasz Wolak",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-LUMEN",
+  "scheme": "name",
+  "value": "Lumen Arc Software Pty Ltd",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-BRIGHTWATER",
+  "scheme": "name",
+  "value": "Brightwater Civil Pty Ltd",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-COBALT",
+  "scheme": "name",
+  "value": "Cobalt Rail Services Pty Ltd",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-KITTEN",
+  "scheme": "name",
+  "value": "Kittenhood ELC Belmont",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "scheme": "name",
+  "value": "9 Saltbush Court, Belmont",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-RENTAL",
+  "scheme": "name",
+  "value": "14 Wattlebird Lane, Sebastopol",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-RENTAL",
+  "scheme": "owner_ref",
+  "value": "PM-44120",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2024-10-14"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-RENTAL",
+  "scheme": "owner_ref",
+  "value": "RP-7710",
+  "valid_from": "2024-10-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-FIXED",
+  "scheme": "loan_number",
+  "value": "553 110 881",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-VAR",
+  "scheme": "loan_number",
+  "value": "553 110 882",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-INV-PING",
+  "scheme": "loan_number",
+  "value": "PNG-30017733",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-INV-NEW",
+  "scheme": "loan_number",
+  "value": "553 110 905",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-INS",
+  "scheme": "policy_number",
+  "value": "PH-61118226",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-LANDLORD",
+  "scheme": "policy_number",
+  "value": "PL-77133120",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-ESS",
+  "scheme": "account_number",
+  "value": "ETR-5588213",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

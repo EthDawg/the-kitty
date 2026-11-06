@@ -1,0 +1,819 @@
+{
+  "version": "household-standard/1",
+  "tabs": [
+    {
+      "tab": "Household",
+      "table": "household",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 0,
+      "headers": [
+        "household_id",
+        "name",
+        "jurisdiction",
+        "base_currency",
+        "fy_start_month",
+        "timezone",
+        "standard_version",
+        "budget_date"
+      ]
+    },
+    {
+      "tab": "Party",
+      "table": "party",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 1,
+      "headers": [
+        "party_id",
+        "kind",
+        "name",
+        "legal_name",
+        "birth_date",
+        "abn",
+        "note"
+      ]
+    },
+    {
+      "tab": "Membership",
+      "table": "membership",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 2,
+      "headers": [
+        "party_id",
+        "role",
+        "valid_from",
+        "valid_to",
+        "note",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Account",
+      "table": "account",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 3,
+      "headers": [
+        "account_id",
+        "name",
+        "class",
+        "type",
+        "reporting_group",
+        "currency",
+        "institution_party_id",
+        "parent_account_id",
+        "successor_account_id",
+        "asset_id",
+        "contract_id",
+        "opened_on",
+        "closed_on",
+        "liquid",
+        "in_scope",
+        "fidelity",
+        "opening_balance_cents",
+        "opening_date",
+        "note"
+      ]
+    },
+    {
+      "tab": "Alias",
+      "table": "alias",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 4,
+      "headers": [
+        "subject_type",
+        "subject_id",
+        "scheme",
+        "value",
+        "valid_from",
+        "valid_to",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Ownership",
+      "table": "ownership",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 5,
+      "headers": [
+        "subject_type",
+        "subject_id",
+        "party_id",
+        "basis",
+        "share_bps",
+        "valid_from",
+        "valid_to",
+        "recorded_at",
+        "superseded_at",
+        "source_obs_id",
+        "note"
+      ]
+    },
+    {
+      "tab": "Link",
+      "table": "link",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 6,
+      "headers": [
+        "relation",
+        "from_type",
+        "from_id",
+        "to_type",
+        "to_id",
+        "share_bps",
+        "valid_from",
+        "valid_to",
+        "recorded_at",
+        "superseded_at",
+        "source_obs_id",
+        "note"
+      ]
+    },
+    {
+      "tab": "Category",
+      "table": "category",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 7,
+      "headers": [
+        "category_id",
+        "name",
+        "parent_id",
+        "kind",
+        "group",
+        "essential",
+        "cash_lens",
+        "economic_lens",
+        "property_twin_id",
+        "note"
+      ]
+    },
+    {
+      "tab": "Instrument",
+      "table": "instrument",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 8,
+      "headers": [
+        "instrument_id",
+        "kind",
+        "code",
+        "name",
+        "currency",
+        "issuer_party_id",
+        "note"
+      ]
+    },
+    {
+      "tab": "Asset",
+      "table": "asset",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 9,
+      "headers": [
+        "asset_id",
+        "kind",
+        "name",
+        "account_id",
+        "parent_asset_id",
+        "location",
+        "serial",
+        "acquired_on",
+        "disposed_on",
+        "note"
+      ]
+    },
+    {
+      "tab": "Activity",
+      "table": "activity",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 10,
+      "headers": [
+        "activity_id",
+        "kind",
+        "name",
+        "asset_id",
+        "owner_party_id",
+        "valid_from",
+        "valid_to",
+        "note",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Contract",
+      "table": "contract",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 11,
+      "headers": [
+        "contract_id",
+        "kind",
+        "name",
+        "counterparty_party_id",
+        "holder_party_id",
+        "account_id",
+        "asset_id",
+        "category_id",
+        "started_on",
+        "ended_on",
+        "note"
+      ]
+    },
+    {
+      "tab": "Term",
+      "table": "term",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 12,
+      "headers": [
+        "term_id",
+        "subject_type",
+        "subject_id",
+        "term",
+        "value",
+        "unit",
+        "valid_from",
+        "valid_to",
+        "recorded_at",
+        "superseded_at",
+        "source_obs_id",
+        "note"
+      ]
+    },
+    {
+      "tab": "Period",
+      "table": "period",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "static",
+      "order": 13,
+      "headers": [
+        "period_id",
+        "kind",
+        "start_on",
+        "end_on",
+        "status",
+        "closed_at",
+        "seal_hash"
+      ]
+    },
+    {
+      "tab": "Stream",
+      "table": "stream",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 14,
+      "headers": [
+        "stream_id",
+        "name",
+        "doc_kind",
+        "subject_type",
+        "subject_id",
+        "issuer_party_id",
+        "cadence",
+        "valid_from",
+        "valid_to",
+        "grace_days",
+        "note",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Scope",
+      "table": "scope",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 15,
+      "headers": [
+        "subject_type",
+        "subject_id",
+        "domain",
+        "state",
+        "by",
+        "valid_from",
+        "valid_to",
+        "note",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Tax Map",
+      "table": "tax_map",
+      "class": "yours",
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "order": 16,
+      "headers": [
+        "selector_type",
+        "selector",
+        "label",
+        "treatment",
+        "basis",
+        "entity_kind",
+        "valid_from",
+        "valid_to",
+        "note",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Source",
+      "table": "source",
+      "class": "evidence",
+      "plane": "evidence",
+      "temporal": "append",
+      "order": 17,
+      "headers": [
+        "source_id",
+        "sha256",
+        "name",
+        "uri",
+        "origin",
+        "mime",
+        "bytes",
+        "stream_id",
+        "issued_on",
+        "captured_at",
+        "supersedes_source_id",
+        "status",
+        "note"
+      ]
+    },
+    {
+      "tab": "Observation",
+      "table": "observation",
+      "class": "evidence",
+      "plane": "evidence",
+      "temporal": "append",
+      "order": 18,
+      "headers": [
+        "obs_id",
+        "source_id",
+        "locator",
+        "kind",
+        "occurred_on",
+        "amount_cents",
+        "currency",
+        "subject_ref",
+        "payload",
+        "importer",
+        "recipe_id",
+        "confidence",
+        "quote",
+        "supersedes_obs_id",
+        "status"
+      ]
+    },
+    {
+      "tab": "Tax Return",
+      "table": "tax_return",
+      "class": "evidence",
+      "plane": "evidence",
+      "temporal": "append",
+      "order": 19,
+      "headers": [
+        "return_id",
+        "party_id",
+        "fy",
+        "version",
+        "status",
+        "lodged_on",
+        "assessed_on",
+        "taxable_income_cents",
+        "tax_cents",
+        "credits_cents",
+        "result_cents",
+        "source_id",
+        "supersedes_return_id"
+      ]
+    },
+    {
+      "tab": "Tax Line",
+      "table": "tax_line",
+      "class": "evidence",
+      "plane": "evidence",
+      "temporal": "append",
+      "order": 20,
+      "headers": [
+        "line_id",
+        "return_id",
+        "activity_id",
+        "label",
+        "section",
+        "role",
+        "rolls_up_to",
+        "amount_cents",
+        "gross_cents",
+        "obs_id",
+        "note"
+      ]
+    },
+    {
+      "tab": "Decision",
+      "table": "decision",
+      "class": "yours",
+      "plane": "judgement",
+      "temporal": "append",
+      "order": 21,
+      "headers": [
+        "decision_id",
+        "target_type",
+        "target_ref",
+        "verb",
+        "value",
+        "by",
+        "at",
+        "status",
+        "reason",
+        "reopen_if"
+      ]
+    },
+    {
+      "tab": "Rule",
+      "table": "rule",
+      "class": "yours",
+      "plane": "judgement",
+      "temporal": "bitemporal",
+      "order": 22,
+      "headers": [
+        "rule_id",
+        "pattern",
+        "match",
+        "merchant",
+        "category_id",
+        "person",
+        "event_kind",
+        "priority",
+        "direction",
+        "account_id",
+        "activity_id",
+        "asset_id",
+        "contract_id",
+        "valid_from",
+        "valid_to",
+        "provenance",
+        "status",
+        "note",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Recipe",
+      "table": "recipe",
+      "class": "yours",
+      "plane": "judgement",
+      "temporal": "append",
+      "order": 23,
+      "headers": [
+        "recipe_id",
+        "fingerprint",
+        "family",
+        "spec",
+        "author",
+        "tokens_in",
+        "tokens_out",
+        "gate_status",
+        "created_at"
+      ]
+    },
+    {
+      "tab": "Tailoring",
+      "table": "tailoring",
+      "class": "yours",
+      "plane": "judgement",
+      "temporal": "append",
+      "order": 24,
+      "headers": [
+        "tailoring_id",
+        "rung",
+        "name",
+        "sentence",
+        "definition",
+        "example",
+        "standard_version",
+        "status"
+      ]
+    },
+    {
+      "tab": "Budget",
+      "table": "budget",
+      "class": "yours",
+      "plane": "plan",
+      "temporal": "bitemporal",
+      "order": 25,
+      "headers": [
+        "category_id",
+        "amount_cents",
+        "cadence",
+        "valid_from",
+        "valid_to",
+        "note",
+        "recorded_at",
+        "superseded_at"
+      ]
+    },
+    {
+      "tab": "Goal",
+      "table": "goal",
+      "class": "yours",
+      "plane": "plan",
+      "temporal": "static",
+      "order": 26,
+      "headers": [
+        "goal_id",
+        "name",
+        "target_cents",
+        "target_on",
+        "account_id",
+        "asset_id",
+        "status",
+        "note"
+      ]
+    },
+    {
+      "tab": "Reservation",
+      "table": "reservation",
+      "class": "yours",
+      "plane": "plan",
+      "temporal": "effective",
+      "order": 27,
+      "headers": [
+        "reservation_id",
+        "account_id",
+        "goal_id",
+        "kind",
+        "requested_cents",
+        "applied_cents",
+        "valid_from",
+        "valid_to",
+        "release_ref",
+        "note"
+      ]
+    },
+    {
+      "tab": "Scenario",
+      "table": "scenario",
+      "class": "yours",
+      "plane": "plan",
+      "temporal": "static",
+      "order": 28,
+      "headers": [
+        "scenario_id",
+        "name",
+        "base_on",
+        "note"
+      ]
+    },
+    {
+      "tab": "Assumption",
+      "table": "assumption",
+      "class": "yours",
+      "plane": "plan",
+      "temporal": "effective",
+      "order": 29,
+      "headers": [
+        "scenario_id",
+        "key",
+        "value",
+        "valid_from",
+        "valid_to",
+        "note"
+      ]
+    },
+    {
+      "tab": "Event",
+      "table": "event",
+      "class": "managed",
+      "plane": "ledger",
+      "temporal": "derived",
+      "order": 30,
+      "headers": [
+        "event_id",
+        "kind",
+        "occurred_on",
+        "settled_on",
+        "description",
+        "merchant",
+        "category_id",
+        "person",
+        "asset_id",
+        "activity_id",
+        "contract_id",
+        "amount_cents",
+        "status",
+        "grade",
+        "rule"
+      ]
+    },
+    {
+      "tab": "Witness",
+      "table": "witness",
+      "class": "managed",
+      "plane": "ledger",
+      "temporal": "derived",
+      "order": 31,
+      "headers": [
+        "event_id",
+        "obs_id",
+        "role",
+        "amount_cents"
+      ]
+    },
+    {
+      "tab": "Posting",
+      "table": "posting",
+      "class": "managed",
+      "plane": "ledger",
+      "temporal": "derived",
+      "order": 32,
+      "headers": [
+        "event_id",
+        "line",
+        "account_id",
+        "category_id",
+        "amount_cents",
+        "units",
+        "instrument_id",
+        "memo",
+        "native_cents",
+        "native_currency"
+      ]
+    },
+    {
+      "tab": "Lot",
+      "table": "lot",
+      "class": "managed",
+      "plane": "ledger",
+      "temporal": "derived",
+      "order": 33,
+      "headers": [
+        "lot_id",
+        "instrument_id",
+        "asset_id",
+        "account_id",
+        "party_id",
+        "acquired_on",
+        "units",
+        "units_open",
+        "cost_known",
+        "cost_price_cents",
+        "cost_incidental_cents",
+        "cost_ownership_cents",
+        "cost_capital_cents",
+        "cost_adjustment_cents",
+        "event_id"
+      ]
+    },
+    {
+      "tab": "Lot Match",
+      "table": "lot_match",
+      "class": "managed",
+      "plane": "ledger",
+      "temporal": "derived",
+      "order": 34,
+      "headers": [
+        "event_id",
+        "lot_id",
+        "disposed_on",
+        "units",
+        "proceeds_cents",
+        "cost_base_cents",
+        "gain_cents",
+        "exempt_cents",
+        "discount_eligible",
+        "method"
+      ]
+    },
+    {
+      "tab": "Balance",
+      "table": "balance",
+      "class": "managed",
+      "plane": "ledger",
+      "temporal": "derived",
+      "order": 35,
+      "headers": [
+        "month_end",
+        "account_id",
+        "balance_cents",
+        "units",
+        "grade"
+      ]
+    },
+    {
+      "tab": "Tax Item",
+      "table": "tax_item",
+      "class": "managed",
+      "plane": "tax",
+      "temporal": "derived",
+      "order": 36,
+      "headers": [
+        "party_id",
+        "fy",
+        "label",
+        "activity_id",
+        "amount_cents",
+        "method",
+        "evidence",
+        "refs"
+      ]
+    },
+    {
+      "tab": "Check Result",
+      "table": "check_result",
+      "class": "managed",
+      "plane": "control",
+      "temporal": "derived",
+      "order": 37,
+      "headers": [
+        "law",
+        "scope",
+        "status",
+        "expected",
+        "actual",
+        "gap_cents",
+        "detail",
+        "accepted_by"
+      ]
+    },
+    {
+      "tab": "Review Item",
+      "table": "review_item",
+      "class": "managed",
+      "plane": "control",
+      "temporal": "derived",
+      "order": 38,
+      "headers": [
+        "item_id",
+        "kind",
+        "ref",
+        "amount_cents",
+        "what",
+        "do"
+      ]
+    },
+    {
+      "tab": "Metric Value",
+      "table": "metric_value",
+      "class": "managed",
+      "plane": "control",
+      "temporal": "derived",
+      "order": 39,
+      "headers": [
+        "metric_id",
+        "grain",
+        "value",
+        "grade",
+        "valid_on",
+        "known_at"
+      ]
+    },
+    {
+      "tab": "Run",
+      "table": "run",
+      "class": "managed",
+      "plane": "control",
+      "temporal": "derived",
+      "order": 40,
+      "headers": [
+        "run_id",
+        "mode",
+        "sources",
+        "observations",
+        "events",
+        "review_items",
+        "tokens_in",
+        "tokens_out",
+        "bundle_hash"
+      ]
+    }
+  ]
+}

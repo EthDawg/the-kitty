@@ -1,0 +1,636 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVE",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVE",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVE",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVE",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVE",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVE",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMLOAN",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMLOAN",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMLOAN",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMLOAN",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMLOAN",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMLOAN",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-P",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-P",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-P",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-VAN",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-VAN",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-VAN",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-DEE",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-DEE",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-DEE",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-D",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-D",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-D",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUM",
+  "party_id": "PTY-MUM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUM",
+  "party_id": "PTY-MUM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUM",
+  "party_id": "PTY-MUM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-VAN",
+  "party_id": "PTY-PAUL",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-VAN",
+  "party_id": "PTY-PAUL",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-VAN",
+  "party_id": "PTY-PAUL",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMJT",
+  "party_id": "PTY-MUM",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2026-02-09"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMJT",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2026-02-09"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMJT",
+  "party_id": "PTY-MUM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2026-02-09"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMJT",
+  "party_id": "PTY-MUM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2026-02-09"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMJT",
+  "party_id": "PTY-DEE",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2026-02-09",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMJT",
+  "party_id": "PTY-DEE",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2026-02-09",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-MUMJT",
+  "party_id": "PTY-DEE",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2026-02-09",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

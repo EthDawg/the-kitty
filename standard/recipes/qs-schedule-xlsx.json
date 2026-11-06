@@ -1,0 +1,83 @@
+{
+ "id": "qs-schedule-xlsx",
+ "tier": "table",
+ "container": "xlsx",
+ "table": {
+  "sheet": "Schedule",
+  "header": 5,
+  "skip_tail": 1,
+  "collect": {
+   "name": {
+    "col": "Item"
+   },
+   "division": {
+    "col": "Division"
+   },
+   "fy": {
+    "col": "Financial year"
+   },
+   "cents": {
+    "col": "Deduction",
+    "as": "cents"
+   }
+  }
+ },
+ "values": {
+  "asset": {
+   "at": [
+    2,
+    1
+   ]
+  },
+  "issued": {
+   "at": [
+    3,
+    1
+   ],
+   "as": "excel_date"
+  },
+  "total": {
+   "at": [
+    -1,
+    3
+   ],
+   "as": "cents"
+  }
+ },
+ "emit_file": [
+  {
+   "kind": "depreciation_schedule",
+   "fields": {
+    "asset_ref": {
+     "value": "asset"
+    },
+    "issued_on": {
+     "value": "issued"
+    },
+    "items": {
+     "pivot": {
+      "group": [
+       "name",
+       "division"
+      ],
+      "key": "fy",
+      "value": "cents",
+      "into": "by_fy"
+     }
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "table_sum",
+   "table": "rows",
+   "field": "cents",
+   "equals": "total"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:3914b6c218076013b210c0b0"
+ ]
+}

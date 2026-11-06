@@ -1,0 +1,36 @@
+{
+ "id": "computerpaw-action-eml",
+ "tier": "document",
+ "container": "eml",
+ "defaults": {
+  "date": "dmony"
+ },
+ "values": {
+  "instrument_ref": {
+   "find": "^Security code: (.+)$"
+  },
+  "action": {
+   "find": "^Corporate action: (.+)$"
+  },
+  "ratio": {
+   "find": "^Ratio: (.+)$"
+  },
+  "effective_on": {
+   "find": "^Effective date: (.+)$",
+   "as": "date"
+  }
+ },
+ "emit": [
+  {
+   "kind": "corporate_action",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:ca079a3c7eb8716f80270ab7"
+ ],
+ "match": [
+  "^Corporate action: "
+ ]
+}

@@ -1,0 +1,132 @@
+[
+ {
+  "term_id": "TERM-001",
+  "subject_type": "contract",
+  "subject_id": "CON-HOMELOAN",
+  "term": "interest_rate",
+  "value": "6.09",
+  "unit": "pct",
+  "valid_from": "2025-01-15",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-002",
+  "subject_type": "contract",
+  "subject_id": "CON-HOMELOAN",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2025-01-15",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-003",
+  "subject_type": "contract",
+  "subject_id": "CON-CARLOAN",
+  "term": "interest_rate",
+  "value": "7.95",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-004",
+  "subject_type": "contract",
+  "subject_id": "CON-CARLOAN",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-005",
+  "subject_type": "contract",
+  "subject_id": "CON-ADA-EMP",
+  "term": "base_salary_cents",
+  "value": "9400000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-006",
+  "subject_type": "contract",
+  "subject_id": "CON-ADA-EMP",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-007",
+  "subject_type": "contract",
+  "subject_id": "CON-SVEN-EMP1",
+  "term": "base_salary_cents",
+  "value": "11100000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-008",
+  "subject_type": "contract",
+  "subject_id": "CON-SVEN-EMP1",
+  "term": "pay_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-009",
+  "subject_type": "contract",
+  "subject_id": "CON-SVEN-EMP2",
+  "term": "base_salary_cents",
+  "value": "12400000",
+  "unit": "cents",
+  "valid_from": "2024-11-18",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-010",
+  "subject_type": "contract",
+  "subject_id": "CON-SVEN-EMP2",
+  "term": "pay_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2024-11-18",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-011",
+  "subject_type": "contract",
+  "subject_id": "CON-LEASE",
+  "term": "rent_cents",
+  "value": "88000",
+  "unit": "cents",
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-012",
+  "subject_type": "contract",
+  "subject_id": "CON-LEASE",
+  "term": "rent_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-013",
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "term": "use",
+  "value": "owner_occupied",
+  "unit": null,
+  "valid_from": "2025-01-15",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ }
+]

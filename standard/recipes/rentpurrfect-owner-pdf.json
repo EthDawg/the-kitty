@@ -1,0 +1,130 @@
+{
+ "id": "rentpurrfect-owner-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO, fictional$",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$",
+  "^RentPurrfect$"
+ ],
+ "values": {
+  "property_ref": {
+   "right": "^Owner reference$",
+   "region": {
+    "x_max": 300
+   }
+  },
+  "period_start": {
+   "right": "^Period start$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "period_end": {
+   "right": "^Period end$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "gross_rent_cents": {
+   "right": "^Rent collected$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "fees_cents": {
+   "right": "^Management fee$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "repairs_cents": {
+   "right": "^Repairs paid$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "other_expenses_cents": {
+   "right": "^Sundry$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "disbursed_cents": {
+   "right": "^Net paid to owner$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  }
+ },
+ "tables": [
+  {
+   "name": "lines",
+   "start": "^Item  Amount$",
+   "end": "^ZZZNOMATCH",
+   "row": "^(.+?)  (-?[\\d,]+\\.\\d\\d)$",
+   "collect": {
+    "description": {
+     "group": 1
+    },
+    "amount_cents": {
+     "group": 2,
+     "as": "cents"
+    }
+   },
+   "optional": true
+  }
+ ],
+ "emit": [
+  {
+   "kind": "owner_statement",
+   "from_values": true,
+   "fields": {
+    "lines": {
+     "table": "lines"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "owner_statement",
+   "name": "rent less the agent's deductions is what the bank saw",
+   "terms": [
+    "+gross_rent_cents",
+    "-fees_cents",
+    "-repairs_cents",
+    "-other_expenses_cents",
+    "-disbursed_cents"
+   ]
+  },
+  {
+   "law": "table_sum",
+   "table": "lines",
+   "field": "amount_cents",
+   "equals_sum": [
+    "+disbursed_cents",
+    "+disbursed_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:8fca669e6ffbfcf085f25e03"
+ ],
+ "match": [
+  "^RentPurrfect  "
+ ]
+}

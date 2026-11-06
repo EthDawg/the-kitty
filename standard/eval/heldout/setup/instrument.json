@@ -1,0 +1,23 @@
+[
+ {
+  "instrument_id": "INS-QZT",
+  "kind": "listed_share",
+  "code": "QZT",
+  "name": "Quartz Tasman Ltd",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-KLP",
+  "kind": "listed_share",
+  "code": "KLP",
+  "name": "Kelpie Foods Ltd",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-HRX",
+  "kind": "listed_share",
+  "code": "HRX",
+  "name": "Huon Renewables Ltd",
+  "currency": "AUD"
+ }
+]

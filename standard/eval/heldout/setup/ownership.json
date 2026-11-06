@@ -1,0 +1,542 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-ADA",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-ADA",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-ADA",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SVEN",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SVEN",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SVEN",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-ADA",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-ADA",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-ADA",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-SVEN",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-SVEN",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-SVEN",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARLOAN",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARLOAN",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARLOAN",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-ADA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-ADA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-ADA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-SVEN",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-SVEN",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-SVEN",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ }
+]

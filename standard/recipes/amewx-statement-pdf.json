@@ -1,0 +1,111 @@
+{
+ "id": "amewx-statement-pdf",
+ "match": [
+  "^Amewx$"
+ ],
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Amewx$",
+  "^Don't leave home",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "account_ref": {
+   "below": "^Account$",
+   "regex": "(\\d{5})$"
+  },
+  "opening_cents": {
+   "below": "^Previous balance$",
+   "as": "cents",
+   "negate": true
+  },
+  "closing_cents": {
+   "below": "^New balance$",
+   "as": "cents",
+   "negate": true
+  },
+  "credits_cents": {
+   "below": "^Payments and credits$",
+   "as": "cents"
+  },
+  "debits_cents": {
+   "below": "^New charges$",
+   "as": "cents"
+  },
+  "period_start": {
+   "find": "^(\\d{2} \\w{3} \\d{4}) to \\d",
+   "as": "date"
+  },
+  "period_end": {
+   "find": "^\\d{2} \\w{3} \\d{4} to (\\d{2} \\w{3} \\d{4})$",
+   "as": "date"
+  }
+ },
+ "tables": [
+  {
+   "name": "lines",
+   "start": "^Date  Description  Amount$",
+   "end": "^New balance  ",
+   "skip": [
+    "\\(continued\\)$"
+   ],
+   "row": "^(\\d{2} \\w{3} \\d{4})  (.+?)  (-?[\\d,]+\\.\\d\\d)$",
+   "emit": [
+    {
+     "kind": "txn_line",
+     "fields": {
+      "account_ref": {
+       "value": "account_ref"
+      },
+      "posting_date": {
+       "group": 1,
+       "as": "date"
+      },
+      "description": {
+       "group": 2
+      },
+      "amount_cents": {
+       "group": 3,
+       "as": "cents",
+       "negate": true
+      },
+      "date_basis": {
+       "const": "transaction"
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "emit": [
+  {
+   "kind": "statement",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "kind_sum",
+   "kind": "txn_line",
+   "field": "amount_cents",
+   "equals_sum": [
+    "+closing_cents",
+    "-opening_cents"
+   ]
+  },
+  {
+   "law": "family_chain"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:9d6033feb05fdad5b5933704"
+ ]
+}

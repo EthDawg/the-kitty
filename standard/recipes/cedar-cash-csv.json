@@ -1,0 +1,76 @@
+{
+ "id": "cedar-cash-csv",
+ "tier": "table",
+ "container": "csv",
+ "defaults": {
+  "date": "dmony"
+ },
+ "table": {
+  "header": 4,
+  "skip_tail": 2,
+  "order": "oldest_first"
+ },
+ "values": {
+  "account": {
+   "at": [
+    2,
+    0
+   ],
+   "regex": "Account: (.+)"
+  },
+  "stated_closing": {
+   "at": [
+    -2,
+    5
+   ],
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "value": "account"
+    },
+    "posting_date": {
+     "col": "Date",
+     "as": "date"
+    },
+    "description": {
+     "col": "Details"
+    },
+    "reference": {
+     "col": "Reference"
+    },
+    "amount_cents": {
+     "credit": "Credit",
+     "debit": "Debit"
+    },
+    "balance_after_cents": {
+     "col": "Balance",
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "chain"
+ },
+ "controls": [
+  {
+   "law": "balance_chain"
+  },
+  {
+   "law": "family_chain"
+  },
+  {
+   "law": "closing_ties",
+   "equals": "stated_closing"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:35afd81226db4d2129f42d2d"
+ ]
+}

@@ -1,0 +1,1136 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-A",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-A",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-A",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-A",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-A",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-A",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-C",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-C",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-C",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-C",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-C",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-C",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-D",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-D",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-D",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-D",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-D",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-D",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UNIT",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CAR",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KARIM",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KARIM",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KARIM",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KARIM",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KARIM",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-KARIM",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BRIDGE",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BRIDGE",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BRIDGE",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BRIDGE",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BRIDGE",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BRIDGE",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-FAMILY",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-FAMILY",
+  "party_id": "PTY-KARIM",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-FAMILY",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-FAMILY",
+  "party_id": "PTY-KARIM",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-FAMILY",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-FAMILY",
+  "party_id": "PTY-KARIM",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-DORMANT",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-DORMANT",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-DORMANT",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UK",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UK",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-UK",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PENSION",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PENSION",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PENSION",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PORTLAND",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PORTLAND",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PORTLAND",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-BANK",
+  "party_id": "PTY-SMSF",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-BANK",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-BANK",
+  "party_id": "PTY-SMSF",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-BROKER",
+  "party_id": "PTY-SMSF",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-BROKER",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-BROKER",
+  "party_id": "PTY-SMSF",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-SHARES",
+  "party_id": "PTY-SMSF",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-SHARES",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-SHARES",
+  "party_id": "PTY-SMSF",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-PORTLAND",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-PORTLAND",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-PORTLAND",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-SALMA",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-GEOFF",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-SALMA",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-GEOFF",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-SALMA",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "party_id": "PTY-GEOFF",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

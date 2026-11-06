@@ -1,0 +1,74 @@
+{
+ "id": "etreat-ess-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^E\\*Treat$",
+  "^Stock plans",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "person_ref": {
+   "below": "^Participant$"
+  },
+  "plan_ref": {
+   "below": "^Plan account$"
+  },
+  "fy": {
+   "below": "^Financial year$"
+  },
+  "period_end": {
+   "below": "^Year end$",
+   "as": "date"
+  },
+  "discount_cents": {
+   "right": "^Total$",
+   "as": "cents"
+  }
+ },
+ "tables": [
+  {
+   "name": "vests",
+   "start": "^Taxing point  Units",
+   "end": "^Total  ",
+   "skip": [
+    "\\(continued\\)$"
+   ],
+   "row": "^(\\d{2} \\w{3} \\d{4})  (\\d+)  ([\\d.]+)  ([\\d.]+)  ([\\d,.]+)$",
+   "collect": {
+    "discount": {
+     "group": 5,
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "emit": [
+  {
+   "kind": "ess_statement",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "table_sum",
+   "table": "vests",
+   "field": "discount",
+   "equals": "discount_cents"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:3815ba0a3c53fd6b776f1e3d"
+ ],
+ "match": [
+  "^E\\*Treat$",
+  "^ESS statement"
+ ]
+}

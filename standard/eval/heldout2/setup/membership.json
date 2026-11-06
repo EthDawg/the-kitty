@@ -1,0 +1,26 @@
+[
+ {
+  "party_id": "PTY-IM",
+  "role": "adult",
+  "valid_from": "1986-02-11",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-NOA",
+  "role": "dependant",
+  "valid_from": "2020-03-05",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-ELIO",
+  "role": "dependant",
+  "valid_from": "2023-04-19",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-TOM",
+  "role": "adult",
+  "valid_from": "2025-03-24",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

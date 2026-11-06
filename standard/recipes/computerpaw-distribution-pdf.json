@@ -1,0 +1,90 @@
+{
+ "id": "computerpaw-distribution-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Computerpaw$",
+  "^Investor services",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "account_ref": {
+   "below": "^Holder number$"
+  },
+  "instrument_ref": {
+   "below": "^Security code$"
+  },
+  "units": {
+   "below": "^Units held$",
+   "as": "units"
+  },
+  "pay_date": {
+   "below": "^Payment date$",
+   "as": "date"
+  },
+  "unfranked_cents": {
+   "right": "^Gross distribution$",
+   "as": "cents"
+  },
+  "withholding_cents": {
+   "right": "^Tax withheld$",
+   "as": "cents"
+  },
+  "net_cents": {
+   "right": "^Net distribution$",
+   "as": "cents"
+  },
+  "drp_units": {
+   "right": "^Units allotted$",
+   "as": "units",
+   "optional": true
+  },
+  "drp_price": {
+   "right": "^Allotment price$",
+   "optional": true
+  },
+  "franked_cents": {
+   "const": "0.00",
+   "as": "cents"
+  },
+  "franking_credit_cents": {
+   "const": "0.00",
+   "as": "cents"
+  },
+  "attributed_later": {
+   "const": "true",
+   "as": "bool"
+  }
+ },
+ "emit": [
+  {
+   "kind": "dividend",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "dividend",
+   "terms": [
+    "+unfranked_cents",
+    "-withholding_cents",
+    "-net_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:e459b9490a76dd8df93ef569"
+ ],
+ "match": [
+  "^Computerpaw$",
+  "distribution$"
+ ]
+}

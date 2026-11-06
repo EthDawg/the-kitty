@@ -1,0 +1,26 @@
+[
+ {
+  "party_id": "PTY-HARPREET",
+  "role": "adult",
+  "valid_from": "2014-02-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-SIMRAN",
+  "role": "adult",
+  "valid_from": "2014-02-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-ANAYA",
+  "role": "dependant",
+  "valid_from": "2017-04-19",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-REET",
+  "role": "dependant",
+  "valid_from": "2024-11-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

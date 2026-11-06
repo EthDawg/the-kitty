@@ -1,0 +1,217 @@
+erDiagram
+  HOUSEHOLD {
+    id household_id PK
+  }
+  PARTY {
+    id party_id PK
+  }
+  MEMBERSHIP {
+    id party_id FK
+  }
+  ACCOUNT {
+    id account_id PK
+    id institution_party_id FK
+    id parent_account_id FK
+    id successor_account_id FK
+    id asset_id FK
+    id contract_id FK
+  }
+  ALIAS {
+  }
+  OWNERSHIP {
+    id party_id FK
+  }
+  LINK {
+  }
+  CATEGORY {
+    id category_id PK
+    id parent_id FK
+    id property_twin_id FK
+  }
+  INSTRUMENT {
+    id instrument_id PK
+    id issuer_party_id FK
+  }
+  ASSET {
+    id asset_id PK
+    id account_id FK
+    id parent_asset_id FK
+  }
+  ACTIVITY {
+    id activity_id PK
+    id asset_id FK
+    id owner_party_id FK
+  }
+  CONTRACT {
+    id contract_id PK
+    id counterparty_party_id FK
+    id holder_party_id FK
+    id account_id FK
+    id asset_id FK
+    id category_id FK
+  }
+  TERM {
+    id term_id PK
+  }
+  PERIOD {
+    id period_id PK
+  }
+  STREAM {
+    id stream_id PK
+    id issuer_party_id FK
+  }
+  SCOPE {
+  }
+  TAX_MAP {
+  }
+  SOURCE {
+    id source_id PK
+    id stream_id FK
+    id supersedes_source_id FK
+  }
+  OBSERVATION {
+    id obs_id PK
+    id source_id FK
+  }
+  TAX_RETURN {
+    id return_id PK
+    id party_id FK
+    id source_id FK
+  }
+  TAX_LINE {
+    id line_id PK
+    id return_id FK
+    id activity_id FK
+  }
+  DECISION {
+    id decision_id PK
+  }
+  RULE {
+    id rule_id PK
+    id category_id FK
+    id account_id FK
+    id activity_id FK
+    id asset_id FK
+    id contract_id FK
+  }
+  RECIPE {
+    id recipe_id PK
+  }
+  TAILORING {
+    id tailoring_id PK
+  }
+  BUDGET {
+    id category_id FK
+  }
+  GOAL {
+    id goal_id PK
+    id account_id FK
+    id asset_id FK
+  }
+  RESERVATION {
+    id reservation_id PK
+    id account_id FK
+    id goal_id FK
+  }
+  SCENARIO {
+    id scenario_id PK
+  }
+  ASSUMPTION {
+    id scenario_id FK
+  }
+  EVENT {
+    id event_id PK
+    id category_id FK
+    id person FK
+    id asset_id FK
+    id activity_id FK
+  }
+  WITNESS {
+    id event_id FK
+    id obs_id FK
+  }
+  POSTING {
+    id event_id FK
+    id account_id FK
+    id category_id FK
+    id instrument_id FK
+  }
+  LOT {
+    id lot_id PK
+    id instrument_id FK
+    id asset_id FK
+    id account_id FK
+    id event_id FK
+  }
+  LOT_MATCH {
+    id event_id FK
+    id lot_id FK
+  }
+  BALANCE {
+    id account_id FK
+  }
+  TAX_ITEM {
+    id party_id FK
+    id activity_id FK
+  }
+  CHECK_RESULT {
+  }
+  REVIEW_ITEM {
+    id item_id PK
+  }
+  METRIC_VALUE {
+  }
+  RUN {
+    id run_id PK
+  }
+  PARTY ||--o{ MEMBERSHIP : "party_id"
+  PARTY ||--o{ ACCOUNT : "institution_party_id"
+  ASSET ||--o{ ACCOUNT : "asset_id"
+  CONTRACT ||--o{ ACCOUNT : "contract_id"
+  PARTY ||--o{ OWNERSHIP : "party_id"
+  PARTY ||--o{ INSTRUMENT : "issuer_party_id"
+  ACCOUNT ||--o{ ASSET : "account_id"
+  ASSET ||--o{ ACTIVITY : "asset_id"
+  PARTY ||--o{ ACTIVITY : "owner_party_id"
+  PARTY ||--o{ CONTRACT : "counterparty_party_id"
+  PARTY ||--o{ CONTRACT : "holder_party_id"
+  ACCOUNT ||--o{ CONTRACT : "account_id"
+  ASSET ||--o{ CONTRACT : "asset_id"
+  CATEGORY ||--o{ CONTRACT : "category_id"
+  PARTY ||--o{ STREAM : "issuer_party_id"
+  STREAM ||--o{ SOURCE : "stream_id"
+  SOURCE ||--o{ OBSERVATION : "source_id"
+  PARTY ||--o{ TAX_RETURN : "party_id"
+  SOURCE ||--o{ TAX_RETURN : "source_id"
+  TAX_RETURN ||--o{ TAX_LINE : "return_id"
+  ACTIVITY ||--o{ TAX_LINE : "activity_id"
+  CATEGORY ||--o{ RULE : "category_id"
+  ACCOUNT ||--o{ RULE : "account_id"
+  ACTIVITY ||--o{ RULE : "activity_id"
+  ASSET ||--o{ RULE : "asset_id"
+  CONTRACT ||--o{ RULE : "contract_id"
+  CATEGORY ||--o{ BUDGET : "category_id"
+  ACCOUNT ||--o{ GOAL : "account_id"
+  ASSET ||--o{ GOAL : "asset_id"
+  ACCOUNT ||--o{ RESERVATION : "account_id"
+  GOAL ||--o{ RESERVATION : "goal_id"
+  SCENARIO ||--o{ ASSUMPTION : "scenario_id"
+  CATEGORY ||--o{ EVENT : "category_id"
+  PARTY ||--o{ EVENT : "person"
+  ASSET ||--o{ EVENT : "asset_id"
+  ACTIVITY ||--o{ EVENT : "activity_id"
+  EVENT ||--o{ WITNESS : "event_id"
+  OBSERVATION ||--o{ WITNESS : "obs_id"
+  EVENT ||--o{ POSTING : "event_id"
+  ACCOUNT ||--o{ POSTING : "account_id"
+  CATEGORY ||--o{ POSTING : "category_id"
+  INSTRUMENT ||--o{ POSTING : "instrument_id"
+  INSTRUMENT ||--o{ LOT : "instrument_id"
+  ASSET ||--o{ LOT : "asset_id"
+  ACCOUNT ||--o{ LOT : "account_id"
+  EVENT ||--o{ LOT : "event_id"
+  EVENT ||--o{ LOT_MATCH : "event_id"
+  LOT ||--o{ LOT_MATCH : "lot_id"
+  ACCOUNT ||--o{ BALANCE : "account_id"
+  PARTY ||--o{ TAX_ITEM : "party_id"
+  ACTIVITY ||--o{ TAX_ITEM : "activity_id"

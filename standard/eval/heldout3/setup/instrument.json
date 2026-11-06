@@ -1,0 +1,30 @@
+[
+ {
+  "instrument_id": "INS-TNW",
+  "kind": "listed_share",
+  "code": "TNW",
+  "name": "Tannin Wines Ltd",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-FLM",
+  "kind": "listed_share",
+  "code": "FLM",
+  "name": "Flume Water Ltd",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-IBK",
+  "kind": "listed_share",
+  "code": "IBK",
+  "name": "Ironbark Ore Ltd",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-CMB",
+  "kind": "listed_share",
+  "code": "CMB",
+  "name": "Coolamon Bank Ltd",
+  "currency": "AUD"
+ }
+]

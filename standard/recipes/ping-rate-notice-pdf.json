@@ -1,0 +1,48 @@
+{
+ "id": "ping-rate-notice-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO, fictional$",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$",
+  "^PING$"
+ ],
+ "values": {
+  "contract_ref": {
+   "right": "^Loan number$"
+  },
+  "value": {
+   "right": "^New rate$",
+   "regex": "([\\d.]+)%"
+  },
+  "effective_on": {
+   "right": "^Effective from$",
+   "as": "date"
+  },
+  "notified_on": {
+   "right": "^Date of this letter$",
+   "as": "date"
+  },
+  "term": {
+   "const": "interest_rate"
+  }
+ },
+ "emit": [
+  {
+   "kind": "rate_notice",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:2257bdc4cf9df9d5402bd08a"
+ ],
+ "match": [
+  "^PING  ",
+  "interest rate"
+ ]
+}

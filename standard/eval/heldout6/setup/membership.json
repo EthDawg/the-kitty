@@ -1,0 +1,20 @@
+[
+ {
+  "party_id": "PTY-PAUL",
+  "role": "adult",
+  "valid_from": "1994-02-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-DEE",
+  "role": "adult",
+  "valid_from": "1994-02-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-TESS",
+  "role": "dependant",
+  "valid_from": "2005-04-19",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

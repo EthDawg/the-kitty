@@ -1,0 +1,53 @@
+{
+ "id": "ping-loan-tsv",
+ "tier": "table",
+ "container": "tsv",
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "posting_date": {
+     "col": "Effective Date",
+     "as": "date"
+    },
+    "description": {
+     "col": "Details"
+    },
+    "amount_cents": {
+     "col": "Amount",
+     "as": "cents"
+    },
+    "balance_after_cents": {
+     "col": "Balance Owing",
+     "as": "cents",
+     "negate": true
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "chain"
+ },
+ "controls": [
+  {
+   "law": "balance_chain"
+  },
+  {
+   "law": "family_chain"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:fe5d578fb8988c001f1e99c3"
+ ]
+}

@@ -1,0 +1,517 @@
+{
+ "model": "claude-haiku-5-5",
+ "families": 50,
+ "passed": 31,
+ "tokens_in": 558458,
+ "tokens_out": 260665,
+ "usd": 12.029,
+ "results": [
+  {
+   "family": "cedar-cash-csv",
+   "files": 82,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15469,
+   "tokens_out": 8250,
+   "usd": 0.3609,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/ACC-BRK/2020-07-03/Cedar-CashHub-2020-06.csv\",\"what\":\"file: missing_field statement.period_start\"},{\"check\":\"fields\",\"file\":\"sources/ACC-BRK/2020-07-03/Cedar-CashHub-2020-06.csv\",\"what\":\"file: missing_fiel"
+  },
+  {
+   "family": "amewx-statement-pdf",
+   "files": 82,
+   "tries": 2,
+   "status": "pass",
+   "tokens_in": 17275,
+   "tokens_out": 16037,
+   "usd": 0.5737,
+   "why": null
+  },
+  {
+   "family": "southern-activity-csv",
+   "files": 82,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7537,
+   "tokens_out": 1301,
+   "usd": 0.0363,
+   "why": null
+  },
+  {
+   "family": "harbour-txn-csv",
+   "files": 427,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7215,
+   "tokens_out": 1071,
+   "usd": 0.0989,
+   "why": null
+  },
+  {
+   "family": "wattle-txn-csv",
+   "files": 126,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7048,
+   "tokens_out": 1372,
+   "usd": 0.1048,
+   "why": null
+  },
+  {
+   "family": "bark-qif",
+   "files": 16,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 14909,
+   "tokens_out": 6162,
+   "usd": 0.3031,
+   "why": "[{\"check\":\"date_order\",\"file\":\"sources/ACC-OLD/2019-04-02/CommBark-2019-03.qif\",\"what\":\"record 0: bad_date D does not read as dmy2\"},{\"check\":\"fields\",\"file\":\"sources/ACC-OLD/2019-04-02/CommBark-2019-03.qif\",\"what\":\"record 0: bad_amount T i"
+  },
+  {
+   "family": "bark-noheader-csv",
+   "files": 81,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7117,
+   "tokens_out": 1989,
+   "usd": 0.1209,
+   "why": null
+  },
+  {
+   "family": "wattle-ofx",
+   "files": 34,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 14908,
+   "tokens_out": 4385,
+   "usd": 0.2587,
+   "why": "[{\"check\":\"date_order\",\"file\":\"sources/ACC-WAT/2019-04-03/WattleCU-2019-03.ofx\",\"what\":\"STMTTRN 0: bad_date DTPOSTED does not read as yyyymmdd\"},{\"check\":\"fields\",\"file\":\"sources/ACC-WAT/2019-04-03/WattleCU-2019-03.ofx\",\"what\":\"STMTTRN 0: b"
+  },
+  {
+   "family": "appraisal-pdf",
+   "files": 18,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15114,
+   "tokens_out": 4789,
+   "usd": 0.2708,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/APPRAISALS/2022-11-10/Valuation-CAR-2022-11-05.pdf\",\"what\":\"value valuer: missing_value valuer\"},{\"check\":\"fields\",\"file\":\"sources/APPRAISALS/2022-11-10/Valuation-CAR-2022-11-05.pdf\",\"what\":\"value value_ce"
+  },
+  {
+   "family": "gas-bill-html",
+   "files": 32,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7087,
+   "tokens_out": 2098,
+   "usd": 0.1233,
+   "why": null
+  },
+  {
+   "family": "energy-bill-eml",
+   "files": 32,
+   "tries": 2,
+   "status": "pass",
+   "tokens_in": 15065,
+   "tokens_out": 3258,
+   "usd": 0.2321,
+   "why": null
+  },
+  {
+   "family": "council-rates-pdf",
+   "files": 67,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15422,
+   "tokens_out": 6253,
+   "usd": 0.3105,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/BILL-RATES-HOME/2019-04-26/Rates-HOME-2019-04-26.pdf\",\"what\":\"value issuer_ref: missing_value issuer_ref\"},{\"check\":\"fields\",\"file\":\"sources/BILL-RATES-HOME/2019-04-26/Rates-HOME-2019-04-26.pdf\",\"what\":\"pa"
+  },
+  {
+   "family": "water-bill-pdf",
+   "files": 66,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15277,
+   "tokens_out": 4545,
+   "usd": 0.2664,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/BILL-WATER-HOME/2019-03-26/Water-HOME-2019-03-26.pdf\",\"what\":\"value issuer_ref: missing_value issuer_ref\"},{\"check\":\"fields\",\"file\":\"sources/BILL-WATER-HOME/2019-03-26/Water-HOME-2019-03-26.pdf\",\"what\":\"pa"
+  },
+  {
+   "family": "cedar-holdings-tsv",
+   "files": 26,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 14980,
+   "tokens_out": 3046,
+   "usd": 0.2259,
+   "why": "[{\"check\":\"controls\",\"file\":\"sources/BRK-HOLD/2021-07-03/Cedar-Holdings-2021-06-30.tsv\",\"what\":\"product failed {\\\"bad\\\":1,\\\"gap\\\":null}\"},{\"check\":\"controls\",\"file\":\"sources/BRK-HOLD/2022-07-03/Cedar-Holdings-2022-06-30.tsv\",\"what\":\"product"
+  },
+  {
+   "family": "cedar-contract-note-pdf",
+   "files": 8,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7246,
+   "tokens_out": 7271,
+   "usd": 0.2542,
+   "why": null
+  },
+  {
+   "family": "kittenhood-statement-html",
+   "files": 45,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15150,
+   "tokens_out": 5796,
+   "usd": 0.2964,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/CHILDCARE/2023-07-15/Kittenhood-Statement-2023-07.html\",\"what\":\"file: missing_field childcare_statement.period_start\"},{\"check\":\"fields\",\"file\":\"sources/CHILDCARE/2023-07-15/Kittenhood-Statement-2023-07.ht"
+  },
+  {
+   "family": "wallet-json",
+   "files": 4,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7157,
+   "tokens_out": 1599,
+   "usd": 0.1115,
+   "why": null
+  },
+  {
+   "family": "coinpurr-csv",
+   "files": 4,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7060,
+   "tokens_out": 2253,
+   "usd": 0.1269,
+   "why": null
+  },
+  {
+   "family": "coinpurr-statement-html",
+   "files": 1,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 14915,
+   "tokens_out": 6394,
+   "usd": 0.309,
+   "why": "[{\"check\":\"controls\",\"file\":\"sources/CRYPTO-STMT/2027-02-01/Coinpurr-Statement-2027-01-31.html\",\"what\":\"kind_sum holding.value_cents failed {\\\"got\\\":185040}\"},{\"check\":\"controls\",\"file\":\"sources/CRYPTO-STMT/2027-02-01/Coinpurr-Statement-202"
+  },
+  {
+   "family": "deductions-xlsx",
+   "files": 16,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15023,
+   "tokens_out": 7151,
+   "usd": 0.329,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/DED-J/2019-08-01/Deductions-Worksheet-Jordan-FY2019.xlsx\",\"what\":\"value person_ref: missing_value person_ref\"},{\"check\":\"fields\",\"file\":\"sources/DED-J/2019-08-01/Deductions-Worksheet-Jordan-FY2019.xlsx\",\"w"
+  },
+  {
+   "family": "myguv-help-html",
+   "files": 5,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7096,
+   "tokens_out": 3565,
+   "usd": 0.1601,
+   "why": null
+  },
+  {
+   "family": "pawroll-income-statement-pdf",
+   "files": 24,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 17912,
+   "tokens_out": 12199,
+   "usd": 0.4841,
+   "why": "[{\"check\":\"controls\",\"file\":\"sources/IS-J/2019-07-14/Pawroll-IncomeStatement-Jordan-FY2019.pdf\",\"what\":\"table_sum pays.gross failed {\\\"got\\\":10800010}\"},{\"check\":\"controls\",\"file\":\"sources/IS-J/2019-07-14/Pawroll-IncomeStatement-Jordan-FY20"
+  },
+  {
+   "family": "westpaw-loan-statement-pdf",
+   "files": 15,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7742,
+   "tokens_out": 6048,
+   "usd": 0.2286,
+   "why": null
+  },
+  {
+   "family": "ping-loan-statement-pdf",
+   "files": 4,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7637,
+   "tokens_out": 6173,
+   "usd": 0.2307,
+   "why": null
+  },
+  {
+   "family": "ping-loan-tsv",
+   "files": 41,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7026,
+   "tokens_out": 2152,
+   "usd": 0.124,
+   "why": null
+  },
+  {
+   "family": "logbook-xlsx",
+   "files": 1,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15084,
+   "tokens_out": 10361,
+   "usd": 0.4098,
+   "why": "[{\"check\":\"date_order\",\"file\":\"sources/LOGBOOK/2023-11-05/Car-Logbook-2023.xlsx\",\"what\":\"line 20: bad_date Total is not a date serial\"},{\"check\":\"fields\",\"file\":\"sources/LOGBOOK/2023-11-05/Car-Logbook-2023.xlsx\",\"what\":\"line 20: missing_fie"
+  },
+  {
+   "family": "propertymeow-owner-pdf",
+   "files": 67,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7592,
+   "tokens_out": 3834,
+   "usd": 0.1718,
+   "why": null
+  },
+  {
+   "family": "rentpurrfect-owner-pdf",
+   "files": 37,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7268,
+   "tokens_out": 4253,
+   "usd": 0.179,
+   "why": null
+  },
+  {
+   "family": "pawprice-estimates-csv",
+   "files": 22,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7117,
+   "tokens_out": 887,
+   "usd": 0.0933,
+   "why": null
+  },
+  {
+   "family": "pawroll-payslip-pdf",
+   "files": 474,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7343,
+   "tokens_out": 6030,
+   "usd": 0.2242,
+   "why": null
+  },
+  {
+   "family": "bupaw-statement-pdf",
+   "files": 16,
+   "tries": 2,
+   "status": "pass",
+   "tokens_in": 15447,
+   "tokens_out": 6932,
+   "usd": 0.3277,
+   "why": null
+  },
+  {
+   "family": "myguv-prefill-json",
+   "files": 16,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 14818,
+   "tokens_out": 5224,
+   "usd": 0.2788,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/PREFILL-J/2019-08-01/myGuv-prefill-Jordan-FY2019.json\",\"what\":\"value fy: missing_value fy\"},{\"check\":\"fields\",\"file\":\"sources/PREFILL-J/2019-08-01/myGuv-prefill-Jordan-FY2019.json\",\"what\":\"value period_end"
+  },
+  {
+   "family": "qs-schedule-xlsx",
+   "files": 2,
+   "tries": 2,
+   "status": "pass",
+   "tokens_in": 15281,
+   "tokens_out": 6671,
+   "usd": 0.3196,
+   "why": null
+  },
+  {
+   "family": "westpaw-rate-notice-pdf",
+   "files": 5,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7222,
+   "tokens_out": 3399,
+   "usd": 0.1572,
+   "why": null
+  },
+  {
+   "family": "westpaw-rate-notice-eml",
+   "files": 30,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15165,
+   "tokens_out": 4338,
+   "usd": 0.2601,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/RATE-LN-HOME/2022-05-16/Rate-notice-C-HOME-2022-05-16.eml\",\"what\":\"value contract_ref: missing_value contract_ref\"},{\"check\":\"fields\",\"file\":\"sources/RATE-LN-HOME/2022-05-16/Rate-notice-C-HOME-2022-05-16.e"
+  },
+  {
+   "family": "ping-rate-notice-pdf",
+   "files": 1,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7109,
+   "tokens_out": 2031,
+   "usd": 0.1219,
+   "why": null
+  },
+  {
+   "family": "receipt-pdf",
+   "files": 5,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7210,
+   "tokens_out": 8272,
+   "usd": 0.2789,
+   "why": null
+  },
+  {
+   "family": "receipt-eml",
+   "files": 6,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15286,
+   "tokens_out": 9058,
+   "usd": 0.3793,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/RECEIPTS/2020-04-02/Receipt-DEV-MONITOR.eml\",\"what\":\"page 1: missing_field receipt.merchant_ref\"},{\"check\":\"fields\",\"file\":\"sources/RECEIPTS/2021-12-20/Receipt-DEV-COFFEE.eml\",\"what\":\"page 1: missing_field"
+  },
+  {
+   "family": "computerpaw-distribution-pdf",
+   "files": 40,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15643,
+   "tokens_out": 8639,
+   "usd": 0.3724,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/REG-DIST/2020-07-16/Computerpaw-Distribution-PAWS-2020-07-16.pdf\",\"what\":\"page 1: missing_field dividend.franked_cents\"},{\"check\":\"fields\",\"file\":\"sources/REG-DIST/2020-07-16/Computerpaw-Distribution-PAWS-"
+  },
+  {
+   "family": "computerpaw-dividend-pdf",
+   "files": 13,
+   "tries": 2,
+   "status": "pass",
+   "tokens_in": 15406,
+   "tokens_out": 5959,
+   "usd": 0.303,
+   "why": null
+  },
+  {
+   "family": "computerpaw-action-eml",
+   "files": 1,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 14829,
+   "tokens_out": 3403,
+   "usd": 0.2333,
+   "why": "[{\"check\":\"fields\",\"file\":\"sources/REG-DIST/2023-02-20/Kibble-share-split-notice.eml\",\"what\":\"value instrument_ref: missing_value instrument_ref\"},{\"check\":\"fields\",\"file\":\"sources/REG-DIST/2023-02-20/Kibble-share-split-notice.eml\",\"what\":\""
+  },
+  {
+   "family": "computerpaw-tax-statement-pdf",
+   "files": 12,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7350,
+   "tokens_out": 5134,
+   "usd": 0.2018,
+   "why": null
+  },
+  {
+   "family": "vicpaws-rego-pdf",
+   "files": 8,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7207,
+   "tokens_out": 6310,
+   "usd": 0.2298,
+   "why": null
+  },
+  {
+   "family": "etreat-ess-pdf",
+   "files": 4,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15882,
+   "tokens_out": 8289,
+   "usd": 0.366,
+   "why": "[{\"check\":\"controls\",\"file\":\"sources/RSU-ESS/2023-07-14/ETreat-ESS-Statement-FY2023.pdf\",\"what\":\"table_sum grants.discount failed {\\\"got\\\":178097}\"},{\"check\":\"controls\",\"file\":\"sources/RSU-ESS/2024-07-14/ETreat-ESS-Statement-FY2024.pdf\",\"wh"
+  },
+  {
+   "family": "etreat-benefit-csv",
+   "files": 5,
+   "tries": 2,
+   "status": "fail",
+   "tokens_in": 15538,
+   "tokens_out": 6091,
+   "usd": 0.3076,
+   "why": "[{\"check\":\"controls\",\"file\":\"sources/RSU-HIST/2023-07-10/ETreat-BenefitHistory-FY2023.csv\",\"what\":\"product failed {\\\"bad\\\":2,\\\"gap\\\":null}\"},{\"check\":\"controls\",\"file\":\"sources/RSU-HIST/2024-07-10/ETreat-BenefitHistory-FY2024.csv\",\"what\":\"p"
+  },
+  {
+   "family": "etreat-holdings-csv",
+   "files": 1,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7032,
+   "tokens_out": 2097,
+   "usd": 0.1227,
+   "why": null
+  },
+  {
+   "family": "etreat-sale-pdf",
+   "files": 16,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7278,
+   "tokens_out": 3815,
+   "usd": 0.1681,
+   "why": null
+  },
+  {
+   "family": "settlement-pdf",
+   "files": 2,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7294,
+   "tokens_out": 4568,
+   "usd": 0.1871,
+   "why": null
+  },
+  {
+   "family": "purrsure-renewal-pdf",
+   "files": 25,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7366,
+   "tokens_out": 5066,
+   "usd": 0.2003,
+   "why": null
+  },
+  {
+   "family": "purrsure-certificate-pdf",
+   "files": 25,
+   "tries": 1,
+   "status": "pass",
+   "tokens_in": 7304,
+   "tokens_out": 4847,
+   "usd": 0.1942,
+   "why": null
+  }
+ ],
+ "protocol": "One sample, one repair, capped at US$12, which stopped it at 50 of 58 families.",
+ "second_protocol": {
+  "note": "Three samples and two repairs, on six families that had failed: three passed, two of them first try.",
+  "families": 6,
+  "passed": 3,
+  "usd": 2.126
+ }
+}

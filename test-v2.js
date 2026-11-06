@@ -339,3 +339,156 @@ test("appendRows: anything it cannot trust stops with no write, and never reache
 test("appendRows: a sheet switched during the read writes nothing", async () => {
   await refused(connector({ range: "Decisions!A1:H", values: [HEAD] }, { switch: true }), "stale_session");
 });
+
+// ---------- Records: the standard's generated view, drawn by src/kit/records.js ----------
+const Records = require("./src/kit/records.js");
+const text = (html) => html.replace(/<[^>]+>/g, " ").replace(/&#39;/g, "'").replace(/\s+/g, " ");
+const held = (id, name) => ({ id, name, state: "held", count: 4 });
+const fullView = () => ({
+  generated: { as_of: "2027-03-31", files: 1124, events: 4656 },
+  proof: {
+    sections: [{ name: "lines recovered per month", exact: 675, checked: 675, pct: 100 }, { name: "net worth by month", exact: 0, checked: 16, pct: 0 }],
+    laws: [
+      { id: "L1", name: "Conservation", claim: "Every event's postings sum to zero.", status: "pass", counts: { pass: 1 }, worst: null },
+      { id: "L2", name: "Clearing", claim: "Clearing returns to zero.", status: "fail", counts: { pass: 4, fail: 2 }, worst: "Open 2946 days." },
+      { id: "L5", name: "Payslip", claim: "Payslips sum.", status: "gap", counts: { gap: 2 }, worst: "Payslips are missing." },
+      { id: "L3", name: "Continuity", claim: "Balances chain.", status: "open", counts: { open: 1 }, worst: null },
+      { id: "L7", name: "Holdings", claim: "Lots tie.", status: "skip", counts: { skip: 1 }, worst: null },
+    ],
+  },
+  years: [
+    { fy: "FY2025", people: [
+      { person: "JORDAN", name: "Jordan", status: "lodged", readiness: { pct: 100, steps: [held("income", "Income statements"), held("lodged", "Lodged and assessed")] },
+        lodged: { version: 2, taxable_income_cents: 14523000, result_cents: -84500, assessed_on: "2025-09-12" }, derived: { taxable_income_cents: 14535300, result_cents: -60100 },
+        tie: { status: "fail", gap: 12300, detail: "Derived taxable income differs from the assessment." },
+        items: [{ label: "1", amount_cents: 15200000, method: "annual tax statement", evidence: "held" }, { label: "D5", amount_cents: null, method: "work log", evidence: "at_risk" }] },
+      { person: "MIA", name: "Mia", status: "open", readiness: { pct: 60, steps: [held("income", "Income statements"), { id: "rental", name: "Rental statements", state: "missing", count: 0 }] }, lodged: null, derived: null, tie: null, items: [] },
+    ] },
+    { fy: "FY2026", people: [{ person: "JORDAN", name: "Jordan", status: "open", readiness: { pct: 0, steps: [{ id: "income", name: "Income statements", state: "missing", count: 0 }] }, lodged: null, derived: null, tie: null, items: [] }] },
+  ],
+  coverage: [{ stream: "ACC-EVD", name: "Everyday export", expected: 97, have: 97, missing: [] }, { stream: "ACC-OFF", name: "Offset export", expected: 97, have: 93, missing: ["2026-08", "2026-11"] }],
+  things: [{ asset_id: "CAR", kind: "vehicle", name: "Family car", refresh_by: "2028-02-01", replacement_cost_cents: 3800000, warranty_until: "2027-06-30", fy: "FY2028" }, { asset_id: "FRG", kind: "appliance", name: "Fridge", refresh_by: null, replacement_cost_cents: null, warranty_until: "2029-01-31", fy: null }],
+  traces: [{ kind: "wage_receipt", date: "2027-03-25", description: "SALARY <NORTHWIND>", amount_cents: 392562, grade: "corroborated", postings: [{ target: "ACC-EVD", amount_cents: 392562 }, { target: "clearing:payroll:NORTHWIND", amount_cents: -392562 }], witnesses: [{ role: "clears", kind: "txn_line", locator: "line 10", file: "Harbour-2027-03.csv", sha256: "db8ef6837d69" }] }],
+  experimental: [
+    { id: "collect", title: "Collect statements", button: "Start computer use", status: "Mock", today: "Nothing is fetched yet.", open: ["Which browser and whose session"] },
+    { id: "tax_pack", title: "Tax pack", button: "Download tax pack", status: "Baseline", today: "A real file.", open: [] },
+    { id: "advice", title: "Tax return check", button: "Run tax return advice", status: "Mock", today: "A model's reading is not wired.", open: ["Connect a tax capability"] },
+    { id: "reconcile", title: "Reconciliation", button: "Run reconciliation", status: "Baseline", today: "Every law.", open: [] },
+  ],
+});
+const clean = (html) => { assert.ok(!/undefined|NaN|\bnull\b|\[object |\$0(\.00)?(?![\d.,])|—/.test(text(html)), text(html)); };
+
+test("Records: a full view says what it is, and names the preview and its limit", () => {
+  const out = text(Records.Records(fullView()));
+  assert.match(out, /The household's record, rebuilt from its files: 1,124 files and 4,656 events, up to 31 Mar 2027\./);
+  assert.match(out, /preview of the standard running on the fictional Davies household/);
+  assert.match(out, /not read from the sheet yet/);
+  for (const name of ["This year", "How we know", "Where a number comes from", "Things", "What's missing", "Experimental"]) assert.ok(out.includes(name), name);
+  clean(Records.Records(fullView()));
+});
+
+test("Records: a lodged year calls the lodged figure the record, with the derived figure and the tie's own gap", () => {
+  const out = text(Records.RecordsYear(fullView(), "FY2025"));
+  assert.match(out, /The record Derived Gap/);
+  assert.match(out, /Taxable income \$145,230 \$145,353 \+\$123\.00/);
+  assert.match(out, /Result \$845\.00 to pay \$601\.00 to pay/);
+  assert.match(out, /The lodged figure is the record/);
+  assert.match(out, /Label 1 \$152,000\.00 annual tax statement Held/);
+  assert.match(out, /Label D5 not held yet work log At risk/);
+  assert.match(out, /Rental statements Yet to go/);
+  assert.ok(!/advice/i.test(out));
+});
+
+test("Records: a year with nothing held shows no zero percent", () => {
+  const out = text(Records.RecordsYear(fullView(), "FY2026"));
+  assert.match(out, /Jordan Not held yet/); assert.ok(!/0%/.test(out));
+});
+
+test("Records: the year defaults to the latest with real data, and a picked year wins", () => {
+  const v = fullView();
+  assert.equal(Records.recordsYear(v).fy, "FY2025");       // FY2026 holds nothing
+  assert.equal(Records.recordsYear(v, "FY2026").fy, "FY2026");
+  assert.equal(Records.recordsYear(v, "FY1999").fy, "FY2025");
+  assert.equal(Records.recordsYear({ years: [{ fy: "FY2026" }, { fy: "FY2027" }] }).fy, "FY2027");
+  assert.equal(Records.recordsYear({}), null);
+});
+
+test("Records: a gap and a fail differ in word, shape and meaning, and the laws run worst first", () => {
+  const html = Records.Records(fullView()), out = text(html);
+  assert.match(out, /Fail Evidence contradicts evidence\./); assert.match(out, /Gap Evidence is missing\./);
+  for (const s of ["fail", "gap", "open", "pass", "skip"]) assert.ok(html.includes(`rec-stat ${s}`), s);
+  assert.deepEqual(Records.lawsInOrder(fullView()).map((l) => l.status), ["fail", "gap", "open", "pass", "skip"]);
+  const v = fullView(), gap = text(Records.RecordLaw(Records.recordLaw(v, "L5"))), fail = text(Records.RecordLaw(Records.recordLaw(v, "L2")));
+  assert.match(gap, /Payslips sum\./); assert.match(gap, /Evidence is missing\./); assert.match(gap, /Worst detail Payslips are missing\./);
+  assert.match(fail, /Evidence contradicts evidence\./); assert.match(fail, /Open 2946 days\./); assert.match(fail, /2 fail, 4 pass/);
+});
+
+test("Records: a trace runs from the number to the exact line of the exact file, escaped", () => {
+  const v = fullView(), row = Records.Records(v), drawer = Records.RecordTrace(v.traces[0], v), out = text(drawer);
+  assert.ok(row.includes('data-open="trace:0"')); assert.ok(row.includes("Harbour-2027-03.csv")); assert.ok(row.includes("line 10"));
+  assert.ok(drawer.includes("SALARY &lt;NORTHWIND&gt;")); assert.ok(!drawer.includes("<NORTHWIND>"));
+  assert.match(out, /\$3,925\.62/); assert.match(out, /ACC-EVD \+\$3,925\.62/); assert.match(out, /clearing:payroll:NORTHWIND −\$3,925\.62/);
+  assert.match(out, /Pass Every event's postings sum to zero\./);
+  assert.match(out, /Harbour-2027-03\.csv line 10 Transaction line Clears against this event sha256 db8ef6837d69/);
+});
+
+test("Records: things and coverage read as held, with absent facts left out or named", () => {
+  const out = text(Records.Records(fullView()));
+  assert.match(out, /Family car Due 1 Feb 2028 · Warranty until 30 Jun 2027 · Vehicle \$38,000/);
+  assert.match(out, /Fridge Warranty until 31 Jan 2029 · Appliance Cost not held yet/);
+  assert.match(out, /Offset export Missing August 2026, November 2026 93 of 97 1 more, nothing missing Everyday export 97 of 97/);   // what is short comes first
+});
+
+test("Records: experimental actions are labelled, mocks say so, and baselines stay real", () => {
+  const v = fullView(), html = Records.Records(v), xp = html.slice(html.indexOf("rec-xpwrap"));
+  assert.equal(xp.match(/rec-pill">Experimental/g).length, 4);
+  for (const a of v.experimental) assert.ok(xp.includes(`data-open="xp:${a.id}"`) && xp.includes(a.button), a.id);
+  const collect = text(Records.RecordAction(Records.recordAction(v, "collect"), v)), advice = text(Records.RecordAction(Records.recordAction(v, "advice"), v));
+  assert.match(collect, /This is a mock\. Start computer use runs nothing/); assert.match(collect, /Offset export Missing August 2026/); assert.match(collect, /Which browser and whose session/);
+  assert.match(advice, /This is a mock\. Run tax return advice runs nothing/); assert.match(advice, /Connect a tax capability/);
+  const pack = Records.RecordAction(Records.recordAction(v, "tax_pack"), v, { fy: "FY2025", canSave: true });
+  assert.ok(pack.includes('data-pack="JORDAN"') && pack.includes('data-pack="MIA"')); assert.ok(!/This is a mock/.test(pack));
+  assert.match(text(Records.RecordAction(Records.recordAction(v, "tax_pack"), v, { fy: "FY2025", canSave: false })), /Saving a file is not available in this view/);
+  assert.match(text(Records.RecordAction(Records.recordAction(v, "reconcile"), v)), /Clearing Open 2946 days\. Fail Payslip Payslips are missing\. Gap/);
+});
+
+test("Records: the tax pack is one person's year as CSV, and an absent amount stays blank", () => {
+  const v = fullView(), pack = Records.taxPack(v, "FY2025", "JORDAN"), lines = pack.csv.split("\n");
+  assert.equal(pack.filename, "kitty-tax-pack-FY2025-jordan.csv");
+  assert.equal(lines[0], "Year,Person,Section,Line,State,Amount,Method");
+  assert.ok(lines.includes("FY2025,Jordan,Readiness,Income statements,Held,,"));
+  assert.ok(lines.includes("FY2025,Jordan,The record,Taxable income,Lodged,145230.00,"));
+  assert.ok(lines.includes("FY2025,Jordan,Tax item,Label 1,Held,152000.00,annual tax statement"));
+  assert.ok(lines.includes("FY2025,Jordan,Tax item,Label D5,At risk,,work log"));
+  assert.ok(lines.some((l) => /fictional Davies household/.test(l)));
+  assert.equal(Records.taxPack(v, "FY2025", "NOBODY"), null); assert.equal(Records.taxPack({}, "FY2025", "JORDAN"), null);
+});
+
+test("Records: an empty view keeps the preview line, says not held yet, and draws no zero", () => {
+  const html = Records.Records({}), out = text(html); clean(html);
+  assert.match(out, /The household's record, rebuilt from its files\./); assert.match(out, /fictional Davies household/);
+  for (const what of ["This year is", "Proof is", "Examples are", "Things are", "Coverage is"]) assert.ok(out.includes(`${what} not held yet.`), what);
+  assert.ok(!html.includes("recfy"));
+  assert.equal(Records.taxPack({}, null, "JORDAN"), null);
+});
+
+test("Records: no view at all says the record is not available in this edition", () => {
+  for (const v of [null, undefined, "nope"]) assert.match(text(Records.Records(v)), /The record is not available in this edition\./);
+});
+
+test("Records: a view with missing or half-filled years never crashes and never invents a number", () => {
+  for (const years of [undefined, null, [], "x", [null], [{}], [{ fy: "FY2026" }], [{ fy: "FY2026", people: null }], [{ fy: "FY2026", people: [null, {}] }]]) { const html = Records.Records({ years }); clean(html); clean(Records.RecordsYear({ years }, "FY2026")); }
+  const half = { years: [{ fy: "FY2027", people: [{ person: "A", readiness: { steps: [{ id: "income" }] }, lodged: {}, derived: {}, tie: {}, items: [{}, null] }] }], proof: { sections: [{}], laws: [{ id: "L1" }, {}] }, traces: [{}], things: [{}], coverage: [{}], experimental: [{ id: "tax_pack" }, { id: "x", status: "Mock" }] };
+  const html = Records.Records(half); clean(html);
+  assert.match(text(html), /Income Yet to go/);
+  clean(Records.RecordTrace(half.traces[0], half)); clean(Records.RecordLaw(half.proof.laws[0]));
+  for (const a of half.experimental) clean(Records.RecordAction(a, half, { canSave: true }));
+  assert.ok(!Records.taxPack(half, "FY2027", "A").csv.includes("undefined"));
+});
+
+test("Records: the generated view draws clean, every year and every trace", () => {
+  const v = load("data/standard-view.json"), html = Records.Records(v); clean(html);
+  for (const key of ["generated", "proof", "years", "coverage", "things", "traces", "experimental"]) assert.ok(key in v, key);
+  for (const y of v.years) clean(Records.RecordsYear(v, y.fy));
+  for (const t of v.traces) clean(Records.RecordTrace(t, v));
+});

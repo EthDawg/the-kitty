@@ -1,0 +1,123 @@
+{
+ "id": "receipt-pdf",
+ "match": [
+  "^Tax invoice$",
+  "^Merchant  Invoice date"
+ ],
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO, fictional$",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "values": {
+  "merchant_ref": {
+   "below": "^Merchant$"
+  },
+  "date": {
+   "below": "^Invoice date$",
+   "as": "date"
+  },
+  "payment_ref": {
+   "below": "^Payment$"
+  },
+  "asset_kind": {
+   "below": "^Product type$"
+  },
+  "serial": {
+   "below": "^Serial number$"
+  },
+  "warranty_until": {
+   "below": "^Warranty until$",
+   "as": "date"
+  },
+  "name": {
+   "find": "^(.+?)  1  [\\d,]+\\.\\d\\d$"
+  },
+  "gst_cents": {
+   "right": "^GST included$",
+   "as": "cents"
+  },
+  "total_cents": {
+   "right": "^Total paid$",
+   "as": "cents"
+  }
+ },
+ "tables": [
+  {
+   "name": "items",
+   "start": "^Item  Qty  Amount$",
+   "end": "^Summary  Amount$",
+   "row": "^(.+?)  (\\d+)  ([\\d,]+\\.\\d\\d)$",
+   "collect": {
+    "description": {
+     "group": 1
+    },
+    "qty": {
+     "group": 2,
+     "as": "int"
+    },
+    "amount_cents": {
+     "group": 3,
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "emit": [
+  {
+   "kind": "receipt",
+   "from_values": true,
+   "fields": {
+    "items": {
+     "table": "items"
+    }
+   }
+  },
+  {
+   "kind": "asset_fact",
+   "fields": {
+    "asset_ref": {
+     "value": "name"
+    },
+    "name": {
+     "value": "name"
+    },
+    "asset_kind": {
+     "value": "asset_kind"
+    },
+    "acquired_on": {
+     "value": "date"
+    },
+    "cost_cents": {
+     "value": "total_cents"
+    },
+    "serial": {
+     "value": "serial"
+    },
+    "warranty_until": {
+     "value": "warranty_until"
+    },
+    "merchant_ref": {
+     "value": "merchant_ref"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "table_sum",
+   "table": "items",
+   "field": "amount_cents",
+   "equals": "total_cents"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:5454e64b87f30357c0fec112"
+ ]
+}

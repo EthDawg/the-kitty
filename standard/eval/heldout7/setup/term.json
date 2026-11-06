@@ -1,0 +1,142 @@
+[
+ {
+  "term_id": "TERM-001",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "interest_rate",
+  "value": "6.39",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-002",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "rate_type",
+  "value": "variable",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-003",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-004",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "repayment_cents",
+  "value": "142000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-005",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "repayment_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-006",
+  "subject_type": "contract",
+  "subject_id": "CON-WESTGATE",
+  "term": "base_salary_cents",
+  "value": "8400000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-007",
+  "subject_type": "contract",
+  "subject_id": "CON-WESTGATE",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-008",
+  "subject_type": "contract",
+  "subject_id": "CON-ARDEER",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-009",
+  "subject_type": "contract",
+  "subject_id": "CON-LAVERTON",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-010",
+  "subject_type": "contract",
+  "subject_id": "CON-HEALTH",
+  "term": "premium_cents",
+  "value": "32400",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-011",
+  "subject_type": "contract",
+  "subject_id": "CON-HEALTH",
+  "term": "premium_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-012",
+  "subject_type": "contract",
+  "subject_id": "CON-GURDWARA",
+  "term": "price_cents",
+  "value": "10000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-013",
+  "subject_type": "contract",
+  "subject_id": "CON-GURDWARA",
+  "term": "cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-014",
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "term": "use",
+  "value": "owner_occupied",
+  "unit": null,
+  "valid_from": "2019-03-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

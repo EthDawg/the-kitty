@@ -1,0 +1,112 @@
+{
+ "id": "pawroll-income-statement-pdf",
+ "version": 1,
+ "tier": "document",
+ "container": "pdf",
+ "fingerprints": [
+  "fp1:a8d8d4156e17bba9ffe62db9"
+ ],
+ "match": [
+  "^Pawroll$"
+ ],
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Pawroll$",
+  "^Every pay, every paw",
+  "^Fictional document from",
+  "^advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "person_ref": {
+   "find": "^Income statement for (.+)$"
+  },
+  "employer_ref": {
+   "below": "^Payer$"
+  },
+  "fy": {
+   "find": "^(FY\\d{4}),"
+  },
+  "period_end": {
+   "find": "^FY\\d{4}, .* to (.+)$",
+   "as": "date"
+  },
+  "gross_cents": {
+   "right": "^Gross payments",
+   "as": "cents"
+  },
+  "tax_cents": {
+   "right": "^Tax withheld",
+   "as": "cents"
+  },
+  "super_cents": {
+   "right": "^Superannuation guarantee",
+   "as": "cents"
+  },
+  "resc_cents": {
+   "right": "^Reportable employer",
+   "as": "cents"
+  },
+  "finalised": {
+   "below": "^Status$",
+   "map": {
+    "Tax ready": "yes"
+   },
+   "as": "bool"
+  }
+ },
+ "tables": [
+  {
+   "name": "pays",
+   "start": "^Pay date  Gross",
+   "end": "^Total  ",
+   "skip": [
+    "\\(continued\\)$"
+   ],
+   "row": "^(\\d{2} \\w{3} \\d{4})  ([\\d,.]+)  ([\\d,.]+)  ([\\d,.]+)  ([\\d,.]+)$",
+   "collect": {
+    "gross": {
+     "group": 2,
+     "as": "cents"
+    },
+    "tax": {
+     "group": 3,
+     "as": "cents"
+    },
+    "super": {
+     "group": 4,
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "emit": [
+  {
+   "kind": "income_statement",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "table_sum",
+   "table": "pays",
+   "field": "gross",
+   "equals": "gross_cents"
+  },
+  {
+   "law": "table_sum",
+   "table": "pays",
+   "field": "tax",
+   "equals": "tax_cents"
+  },
+  {
+   "law": "table_sum",
+   "table": "pays",
+   "field": "super",
+   "equals": "super_cents"
+  }
+ ]
+}

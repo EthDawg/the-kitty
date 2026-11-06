@@ -1,0 +1,282 @@
+[
+ {
+  "term_id": "TERM-001",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "interest_rate",
+  "value": "6.19",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-002",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "rate_type",
+  "value": "variable",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-003",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-004",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "repayment_cents",
+  "value": "169000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-005",
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "term": "repayment_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-006",
+  "subject_type": "contract",
+  "subject_id": "CON-UTE",
+  "term": "interest_rate",
+  "value": "8.45",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-007",
+  "subject_type": "contract",
+  "subject_id": "CON-UTE",
+  "term": "rate_type",
+  "value": "fixed",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-008",
+  "subject_type": "contract",
+  "subject_id": "CON-UTE",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-009",
+  "subject_type": "contract",
+  "subject_id": "CON-UTE",
+  "term": "repayment_cents",
+  "value": "128640",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-010",
+  "subject_type": "contract",
+  "subject_id": "CON-UTE",
+  "term": "repayment_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-011",
+  "subject_type": "contract",
+  "subject_id": "CON-UTE",
+  "term": "term_end",
+  "value": "2026-03-09",
+  "unit": "date",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-012",
+  "subject_type": "contract",
+  "subject_id": "CON-COLOAN",
+  "term": "interest_rate",
+  "value": "0",
+  "unit": "pct",
+  "valid_from": "2024-09-30",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-013",
+  "subject_type": "contract",
+  "subject_id": "CON-COLOAN",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2024-09-30",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-014",
+  "subject_type": "contract",
+  "subject_id": "CON-MILAN",
+  "term": "interest_rate",
+  "value": "0",
+  "unit": "pct",
+  "valid_from": "2025-01-17",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-015",
+  "subject_type": "contract",
+  "subject_id": "CON-MILAN",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2025-01-17",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-016",
+  "subject_type": "contract",
+  "subject_id": "CON-MILAN",
+  "term": "repayment_cents",
+  "value": "50000",
+  "unit": "cents",
+  "valid_from": "2025-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-017",
+  "subject_type": "contract",
+  "subject_id": "CON-MILAN",
+  "term": "repayment_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2025-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-018",
+  "subject_type": "contract",
+  "subject_id": "CON-DENTAL",
+  "term": "base_salary_cents",
+  "value": "4000000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-019",
+  "subject_type": "contract",
+  "subject_id": "CON-DENTAL",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-020",
+  "subject_type": "contract",
+  "subject_id": "CON-LIBRARY",
+  "term": "base_salary_cents",
+  "value": "620000",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-021",
+  "subject_type": "contract",
+  "subject_id": "CON-LIBRARY",
+  "term": "pay_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-022",
+  "subject_type": "contract",
+  "subject_id": "CON-LUKA-CO",
+  "term": "base_salary_cents",
+  "value": "11000000",
+  "unit": "cents",
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-023",
+  "subject_type": "contract",
+  "subject_id": "CON-LUKA-CO",
+  "term": "pay_cadence",
+  "value": "fortnightly",
+  "unit": null,
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-024",
+  "subject_type": "contract",
+  "subject_id": "CON-MARI-CO",
+  "term": "base_salary_cents",
+  "value": "624000",
+  "unit": "cents",
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-025",
+  "subject_type": "contract",
+  "subject_id": "CON-MARI-CO",
+  "term": "pay_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-026",
+  "subject_type": "contract",
+  "subject_id": "CON-IP",
+  "term": "premium_cents",
+  "value": "14860",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-027",
+  "subject_type": "contract",
+  "subject_id": "CON-IP",
+  "term": "premium_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-028",
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "term": "use",
+  "value": "owner_occupied",
+  "unit": null,
+  "valid_from": "2018-05-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

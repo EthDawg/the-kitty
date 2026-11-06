@@ -1,0 +1,72 @@
+{
+ "id": "purrannuation-csv-v2",
+ "tier": "table",
+ "container": "csv",
+ "defaults": {
+  "date": "ymd"
+ },
+ "table": {
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "emit": [
+  {
+   "kind": "super_line",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "posting_date": {
+     "col": "Effective Date",
+     "as": "date"
+    },
+    "line_type": {
+     "col": "Category",
+     "map": {
+      "CONTRIB-SG": "employer",
+      "TAX-15": "contributions_tax",
+      "FEE-ADMIN": "fee",
+      "INS-DTPD": "insurance",
+      "EARNINGS": "earnings",
+      "ROLL-IN": "rollover_in",
+      "PENSION": "pension",
+      "ROLL-OUT": "rollover_out",
+      "LISTO": "government",
+      "*": "other"
+     }
+    },
+    "description": {
+     "col": "Narrative"
+    },
+    "amount_cents": {
+     "col": "Amount (AUD)",
+     "as": "cents"
+    },
+    "balance_after_cents": {
+     "col": "Running Balance",
+     "as": "cents"
+    },
+    "reference": {
+     "col": "Reference"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "chain",
+  "lines": "super_line"
+ },
+ "controls": [
+  {
+   "law": "balance_chain",
+   "kind": "super_line"
+  },
+  {
+   "law": "family_chain"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:03444cc521e074db4a424422"
+ ]
+}

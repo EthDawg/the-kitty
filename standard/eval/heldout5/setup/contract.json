@@ -1,0 +1,139 @@
+[
+ {
+  "contract_id": "CON-LUKA-CO",
+  "kind": "employment",
+  "name": "Luka at the company",
+  "counterparty_party_id": "PTY-CO",
+  "holder_party_id": "PTY-LUKA",
+  "category_id": "SALARY",
+  "started_on": "2024-07-01"
+ },
+ {
+  "contract_id": "CON-MARI-CO",
+  "kind": "employment",
+  "name": "Marisol does the company's books",
+  "counterparty_party_id": "PTY-CO",
+  "holder_party_id": "PTY-MARI",
+  "category_id": "SALARY",
+  "started_on": "2024-07-01"
+ },
+ {
+  "contract_id": "CON-DENTAL",
+  "kind": "employment",
+  "name": "Marisol at the surgery",
+  "counterparty_party_id": "PTY-DENTAL",
+  "holder_party_id": "PTY-MARI",
+  "category_id": "SALARY",
+  "started_on": "2017-02-06"
+ },
+ {
+  "contract_id": "CON-LIBRARY",
+  "kind": "employment",
+  "name": "Weekends at the library",
+  "counterparty_party_id": "PTY-COUNCIL",
+  "holder_party_id": "PTY-MARI",
+  "category_id": "SALARY",
+  "started_on": "2021-03-01",
+  "ended_on": "2024-12-20"
+ },
+ {
+  "contract_id": "CON-SUPER-L",
+  "kind": "super_fund",
+  "name": "Luka's super",
+  "counterparty_party_id": "PTY-PURRANNUATION",
+  "holder_party_id": "PTY-LUKA",
+  "account_id": "ACC-SUPER-L"
+ },
+ {
+  "contract_id": "CON-SUPER-M",
+  "kind": "super_fund",
+  "name": "Marisol's super",
+  "counterparty_party_id": "PTY-HESTABBY",
+  "holder_party_id": "PTY-MARI",
+  "account_id": "ACC-SUPER-M"
+ },
+ {
+  "contract_id": "CON-HOME",
+  "kind": "loan",
+  "name": "Home loan",
+  "counterparty_party_id": "PTY-WESTPAW",
+  "holder_party_id": "PTY-LUKA",
+  "account_id": "ACC-HOMELOAN",
+  "asset_id": "AST-HOME",
+  "category_id": "MORTGAGE",
+  "started_on": "2018-05-14"
+ },
+ {
+  "contract_id": "CON-UTE",
+  "kind": "loan",
+  "name": "Ute chattel mortgage",
+  "counterparty_party_id": "PTY-PING",
+  "holder_party_id": "PTY-LUKA",
+  "account_id": "ACC-UTELOAN",
+  "asset_id": "AST-UTE",
+  "category_id": "CAR",
+  "started_on": "2021-03-08",
+  "ended_on": "2026-03-09"
+ },
+ {
+  "contract_id": "CON-COLOAN",
+  "kind": "loan",
+  "name": "Loan to the company",
+  "counterparty_party_id": "PTY-CO",
+  "holder_party_id": "PTY-LUKA",
+  "account_id": "ACC-COLOAN",
+  "started_on": "2024-09-30"
+ },
+ {
+  "contract_id": "CON-MILAN",
+  "kind": "loan",
+  "name": "Loan from Milan",
+  "counterparty_party_id": "PTY-MILAN",
+  "holder_party_id": "PTY-LUKA",
+  "account_id": "ACC-MILAN",
+  "started_on": "2025-01-17"
+ },
+ {
+  "contract_id": "CON-HOME-INS",
+  "kind": "insurance",
+  "name": "Home insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-LUKA",
+  "asset_id": "AST-HOME",
+  "category_id": "HOME-INS"
+ },
+ {
+  "contract_id": "CON-MOTOR",
+  "kind": "insurance",
+  "name": "Kia insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-MARI",
+  "asset_id": "AST-CAR",
+  "category_id": "CAR"
+ },
+ {
+  "contract_id": "CON-IP",
+  "kind": "insurance",
+  "name": "Income protection",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-LUKA",
+  "category_id": "HEALTH"
+ },
+ {
+  "contract_id": "CON-POWER",
+  "kind": "utility",
+  "name": "Electricity",
+  "counterparty_party_id": "PTY-TROPICLINE",
+  "holder_party_id": "PTY-LUKA",
+  "category_id": "UTILITIES"
+ },
+ {
+  "contract_id": "CON-KIDS",
+  "kind": "childcare",
+  "name": "Kittenhood OSHC",
+  "counterparty_party_id": "PTY-KITTEN",
+  "holder_party_id": "PTY-MARI",
+  "category_id": "CHILDCARE",
+  "ended_on": "2025-06-30"
+ }
+]

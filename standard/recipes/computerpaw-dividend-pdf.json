@@ -1,0 +1,71 @@
+{
+ "id": "computerpaw-dividend-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO, fictional$",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$",
+  "^Computerpaw$"
+ ],
+ "values": {
+  "account_ref": {
+   "below": "^Holder number$"
+  },
+  "instrument_ref": {
+   "below": "^Security code$"
+  },
+  "units": {
+   "below": "^Shares held$",
+   "as": "units"
+  },
+  "pay_date": {
+   "below": "^Payment date$",
+   "as": "date"
+  },
+  "franked_cents": {
+   "right": "^Franked amount$",
+   "as": "cents"
+  },
+  "unfranked_cents": {
+   "right": "^Unfranked amount$",
+   "as": "cents"
+  },
+  "franking_credit_cents": {
+   "right": "^Franking credit$",
+   "as": "cents"
+  },
+  "net_cents": {
+   "right": "^Net payment$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "dividend",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "dividend",
+   "terms": [
+    "+franked_cents",
+    "+unfranked_cents",
+    "-net_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:d835d8e884a25ce00c3b1aeb"
+ ],
+ "match": [
+  "^Computerpaw  ",
+  "dividend$"
+ ]
+}

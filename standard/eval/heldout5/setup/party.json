@@ -1,0 +1,129 @@
+[
+ {
+  "party_id": "PTY-LUKA",
+  "kind": "person",
+  "name": "Luka Novak",
+  "birth_date": "1981-02-14"
+ },
+ {
+  "party_id": "PTY-MARI",
+  "kind": "person",
+  "name": "Marisol Bautista",
+  "birth_date": "1984-09-02"
+ },
+ {
+  "party_id": "PTY-MATEO",
+  "kind": "person",
+  "name": "Mateo Novak",
+  "birth_date": "2011-05-20"
+ },
+ {
+  "party_id": "PTY-INES",
+  "kind": "person",
+  "name": "Ines Novak",
+  "birth_date": "2016-10-02"
+ },
+ {
+  "party_id": "PTY-THEO",
+  "kind": "person",
+  "name": "Theo Novak",
+  "birth_date": "2025-03-11"
+ },
+ {
+  "party_id": "PTY-MILAN",
+  "kind": "person",
+  "name": "Milan Novak",
+  "birth_date": "1978-11-06"
+ },
+ {
+  "party_id": "PTY-CORAZON",
+  "kind": "person",
+  "name": "Corazon Bautista",
+  "birth_date": "1957-03-30"
+ },
+ {
+  "party_id": "PTY-CO",
+  "kind": "company",
+  "name": "Novak Electrical Pty Ltd"
+ },
+ {
+  "party_id": "PTY-DENTAL",
+  "kind": "organisation",
+  "name": "Capricorn Dental"
+ },
+ {
+  "party_id": "PTY-COUNCIL",
+  "kind": "government",
+  "name": "Capricorn Coast Council"
+ },
+ {
+  "party_id": "PTY-WESTPAW",
+  "kind": "organisation",
+  "name": "Westpaw"
+ },
+ {
+  "party_id": "PTY-WATTLE",
+  "kind": "organisation",
+  "name": "Wattle Credit Union"
+ },
+ {
+  "party_id": "PTY-BARK",
+  "kind": "organisation",
+  "name": "Bark Bank"
+ },
+ {
+  "party_id": "PTY-HARBOUR",
+  "kind": "organisation",
+  "name": "Harbour Bank"
+ },
+ {
+  "party_id": "PTY-AMEWX",
+  "kind": "organisation",
+  "name": "Amewx"
+ },
+ {
+  "party_id": "PTY-SOUTHERN",
+  "kind": "organisation",
+  "name": "Southern Card"
+ },
+ {
+  "party_id": "PTY-PING",
+  "kind": "organisation",
+  "name": "PING"
+ },
+ {
+  "party_id": "PTY-PURRANNUATION",
+  "kind": "organisation",
+  "name": "Purrannuation"
+ },
+ {
+  "party_id": "PTY-HESTABBY",
+  "kind": "organisation",
+  "name": "HESTAbby"
+ },
+ {
+  "party_id": "PTY-TAX",
+  "kind": "government",
+  "name": "myGuv"
+ },
+ {
+  "party_id": "PTY-PURRSURE",
+  "kind": "organisation",
+  "name": "Purrsure"
+ },
+ {
+  "party_id": "PTY-TROPICLINE",
+  "kind": "organisation",
+  "name": "Tropicline Power"
+ },
+ {
+  "party_id": "PTY-WATER",
+  "kind": "organisation",
+  "name": "Keppel Reach Water"
+ },
+ {
+  "party_id": "PTY-KITTEN",
+  "kind": "organisation",
+  "name": "Kittenhood OSHC Norman Gardens"
+ }
+]

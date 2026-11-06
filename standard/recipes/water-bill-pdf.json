@@ -1,0 +1,107 @@
+{
+ "id": "water-bill-pdf",
+ "match": [
+  "^Your water bill  "
+ ],
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^Fictional document from",
+  "Nothing here is advice\\.$",
+  "^advice\\.$",
+  "^institution\\."
+ ],
+ "values": {
+  "issuer_ref": {
+   "find": "^(.+?)  DEMO, fictional$"
+  },
+  "subject_ref": {
+   "right": "^Account$",
+   "region": {
+    "x_max": 300
+   }
+  },
+  "bill_date": {
+   "right": "^Bill date$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "due_on": {
+   "right": "^Due date$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "period_start": {
+   "right": "^Period from$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "period_end": {
+   "right": "^Period to$",
+   "region": {
+    "x_max": 300
+   },
+   "as": "date"
+  },
+  "usage": {
+   "right": "^Water usage$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "service": {
+   "right": "^Service charges$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "concession": {
+   "right": "^Concession$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  },
+  "amount_cents": {
+   "right": "^Amount due$",
+   "region": {
+    "x_min": 300
+   },
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "bill",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "bill",
+   "name": "the charges make the amount due",
+   "terms": [
+    "+usage",
+    "+service",
+    "-concession",
+    "-amount_cents"
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:9d059d51c3caeaaf4b1ca704"
+ ]
+}

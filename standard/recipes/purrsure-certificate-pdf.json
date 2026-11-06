@@ -1,0 +1,65 @@
+{
+ "id": "purrsure-certificate-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Cover for the curious",
+  "^Fictional document from",
+  "Nothing here is advice\\.$",
+  "^advice\\.$",
+  "^insurer\\.",
+  "^institution\\."
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "contract_ref": {
+   "below": "^Policy number$"
+  },
+  "insurer_ref": {
+   "find": "^(Purrsure)$"
+  },
+  "policy_kind": {
+   "below": "^Policy$"
+  },
+  "period_start": {
+   "below": "^Period of insurance$",
+   "regex": "^(.+?) to ",
+   "as": "date"
+  },
+  "period_end": {
+   "below": "^Period of insurance$",
+   "regex": " to (.+)$",
+   "as": "date"
+  },
+  "premium_cents": {
+   "below": "^Premium paid$",
+   "as": "cents"
+  },
+  "sum_insured_cents": {
+   "right": "^(Building sum insured|Contents sum insured|Agreed value)$",
+   "as": "cents"
+  },
+  "excess_cents": {
+   "right": "^Excess$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "policy",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:0db457aba0278f6f01765be5"
+ ],
+ "match": [
+  "^Purrsure$",
+  "^Certificate of currency$"
+ ]
+}

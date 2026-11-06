@@ -1,0 +1,76 @@
+{
+ "id": "vicpaws-rego-pdf",
+ "match": [
+  "^VicPaws$"
+ ],
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^xxxxx$",
+  "^Roads, rego",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "subject_ref": {
+   "below": "^Registration number$"
+  },
+  "issuer_ref": {
+   "find": "^(VicPaws)$"
+  },
+  "bill_date": {
+   "below": "^Issue date$",
+   "as": "date"
+  },
+  "due_on": {
+   "below": "^Due date$",
+   "as": "date"
+  },
+  "amount_cents": {
+   "below": "^Amount payable$",
+   "as": "cents"
+  },
+  "reference": {
+   "find": "^Notice (.+)$"
+  },
+  "until": {
+   "below": "^Registered until$",
+   "as": "date"
+  }
+ },
+ "emit": [
+  {
+   "kind": "bill",
+   "from_values": true
+  },
+  {
+   "kind": "term_notice",
+   "fields": {
+    "subject_ref": {
+     "value": "subject_ref"
+    },
+    "term": {
+     "const": "rego_until"
+    },
+    "value": {
+     "value": "until"
+    },
+    "valid_from": {
+     "value": "bill_date"
+    },
+    "notified_on": {
+     "value": "bill_date"
+    }
+   }
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:f2290947ff3264dabdb2c0fa"
+ ]
+}

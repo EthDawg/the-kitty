@@ -1,0 +1,236 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "scheme": "account_number",
+  "value": "714220615522",
+  "valid_from": "2025-03-17",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "scheme": "account_number",
+  "value": "0061930288",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "scheme": "account_number",
+  "value": "714220770134",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "scheme": "card_last4",
+  "value": "42118",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-01-20"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "scheme": "card_last4",
+  "value": "42977",
+  "valid_from": "2025-01-20",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "scheme": "account_number",
+  "value": "CT-7718240",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-BROKER",
+  "scheme": "account_number",
+  "value": "CT-7718266",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "scheme": "hin",
+  "value": "X0044120",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SMSF-SHARES",
+  "scheme": "hin",
+  "value": "X0051877",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PENSION",
+  "scheme": "member_number",
+  "value": "HST-9930127",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BRIDGE",
+  "scheme": "loan_number",
+  "value": "553 120 447",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-SALMA",
+  "scheme": "name",
+  "value": "Salma Haddad",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-GEOFF",
+  "scheme": "name",
+  "value": "Geoffrey Whitlock",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-KARIM",
+  "scheme": "name",
+  "value": "Karim Whitlock",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-NADIA",
+  "scheme": "name",
+  "value": "Nadia Haddad",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-TARIQ",
+  "scheme": "name",
+  "value": "Tariq Haddad",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-SMSF",
+  "scheme": "name",
+  "value": "Whitlock Haddad Super Fund",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-ROSEWOOD",
+  "scheme": "name",
+  "value": "Rosewood Aged Care",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-HARGRAVES",
+  "scheme": "name",
+  "value": "Hargraves Legal",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-LODDON",
+  "scheme": "name",
+  "value": "Loddon Conveyancing",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-PORTBAY",
+  "scheme": "name",
+  "value": "Portland Bay Holiday Lets",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "scheme": "name",
+  "value": "26 Barker Street, Castlemaine",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "scheme": "name",
+  "value": "Unit 4, 18 Mostyn Street, Castlemaine",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-PORTLAND",
+  "scheme": "name",
+  "value": "8 Cliff Street, Portland",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-PORTLAND",
+  "scheme": "owner_ref",
+  "value": "PM-88013",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-BRIDGE",
+  "scheme": "loan_number",
+  "value": "553 120 447",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-INS",
+  "scheme": "policy_number",
+  "value": "PH-40771882",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-10-02"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-INS",
+  "scheme": "policy_number",
+  "value": "PH-51220913",
+  "valid_from": "2025-10-02",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-PORTLAND-INS",
+  "scheme": "policy_number",
+  "value": "PL-33904115",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

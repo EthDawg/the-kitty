@@ -1,0 +1,186 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "scheme": "account_number",
+  "value": "733120448806",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-DEE",
+  "scheme": "account_number",
+  "value": "1520",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVE",
+  "scheme": "account_number",
+  "value": "0071930877",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "scheme": "card_last4",
+  "value": "42118",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-P",
+  "scheme": "member_number",
+  "value": "HST-5519027",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-D",
+  "scheme": "member_number",
+  "value": "PUR-6620913",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "scheme": "loan_number",
+  "value": "PNG-88412010",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-PAUL",
+  "scheme": "name",
+  "value": "Paul Mulcahy",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-DEE",
+  "scheme": "name",
+  "value": "Donatella Bonetti",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-TESS",
+  "scheme": "name",
+  "value": "Tess Mulcahy",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-LIAM",
+  "scheme": "name",
+  "value": "Liam Mulcahy",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-MUM",
+  "scheme": "name",
+  "value": "Assunta Bonetti",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-CARLO",
+  "scheme": "name",
+  "value": "Carlo Bonetti",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-DAIRY",
+  "scheme": "name",
+  "value": "Merri River Dairy Co",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-MOYNE",
+  "scheme": "name",
+  "value": "Moyne Coast Health",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-COUNCIL",
+  "scheme": "name",
+  "value": "Warrnambool Coast Council",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-SA",
+  "scheme": "name",
+  "value": "Services Australia",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-LAKESIDE",
+  "scheme": "name",
+  "value": "Lakeside Aged Care",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "scheme": "name",
+  "value": "9 Tower Hill Road, Warrnambool",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-CAR",
+  "scheme": "name",
+  "value": "1XY2ZW",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME",
+  "scheme": "loan_number",
+  "value": "PNG-88412010",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-INS",
+  "scheme": "policy_number",
+  "value": "PH-71120552",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-MOTOR",
+  "scheme": "policy_number",
+  "value": "PM-8840",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

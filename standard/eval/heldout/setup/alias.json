@@ -1,0 +1,154 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-ADA",
+  "scheme": "account_number",
+  "value": "732118604219",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SVEN",
+  "scheme": "account_number",
+  "value": "0029174403",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-JOINT",
+  "scheme": "account_number",
+  "value": "881207703",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "scheme": "card_last4",
+  "value": "41007",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "scheme": "account_number",
+  "value": "CT-8841207",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "scheme": "hin",
+  "value": "X0048812",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOMELOAN",
+  "scheme": "loan_number",
+  "value": "553 882 417",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARLOAN",
+  "scheme": "loan_number",
+  "value": "PNG-40021877",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-ADA",
+  "scheme": "member_number",
+  "value": "HST-5520917",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-SVEN",
+  "scheme": "member_number",
+  "value": "PUR-3381046",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-ADA",
+  "scheme": "name",
+  "value": "Ada Okafor",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-SVEN",
+  "scheme": "name",
+  "value": "Sven Lindqvist",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-GREYWATER",
+  "scheme": "name",
+  "value": "Greywater Health Service",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-TESSELLATE",
+  "scheme": "name",
+  "value": "Tessellate Marine Pty Ltd",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "party",
+  "subject_id": "PTY-SOUTHLIGHT",
+  "scheme": "name",
+  "value": "Southlight Survey Pty Ltd",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "scheme": "name",
+  "value": "4/17 Petrel Row, Lindisfarne",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOMELOAN",
+  "scheme": "loan_number",
+  "value": "553 882 417",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-CARLOAN",
+  "scheme": "loan_number",
+  "value": "PNG-40021877",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "subject_type": "contract",
+  "subject_id": "CON-HOME-INS",
+  "scheme": "policy_number",
+  "value": "PH-90418226",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ }
+]

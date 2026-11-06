@@ -1,15 +1,27 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
+  "buildCommand": "test -f public/vault.json || (cd .. && node standard/world/build.js && node portals/build-vault.js)",
   "outputDirectory": "public",
   "cleanUrls": true,
   "trailingSlash": false,
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- .",
   "rewrites": [
-    { "source": "/:brand(westpaw|commbark|amewx|ping|propertymeow|pawroll|purrsure)", "destination": "/portal" }
+    { "source": "/:brand(westpaw|commbark|amewx|ping|propertymeow|pawroll|purrsure|myguv|purrannuation|hestabby|cedartrade|computerpaw|etreat|coinpurr|rentpurrfect|ratepurr|waterbowl|pawprice|meowtility|bupaw|kittenhood|vicpaws|gmeow|litterbox)", "destination": "/portal" }
   ],
   "headers": [
     { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "same-origin" }] }
+    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "same-origin" }] },
+    { "source": "/vault/(.*)", "headers": [{ "key": "Content-Disposition", "value": "attachment" }] },
+    { "source": "/vault/(.*)\\.pdf", "headers": [{ "key": "Content-Type", "value": "application/pdf" }] },
+    { "source": "/vault/(.*)\\.csv", "headers": [{ "key": "Content-Type", "value": "text/csv; charset=utf-8" }] },
+    { "source": "/vault/(.*)\\.tsv", "headers": [{ "key": "Content-Type", "value": "text/tab-separated-values; charset=utf-8" }] },
+    { "source": "/vault/(.*)\\.json", "headers": [{ "key": "Content-Type", "value": "application/json" }] },
+    { "source": "/vault/(.*)\\.html", "headers": [{ "key": "Content-Type", "value": "text/html; charset=utf-8" }] },
+    { "source": "/vault/(.*)\\.eml", "headers": [{ "key": "Content-Type", "value": "message/rfc822" }] },
+    { "source": "/vault/(.*)\\.xlsx", "headers": [{ "key": "Content-Type", "value": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }] },
+    { "source": "/vault/(.*)\\.png", "headers": [{ "key": "Content-Type", "value": "image/png" }] },
+    { "source": "/vault/(.*)\\.ofx", "headers": [{ "key": "Content-Type", "value": "application/x-ofx" }] },
+    { "source": "/vault/(.*)\\.qif", "headers": [{ "key": "Content-Type", "value": "application/x-qif" }] }
   ]
 }

@@ -1,0 +1,61 @@
+{
+ "id": "southern-activity-csv",
+ "version": 1,
+ "tier": "table",
+ "container": "csv",
+ "fingerprints": [
+  "fp1:3a474414ee26dad315b526c3"
+ ],
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1,
+  "order": "any"
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "col": "Account #",
+     "replace": [
+      "^-",
+      ""
+     ]
+    },
+    "posting_date": {
+     "col": "Date",
+     "as": "date"
+    },
+    "description": {
+     "col": "Description"
+    },
+    "amount_cents": {
+     "col": "Amount",
+     "as": "cents",
+     "negate": true
+    },
+    "card_member": {
+     "col": "Card Member"
+    },
+    "foreign_amount": {
+     "col": "Description",
+     "regex": "USD (\\d+\\.\\d\\d)"
+    },
+    "foreign_currency": {
+     "col": "Description",
+     "regex": "(USD) \\d"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "sign_anchor",
+   "field": "description",
+   "regex": "^PAYMENT RECEIVED",
+   "sign": "+"
+  }
+ ]
+}

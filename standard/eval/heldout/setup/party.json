@@ -1,0 +1,120 @@
+[
+ {
+  "party_id": "PTY-ADA",
+  "kind": "person",
+  "name": "Ada Okafor",
+  "birth_date": "1984-04-17"
+ },
+ {
+  "party_id": "PTY-SVEN",
+  "kind": "person",
+  "name": "Sven Lindqvist",
+  "birth_date": "1981-11-02"
+ },
+ {
+  "party_id": "PTY-FREYA",
+  "kind": "person",
+  "name": "Freya Okafor-Lindqvist",
+  "birth_date": "2009-08-23"
+ },
+ {
+  "party_id": "PTY-GREYWATER",
+  "kind": "organisation",
+  "name": "Greywater Health Service"
+ },
+ {
+  "party_id": "PTY-TESSELLATE",
+  "kind": "organisation",
+  "name": "Tessellate Marine Pty Ltd"
+ },
+ {
+  "party_id": "PTY-SOUTHLIGHT",
+  "kind": "organisation",
+  "name": "Southlight Survey Pty Ltd"
+ },
+ {
+  "party_id": "PTY-HARBOUR",
+  "kind": "organisation",
+  "name": "Harbour Bank"
+ },
+ {
+  "party_id": "PTY-WATTLE",
+  "kind": "organisation",
+  "name": "Wattle Credit Union"
+ },
+ {
+  "party_id": "PTY-BARK",
+  "kind": "organisation",
+  "name": "Bark Bank"
+ },
+ {
+  "party_id": "PTY-AMEWX",
+  "kind": "organisation",
+  "name": "Amewx"
+ },
+ {
+  "party_id": "PTY-CEDAR",
+  "kind": "organisation",
+  "name": "Cedar Trade"
+ },
+ {
+  "party_id": "PTY-COMPUTERPAW",
+  "kind": "organisation",
+  "name": "Computerpaw"
+ },
+ {
+  "party_id": "PTY-WESTPAW",
+  "kind": "organisation",
+  "name": "Westpaw"
+ },
+ {
+  "party_id": "PTY-PING",
+  "kind": "organisation",
+  "name": "PING"
+ },
+ {
+  "party_id": "PTY-HESTABBY",
+  "kind": "organisation",
+  "name": "HESTAbby"
+ },
+ {
+  "party_id": "PTY-PURRANNUATION",
+  "kind": "organisation",
+  "name": "Purrannuation"
+ },
+ {
+  "party_id": "PTY-TAX",
+  "kind": "government",
+  "name": "myGuv"
+ },
+ {
+  "party_id": "PTY-AGENT",
+  "kind": "organisation",
+  "name": "Harcourt and Vale Real Estate"
+ },
+ {
+  "party_id": "PTY-TASGLOW",
+  "kind": "organisation",
+  "name": "TasGlow Energy"
+ },
+ {
+  "party_id": "PTY-COUNCIL",
+  "kind": "government",
+  "name": "Eastern Shore Council"
+ },
+ {
+  "party_id": "PTY-RIVERLINE",
+  "kind": "organisation",
+  "name": "Riverline Water"
+ },
+ {
+  "party_id": "PTY-PURRSURE",
+  "kind": "organisation",
+  "name": "Purrsure"
+ },
+ {
+  "party_id": "PTY-BUPAW",
+  "kind": "organisation",
+  "name": "Bupaw"
+ }
+]

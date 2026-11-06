@@ -1,0 +1,11 @@
+[
+ {
+  "household_id": "HH-OL",
+  "name": "Okafor-Lindqvist",
+  "jurisdiction": "AU",
+  "base_currency": "AUD",
+  "fy_start_month": 7,
+  "timezone": "Australia/Hobart",
+  "standard_version": "household-standard/1"
+ }
+]

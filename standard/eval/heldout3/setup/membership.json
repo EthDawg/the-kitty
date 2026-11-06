@@ -1,0 +1,21 @@
+[
+ {
+  "party_id": "PTY-SALMA",
+  "role": "adult",
+  "valid_from": "1955-04-02",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-GEOFF",
+  "role": "adult",
+  "valid_from": "1951-11-19",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-KARIM",
+  "role": "adult",
+  "valid_from": "1985-08-30",
+  "valid_to": "2024-03-15",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

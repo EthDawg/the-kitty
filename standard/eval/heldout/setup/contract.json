@@ -1,0 +1,114 @@
+[
+ {
+  "contract_id": "CON-ADA-EMP",
+  "kind": "employment",
+  "name": "Ada at Greywater",
+  "counterparty_party_id": "PTY-GREYWATER",
+  "holder_party_id": "PTY-ADA",
+  "category_id": "SALARY",
+  "started_on": "2019-02-04"
+ },
+ {
+  "contract_id": "CON-SVEN-EMP1",
+  "kind": "employment",
+  "name": "Sven at Tessellate",
+  "counterparty_party_id": "PTY-TESSELLATE",
+  "holder_party_id": "PTY-SVEN",
+  "category_id": "SALARY",
+  "started_on": "2020-06-15",
+  "ended_on": "2024-10-31"
+ },
+ {
+  "contract_id": "CON-SVEN-EMP2",
+  "kind": "employment",
+  "name": "Sven at Southlight",
+  "counterparty_party_id": "PTY-SOUTHLIGHT",
+  "holder_party_id": "PTY-SVEN",
+  "category_id": "SALARY",
+  "started_on": "2024-11-18"
+ },
+ {
+  "contract_id": "CON-LEASE",
+  "kind": "lease",
+  "name": "The rental at Bellerive",
+  "counterparty_party_id": "PTY-AGENT",
+  "holder_party_id": "PTY-ADA",
+  "category_id": "x_RENT-PAID",
+  "started_on": "2022-03-01",
+  "ended_on": "2025-01-15"
+ },
+ {
+  "contract_id": "CON-HOMELOAN",
+  "kind": "loan",
+  "name": "Home loan",
+  "counterparty_party_id": "PTY-WESTPAW",
+  "holder_party_id": "PTY-ADA",
+  "account_id": "ACC-HOMELOAN",
+  "asset_id": "AST-UNIT",
+  "category_id": "MORTGAGE",
+  "started_on": "2025-01-15"
+ },
+ {
+  "contract_id": "CON-CARLOAN",
+  "kind": "loan",
+  "name": "Car loan",
+  "counterparty_party_id": "PTY-PING",
+  "holder_party_id": "PTY-SVEN",
+  "account_id": "ACC-CARLOAN",
+  "asset_id": "AST-CAR",
+  "category_id": "CAR",
+  "started_on": "2021-05-14",
+  "ended_on": "2025-09-12"
+ },
+ {
+  "contract_id": "CON-SUPER-ADA",
+  "kind": "super_fund",
+  "name": "Ada's super",
+  "counterparty_party_id": "PTY-HESTABBY",
+  "holder_party_id": "PTY-ADA",
+  "account_id": "ACC-SUPER-ADA"
+ },
+ {
+  "contract_id": "CON-SUPER-SVEN",
+  "kind": "super_fund",
+  "name": "Sven's super",
+  "counterparty_party_id": "PTY-PURRANNUATION",
+  "holder_party_id": "PTY-SVEN",
+  "account_id": "ACC-SUPER-SVEN"
+ },
+ {
+  "contract_id": "CON-HEALTH",
+  "kind": "insurance",
+  "name": "Family hospital and extras",
+  "counterparty_party_id": "PTY-BUPAW",
+  "holder_party_id": "PTY-SVEN",
+  "category_id": "HEALTH"
+ },
+ {
+  "contract_id": "CON-HOME-INS",
+  "kind": "insurance",
+  "name": "Home insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-ADA",
+  "asset_id": "AST-UNIT",
+  "category_id": "HOME-INS",
+  "started_on": "2025-01-15"
+ },
+ {
+  "contract_id": "CON-MOTOR",
+  "kind": "insurance",
+  "name": "Car insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-ADA",
+  "asset_id": "AST-CAR",
+  "category_id": "CAR"
+ },
+ {
+  "contract_id": "CON-POWER",
+  "kind": "utility",
+  "name": "Electricity",
+  "counterparty_party_id": "PTY-TASGLOW",
+  "holder_party_id": "PTY-ADA",
+  "category_id": "UTILITIES"
+ }
+]

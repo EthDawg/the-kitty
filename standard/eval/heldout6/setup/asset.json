@@ -1,0 +1,23 @@
+[
+ {
+  "asset_id": "AST-HOME",
+  "kind": "property",
+  "name": "9 Tower Hill Road, Warrnambool",
+  "account_id": "ACC-HOME",
+  "location": "Warrnambool VIC",
+  "acquired_on": "2016-03-14"
+ },
+ {
+  "asset_id": "AST-CAR",
+  "kind": "vehicle",
+  "name": "The Subaru",
+  "account_id": "ACC-CAR"
+ },
+ {
+  "asset_id": "AST-VAN",
+  "kind": "vehicle",
+  "name": "The caravan",
+  "account_id": "ACC-VAN",
+  "disposed_on": "2024-02-03"
+ }
+]

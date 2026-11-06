@@ -1,0 +1,69 @@
+{
+ "id": "myguv-help-html",
+ "tier": "table",
+ "container": "html",
+ "defaults": {
+  "date": "dmony"
+ },
+ "table": {
+  "html_table": 0,
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "values": {
+  "person": {
+   "find": "^Name: (.+)$"
+  },
+  "closing": {
+   "find": "^Closing balance: (.+)$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "help_balance",
+   "fields": {
+    "person_ref": {
+     "value": "person"
+    },
+    "as_at": {
+     "col": "Date",
+     "as": "date"
+    },
+    "balance_cents": {
+     "col": "Balance",
+     "as": "cents"
+    },
+    "indexation_cents": {
+     "col": "Amount",
+     "as": "cents",
+     "if": {
+      "col": "Description",
+      "matches": "^Indexation"
+     }
+    },
+    "repayment_cents": {
+     "col": "Amount",
+     "as": "cents",
+     "abs": true,
+     "if": {
+      "col": "Description",
+      "matches": "repayment"
+     }
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "last_equals",
+   "kind": "help_balance",
+   "field": "balance_cents",
+   "equals": "closing"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:b259759ef94a67c02b8dad2f"
+ ]
+}

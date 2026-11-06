@@ -1,0 +1,242 @@
+[
+ {
+  "term_id": "TERM-001",
+  "subject_type": "contract",
+  "subject_id": "CON-BRIDGE",
+  "term": "interest_rate",
+  "value": "6.85",
+  "unit": "pct",
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-002",
+  "subject_type": "contract",
+  "subject_id": "CON-BRIDGE",
+  "term": "rate_type",
+  "value": "variable",
+  "unit": null,
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-003",
+  "subject_type": "contract",
+  "subject_id": "CON-BRIDGE",
+  "term": "repayment_type",
+  "value": "interest_only",
+  "unit": null,
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-004",
+  "subject_type": "contract",
+  "subject_id": "CON-KARIM",
+  "term": "interest_rate",
+  "value": "0",
+  "unit": "pct",
+  "valid_from": "2024-03-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-005",
+  "subject_type": "contract",
+  "subject_id": "CON-KARIM",
+  "term": "repayment_type",
+  "value": "principal_and_interest",
+  "unit": null,
+  "valid_from": "2024-03-12",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-006",
+  "subject_type": "contract",
+  "subject_id": "CON-KARIM",
+  "term": "repayment_cents",
+  "value": "30000",
+  "unit": "cents",
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-007",
+  "subject_type": "contract",
+  "subject_id": "CON-KARIM",
+  "term": "repayment_cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2024-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-008",
+  "subject_type": "contract",
+  "subject_id": "CON-PENSION",
+  "term": "phase",
+  "value": "retirement",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-009",
+  "subject_type": "contract",
+  "subject_id": "CON-PENSION",
+  "term": "minimum_drawdown_pct",
+  "value": "5",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-010",
+  "subject_type": "contract",
+  "subject_id": "CON-SMSF",
+  "term": "phase",
+  "value": "retirement",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-011",
+  "subject_type": "contract",
+  "subject_id": "CON-SMSF",
+  "term": "minimum_drawdown_pct",
+  "value": "6",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-012",
+  "subject_type": "contract",
+  "subject_id": "CON-CARE",
+  "term": "price_cents",
+  "value": "340000",
+  "unit": "cents",
+  "valid_from": "2023-11-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-013",
+  "subject_type": "contract",
+  "subject_id": "CON-CARE",
+  "term": "cadence",
+  "value": "monthly",
+  "unit": null,
+  "valid_from": "2023-11-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-014",
+  "subject_type": "contract",
+  "subject_id": "CON-AGENT",
+  "term": "agent_fee_pct",
+  "value": "12",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-015",
+  "subject_type": "contract",
+  "subject_id": "CON-AGENT",
+  "term": "rent_cadence",
+  "value": "weekly",
+  "unit": null,
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-016",
+  "subject_type": "contract",
+  "subject_id": "CON-AGENT",
+  "term": "rent_cents",
+  "value": "0",
+  "unit": "cents",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-017",
+  "subject_type": "account",
+  "subject_id": "ACC-TD-A",
+  "term": "interest_rate",
+  "value": "4.85",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-018",
+  "subject_type": "account",
+  "subject_id": "ACC-TD-B",
+  "term": "interest_rate",
+  "value": "4.60",
+  "unit": "pct",
+  "valid_from": "2023-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-019",
+  "subject_type": "account",
+  "subject_id": "ACC-TD-C",
+  "term": "interest_rate",
+  "value": "4.90",
+  "unit": "pct",
+  "valid_from": "2024-02-05",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-020",
+  "subject_type": "account",
+  "subject_id": "ACC-TD-D",
+  "term": "interest_rate",
+  "value": "4.70",
+  "unit": "pct",
+  "valid_from": "2024-05-06",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-021",
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "term": "use",
+  "value": "owner_occupied",
+  "unit": null,
+  "valid_from": "1994-03-11",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-022",
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "term": "main_residence",
+  "value": "true",
+  "unit": null,
+  "valid_from": "1994-03-11",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-023",
+  "subject_type": "asset",
+  "subject_id": "AST-UNIT",
+  "term": "use",
+  "value": "owner_occupied",
+  "unit": null,
+  "valid_from": "2025-02-14",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "term_id": "TERM-024",
+  "subject_type": "asset",
+  "subject_id": "AST-PORTLAND",
+  "term": "use",
+  "value": "holiday",
+  "unit": null,
+  "valid_from": "2006-01-20",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

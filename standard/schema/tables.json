@@ -1,0 +1,722 @@
+{
+  "_about": "The Digital Davies Standard, household-standard/1. Source of truth for every table. Column form: name:type[:flag...]. Flags: pk, req, fk=table.column, enum=a|b|c. Types: id text date datetime cents units rate bps int bool json. Money is integer cents in base currency. Units and rates are decimal strings, never floats. See SPEC.md section 3 for temporal classes.",
+  "version": "household-standard/1",
+  "planes": {
+    "setup": "Who and what exists. Original.",
+    "evidence": "What sources said. Original, immutable.",
+    "judgement": "What a person decided. Original, append only.",
+    "plan": "Intent. Original, versioned, never mixed with actuals.",
+    "ledger": "What happened. Derived.",
+    "tax": "What is owed. Derived.",
+    "control": "What is proved. Derived."
+  },
+  "tables": {
+    "household": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "The unit this bundle describes.",
+      "columns": [
+        "household_id:id:pk",
+        "name:text:req",
+        "jurisdiction:text:req:enum=AU",
+        "base_currency:text:req",
+        "fy_start_month:int:req",
+        "timezone:text:req",
+        "standard_version:text:req",
+        "budget_date:text:enum=charged|posted"
+      ]
+    },
+    "party": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "Anyone or anything that can own, owe, pay, employ, insure or be paid. Tax file numbers and passwords never enter this table.",
+      "columns": [
+        "party_id:id:pk",
+        "kind:text:req:enum=person|organisation|government|trust|smsf|company|partnership",
+        "name:text:req",
+        "legal_name:text",
+        "birth_date:date",
+        "abn:text",
+        "note:text"
+      ]
+    },
+    "membership": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "A party belonging to the household for a dated range, so a baby arrives and past views stay right.",
+      "columns": [
+        "party_id:id:req:fk=party.party_id",
+        "role:text:req:enum=adult|dependant|relative|other",
+        "valid_from:date:req",
+        "valid_to:date",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "account": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "Anything with a balance. A balance is never stored; it is the sum of postings, checked against stated balances.",
+      "columns": [
+        "account_id:id:pk",
+        "name:text:req",
+        "class:text:req:enum=asset|liability|clearing|equity|memo",
+        "type:text:req:enum=transaction|offset|savings|credit_card|loan|super|smsf|brokerage|holding|ess_plan|wallet|help_debt|tax_position|property|vehicle|device|receivable|clearing|equity|memo",
+        "reporting_group:text:req:enum=cash|property|super|shares|crypto|vehicle|device|loans|tax|clearing|equity|memo",
+        "currency:text:req",
+        "institution_party_id:id:fk=party.party_id",
+        "parent_account_id:id:fk=account.account_id",
+        "successor_account_id:id:fk=account.account_id",
+        "asset_id:id:fk=asset.asset_id",
+        "contract_id:id:fk=contract.contract_id",
+        "opened_on:date",
+        "closed_on:date",
+        "liquid:bool",
+        "in_scope:bool",
+        "fidelity:text:enum=ledger|snapshot",
+        "opening_balance_cents:cents",
+        "opening_date:date",
+        "note:text"
+      ]
+    },
+    "alias": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "An outside identifier for an inside thing, for a dated range. Files resolve to entities here, never by file name.",
+      "columns": [
+        "subject_type:text:req:enum=account|party|contract|instrument|asset",
+        "subject_id:id:req",
+        "scheme:text:req:enum=account_number|card_last4|loan_number|member_number|owner_ref|payroll_id|hin|wallet_address|policy_number|merchant_string|name",
+        "value:text:req",
+        "valid_from:date:req",
+        "valid_to:date",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "ownership": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "Dated fractional ownership. Shares sum to 10000 per subject, basis and day.",
+      "columns": [
+        "subject_type:text:req:enum=account|asset|contract",
+        "subject_id:id:req",
+        "party_id:id:req:fk=party.party_id",
+        "basis:text:req:enum=legal|beneficial|tax",
+        "share_bps:bps:req",
+        "valid_from:date:req",
+        "valid_to:date",
+        "recorded_at:datetime:req",
+        "superseded_at:datetime",
+        "source_obs_id:id",
+        "note:text"
+      ]
+    },
+    "link": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "A dated relationship between two things, with an optional share. A loan's security, its purpose by traced principal, what a policy covers, which account serves a property, who pays a subscription. These are separate facts and one facility can serve two properties.",
+      "columns": [
+        "relation:text:req:enum=secures|funds_purpose|covers|serves|paid_by|used_by|charged_to|offsets|contributes_to|split_of",
+        "from_type:text:req:enum=contract|account|asset|party",
+        "from_id:id:req",
+        "to_type:text:req:enum=contract|account|asset|party",
+        "to_id:id:req",
+        "share_bps:bps",
+        "valid_from:date:req",
+        "valid_to:date",
+        "recorded_at:datetime:req",
+        "superseded_at:datetime",
+        "source_obs_id:id",
+        "note:text"
+      ]
+    },
+    "category": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "The chart of income and expense. Tax relevance lives in tax_map, by date.",
+      "columns": [
+        "category_id:id:pk",
+        "name:text:req",
+        "parent_id:id:fk=category.category_id",
+        "kind:text:req:enum=income|expense|capital|transfer|suspense|pass_through",
+        "group:text",
+        "essential:bool",
+        "cash_lens:bool:req",
+        "economic_lens:bool:req",
+        "property_twin_id:id:fk=category.category_id",
+        "note:text"
+      ]
+    },
+    "instrument": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "Anything held in units: a currency, a share, an ETF, an RSU, a coin.",
+      "columns": [
+        "instrument_id:id:pk",
+        "kind:text:req:enum=currency|listed_share|etf|managed_fund|rsu|crypto",
+        "code:text:req",
+        "name:text:req",
+        "currency:text:req",
+        "issuer_party_id:id:fk=party.party_id",
+        "note:text"
+      ]
+    },
+    "asset": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "A durable thing the household cares about, on the balance sheet or not. Life-cycle facts are terms.",
+      "columns": [
+        "asset_id:id:pk",
+        "kind:text:req:enum=property|vehicle|device|appliance|furniture|collectible|other",
+        "name:text:req",
+        "account_id:id:fk=account.account_id",
+        "parent_asset_id:id:fk=asset.asset_id",
+        "location:text",
+        "serial:text",
+        "acquired_on:date",
+        "disposed_on:date",
+        "note:text"
+      ]
+    },
+    "activity": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "An income-producing activity with a start, an end and an owner. A rental and an ABN are the same shape, and a year's composition reads from here.",
+      "columns": [
+        "activity_id:id:pk",
+        "kind:text:req:enum=rental|sole_trader|partnership|trust|investment|employment",
+        "name:text:req",
+        "asset_id:id:fk=asset.asset_id",
+        "owner_party_id:id:fk=party.party_id",
+        "valid_from:date:req",
+        "valid_to:date",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "contract": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "A standing agreement, or an accepted one-off commitment. Everything that can change lives in term.",
+      "columns": [
+        "contract_id:id:pk",
+        "kind:text:req:enum=loan|insurance|employment|lease|subscription|utility|childcare|membership|super_fund|ess_plan|commitment",
+        "name:text:req",
+        "counterparty_party_id:id:fk=party.party_id",
+        "holder_party_id:id:fk=party.party_id",
+        "account_id:id:fk=account.account_id",
+        "asset_id:id:fk=asset.asset_id",
+        "category_id:id:fk=category.category_id",
+        "started_on:date",
+        "ended_on:date",
+        "note:text"
+      ]
+    },
+    "term": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "The one table for values that change: rates, premiums, salaries, property use, warranty dates. Names come from terms.json. Never a column on an entity.",
+      "columns": [
+        "term_id:id:pk",
+        "subject_type:text:req:enum=contract|asset|party|account|instrument",
+        "subject_id:id:req",
+        "term:text:req",
+        "value:text:req",
+        "unit:text",
+        "valid_from:date:req",
+        "valid_to:date",
+        "recorded_at:datetime:req",
+        "superseded_at:datetime",
+        "source_obs_id:id",
+        "note:text"
+      ]
+    },
+    "period": {
+      "plane": "setup",
+      "temporal": "static",
+      "doc": "A month, quarter or financial year. A new year is a row, never a new workbook.",
+      "columns": [
+        "period_id:id:pk",
+        "kind:text:req:enum=month|quarter|fy",
+        "start_on:date:req",
+        "end_on:date:req",
+        "status:text:req:enum=open|closing|closed|locked",
+        "closed_at:datetime",
+        "seal_hash:text"
+      ]
+    },
+    "stream": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "What should keep arriving. Coverage is expected against held.",
+      "columns": [
+        "stream_id:id:pk",
+        "name:text:req",
+        "doc_kind:text:req",
+        "subject_type:text:req",
+        "subject_id:id:req",
+        "issuer_party_id:id:fk=party.party_id",
+        "cadence:text:req:enum=fortnightly|monthly|quarterly|half_yearly|yearly|event",
+        "valid_from:date:req",
+        "valid_to:date",
+        "grace_days:int",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "scope": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "Nothing has four meanings: zero, not held, does not apply, not asked. A missing row is not asked. Signals read this; metrics report coverage.",
+      "columns": [
+        "subject_type:text:req:enum=household|party|account|asset|domain",
+        "subject_id:id:req",
+        "domain:text:req",
+        "state:text:req:enum=none|has|partial|unknown",
+        "by:text:req",
+        "valid_from:date:req",
+        "valid_to:date",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "tax_map": {
+      "plane": "setup",
+      "temporal": "bitemporal",
+      "doc": "Which return label a category or event kind lands on, for a dated range. entity_kind stops SMSF rent landing on an individual's label 21.",
+      "columns": [
+        "selector_type:text:req:enum=category|event_kind",
+        "selector:text:req",
+        "label:text:req",
+        "treatment:text:req:enum=income|deduction|offset|credit|cgt|memo",
+        "basis:text:req:enum=ownership|person|household",
+        "entity_kind:text:enum=person|smsf|company|trust",
+        "valid_from:date:req",
+        "valid_to:date",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "source": {
+      "plane": "evidence",
+      "temporal": "append",
+      "doc": "An immutable file. Identity is its hash. A corrected document is a new source that supersedes the old. status is a projection, computed from the supersedes chain; the row itself never changes.",
+      "columns": [
+        "source_id:id:pk",
+        "sha256:text:req",
+        "name:text:req",
+        "uri:text",
+        "origin:text:req:enum=portal|email|scan|connector|manual|cdr",
+        "mime:text",
+        "bytes:int",
+        "stream_id:id:fk=stream.stream_id",
+        "issued_on:date",
+        "captured_at:datetime:req",
+        "supersedes_source_id:id:fk=source.source_id",
+        "status:text:req:enum=active|superseded|quarantined",
+        "note:text"
+      ]
+    },
+    "observation": {
+      "plane": "evidence",
+      "temporal": "append",
+      "doc": "One claim one source made, with a locator back to the place. Records what was said, including what is wrong. status is a projection, computed at rebuild. An agent-extracted observation MUST carry a quote and a locator.",
+      "columns": [
+        "obs_id:id:pk",
+        "source_id:id:req:fk=source.source_id",
+        "locator:text:req",
+        "kind:text:req",
+        "occurred_on:date",
+        "amount_cents:cents",
+        "currency:text",
+        "subject_ref:text",
+        "payload:json:req",
+        "importer:text:req",
+        "recipe_id:id",
+        "confidence:rate:req",
+        "quote:text",
+        "supersedes_obs_id:id",
+        "status:text:req:enum=active|rejected|superseded"
+      ]
+    },
+    "tax_return": {
+      "plane": "evidence",
+      "temporal": "append",
+      "doc": "A return or assessment as it happened, materialised from a tax_assessment observation, or typed from a paper return. History, not calculation. An amendment is a new version.",
+      "columns": [
+        "return_id:id:pk",
+        "party_id:id:req:fk=party.party_id",
+        "fy:text:req",
+        "version:int:req",
+        "status:text:req:enum=lodged|assessed|amended|partial",
+        "lodged_on:date",
+        "assessed_on:date",
+        "taxable_income_cents:cents",
+        "tax_cents:cents",
+        "credits_cents:cents",
+        "result_cents:cents",
+        "source_id:id:fk=source.source_id",
+        "supersedes_return_id:id"
+      ]
+    },
+    "tax_line": {
+      "plane": "evidence",
+      "temporal": "append",
+      "doc": "One line on a lodged return or assessment. Labels repeat within a return and some lines have no label, so line_id is the identity and rolls_up_to names a line_id. role stops a sum multiplying a repeated net figure or reading a memo about a spouse as your own.",
+      "columns": [
+        "line_id:id:pk",
+        "return_id:id:req:fk=tax_return.return_id",
+        "activity_id:id:fk=activity.activity_id",
+        "label:text",
+        "section:text",
+        "role:text:req:enum=leaf|subtotal|memo|carry",
+        "rolls_up_to:id",
+        "amount_cents:cents:req",
+        "gross_cents:cents",
+        "obs_id:id",
+        "note:text"
+      ]
+    },
+    "decision": {
+      "plane": "judgement",
+      "temporal": "append",
+      "doc": "One thing a person chose, with the reason and what would reopen it. Survives every rebuild. status is a projection of the latest decision on the same target.",
+      "columns": [
+        "decision_id:id:pk",
+        "target_type:text:req:enum=observation|line|document|source|recipe|period|contract|asset|account|check",
+        "target_ref:text:req",
+        "verb:text:req:enum=categorise|split|link|unlink|exclude|include|assign_person|assign_claimant|choose_lot|set_event_kind|reopen|accept|reject|adjust|tag|note|worth_it|confirm",
+        "value:json:req",
+        "by:text:req",
+        "at:datetime:req",
+        "status:text:req:enum=proposed|accepted|rejected",
+        "reason:text",
+        "reopen_if:text"
+      ]
+    },
+    "rule": {
+      "plane": "judgement",
+      "temporal": "bitemporal",
+      "doc": "The household's accumulated taste: what a descriptor means. Priority beats length; a rule can be scoped to one account; a rule can name the property a line belongs to.",
+      "columns": [
+        "rule_id:id:pk",
+        "pattern:text:req",
+        "match:text:req:enum=normalised|exact|contains|regex",
+        "merchant:text",
+        "category_id:id:fk=category.category_id",
+        "person:text",
+        "event_kind:text",
+        "priority:int",
+        "direction:text:enum=credit|debit",
+        "account_id:id:fk=account.account_id",
+        "activity_id:id:fk=activity.activity_id",
+        "asset_id:id:fk=asset.asset_id",
+        "contract_id:id:fk=contract.contract_id",
+        "valid_from:date",
+        "valid_to:date",
+        "provenance:text:req",
+        "status:text:req:enum=proposed|accepted",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "recipe": {
+      "plane": "judgement",
+      "temporal": "append",
+      "doc": "Data that reads one family of files. Written once, cached by fingerprint, judged by the gate.",
+      "columns": [
+        "recipe_id:id:pk",
+        "fingerprint:text:req",
+        "family:text:req",
+        "spec:json:req",
+        "author:text:req",
+        "tokens_in:int",
+        "tokens_out:int",
+        "gate_status:text:req:enum=proposed|passed|failed",
+        "created_at:datetime:req"
+      ]
+    },
+    "tailoring": {
+      "plane": "judgement",
+      "temporal": "append",
+      "doc": "One row per piece of household tailoring: the person's sentence, the definition, an example result and the standard version it was written against. On an update the example runs; if it fails an agent rewrites from the sentence.",
+      "columns": [
+        "tailoring_id:id:pk",
+        "rung:text:req:enum=tag|rule|saved_question|widget|x_term|x_column|x_event_kind|x_observation_kind|x_table",
+        "name:text:req",
+        "sentence:text:req",
+        "definition:json:req",
+        "example:json",
+        "standard_version:text:req",
+        "status:text:req:enum=active|retired|promoted"
+      ]
+    },
+    "budget": {
+      "plane": "plan",
+      "temporal": "bitemporal",
+      "doc": "Monthly intent per category, versioned, so last year is judged against last year's budget.",
+      "columns": [
+        "category_id:id:req:fk=category.category_id",
+        "amount_cents:cents:req",
+        "cadence:text:req:enum=monthly|yearly",
+        "valid_from:date:req",
+        "valid_to:date",
+        "note:text",
+        "recorded_at:datetime",
+        "superseded_at:datetime"
+      ]
+    },
+    "goal": {
+      "plane": "plan",
+      "temporal": "static",
+      "doc": "A named target. A refresh cycle can back one through asset_id.",
+      "columns": [
+        "goal_id:id:pk",
+        "name:text:req",
+        "target_cents:cents:req",
+        "target_on:date",
+        "account_id:id:fk=account.account_id",
+        "asset_id:id:fk=asset.asset_id",
+        "status:text:req:enum=active|met|dropped",
+        "note:text"
+      ]
+    },
+    "reservation": {
+      "plane": "plan",
+      "temporal": "effective",
+      "doc": "Money earmarked inside an account. A reservation is an intention, not segregation; the balance does not move. Requested and applied differ, and a release names what ended it.",
+      "columns": [
+        "reservation_id:id:pk",
+        "account_id:id:req:fk=account.account_id",
+        "goal_id:id:fk=goal.goal_id",
+        "kind:text:req:enum=floor|sinking_fund|tax|bill|other",
+        "requested_cents:cents:req",
+        "applied_cents:cents",
+        "valid_from:date:req",
+        "valid_to:date",
+        "release_ref:text",
+        "note:text"
+      ]
+    },
+    "scenario": {
+      "plane": "plan",
+      "temporal": "static",
+      "doc": "A named what-if. A forecast is (scenario, as_of, horizon).",
+      "columns": [
+        "scenario_id:id:pk",
+        "name:text:req",
+        "base_on:date:req",
+        "note:text"
+      ]
+    },
+    "assumption": {
+      "plane": "plan",
+      "temporal": "effective",
+      "doc": "A dated overlay on terms and rates for one scenario.",
+      "columns": [
+        "scenario_id:id:req:fk=scenario.scenario_id",
+        "key:text:req",
+        "value:text:req",
+        "valid_from:date:req",
+        "valid_to:date",
+        "note:text"
+      ]
+    },
+    "event": {
+      "plane": "ledger",
+      "temporal": "derived",
+      "doc": "One economic fact, recognised once.",
+      "columns": [
+        "event_id:id:pk",
+        "kind:text:req",
+        "occurred_on:date:req",
+        "settled_on:date",
+        "description:text:req",
+        "merchant:text",
+        "category_id:id:fk=category.category_id",
+        "person:id:fk=party.party_id",
+        "asset_id:id:fk=asset.asset_id",
+        "activity_id:id:fk=activity.activity_id",
+        "contract_id:id",
+        "amount_cents:cents",
+        "status:text:req:enum=recognised|provisional|open",
+        "grade:text:req:enum=reconciled|corroborated|stated|derived|estimated",
+        "rule:text"
+      ]
+    },
+    "witness": {
+      "plane": "ledger",
+      "temporal": "derived",
+      "doc": "Which observation supports which event, and how.",
+      "columns": [
+        "event_id:id:req:fk=event.event_id",
+        "obs_id:id:req:fk=observation.obs_id",
+        "role:text:req:enum=recognises|clears|corroborates|contradicts|control",
+        "amount_cents:cents"
+      ]
+    },
+    "posting": {
+      "plane": "ledger",
+      "temporal": "derived",
+      "doc": "One side of a balanced entry. Exactly one of account_id and category_id. amount_cents is base currency and sums to zero per event; native_cents is what the account's own statement says, and L3 runs on it.",
+      "columns": [
+        "event_id:id:req:fk=event.event_id",
+        "line:int:req",
+        "account_id:id:fk=account.account_id",
+        "category_id:id:fk=category.category_id",
+        "amount_cents:cents:req",
+        "units:units",
+        "instrument_id:id:fk=instrument.instrument_id",
+        "memo:text",
+        "native_cents:cents",
+        "native_currency:text"
+      ]
+    },
+    "lot": {
+      "plane": "ledger",
+      "temporal": "derived",
+      "doc": "A parcel: units and a date, or a whole property. Five-element cost base. An unknown cost is a value: cost_known false, cost null, and a sale reports an unknown gain.",
+      "columns": [
+        "lot_id:id:pk",
+        "instrument_id:id:fk=instrument.instrument_id",
+        "asset_id:id:fk=asset.asset_id",
+        "account_id:id:req:fk=account.account_id",
+        "party_id:id",
+        "acquired_on:date:req",
+        "units:units:req",
+        "units_open:units:req",
+        "cost_known:bool:req",
+        "cost_price_cents:cents",
+        "cost_incidental_cents:cents:req",
+        "cost_ownership_cents:cents",
+        "cost_capital_cents:cents",
+        "cost_adjustment_cents:cents",
+        "event_id:id:req:fk=event.event_id"
+      ]
+    },
+    "lot_match": {
+      "plane": "ledger",
+      "temporal": "derived",
+      "doc": "One parcel meeting one disposal. Each row is one CGT event line.",
+      "columns": [
+        "event_id:id:req:fk=event.event_id",
+        "lot_id:id:req:fk=lot.lot_id",
+        "disposed_on:date:req",
+        "units:units:req",
+        "proceeds_cents:cents:req",
+        "cost_base_cents:cents",
+        "gain_cents:cents",
+        "exempt_cents:cents",
+        "discount_eligible:bool:req",
+        "method:text:req:enum=fifo|lifo|specific|hifo"
+      ]
+    },
+    "balance": {
+      "plane": "ledger",
+      "temporal": "derived",
+      "doc": "A materialised view: month-end balance per account, summed from postings, with how it is confirmed.",
+      "columns": [
+        "month_end:date:req",
+        "account_id:id:req:fk=account.account_id",
+        "balance_cents:cents:req",
+        "units:units",
+        "grade:text:req"
+      ]
+    },
+    "tax_item": {
+      "plane": "tax",
+      "temporal": "derived",
+      "doc": "A derived per-person, per-year, per-label amount, by activity where one applies, so a schedule can be produced per property. A draft, never advice.",
+      "columns": [
+        "party_id:id:req:fk=party.party_id",
+        "fy:text:req",
+        "label:text:req",
+        "activity_id:id:fk=activity.activity_id",
+        "amount_cents:cents:req",
+        "method:text:req",
+        "evidence:text:req:enum=held|missing|at_risk",
+        "refs:json"
+      ]
+    },
+    "check_result": {
+      "plane": "control",
+      "temporal": "derived",
+      "doc": "One law, one scope, one result.",
+      "columns": [
+        "law:text:req",
+        "scope:text:req",
+        "status:text:req:enum=pass|fail|gap|open|skip|accepted",
+        "expected:text",
+        "actual:text",
+        "gap_cents:cents",
+        "detail:text",
+        "accepted_by:id"
+      ]
+    },
+    "review_item": {
+      "plane": "control",
+      "temporal": "derived",
+      "doc": "Something that needs a person, ranked by money at stake.",
+      "columns": [
+        "item_id:id:pk",
+        "kind:text:req",
+        "ref:text:req",
+        "amount_cents:cents",
+        "what:text:req",
+        "do:text"
+      ]
+    },
+    "metric_value": {
+      "plane": "control",
+      "temporal": "derived",
+      "doc": "A materialised view: one metric, one grain, one value, with its grade and dates.",
+      "columns": [
+        "metric_id:id:req",
+        "grain:text:req",
+        "value:text:req",
+        "grade:text:req",
+        "valid_on:date:req",
+        "known_at:date:req"
+      ]
+    },
+    "run": {
+      "plane": "control",
+      "temporal": "derived",
+      "doc": "One rebuild: what went in, what came out, what it cost.",
+      "columns": [
+        "run_id:id:pk",
+        "mode:text:req",
+        "sources:int",
+        "observations:int",
+        "events:int",
+        "review_items:int",
+        "tokens_in:int",
+        "tokens_out:int",
+        "bundle_hash:text"
+      ]
+    }
+  },
+  "manifest_classes": {
+    "_about": "An update writes to a tab only according to its class. yours: only through a declared migration. evidence: append only. managed: rebuilt freely, stamped with engine version and hash; a hand edit becomes a proposed decision.",
+    "yours": [
+      "setup",
+      "judgement",
+      "plan"
+    ],
+    "evidence": [
+      "evidence"
+    ],
+    "managed": [
+      "ledger",
+      "tax",
+      "control"
+    ]
+  }
+}

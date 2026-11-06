@@ -1,0 +1,71 @@
+{
+ "id": "cedar-holdings-tsv",
+ "tier": "table",
+ "container": "tsv",
+ "defaults": {
+  "date": "ymd"
+ },
+ "table": {
+  "header": 1
+ },
+ "emit": [
+  {
+   "kind": "holding",
+   "fields": {
+    "account_ref": {
+     "stream": true
+    },
+    "instrument_ref": {
+     "col": "Security"
+    },
+    "as_at": {
+     "col": "As At",
+     "as": "date"
+    },
+    "units": {
+     "col": "Units",
+     "as": "units"
+    },
+    "price": {
+     "col": "Price"
+    },
+    "value_cents": {
+     "col": "Market Value",
+     "as": "cents"
+    }
+   }
+  },
+  {
+   "kind": "price",
+   "fields": {
+    "instrument_ref": {
+     "col": "Security"
+    },
+    "as_at": {
+     "col": "As At",
+     "as": "date"
+    },
+    "price": {
+     "col": "Price"
+    },
+    "currency": {
+     "const": "AUD"
+    }
+   }
+  }
+ ],
+ "controls": [
+  {
+   "law": "product",
+   "kind": "holding",
+   "a": "units",
+   "b": "price",
+   "equals": "value_cents",
+   "tolerance": 1
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:1bb222890b86ad7cd2356883"
+ ]
+}

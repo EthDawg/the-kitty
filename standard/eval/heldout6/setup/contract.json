@@ -1,0 +1,131 @@
+[
+ {
+  "contract_id": "CON-DAIRY",
+  "kind": "employment",
+  "name": "Paul at the dairy",
+  "counterparty_party_id": "PTY-DAIRY",
+  "holder_party_id": "PTY-PAUL",
+  "category_id": "SALARY",
+  "started_on": "2009-05-04"
+ },
+ {
+  "contract_id": "CON-MOYNE",
+  "kind": "employment",
+  "name": "Dee at the hospital",
+  "counterparty_party_id": "PTY-MOYNE",
+  "holder_party_id": "PTY-DEE",
+  "category_id": "SALARY",
+  "started_on": "2011-02-07",
+  "ended_on": "2024-03-15"
+ },
+ {
+  "contract_id": "CON-MOYNE-2",
+  "kind": "employment",
+  "name": "Dee back at the hospital",
+  "counterparty_party_id": "PTY-MOYNE",
+  "holder_party_id": "PTY-DEE",
+  "category_id": "SALARY",
+  "started_on": "2026-05-04"
+ },
+ {
+  "contract_id": "CON-SUPER-P",
+  "kind": "super_fund",
+  "name": "Paul's super",
+  "counterparty_party_id": "PTY-HESTABBY",
+  "holder_party_id": "PTY-PAUL",
+  "account_id": "ACC-SUPER-P"
+ },
+ {
+  "contract_id": "CON-SUPER-D",
+  "kind": "super_fund",
+  "name": "Dee's super",
+  "counterparty_party_id": "PTY-PURRANNUATION",
+  "holder_party_id": "PTY-DEE",
+  "account_id": "ACC-SUPER-D"
+ },
+ {
+  "contract_id": "CON-HOME",
+  "kind": "loan",
+  "name": "Home loan",
+  "counterparty_party_id": "PTY-PING",
+  "holder_party_id": "PTY-PAUL",
+  "account_id": "ACC-HOMELOAN",
+  "asset_id": "AST-HOME",
+  "category_id": "MORTGAGE",
+  "started_on": "2016-03-14"
+ },
+ {
+  "contract_id": "CON-MUMLOAN",
+  "kind": "loan",
+  "name": "Loan from Mum",
+  "counterparty_party_id": "PTY-MUM",
+  "holder_party_id": "PTY-PAUL",
+  "account_id": "ACC-MUMLOAN",
+  "started_on": "2024-10-14",
+  "ended_on": "2026-02-09"
+ },
+ {
+  "contract_id": "CON-HOME-INS",
+  "kind": "insurance",
+  "name": "Home insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-PAUL",
+  "asset_id": "AST-HOME",
+  "category_id": "HOME-INS"
+ },
+ {
+  "contract_id": "CON-MOTOR",
+  "kind": "insurance",
+  "name": "Car insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-PAUL",
+  "asset_id": "AST-CAR",
+  "category_id": "CAR"
+ },
+ {
+  "contract_id": "CON-HEALTH",
+  "kind": "insurance",
+  "name": "Private health",
+  "counterparty_party_id": "PTY-BUPAW",
+  "holder_party_id": "PTY-PAUL",
+  "category_id": "HEALTH"
+ },
+ {
+  "contract_id": "CON-POWER",
+  "kind": "utility",
+  "name": "Electricity",
+  "counterparty_party_id": "PTY-POWER",
+  "holder_party_id": "PTY-PAUL",
+  "category_id": "UTILITIES"
+ },
+ {
+  "contract_id": "CON-CARER",
+  "kind": "commitment",
+  "name": "Dee's Carer Payment and Carer Allowance",
+  "counterparty_party_id": "PTY-SA",
+  "holder_party_id": "PTY-DEE",
+  "category_id": "x_CARER",
+  "started_on": "2024-04-04",
+  "ended_on": "2026-02-26"
+ },
+ {
+  "contract_id": "CON-BOARD",
+  "kind": "commitment",
+  "name": "Mum's board while she was in the flat",
+  "counterparty_party_id": "PTY-MUM",
+  "holder_party_id": "PTY-PAUL",
+  "category_id": "x_BOARD",
+  "started_on": "2024-03-14",
+  "ended_on": "2025-06-12"
+ },
+ {
+  "contract_id": "CON-CARE",
+  "kind": "subscription",
+  "name": "Mum's aged-care fees, paid for her",
+  "counterparty_party_id": "PTY-LAKESIDE",
+  "holder_party_id": "PTY-DEE",
+  "category_id": "PASS-THROUGH",
+  "started_on": "2025-07-01",
+  "ended_on": "2026-02-09"
+ }
+]

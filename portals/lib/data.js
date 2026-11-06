@@ -1,7 +1,7 @@
 // The one source the portals serve: data/months.json, built by build-data.py from history.py, the sheet and the simulator.
 "use strict";
 const D = require("../data/months.json");
-const BRANDS = require("../public/brands.json");
+const BRANDS = [...require("../public/brands.json"), ...require("../public/vault-brands.json")];
 
 const brandById = Object.fromEntries(BRANDS.map((b) => [b.id, b]));
 const accountById = Object.fromEntries(D.accounts.map((a) => [a.id, a]));

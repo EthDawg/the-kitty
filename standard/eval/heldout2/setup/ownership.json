@@ -1,0 +1,626 @@
+[
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-04-01"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-04-01"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-04-01"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-TOM",
+  "basis": "legal",
+  "share_bps": 5000,
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-TOM",
+  "basis": "beneficial",
+  "share_bps": 5000,
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-EVERY",
+  "party_id": "PTY-TOM",
+  "basis": "tax",
+  "share_bps": 5000,
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OFFSET",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OFFSET",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-OFFSET",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SAVER",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-CARD",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-BROKER",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SHARES",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PLAN",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PLAN",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-PLAN",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-FIXED",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-FIXED",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-FIXED",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-VAR",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-VAR",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME-VAR",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-PING",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-PING",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-PING",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-NEW",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-NEW",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-INV-NEW",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-IM",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-IM",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-IM",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HELP",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HELP",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HELP",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-HOME",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-RENTAL",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-RENTAL",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-RENTAL",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TOM",
+  "party_id": "PTY-TOM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TOM",
+  "party_id": "PTY-TOM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-TOM",
+  "party_id": "PTY-TOM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-COIN",
+  "party_id": "PTY-TOM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-COIN",
+  "party_id": "PTY-TOM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-COIN",
+  "party_id": "PTY-TOM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-COLD",
+  "party_id": "PTY-TOM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-COLD",
+  "party_id": "PTY-TOM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-COLD",
+  "party_id": "PTY-TOM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-TOM",
+  "party_id": "PTY-TOM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-TOM",
+  "party_id": "PTY-TOM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "account",
+  "subject_id": "ACC-SUPER-TOM",
+  "party_id": "PTY-TOM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-HOME",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-RENTAL",
+  "party_id": "PTY-IM",
+  "basis": "legal",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-RENTAL",
+  "party_id": "PTY-IM",
+  "basis": "beneficial",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "subject_type": "asset",
+  "subject_id": "AST-RENTAL",
+  "party_id": "PTY-IM",
+  "basis": "tax",
+  "share_bps": 10000,
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

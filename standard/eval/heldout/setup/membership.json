@@ -1,0 +1,20 @@
+[
+ {
+  "party_id": "PTY-ADA",
+  "role": "adult",
+  "valid_from": "2009-08-23",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-SVEN",
+  "role": "adult",
+  "valid_from": "2009-08-23",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ },
+ {
+  "party_id": "PTY-FREYA",
+  "role": "dependant",
+  "valid_from": "2009-08-23",
+  "recorded_at": "2026-07-06T00:00:00Z"
+ }
+]

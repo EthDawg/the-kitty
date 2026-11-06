@@ -1,0 +1,78 @@
+[
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-BLUEGUM",
+  "to_type": "contract",
+  "to_id": "CON-SUPER",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-BANKSIA",
+  "to_type": "contract",
+  "to_id": "CON-SUPER",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "contributes_to",
+  "from_type": "contract",
+  "from_id": "CON-RIVERBEND",
+  "to_type": "contract",
+  "to_id": "CON-SUPER",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "secures",
+  "from_type": "contract",
+  "from_id": "CON-CARLOAN",
+  "to_type": "asset",
+  "to_id": "AST-CAR-A",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-03-12"
+ },
+ {
+  "relation": "funds_purpose",
+  "from_type": "contract",
+  "from_id": "CON-CARLOAN",
+  "to_type": "asset",
+  "to_id": "AST-CAR-A",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "share_bps": 10000,
+  "valid_to": "2025-03-12"
+ },
+ {
+  "relation": "charged_to",
+  "from_type": "account",
+  "from_id": "ACC-CARD",
+  "to_type": "account",
+  "to_id": "ACC-EVERY",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-MOTOR",
+  "to_type": "asset",
+  "to_id": "AST-CAR-A",
+  "valid_from": "2000-01-01",
+  "recorded_at": "2026-07-20T00:00:00Z",
+  "valid_to": "2025-03-12"
+ },
+ {
+  "relation": "covers",
+  "from_type": "contract",
+  "from_id": "CON-MOTOR",
+  "to_type": "asset",
+  "to_id": "AST-CAR-B",
+  "valid_from": "2025-04-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

@@ -1,0 +1,151 @@
+{
+  "_about": "The laws. tolerance_cents is absolute unless noted. severity: stop scopes a number out until fixed; hold shows it with a warning. Every result can be accepted by a decision with a reason and a reopen_if, so an old lodged year or an accountant's judgement does not leave the page red for ever. A new law starts at hold for one release.",
+  "laws": {
+    "L1": {
+      "name": "Conservation",
+      "claim": "Every event's postings sum to zero.",
+      "scope": "event",
+      "tolerance_cents": 0,
+      "severity": "stop"
+    },
+    "L2": {
+      "name": "Clearing",
+      "claim": "Every clearing account is zero at close, or each open item has an age and a named missing witness.",
+      "scope": "clearing account by month",
+      "tolerance_cents": 0,
+      "severity": "hold"
+    },
+    "L3": {
+      "name": "Continuity",
+      "claim": "For every statement, opening plus movements equals closing, and each closing is the next opening, on ledger-fidelity accounts.",
+      "scope": "statement",
+      "tolerance_cents": 0,
+      "severity": "hold",
+      "detail": "A missing statement is a gap: scoped to that account and period, shown with coverage. A statement that contradicts the lines we hold is a fail, scoped the same way. Neither withholds the household's views. Snapshot accounts are exempt: their stated balance is their balance."
+    },
+    "L4": {
+      "name": "One claim",
+      "claim": "Every active observation of an event-bearing kind is attached to exactly one event as recogniser, or is a clearing or corroborating witness, or is excluded by a decision.",
+      "scope": "observation",
+      "tolerance_cents": 0,
+      "severity": "stop"
+    },
+    "L5": {
+      "name": "Payslip",
+      "claim": "Gross less sacrifice, tax and deductions, plus allowances and reimbursements, equals net; year-to-date chains; the year's payslips sum to the income statement.",
+      "scope": "payslip and year",
+      "tolerance_cents": 1,
+      "severity": "hold"
+    },
+    "L6": {
+      "name": "Interest",
+      "claim": "Interest charged is within tolerance of daily interest at the rate valid each day, net of offset.",
+      "scope": "loan by month",
+      "tolerance_cents": 5000,
+      "severity": "hold"
+    },
+    "L7": {
+      "name": "Holdings",
+      "claim": "Open lots equal the units a broker states, per instrument and date, on ledger-fidelity holdings.",
+      "scope": "instrument by statement date",
+      "tolerance_cents": 0,
+      "severity": "hold",
+      "detail": "A snapshot holding is exempt: a holdings statement with no trade history opens lots with cost_known false, so a later sale reports an unknown gain, never a full one."
+    },
+    "L8": {
+      "name": "Roll-forward",
+      "claim": "Net worth as posted equals net worth as stated by sources, month by month, wherever every account in scope has a stated balance or valuation. The identity change-in-net-worth = income - expenses + revaluation holds by construction under L1; this law tests it against independent evidence.",
+      "scope": "household by month",
+      "tolerance_cents": 0,
+      "severity": "hold"
+    },
+    "L9": {
+      "name": "Ownership",
+      "claim": "Shares sum to 100% per subject, basis and day.",
+      "scope": "subject",
+      "tolerance_cents": 0,
+      "severity": "stop"
+    },
+    "L10": {
+      "name": "Timeline",
+      "claim": "No overlapping valid ranges for one subject and term; required terms have no gaps.",
+      "scope": "subject and term",
+      "tolerance_cents": 0,
+      "severity": "stop"
+    },
+    "L11": {
+      "name": "Tax tie",
+      "claim": "The derived return agrees with the lodged return and notice of assessment, label by label.",
+      "scope": "person by year",
+      "tolerance_cents": 100,
+      "severity": "hold"
+    },
+    "L12": {
+      "name": "Seal",
+      "claim": "A locked period's hash has not changed.",
+      "scope": "period",
+      "tolerance_cents": 0,
+      "severity": "stop"
+    },
+    "L13": {
+      "name": "Coverage",
+      "claim": "Every stream has what it should for the period.",
+      "scope": "stream by period",
+      "tolerance_cents": 0,
+      "severity": "hold"
+    },
+    "L14": {
+      "name": "Super tie",
+      "claim": "Contributions on payslips reach the fund, allowing for its lag.",
+      "scope": "fund by quarter",
+      "tolerance_cents": 100,
+      "severity": "hold",
+      "detail": "Lag: 28 days after quarter end until 30 June 2026; 7 business days under payday super from 1 July 2026."
+    },
+    "L15": {
+      "name": "Provenance",
+      "claim": "Every event cites an observation, and every observation a source with a hash.",
+      "scope": "event",
+      "tolerance_cents": 0,
+      "severity": "stop"
+    },
+    "L16": {
+      "name": "Cap",
+      "claim": "Contributions and thresholds sit within the law for that date, or raise an item.",
+      "scope": "person by year",
+      "tolerance_cents": 0,
+      "severity": "hold"
+    },
+    "L17": {
+      "name": "Bound",
+      "claim": "Every decision resolves to a target that exists after this rebuild. An orphan goes to review and is never dropped.",
+      "scope": "decision",
+      "tolerance_cents": 0,
+      "severity": "hold"
+    },
+    "L18": {
+      "name": "One level",
+      "claim": "A dollar counts at one level: an asset owned by a wrapper (SMSF, trust, company) is not counted beside the wrapper's balance. The overlap is named and only the duplicated amount is scoped out. Look-through is a view, not a second count.",
+      "scope": "wrapper",
+      "tolerance_cents": 0,
+      "severity": "hold"
+    },
+    "L19": {
+      "name": "BAS sales tie",
+      "claim": "Net sales on the year's activity statements tie to business income on the return: G1 less 1A when G1 includes GST, G1 when it does not. Statements with no G1 are skipped.",
+      "scope": "activity by year",
+      "tolerance_cents": 10000,
+      "severity": "hold",
+      "detail": "Raises a question, not a conservation failure: a return can hold non-sales income and sit on a different accounting basis."
+    },
+    "L20": {
+      "name": "Plausibility",
+      "claim": "A value does not jump beyond a declared multiple between two observations of the same subject.",
+      "scope": "subject",
+      "tolerance_cents": 0,
+      "severity": "hold",
+      "detail": "Catches a 10x valuation typo, which conserves perfectly."
+    }
+  },
+  "limits": "No law catches a wrong category, a crossed pair of equal-amount transfers, or a refund a person books as income: all of these conserve. The eval's truth catches them on Davies; on a real household only review does."
+}

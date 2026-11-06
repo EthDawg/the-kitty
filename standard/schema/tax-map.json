@@ -1,0 +1,125 @@
+{
+ "_about": "What a category means on a return when a household has set up no map of its own. A household's tax_map replaces this.",
+ "map": [
+  {
+   "selector_type": "category",
+   "selector": "INTEREST",
+   "label": "10",
+   "treatment": "income",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-INC",
+   "label": "21P",
+   "treatment": "income",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-INT",
+   "label": "21Q",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-MGMT",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-RATES",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-STRATA",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-INS",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-REPAIR",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-OTHER",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "WORK-EQUIP",
+   "label": "D5",
+   "treatment": "deduction",
+   "basis": "person",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "WORK-OTHER",
+   "label": "D5",
+   "treatment": "deduction",
+   "basis": "person",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "DONATION",
+   "label": "D9",
+   "treatment": "deduction",
+   "basis": "person",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "CRYPTO-INCOME",
+   "label": "24",
+   "treatment": "income",
+   "basis": "person",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "SUPER-PENSION",
+   "label": "7",
+   "treatment": "income",
+   "basis": "person",
+   "valid_from": "2000-01-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "GOV-PAY",
+   "label": "24",
+   "treatment": "income",
+   "basis": "person",
+   "valid_from": "2000-01-01"
+  }
+ ]
+}

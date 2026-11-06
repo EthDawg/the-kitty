@@ -1,0 +1,108 @@
+{
+ "id": "ping-loan-statement-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^PING$",
+  "^Wattle Credit Union online",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "account_ref": {
+   "below": "^Loan number$"
+  },
+  "interest_total": {
+   "below": "^Interest charged$",
+   "as": "cents"
+  },
+  "repaid_total": {
+   "below": "^Repayments received$",
+   "as": "cents"
+  }
+ },
+ "tables": [
+  {
+   "name": "months",
+   "start": "^Month  Rate  Opening",
+   "end": "^Total  ",
+   "skip": [
+    "\\(continued\\)$"
+   ],
+   "row": "^([A-Z][a-z]{2} \\d{4})  ([\\d.]+)%  ([\\d,.]+)  ([\\d,.]+)  ([\\d,.]+)  ([\\d,.]+)$",
+   "emit": [
+    {
+     "kind": "loan_statement",
+     "fields": {
+      "account_ref": {
+       "value": "account_ref"
+      },
+      "period_start": {
+       "group": 1,
+       "as": "month_start"
+      },
+      "period_end": {
+       "group": 1,
+       "as": "month_end"
+      },
+      "rate_pct": {
+       "group": 2
+      },
+      "opening_cents": {
+       "group": 3,
+       "as": "cents"
+      },
+      "interest_cents": {
+       "group": 4,
+       "as": "cents"
+      },
+      "repayments_cents": {
+       "group": 5,
+       "as": "cents"
+      },
+      "closing_cents": {
+       "group": 6,
+       "as": "cents"
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "loan_statement",
+   "terms": [
+    "+opening_cents",
+    "+interest_cents",
+    "-repayments_cents",
+    "-closing_cents"
+   ]
+  },
+  {
+   "law": "kind_sum",
+   "kind": "loan_statement",
+   "field": "interest_cents",
+   "equals": "interest_total"
+  },
+  {
+   "law": "kind_sum",
+   "kind": "loan_statement",
+   "field": "repayments_cents",
+   "equals": "repaid_total"
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:3e13aa2f54859a75d8f22096"
+ ],
+ "match": [
+  "^PING$"
+ ]
+}

@@ -1,0 +1,51 @@
+[
+ {
+  "instrument_id": "INS-KRL",
+  "kind": "listed_share",
+  "code": "KRL",
+  "name": "Krill Bay Holdings Ltd",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-MRN",
+  "kind": "listed_share",
+  "code": "MRN",
+  "name": "Marram Energy Ltd",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-OWL",
+  "kind": "etf",
+  "code": "OWL",
+  "name": "Owlet Global ETF",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-LUMA",
+  "kind": "rsu",
+  "code": "LUMA",
+  "name": "Lumen Arc Inc",
+  "currency": "USD"
+ },
+ {
+  "instrument_id": "INS-BTC",
+  "kind": "crypto",
+  "code": "BTC",
+  "name": "BTC",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-ETH",
+  "kind": "crypto",
+  "code": "ETH",
+  "name": "ETH",
+  "currency": "AUD"
+ },
+ {
+  "instrument_id": "INS-SOL",
+  "kind": "crypto",
+  "code": "SOL",
+  "name": "SOL",
+  "currency": "AUD"
+ }
+]

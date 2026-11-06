@@ -1,0 +1,55 @@
+{
+ "id": "appraisal-pdf",
+ "match": [
+  "^Opinion of value$"
+ ],
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^An opinion of value, with",
+  "^Fictional document from",
+  "Nothing here is advice\\.$",
+  "^advice\\.$",
+  "^Nothing here",
+  "^institution\\."
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "valuer": {
+   "find": "^(.+)$"
+  },
+  "subject_ref": {
+   "below": "^Subject$"
+  },
+  "as_at": {
+   "below": "^Valued as at$",
+   "as": "date"
+  },
+  "method": {
+   "below": "^Basis$",
+   "map": {
+    "Appraisal": "appraisal",
+    "Estimate": "estimate"
+   }
+  },
+  "value_cents": {
+   "below": "^Opinion of value$",
+   "nth": 1,
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "valuation",
+   "from_values": true
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:244fbf8493540cde7958bd9f"
+ ]
+}

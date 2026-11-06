@@ -1,0 +1,98 @@
+{
+ "id": "cedar-contract-note-pdf",
+ "tier": "document",
+ "container": "pdf",
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Cedar Trade$",
+  "^Deep roots",
+  "^Fictional document from",
+  "institution\\.? Nothing here|^advice\\.$|^institution\\.$|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "account_ref": {
+   "below": "^Account$"
+  },
+  "instrument_ref": {
+   "below": "^Security code$"
+  },
+  "side": {
+   "find": "^(Bought|Sold) ",
+   "map": {
+    "Bought": "buy",
+    "Sold": "sell"
+   }
+  },
+  "trade_date": {
+   "below": "^Trade date$",
+   "as": "date"
+  },
+  "settlement_date": {
+   "below": "^Settlement date$",
+   "as": "date"
+  },
+  "reference": {
+   "below": "^Reference$"
+  },
+  "units": {
+   "right": "^Quantity$",
+   "as": "units"
+  },
+  "price": {
+   "right": "^Price$"
+  },
+  "gross": {
+   "right": "^Consideration$",
+   "as": "cents"
+  },
+  "brokerage_cents": {
+   "right": "^Brokerage$",
+   "as": "cents"
+  },
+  "consideration_cents": {
+   "right": "^(Total payable|Net proceeds)$",
+   "as": "cents"
+  }
+ },
+ "emit": [
+  {
+   "kind": "contract_note",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "product",
+   "a": "units",
+   "b": "price",
+   "equals": "gross"
+  },
+  {
+   "law": "either",
+   "name": "gross and brokerage make the total",
+   "terms": [
+    [
+     "+gross",
+     "+brokerage_cents",
+     "-consideration_cents"
+    ],
+    [
+     "+gross",
+     "-brokerage_cents",
+     "-consideration_cents"
+    ]
+   ]
+  }
+ ],
+ "version": 1,
+ "fingerprints": [
+  "fp1:4b7ee416c62bbf696574db13"
+ ],
+ "match": [
+  "^Cedar Trade$"
+ ]
+}

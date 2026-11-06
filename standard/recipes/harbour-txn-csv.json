@@ -1,0 +1,52 @@
+{
+ "id": "harbour-txn-csv",
+ "version": 1,
+ "tier": "table",
+ "container": "csv",
+ "fingerprints": [
+  "fp1:a187adbfdf1c0ad8ab7ebf96"
+ ],
+ "defaults": {
+  "date": "dmy"
+ },
+ "table": {
+  "header": 1,
+  "order": "oldest_first"
+ },
+ "emit": [
+  {
+   "kind": "txn_line",
+   "fields": {
+    "account_ref": {
+     "col": "Bank Account"
+    },
+    "posting_date": {
+     "col": "Date",
+     "as": "date"
+    },
+    "description": {
+     "col": "Narrative"
+    },
+    "amount_cents": {
+     "credit": "Credit Amount",
+     "debit": "Debit Amount"
+    },
+    "balance_after_cents": {
+     "col": "Balance",
+     "as": "cents"
+    }
+   }
+  }
+ ],
+ "statement": {
+  "from": "chain"
+ },
+ "controls": [
+  {
+   "law": "balance_chain"
+  },
+  {
+   "law": "family_chain"
+  }
+ ]
+}

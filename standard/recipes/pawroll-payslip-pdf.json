@@ -1,0 +1,98 @@
+{
+ "id": "pawroll-payslip-pdf",
+ "version": 1,
+ "tier": "document",
+ "container": "pdf",
+ "fingerprints": [
+  "fp1:27829db1044c815a752097d4"
+ ],
+ "match": [
+  "^Pawroll$",
+  "^Payslip for "
+ ],
+ "defaults": {
+  "date": "dmony"
+ },
+ "furniture": [
+  "^DEMO  -  fictional document$",
+  "^Fictional document from",
+  "^institution\\. Nothing here|Nothing here is advice\\.$"
+ ],
+ "drop_cells": "^DEMO$",
+ "values": {
+  "person_ref": {
+   "find": "^Payslip for (.+)$"
+  },
+  "employer_ref": {
+   "below": "^Employer$"
+  },
+  "pay_date": {
+   "below": "^Pay date$",
+   "as": "date"
+  },
+  "period_start": {
+   "below": "^Pay period$",
+   "regex": "^(.+?) to ",
+   "as": "date"
+  },
+  "period_end": {
+   "below": "^Pay period$",
+   "regex": " to (.+)$",
+   "as": "date"
+  },
+  "gross_cents": {
+   "right": "^Ordinary hours, salary$",
+   "as": "cents"
+  },
+  "ytd_gross_cents": {
+   "right": "^Ordinary hours, salary$",
+   "cell": 2,
+   "as": "cents"
+  },
+  "tax_cents": {
+   "right": "^PAYG withholding$",
+   "as": "cents",
+   "abs": true
+  },
+  "ytd_tax_cents": {
+   "right": "^PAYG withholding$",
+   "cell": 2,
+   "as": "cents",
+   "abs": true
+  },
+  "super_cents": {
+   "right": "^Superannuation guarantee",
+   "as": "cents"
+  },
+  "ytd_super_cents": {
+   "right": "^Superannuation guarantee",
+   "cell": 2,
+   "as": "cents"
+  },
+  "net_cents": {
+   "right": "^Net pay, to ",
+   "as": "cents"
+  },
+  "account_ref": {
+   "find": "account ending (\\d{4})"
+  }
+ },
+ "emit": [
+  {
+   "kind": "payslip",
+   "from_values": true
+  }
+ ],
+ "controls": [
+  {
+   "law": "equation",
+   "kind": "payslip",
+   "name": "gross less tax is net",
+   "terms": [
+    "+gross_cents",
+    "-tax_cents",
+    "-net_cents"
+   ]
+  }
+ ]
+}

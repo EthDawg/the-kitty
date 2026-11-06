@@ -1,0 +1,97 @@
+[
+ {
+  "contract_id": "CON-PENSION",
+  "kind": "super_fund",
+  "name": "Salma's account-based pension",
+  "counterparty_party_id": "PTY-HESTABBY",
+  "holder_party_id": "PTY-SALMA",
+  "account_id": "ACC-PENSION",
+  "category_id": "SUPER-PENSION",
+  "started_on": "2019-07-01"
+ },
+ {
+  "contract_id": "CON-SMSF",
+  "kind": "super_fund",
+  "name": "Geoffrey's pension from the fund",
+  "counterparty_party_id": "PTY-SMSF",
+  "holder_party_id": "PTY-GEOFF",
+  "account_id": "ACC-SMSF-BANK",
+  "category_id": "SUPER-PENSION",
+  "started_on": "2016-07-01"
+ },
+ {
+  "contract_id": "CON-BRIDGE",
+  "kind": "loan",
+  "name": "Bridging loan",
+  "counterparty_party_id": "PTY-WESTPAW",
+  "holder_party_id": "PTY-SALMA",
+  "account_id": "ACC-BRIDGE",
+  "asset_id": "AST-UNIT",
+  "category_id": "HOME-INT",
+  "started_on": "2025-02-14",
+  "ended_on": "2025-05-30"
+ },
+ {
+  "contract_id": "CON-KARIM",
+  "kind": "loan",
+  "name": "Loan to Karim",
+  "counterparty_party_id": "PTY-KARIM",
+  "holder_party_id": "PTY-GEOFF",
+  "account_id": "ACC-KARIM",
+  "started_on": "2024-03-12"
+ },
+ {
+  "contract_id": "CON-CARE",
+  "kind": "subscription",
+  "name": "Nadia's aged-care fees, paid for her",
+  "counterparty_party_id": "PTY-ROSEWOOD",
+  "holder_party_id": "PTY-SALMA",
+  "category_id": "PASS-THROUGH",
+  "started_on": "2023-11-01",
+  "ended_on": "2025-01-31"
+ },
+ {
+  "contract_id": "CON-HOME-INS",
+  "kind": "insurance",
+  "name": "Home insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-SALMA",
+  "asset_id": "AST-HOME",
+  "category_id": "HOME-INS"
+ },
+ {
+  "contract_id": "CON-PORTLAND-INS",
+  "kind": "insurance",
+  "name": "Landlord insurance, Portland",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-SALMA",
+  "asset_id": "AST-PORTLAND",
+  "category_id": "RENT-INS"
+ },
+ {
+  "contract_id": "CON-POWER",
+  "kind": "utility",
+  "name": "Electricity",
+  "counterparty_party_id": "PTY-GOLDLINE",
+  "holder_party_id": "PTY-SALMA",
+  "category_id": "UTILITIES"
+ },
+ {
+  "contract_id": "CON-HEALTH",
+  "kind": "insurance",
+  "name": "Hospital and extras",
+  "counterparty_party_id": "PTY-BUPAW",
+  "holder_party_id": "PTY-SALMA",
+  "category_id": "HEALTH"
+ },
+ {
+  "contract_id": "CON-AGENT",
+  "kind": "lease",
+  "name": "The Portland unit, Portland Bay managing",
+  "counterparty_party_id": "PTY-PORTBAY",
+  "holder_party_id": "PTY-SALMA",
+  "asset_id": "AST-PORTLAND",
+  "category_id": "RENT-INC",
+  "started_on": "2019-01-01"
+ }
+]

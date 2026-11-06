@@ -1,0 +1,474 @@
+[
+ {
+  "category_id": "SALARY",
+  "name": "Salary and wages",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SALARY-ALLOW",
+  "name": "Allowances",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "REIMBURSE",
+  "name": "Employer reimbursements",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": false
+ },
+ {
+  "category_id": "SUPER-EMPLOYER",
+  "name": "Employer super",
+  "kind": "income",
+  "group": "Super",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SUPER-SACRIFICE",
+  "name": "Salary sacrificed to super",
+  "kind": "income",
+  "group": "Super",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "PAYROLL-DED",
+  "name": "Post-tax payroll deductions",
+  "kind": "expense",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "INTEREST",
+  "name": "Interest earned",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "DIVIDEND",
+  "name": "Dividends and distributions",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "TRUST-DIST",
+  "name": "Trust distributions",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "ESS-INCOME",
+  "name": "Employee share scheme income",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "CRYPTO-INCOME",
+  "name": "Staking and crypto income",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SUPER-EARN",
+  "name": "Super fund earnings",
+  "kind": "income",
+  "group": "Super",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SUPER-FEES",
+  "name": "Super fund fees",
+  "kind": "expense",
+  "group": "Super",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SUPER-INS",
+  "name": "Insurance inside super",
+  "kind": "expense",
+  "group": "Super",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SUPER-TAX",
+  "name": "Contributions tax",
+  "kind": "expense",
+  "group": "Super",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "GIFT-IN",
+  "name": "Gifts and inheritances received",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": false
+ },
+ {
+  "category_id": "RENT-INC",
+  "name": "Rent received",
+  "kind": "income",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "MORTGAGE",
+  "name": "Home loan repayments",
+  "kind": "expense",
+  "group": "Housing",
+  "cash_lens": true,
+  "economic_lens": false
+ },
+ {
+  "category_id": "HOME-INT",
+  "name": "Home loan interest",
+  "kind": "expense",
+  "group": "Housing",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RATES-HOME",
+  "name": "Council rates (home)",
+  "kind": "expense",
+  "group": "Housing",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "HOME-INS",
+  "name": "Home and contents insurance",
+  "kind": "expense",
+  "group": "Housing",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "HOME-MAINT",
+  "name": "Home maintenance",
+  "kind": "expense",
+  "group": "Housing",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "GROCERIES",
+  "name": "Groceries",
+  "kind": "expense",
+  "group": "Essentials",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "UTILITIES",
+  "name": "Energy and water",
+  "kind": "expense",
+  "group": "Essentials",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "TELCO",
+  "name": "Internet and mobile",
+  "kind": "expense",
+  "group": "Essentials",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "TRANSPORT",
+  "name": "Fuel and transport",
+  "kind": "expense",
+  "group": "Essentials",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "CAR",
+  "name": "Car costs",
+  "kind": "expense",
+  "group": "Essentials",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "HEALTH",
+  "name": "Health",
+  "kind": "expense",
+  "group": "Essentials",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "CHILDCARE",
+  "name": "Childcare",
+  "kind": "expense",
+  "group": "Essentials",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "DINING",
+  "name": "Dining and takeaway",
+  "kind": "expense",
+  "group": "Lifestyle",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SUBS",
+  "name": "Subscriptions",
+  "kind": "expense",
+  "group": "Lifestyle",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "SHOPPING",
+  "name": "Shopping",
+  "kind": "expense",
+  "group": "Lifestyle",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "KIDS-ACT",
+  "name": "Kids activities",
+  "kind": "expense",
+  "group": "Lifestyle",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "HOLIDAYS",
+  "name": "Holidays and travel",
+  "kind": "expense",
+  "group": "Lifestyle",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "GIFTS",
+  "name": "Gifts",
+  "kind": "expense",
+  "group": "Lifestyle",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "PERSONAL",
+  "name": "Personal care",
+  "kind": "expense",
+  "group": "Lifestyle",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RENT-INT",
+  "name": "Investment loan interest",
+  "kind": "expense",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RENT-MGMT",
+  "name": "Property management fees",
+  "kind": "expense",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RENT-RATES",
+  "name": "Rental rates and water",
+  "kind": "expense",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RENT-STRATA",
+  "name": "Strata levies",
+  "kind": "expense",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RENT-INS",
+  "name": "Landlord insurance",
+  "kind": "expense",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RENT-REPAIR",
+  "name": "Rental repairs",
+  "kind": "expense",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "RENT-OTHER",
+  "name": "Other rental costs",
+  "kind": "expense",
+  "group": "Property",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "WORK-EQUIP",
+  "name": "Work equipment",
+  "kind": "expense",
+  "group": "Work and giving",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "WORK-OTHER",
+  "name": "Work registrations and courses",
+  "kind": "expense",
+  "group": "Work and giving",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "DONATION",
+  "name": "Donations",
+  "kind": "expense",
+  "group": "Work and giving",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "FEES",
+  "name": "Bank fees and card interest",
+  "kind": "expense",
+  "group": "Fees",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "INCOME-TAX",
+  "name": "Income tax assessed",
+  "kind": "expense",
+  "group": "Tax",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "HELP-INDEX",
+  "name": "HELP indexation",
+  "kind": "expense",
+  "group": "Tax",
+  "cash_lens": false,
+  "economic_lens": true
+ },
+ {
+  "category_id": "TAX-REFUND",
+  "name": "Tax refunds and payments",
+  "kind": "transfer",
+  "group": "Tax",
+  "cash_lens": false,
+  "economic_lens": false
+ },
+ {
+  "category_id": "TRANSFER",
+  "name": "Transfers between own accounts",
+  "kind": "transfer",
+  "group": "Transfers",
+  "cash_lens": false,
+  "economic_lens": false
+ },
+ {
+  "category_id": "CC-PAY",
+  "name": "Credit card payments",
+  "kind": "transfer",
+  "group": "Transfers",
+  "cash_lens": false,
+  "economic_lens": false
+ },
+ {
+  "category_id": "UNCAT",
+  "name": "Uncategorised",
+  "kind": "suspense",
+  "group": "Uncategorised",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "PASS-THROUGH",
+  "name": "Money that is someone else's",
+  "kind": "pass_through",
+  "group": "Transfers",
+  "cash_lens": false,
+  "economic_lens": false
+ },
+ {
+  "category_id": "SUPER-PENSION",
+  "name": "Super pension",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": false
+ },
+ {
+  "category_id": "SELLING-COSTS",
+  "name": "Selling costs",
+  "kind": "capital",
+  "group": "Capital",
+  "cash_lens": false,
+  "economic_lens": false
+ },
+ {
+  "category_id": "x_FTB",
+  "name": "Family payments",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": true
+ },
+ {
+  "category_id": "x_BOARD",
+  "name": "Board and lodgers",
+  "kind": "income",
+  "group": "Income",
+  "cash_lens": true,
+  "economic_lens": false
+ },
+ {
+  "category_id": "x_FAMILY",
+  "name": "Money home to family",
+  "kind": "expense",
+  "group": "Family",
+  "cash_lens": true,
+  "economic_lens": true
+ }
+]

@@ -2,7 +2,7 @@
 """Check the one-app/two-host repository boundary, without inspecting build outputs.
 
 The static top-level allowlist is the directory set at main 7ad1895402bc5320dfbaf0be4009b81c6df037ed,
-plus the authorised ios/ host. Adding another top-level directory requires agreement;
+plus the authorised ios/ host and standard/. Adding another top-level directory requires agreement;
 do not regenerate this list from whatever a change happens to introduce.
 
 Run from anywhere: python3 tools/check_shape.py [--root REPOSITORY]. Git's tracked
@@ -26,6 +26,7 @@ import sys
 ALLOWED_TOP_LEVEL_DIRS = frozenset({
     ".github", "apps-script", "brand", "data", "docs", "fixtures", "merchants",
     "period-close", "portals", "skills", "sources", "src", "tax", "tools", "ios",
+    "standard",  # the household data standard; agreed for the Records tab, which reads its generated view
 })
 WEB_EXTENSIONS = frozenset({
     ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".html", ".htm",
