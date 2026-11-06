@@ -206,6 +206,7 @@ test("8 the tinkerer: tailors, types in a managed tab, takes an update, and keep
   assert.deepEqual(plan.unbound_decisions, [], "every decision is still bound");
   assert.equal(plan.proposals.length, 1, "a locked month raises a reopen proposal instead of moving");
   assert.equal(plan.proposals[0].period, "2026-05");
+  assert.equal(plan.proposals[0].amount_cents, 9000, "a new category moves no total, and the proposal still says how much it touches");
   assert.ok(plan.summary.startsWith("Nothing you entered changes"));
 
   // A person types in a managed tab: the next writer stops and proposes, and overwrites nothing.
@@ -222,6 +223,42 @@ test("8 the tinkerer: tailors, types in a managed tab, takes an update, and keep
   const rewrite = checkTailoring(tailoring, () => ({ cents: 0 }));
   assert.equal(rewrite[0].status, "rewrite");
   assert.equal(rewrite[0].sentence, "What does the dog cost a year?");
+});
+
+test("8a an update shows a tax draft that moves, and a lodged year stays as lodged", () => {
+  const { planUpdate } = require("../../engine/upgrade");
+  const h = household("fixer").person("sam").account("BANK", "transaction", "cash", [["sam", 10000]]);
+  h.setup.tax_map = [{ selector_type: "category", selector: "SALARY", label: "1", treatment: "income", basis: "ownership", valid_from: "2000-01-01" }, { selector_type: "category", selector: "FEES", label: "D10", treatment: "deduction", basis: "ownership", valid_from: "2000-01-01" }];
+  h.rule("ACME PAY", "SALARY").rule("TAX AGENT", "SHOPPING");
+  h.line("BANK", "2024-08-01", "ACME PAY", 6000000).line("BANK", "2024-09-01", "TAX AGENT", -50000).line("BANK", "2025-08-01", "ACME PAY", 6000000).line("BANK", "2025-09-01", "TAX AGENT", -80000);
+  h.obs("tax_assessment", { person_ref: "sam", fy: "FY2025", assessed_on: "2025-09-20", version: 1, taxable_income_cents: 6000000, gross_tax_cents: 1000000, payg_credits_cents: 1000000, result_cents: 0, labels: [] });
+  const before = run(h);
+  const after = run({ ...h, rules: h.rules.map((r) => (r.pattern === "TAX AGENT" ? { ...r, category_id: "FEES" } : r)) });
+  const plan = planUpdate({ before, after });
+  const open = plan.moved.find((m) => m.metric === "tax.estimate.taxable_income");
+  assert.deepEqual([open.fy, open.person, open.change], ["FY2026", "sam", -80000], "the open year's draft moves, and the diff says so");
+  assert.ok(!plan.moved.some((m) => m.fy === "FY2025"), "a lodged year is never in what moves");
+  const found = plan.findings.find((f) => f.metric === "tax.estimate.taxable_income");
+  assert.deepEqual([found.kind, found.fy, found.person, found.amount_cents], ["lodged_year", "FY2025", "sam", -50000]);
+  assert.ok(!plan.summary.includes(" 0 numbers move"));
+});
+
+test("8b a reopen proposal names every number that would move in the locked period", () => {
+  const { planUpdate } = require("../../engine/upgrade");
+  const { sealOf } = require("../../engine/laws");
+  const h = household("reopen").person("sam").account("BANK", "transaction", "cash", [["sam", 10000]]);
+  h.rule("CLIENT", "SALARY");
+  h.line("BANK", "2026-05-02", "CLIENT PAYMENT", 200000);
+  const before = run(h);
+  const May = { period_id: "2026-05", status: "locked", start_on: "2026-05-01", end_on: "2026-05-31" };
+  May.seal_hash = sealOf(before, May);
+  const after = run({ ...h, rules: h.rules.map((r) => ({ ...r, category_id: "BUSINESS-INC" })) });
+  const income = run({ ...h, rules: h.rules.map((r) => ({ ...r, category_id: "REIMBURSE" })) });
+  assert.equal(planUpdate({ before, after, periods: [May] }).proposals[0].amount_cents, 200000, "income to income moves no total and still touches the money");
+  const plan = planUpdate({ before, after: income, periods: [May] });
+  assert.equal(plan.proposals[0].amount_cents, 200000, "a change to income counts, not only spending");
+  assert.ok(plan.proposals[0].changes.some((m) => m.metric === "cash.income" && m.change === -200000));
+  assert.ok(!plan.moved.some((m) => m.month === "2026-05"), "the locked month stays where it is");
 });
 
 test("2 shape change: a lodged business year reads by composition, and BAS net sales tie in both GST cases", () => {
