@@ -35,8 +35,8 @@ SF Symbols substitute for the shared icons. The dog remains a single-flag
 alternative to the cat. Bundles, generated asset catalogs, local credentials and
 evidence are ignored build outputs, never copied sources under `ios/`.
 
-Repository shape is checked by `tools/check_shape.py`: only `ios/` may be added
-as a top-level folder, and engine/brand copies and nongenerated Swift colors or
+Repository shape is checked by `tools/check_shape.py`: only `ios/` and `standard/`
+may be added as top-level folders, and engine/brand copies and nongenerated Swift colors or
 system symbols fail CI. No new widgets, domains, visual redesign or Android work
 belongs in this implementation. The rejected SwiftUI branch is preserved as
 `ios-swiftui-checkpoint`; it will never be merged. Useful logic is brought over
