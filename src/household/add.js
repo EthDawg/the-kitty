@@ -24,7 +24,7 @@ const refOf = (o) => o.payload && o.payload.account_ref;
 const dateOf = (o) => o.occurred_on || o.payload.posting_date || o.payload.period_end || o.payload.as_at;
 const digits = (s) => String(s).replace(/[^0-9]/g, "");
 
-function sampleOf(bytes, inflate) {
+function sampleOf(bytes, inflate = base().inflate) {
   try {
     const d = decode(bytes, { inflate });
     return { rows: (d.rows || []).slice(0, SAMPLE_ROWS), lines: (d.lines || []).slice(0, SAMPLE_LINES).map((l) => l.text) };
@@ -127,7 +127,8 @@ async function add(store, files, opts = {}) {
   for (const o of res.observations) { const a = refOf(o) && R.accountOf(o, refOf(o), dateOf(o)); if (a) { if (!accountsBySource.has(o.source_id)) accountsBySource.set(o.source_id, new Set()); accountsBySource.get(o.source_id).add(a); } }
   for (const s of res.sources) {
     const accounts = [...(accountsBySource.get(s.source_id) || [])];
-    if (!s.stream_id && accounts.length === 1) { const st = allStreams.find((x) => x.subject_type === "account" && x.subject_id === accounts[0]); if (st) s.stream_id = st.stream_id; }
+    // A name given for the account is an alias, not a stream: the file still belongs to the account's own stream, or coverage never hears from it.
+    if ((!s.stream_id || !allStreams.some((x) => x.stream_id === s.stream_id)) && accounts.length === 1) { const st = allStreams.find((x) => x.subject_type === "account" && x.subject_id === accounts[0]); if (st) s.stream_id = st.stream_id; }
     s.uri = await keepBytes(store, s, byPath.get(s.uri).bytes, opts.on_device ?? store.capabilities.device_files, result.warnings);
   }
   // A byte-identical re-delivery of a quiet file is how a dormant account says "still nothing". Of any other file it is just the same file again.
@@ -169,6 +170,6 @@ async function addRecipe(store, recipe, opts = {}) {
   const verdict = gate(recipe, family.map((f) => ({ path: f.name, stream: f.stream, decoded: f.decoded })), { vocab: b.vocab });
   if (verdict.status !== "pass") return { status: "failed", verdict };
   await store.tables.appendNew("recipe", [{ recipe_id: recipe.id, fingerprint: recipe.fingerprints[0], family: recipe.family || recipe.id, spec: recipe, author, tokens_in, tokens_out, gate_status: "passed", created_at: stamp(today) }]);
-  return { status: "passed", verdict, read: await add(store, family.map(({ name, bytes, stream, download_date }) => ({ name, bytes, stream, download_date })), { today, account: opts.account }) };
+  return { status: "passed", verdict, read: await add(store, family.map(({ name, bytes, stream, download_date }) => ({ name, bytes, stream, download_date })), { today, account: opts.account, name: opts.name, type: opts.type, on_device: opts.on_device }) };
 }
-module.exports = { add, addRecipe, bytesState, readState };
+module.exports = { add, addRecipe, bytesState, readState, sampleOf };

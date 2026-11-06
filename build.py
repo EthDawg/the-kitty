@@ -11,12 +11,15 @@ native.css supplying the host boundary. It never embeds a household's logos/ fol
 """
 import argparse
 import base64
+import gzip
 import hashlib
 import html
 from html.parser import HTMLParser
 import json
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import sys
 
 
@@ -52,6 +55,18 @@ def inline_script(source, label):
     if re.search(r'</script\b', source, re.IGNORECASE):
         raise BuildError('Unsafe inline script terminator in ' + label)
     return '<script data-kitty-source="' + html.escape(label, quote=True) + '">' + source + '\n</script>'
+
+
+def household_script(root):
+    """The household runtime as gzip in base64, inert in the page until someone starts. None when node or the bundler is not here."""
+    tool, node = Path(root) / 'tools' / 'household-bundle.js', shutil.which('node')
+    if not tool.is_file() or not node:
+        return None
+    done = subprocess.run([node, '-e', 'process.stdout.write(require(process.argv[1]).bundle().text)', str(tool.resolve())],
+                          capture_output=True, cwd=root, check=False)
+    if done.returncode:
+        raise BuildError('The household bundle failed: ' + done.stderr.decode('utf-8', 'replace')[:300])
+    return base64.b64encode(gzip.compress(done.stdout, 9, mtime=0)).decode('ascii')
 
 
 def native_assets(root):
@@ -200,7 +215,10 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
         raise BuildError('Unknown brand mascot')
     art = {'set': mascot, 'cookie': read(brand, 'motion', 'fortune-cookie.svg' if mascot == 'cat' else 'biscuit.svg'),
            'allReviewed': read(brand, 'illustrations', mascot + '-all-reviewed.svg'),
-           'emptyActivity': read(brand, 'illustrations', mascot + '-empty-activity.svg')}
+           'emptyActivity': read(brand, 'illustrations', mascot + '-empty-activity.svg'),
+           'emptyGoals': read(brand, 'illustrations', mascot + '-empty-goals.svg'),
+           'connectSheet': read(brand, 'illustrations', mascot + '-connect-sheet.svg')}
+    household = None if native else household_script(root)
     logos = {}
     logo_dir = root / 'logos'
     if not native and logo_dir.is_dir():
@@ -227,7 +245,12 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
             .replace('/*MOTION*/', read(brand, 'motion', 'motion.js'))
             .replace('/*ENGINE*/', read(src, 'engine.js'))
             .replace('/*KIT*/', kit)
+            .replace('/*START*/', '' if native else read(src, 'start.js'))
             .replace('/*APP*/', read(src, 'app.js')))
+    if household:
+        page = replace_once(page, '<script>/*HOUSEHOLD*/</script>', '<script type="text/plain" id="kitty-household">' + household + '</script>')
+    else:
+        page = page.replace('<script>/*HOUSEHOLD*/</script>', '')
     if native:
         head, separator, body = page.partition('<header ')
         if not separator:
@@ -251,7 +274,9 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
         outputs = {name: page, f'local{suffix}.html': SKELETON + page + '</body></html>'}
         if v2:
             outputs['kit.html'] = SKELETON + '<script>window.__KIT_GALLERY__=1;</script>' + page + '</body></html>'
-    report = (f"dist/{name}: {len(page.encode()) // 1024} KB page; snapshot "
+    if not native and household is None:
+        print('note: no node here, so this page has no Start yours path', file=sys.stderr)
+    report = (f"dist/{name}: {len(page.encode()) // 1024} KB page; household {len(household) // 1024 if household else 0} KB; snapshot "
               f"{'omitted' if no_snapshot else snapshot_file + ' bundled'}; standard view {'omitted' if standard_view is None else 'bundled'}; sheet {sheet_id}; "
               f"{len(merchants['merchants']['merchants'])} merchants; {len(logos)} logos")
     return outputs, report

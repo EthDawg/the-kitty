@@ -67,6 +67,8 @@ jobs:
         run: node --test life/findings/*.test.js
       - name: one script for a page
         run: node tools/household-bundle.js
+      - name: the adapter against the v2 sheet, on every field the page reads
+        run: node --test tools/page-parity.test.js
 
   portals:
     runs-on: ubuntu-latest
@@ -91,6 +93,16 @@ jobs:
           node standard/world/build.js
           node tools/household-bundle.js
           node tools/household-browser.js
+      - name: the generated life, for the page's tests (from life/world until that branch lands)
+        run: |
+          test -f life/world/build.js || { git fetch --depth=1 origin life/world && git checkout FETCH_HEAD -- life/world life/davies; }
+          node life/world/build.js
+          node life/world/build.js --variant --seed 7
+      - name: a first reading of an unknown bank file, and the gate that refuses a wrong one
+        run: node --test tools/guess.test.js
+      - name: the real page from nothing, chapters 1 and 2, in a real browser, phone width, light and dark
+        run: npx playwright test --config=../tools/page/playwright.config.js --output=/tmp/kitty-page-results
+        working-directory: portals
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: portals/playwright-report, retention-days: 7 }

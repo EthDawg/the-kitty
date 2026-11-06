@@ -119,16 +119,16 @@
     const acts = [];
     if (r.has("duplicate")) acts.push(`<button type="button" class="chip${primary === "merge" ? " primary" : ""}" data-ract="merge">${ico("duplicate")}Merge double${kbd("D")}</button>`);
     acts.push(`<button type="button" class="chip${primary === "cat" ? " primary" : ""}" data-ract="cat">${ico("edit")}Categorise${kbd("C")}</button>`);
-    acts.push(`<button type="button" class="chip${primary === "confirm" ? " primary" : ""}" data-ract="confirm">${ico("check")}${r.has("duplicate") ? "Keep both" : r.has("unpaired") ? "Not a transfer" : "Looks right"}${kbd("↵")}</button>`);
+    if (!ctx.household) acts.push(`<button type="button" class="chip${primary === "confirm" ? " primary" : ""}" data-ract="confirm">${ico("check")}${r.has("duplicate") ? "Keep both" : r.has("unpaired") ? "Not a transfer" : "Looks right"}${kbd("↵")}</button>`);
     if (r.has("unpaired") && !mates.length) acts.push(`<span class="sub">No mate within four days.</span>`);
-    acts.push(`<button type="button" class="chip" data-ract="split">${ico("split")}Split${kbd("S")}</button>`);
+    if (!ctx.household) acts.push(`<button type="button" class="chip" data-ract="split">${ico("split")}Split${kbd("S")}</button>`);
     // a rule that only says "uncategorised" is not a rule that knows the merchant: the cookie still offers to propose one
     const noRule = !(e.mer && e.mer.source === "rule" && e.mer.cat && e.mer.cat !== "UNCAT") && !r.has("duplicate") && !r.has("unpaired");
     return `<article class="rcard" data-rid="${esc(e.id)}" tabindex="0" aria-label="${esc(nameOf(e))}, ${esc(item.why)}">
       ${K.EntryRow(e, ctx, { date: true, raw: true, badges: false })}
       <p class="rwhy">${ico("review")}<span>${esc(E.cap(item.why))}${dup ? ` · ${esc(E.fmtDay(dup.date))}, row ${esc(dup.id)}` : ""}</span></p>
       <div class="racts">${chips.join("")}<span class="rbtns">${acts.join("")}</span></div>
-      ${noRule && ctx.cookie ? `<div class="rcookie"><button type="button" class="k-fortune" data-cookie="${esc(e.id)}" aria-label="${ctx.nativeAsk ? "Check past entries for this merchant" : "Crack the cookie: the Kitty proposes a merchant and a rule for this descriptor"}">${ctx.cookie}</button><span class="cookiehint">${ctx.nativeAsk ? "Check how this household categorised matching entries." : ctx.sampleOn ? "No rule knows this one. Crack the cookie and the Kitty proposes a merchant and a rule; you decide." : "No rule knows this one. Open this page in Claude to let the Kitty propose a rule."}</span></div><div class="rslip" hidden></div>` : ""}
+      ${noRule && ctx.cookie && !(ctx.household && !ctx.sampleOn) ? `<div class="rcookie"><button type="button" class="k-fortune" data-cookie="${esc(e.id)}" aria-label="${ctx.nativeAsk ? "Check past entries for this merchant" : "Crack the cookie: the Kitty proposes a merchant and a rule for this descriptor"}">${ctx.cookie}</button><span class="cookiehint">${ctx.nativeAsk ? "Check how this household categorised matching entries." : ctx.sampleOn ? "No rule knows this one. Crack the cookie and the Kitty proposes a merchant and a rule; you decide." : "No rule knows this one. Open this page in Claude to let the Kitty propose a rule."}</span></div><div class="rslip" hidden></div>` : ""}
     </article>`;
   };
 
