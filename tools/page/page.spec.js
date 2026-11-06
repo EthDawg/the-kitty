@@ -41,6 +41,17 @@ test("two doors: the Davies are one click away and unchanged, and a viewer who c
   await expect(page.locator("#onb")).toBeHidden();
   expect(errors).toEqual([]);
 });
+test("an owner chooses too: a pinned copy opens on the two doors, and nothing asks for a connector until they choose", async ({ page }) => {
+  const errors = await open(page, { host: { owner: true } });
+  await expect(page.locator("#onb")).toContainText("Start yours");
+  await page.waitForTimeout(1500);
+  await expect(page.locator("#onb")).toBeVisible();
+  expect(await page.evaluate(() => window.__mcpCalls.length)).toBe(0);
+  await page.click("[data-door=demo]");
+  await expect(page.locator("#onb")).toBeHidden();
+  await expect(page.locator("#v-home")).toContainText("Demo household: the Davies");
+  expect(errors).toEqual([]);
+});
 test("chapter 1: from Start yours to a true Home on one dropped file, with no Davies anywhere", async ({ page }) => {
   const errors = await open(page);
   await onDevice(page);

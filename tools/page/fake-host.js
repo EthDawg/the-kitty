@@ -1,7 +1,8 @@
 /* A host in the browser, for the page tests: window.claude.use over fakeConnector, the same fake of Google the runtime's own tests use. It waits for the page to load the
    runtime, so the page's real path runs: the gzip in the page, inflated and started on "Start yours". window.__HOST__ says what this host has. */
 (function () {
-  const opts = window.__HOST__ = Object.assign({ mcp: true, drive: true, sample: null }, window.__HOST__ || {});
+  const opts = window.__HOST__ = Object.assign({ mcp: true, drive: true, sample: null, owner: false }, window.__HOST__ || {});
+  const calls = window.__mcpCalls = [];
   let fake = null;
   function connector() {
     if (fake) return fake;
@@ -14,12 +15,13 @@
     return fake;
   }
   const mcp = {
-    async callTool(server, tool, input, o) { const c = connector(), r = await c.callTool(server, tool, input, o); try { localStorage.setItem("fake-google-sheet", JSON.stringify(c.sheet.sheets)); } catch (e) { /* too big for a test */ } return r; },
+    async callTool(server, tool, input, o) { calls.push(tool); const c = connector(), r = await c.callTool(server, tool, input, o); try { localStorage.setItem("fake-google-sheet", JSON.stringify(c.sheet.sheets)); } catch (e) { /* too big for a test */ } return r; },
     async invalidate() {},
   };
   window.claude = { async use(name) {
     if (name === "mcp") return opts.mcp ? mcp : null;
     if (name === "sample") return opts.sample ? { json: async () => JSON.parse(opts.sample) } : null;
+    if (name === "user") return opts.owner ? { isOwner: async () => true, me: async () => ({ name: "" }), id: async () => "" } : null;
     return null;
   } };
 })();

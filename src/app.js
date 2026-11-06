@@ -1700,8 +1700,8 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     if (NATIVE && SNAP) setModel(demoModel()); // Native preference storage may be newer than WebKit's local cache.
     S.canWrite = !NATIVE && (S.isOwner || !!S.prefs.sheet);
     if (mcp) S.mcp = mcp;
-    // Started on another device, or this is the owner's own page: the door is not for them.
-    if (doorOpen && (hers() || (S.isOwner && SNAP))) $("#onb").hidden = true, document.body.style.overflow = "";
+    // Started on another device: the door is not for them. An owner chooses like anyone else, because a pinned copy's owner is a stranger to the Davies.
+    if (doorOpen && hers()) $("#onb").hidden = true, document.body.style.overflow = "";
     if (hers()) {
       if (await S.start.resume()) { S.settled = true; S.m && renderHome(); if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true); return; }
       if (SNAP) { setModel(demoModel()); S.mode = "demo"; renderAll(); }
@@ -1710,7 +1710,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     }
     if (S.m) renderAll();
     if (window.__KIT_GALLERY__ && S.m) { switchTab("home", true); return; }
-    if (doorOpen && !SNAP) { S.settled = true; return; }
+    if (doorOpen && (!SNAP || !$("#onb").hidden)) { S.settled = true; return; }   // nothing asks for a connector while the door is open
     if (mcp) { if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     S.settled = true; if (S.m) renderHome();
