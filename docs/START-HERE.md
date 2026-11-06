@@ -55,7 +55,7 @@ git clone https://github.com/EthDawg/the-kitty.git && cd the-kitty
 python3 check.py
 ```
 
-You need Python 3.9 or later and Node 22, and nothing else. It takes about two minutes and prints one line per area. `portals`
+You need Python 3.9 or later and Node 22, and nothing else. It takes under three minutes and prints one line per area. `portals`
 shows SKIP on a fresh clone, because its browser proof needs `npm ci && npx playwright install chromium` in `portals/`. Everything
 else should say PASS. `ios` checks only that the Xcode project is deterministic; the simulator tests run in CI.
 
@@ -64,7 +64,9 @@ To see the page, run `python3 build.py --v2`, then `python3 -m http.server 8765 
 
 ## Where to begin, by task
 
-| You want to | Read first | Then run |
+The last column is the quick loop while you work. Run all of `python3 check.py` before you finish.
+
+| You want to | Read first | While working, run |
 |---|---|---|
 | Add a merchant | [`merchants/README.md`](../merchants/README.md), Adding a merchant | `python3 check.py app standard` |
 | Add a household the model gets wrong | [`CONTRIBUTING.md`](../CONTRIBUTING.md), From a shape to a fixture | `python3 check.py standard` |

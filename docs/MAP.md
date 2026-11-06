@@ -57,6 +57,23 @@ though nobody has compared them line by line. Treat `standard/reference/` as cur
 engine or brand files. A fresh clone cannot run its simulator tests without Xcode. `python3 check.py ios` proves only that the project
 file is deterministic, and `.github/workflows/ios.yml` does the rest.
 
+## What writes what
+
+Never edit an output by hand. Change its source, run this, and commit both. `check.py` fails if a committed output is stale, except where noted.
+
+| Output | Written by |
+|---|---|
+| `standard/generated/` | `node standard/tools/generate.js` |
+| `standard/eval/SCOREBOARD.md`, `locked.json`, `history.jsonl` | `node standard/eval/all.js --write`, after a Standard change. Only the locked numbers are checked |
+| `data/standard-view.json` | `node standard/tools/view.js`. Not checked. A timing field changes every run, so commit it only when the rest moves |
+| `data/snapshot-v2.json` | `tools/grid_to_snapshot.py`, from connector reads. Not checked |
+| `fixtures/everyday*.json` | `python3 fixtures/make-v2-fixtures.py` |
+| `sources/` | `portals/build-data.py --write-sources`, `period-close/simulate.py`. Not checked |
+| `src/tokens.css`, `ios/Kitty/Generated/` | `python3 brand/generate_tokens.py` |
+| `brand/icons/` | `python3 brand/build_brand.py --icons-only` |
+| `ios/Kitty.xcodeproj` | `python3 ios/scripts/generate_project.py` |
+| `dist/` | `python3 build.py`. Ignored by git |
+
 ## Files at the root
 
 | File | What it is |
@@ -85,5 +102,5 @@ Nothing here has moved. Each needs a person's agreement and its own PR, and each
 3. **Remove the Python importer once parity holds.** Keep `simulate.py` and `pull_portals.py`, perhaps under `portals/`, and keep `2027-01/` as test input.
 4. **Move `test.js` and `test-v2.js` beside the code,** under `src/`, as `src/hosts/native.test.js` already is. Rename them for what they test.
 5. **Name the fixtures apart.** Rename `fixtures/` to something that says it is the app's, so it stops reading as the place for a new household.
-6. **Hold `data/standard-view.json` current,** by adding a check to the `standard` area, or generate it at build.
+6. **Hold `data/standard-view.json` current.** Drop its timing field, then add a check to the `standard` area, or generate it at build.
 7. **Trim `ARCHITECTURE.md`'s iOS milestones into `ios/`,** so the root page stays one page.

@@ -13,7 +13,7 @@ charities, education, payment rails, bank fees, transfers, salary and interest),
 | `patterns` | regular expressions over `Engine.normalise(raw_text)`; the longest match wins |
 | `category_id` | a row on the sheet's Categories tab (the Davies set: `GROCERIES`, `SUBS`, `RENT-INT`…) |
 | `hue` | the brand's colour as a hex; the page tints a disc with it and draws two letters on top |
-| `website` | plain domain, blank for a generic entry |
+| `website` | domain, with a path only where the brand needs one; blank for a generic entry |
 | `kind` | `merchant`, `transfer`, `fee`, `income` or `government` |
 | `icon` | optional: a brand icon id that beats the category's (a fuel station under Fuel and transport shows the pump) |
 
@@ -59,8 +59,7 @@ rows a household rule or the cookie should settle. The 23 category disagreements
 general dictionary cannot carry: a Geelong rates bill and Barwon Water filed under the rental (`RENT-RATES`), a JB Hi-Fi
 and an Officeworks purchase under `WORK-EQUIP`, Myer and Big W under Gifts, plumbing and hot water under rental repairs.
 
-Against the parody portals' eight years of varied descriptors (the `transactions` array of `portals/data/months.json`
-on the phase E branch `v2-portals-history`: `VIC AU` suffixes, 24-character cuts, `Card xx4471 Value Date:` tails, city
+Against the parody portals' eight years of varied descriptors (the `transactions` array of `portals/data/months.json`: `VIC AU` suffixes, 24-character cuts, `Card xx4471 Value Date:` tails, city
 and entity tokens, store numbers that alternate, trading names that change over the years), 4,179 rows and 276 distinct
 descriptors: rules plus dictionary resolve all 4,179 (the first measurement missed six one-off rows around the Geelong
 purchase, a conveyancer, the settlement, a locksmith, an appliance repair, a car sold for cash, and one hotel, which
@@ -73,7 +72,22 @@ must stay at or under 3%, and the normaliser's cases above are pinned.
 
 ## Adding a merchant
 
-One line in `merchants.json`. Write the pattern against the normalised text (uppercase, no punctuation, no store
-numbers), start and end it on word boundaries, and add a negative lookahead when a shorter brand is a prefix of a longer
-one (`\bUBER\b(?! EATS)`). Pick the category the household would file it under most often; the person can always
-overrule it with a Rules row. Keep the hue close to the brand's own; keep the repo free of logos.
+One line in `merchants.json`, one entry per line, in any position. Write the pattern against the normalised text (uppercase,
+no punctuation, no store numbers), start and end it on word boundaries, and add a negative lookahead when a shorter brand is a
+prefix of a longer one (`\bUBER\b(?! EATS)`). Patterns are unanchored, so a token left at the end, such as a bank's cut-off
+`NS` for `NSW`, does no harm. Pick the category the household would file it under most often; the person can always overrule it
+with a Rules row. Keep the hue close to the brand's own, and say so in the pull request if you could not confirm it. Keep the
+repo free of logos.
+
+Real merchant names belong here: a brand and a public suburb identify nobody. A reference number, card digits or a person's
+name from a statement do not.
+
+Then the test. Add a descriptor to the `dictionary:` test in `test-v2.js`, or a new `dictionary:` test beside it if the case
+needs more than a line. Add it first and watch it fail, then add the entry:
+
+```bash
+node --test --test-name-pattern="dictionary" test-v2.js
+python3 check.py app standard
+```
+
+Run `standard` too, because its benchmark reads this dictionary. A new entry can change how a held-out household's lines resolve.

@@ -2,10 +2,14 @@
 
 | GitHub | Role |
 |---|---|
-| [`@EthDawg`](https://github.com/EthDawg) | Maintainer |
+| [`@EthDawg`](https://github.com/EthDawg) | Owner |
 | [`@mattywhitenz`](https://github.com/mattywhitenz) | Maintainer |
 
-Both maintainers hold every area today. The areas are named so that `docs/MAP.md` has an owner to point at and work can be split later.
+This is a personal repository, so GitHub allows it one owner. A maintainer pushes, merges, manages issues and releases, and counts
+as a code owner. Only the owner invites people, changes visibility, or deletes or archives the repository. A move to an organisation
+is open for later, if the owner chooses.
+
+Both hold every area today. The areas are named so that `docs/MAP.md` has an owner to point at and work can be split later.
 
 | Area | Covers |
 |---|---|

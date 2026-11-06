@@ -53,7 +53,7 @@ This project is built by agents, with people reviewing. Point yours at the repos
 [`AGENTS.md`](AGENTS.md). If you are reading along, [`docs/START-HERE.md`](docs/START-HERE.md) takes ten minutes.
 
 ```bash
-python3 check.py    # checks everything from a fresh clone, about two minutes, needs Python 3.9+ and Node 22
+python3 check.py    # checks everything from a fresh clone, under three minutes, needs Python 3.9+ and Node 22
 ```
 
 The most useful contribution is [a household shape the model gets wrong](https://github.com/EthDawg/the-kitty/issues/new?template=household-shape.yml).

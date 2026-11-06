@@ -5,7 +5,8 @@ This project is written by agents and reviewed by people. A person can contribut
 
 ## What a pull request must carry
 
-The [template](.github/pull_request_template.md) asks for all of it.
+The [template](.github/pull_request_template.md) asks for all of it. If an agent wrote the change, start the title with `[AI]`. Whoever
+tested the change, human or agent, fills in the template, and says which they are.
 
 1. **The result of `python3 check.py`.** Paste the final block. Name anything skipped.
 2. **The failing case.** Which test failed before the change and passes after it. For copy or docs, say so instead.
@@ -13,7 +14,9 @@ The [template](.github/pull_request_template.md) asks for all of it.
 4. **What was proved and what was not.** Fixture, simulator, device or live are four different claims. Say which one you are making.
 5. **Who wrote it.** Name the agent and model, and anything it had to guess.
 
-Keep a pull request to one change. Agents write large diffs cheaply, and people review them expensively.
+Keep a pull request to one change. Agents write large diffs cheaply, and people review them expensively. Branch from `main`, under
+any clear name. Commit titles say what changed, in plain words. Add a line to `CHANGELOG.md` for anything a household or a contributor
+would notice.
 
 ## The failing-case rule
 
@@ -27,10 +30,13 @@ A shape is a kind of household life: a retiree with no wage, a separation, a mid
 model gets wrong.
 
 1. **Write it in words,** with invented people. An [issue](https://github.com/EthDawg/the-kitty/issues/new?template=household-shape.yml) is a good place. Say what should be true.
-2. **Add a test** to `standard/eval/households/test.js`. `household()` in `kit.js` writes a small life as observations, and the test states the truth beside it. The first test in that file is the simplest example. Use whole cents, and invent the merchants.
+2. **Add a test** to `standard/eval/households/test.js`. `household()` in `kit.js` writes a small life as observations, and the test states the truth beside it. The first test in that file is the simplest example. Use whole cents, and invent the merchants. Two things catch people out. `person()` always makes a household member, so push anyone else onto `h.setup.party`. `CATS` in `kit.js` is the whole category list, and a category missing from it fails quietly, so add what your test needs.
 3. **Watch it fail:** `node --test --test-name-pattern="your test name" standard/eval/households/test.js`.
-4. **Decide where it lands,** using the next section.
+4. **Decide where it lands,** using [A gap in the base, or a gap in tailoring](#a-gap-in-the-base-or-a-gap-in-tailoring).
 5. **Make it pass** and run `python3 check.py standard`. If a locked number moves, explain it.
+6. **Refresh the record.** `node standard/eval/all.js --write` rewrites `SCOREBOARD.md`, `locked.json` and `history.jsonl`. Commit them with the change.
+
+If you cannot repair it, open an issue with the test in it. Do not merge a failing test.
 
 A problem with files and formats belongs on the ladder in `standard/eval/ladder.js` instead. A shape worth a place in the long history
 is a line in the Davies world.
@@ -47,15 +53,16 @@ recipes and that family's onboarding answers. The results live in `standard/eval
 - Every defect becomes a household fixture and a repair. Then a new family tests whether the repairs generalise.
 
 A score after repair proves only the repair. A blind actor never reads the code it is testing, signs in as a real person or clicks a
-consent dialog.
+consent dialog. Once you have read the engine you cannot run blind, so a fixture is all you can claim.
 
 ## Keeping fictional data fictional
 
 - Nothing real goes in, including a real family's shape copied closely enough to recognise. Change the people, the places, the amounts and the order of events until only the shape is left.
+- The one exception is `merchants/`: real brands and public suburbs, which identify nobody. A statement's reference numbers, card digits and names stay out.
 - Invent names. Institutions are parodies, like Westpaw and Amewx, with original wordmarks. The real thing's column shape is fine, and its branding is not.
 - Addresses use the reserved `.example` domain. Google links go only to the fictional sheets in `kitty.config.json`.
 - Screenshots come from the Davies, and issue reports use them too.
-- Git keeps an address on every commit, and a public repository publishes it. Commit with your GitHub no-reply address.
+- Git keeps an address on every commit, and a public repository publishes it. Commit with a no-reply address, never a machine's default.
 - `python3 check.py public` catches private paths, addresses and document links. It cannot prove anything is fictional, so that stays your job.
 - Maintainers keep a private list of real names outside the repository and point `KITTY_PRIVATE_TERMS` at it before a push.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check everything from a fresh clone. Needs Python 3.9 or later and Node 22, nothing installed.
 
-    python3 check.py                # every area: a plain PASS, FAIL or SKIP for each, about two minutes
+    python3 check.py                # every area: a plain PASS, FAIL or SKIP for each, under three minutes
     python3 check.py app standard   # only these areas
     python3 check.py --list         # the areas and what each proves
     python3 check.py --ci test      # the areas one CI job runs; a SKIP counts as a FAIL
