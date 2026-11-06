@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0 records
+- A sixth tab, Records, between Goals and Setup: the household's record as `standard/` rebuilds it, a preview on the fictional Davies household, not read from the sheet yet. `build.py --v2` bundles `data/standard-view.json` and the page computes nothing from it.
+- This year (what each adult holds and what is yet to go; a lodged return is the record), How we know (the scoreboard and the laws), Where a number comes from (event, postings, witness, file and line), Things and What's missing. Experimental actions sit apart and say what they do today; two are mocks and say so.
+
 ## 2.0 shared writes
 - New Decisions and Rules rows are placed from a forced read of the whole table, on the sheet that read came from. Anything untrustworthy stops with no write: the wrong tab, a moved header, or a session that changed mid-read.
 
