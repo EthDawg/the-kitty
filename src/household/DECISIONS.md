@@ -74,7 +74,7 @@ A missing month comes before a failed law because most laws fail for want of a f
 
 ## The bundle
 
-**One script, by concatenation.** `tools/household-bundle.js` walks the requires and wraps each file: no transforms, no dependencies. It is not yet in `build.py` or on the page: `.replace('/*HOUSEHOLD*/', ...)` is one line when the page worker wants it.
+**One script, by concatenation.** `tools/household-bundle.js` walks the requires and wraps each file: no transforms, no dependencies. `build.py` puts it in the page, gzipped and inert until someone starts. See PAGE-DECISIONS.md.
 
 **The bundle is pure ASCII.** The browser proof caught a raw ellipsis decoded as windows-1252 on a page with no charset, which changed the words a household stored. The bundle hash did not notice. The proof now compares every table.
 

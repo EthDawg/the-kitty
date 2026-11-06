@@ -1,5 +1,11 @@
 # Changelog
 
+## Start yours (7 November 2026, draft, experimental)
+
+- The real page works from nothing: two doors, "See the Davies" or "Start yours". Names, an empty Sheet or this device, one bank file, and a true Home. No template, no copy of anyone's sheet.
+- A bank nobody has met is read by its columns, then by the host's Claude, then by any agent. The gate decides each, and a person sees three rows before anything is kept. `node tools/kitty.js guess file.csv` does the same.
+- `modelFromStandard` gives the page its shape from the standard's ledger. `src/household/PARITY.md` compares it with the v2 sheet on every field the page reads. The demo stays on v2 until that closes.
+- Setup: Start yours replaces Make it yours, and what it costs and who sees what comes first.
 ## The Digital Davies Standard, draft
 - `standard/`: the data model as a public standard: 41 tables, 39 observation kinds, 59 event kinds, 20 laws, generated SQL, MongoDB validators, ER diagram, Sheet tabs and a schema card.
 - A truth-first Davies world: 2,369 files in 59 families across 10 containers, including super, a broker, RSUs, crypto, a second rental, returns as lodged, bills and things.

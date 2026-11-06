@@ -69,7 +69,9 @@ python3 build.py             # dist/kitty.html
 ```
 
 Publish `dist/kitty.html` from Claude with these capabilities: `mcp` → Google Sheets with
-`get_values`, `get_spreadsheet`, `update_values`, `append_values`; `sample`; `user`; `db`; `downloads`.
+`get_values`, `get_spreadsheet`, `update_values`, `append_values`, `update_spreadsheet`, `batch_clear_values`, and Google Drive with
+`create_file`, `search_files`, `download_file_content`; `sample`; `user`; `db`; `downloads`. `update_spreadsheet` is how a blank Kitty adds its tabs.
+Drive keeps a household's bank files. Without it they stay on the device and say so.
 Icon word: `cat`. After the first publish, set `KITTY_PAGE_URL` in `build.py` so the Setup tab's QR
 code points at the page, and publish again.
 

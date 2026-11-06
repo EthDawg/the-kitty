@@ -48,12 +48,13 @@
   // every model goes through here so the per-render caches (merchant context, review queue) reset with it
   let CTX = null, REVIEW = null;
   const setModel = (m) => { if (NATIVE && S.m && S.m !== m) { window.KittyAskPanel?.reset(); if ($("#drawer.on [data-native-ask], #drawer.on [data-ask-choose]")) closeDrawer(); } S.m = m; CTX = null; REVIEW = null; return m; };
-  const review = () => REVIEW || (REVIEW = E.review(S.m));
-  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, nativeAsk: NATIVE, cookie: ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
+  const review = () => REVIEW || (REVIEW = S.m.reviewQueue || E.review(S.m));
+  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, nativeAsk: NATIVE, cookie: ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample, household: HOUSE() }));
   // the demo and a read-only sheet keep this visit's judgments in memory only: the sheet is never written and nothing is remembered
   const demoModel = () => { if (!SNAP) return null; const snap = Object.assign({}, SNAP, { decisions: (SNAP.decisions || []).concat(S.sessionDecisions), entries: Object.keys(S.sessionCats).length ? (SNAP.entries || []).map((e) => (S.sessionCats[e.entry_id] ? Object.assign({}, e, { category_id: S.sessionCats[e.entry_id] }) : e)) : SNAP.entries }); return applyLocalGoals(E.model(snap)); };
   const sheetId = () => (NATIVE ? S.nativeSheet?.sheetID || DEMO_SHEET : S.prefs.sheet || DEMO_SHEET).trim();
   const isDemoSheet = () => sheetId() === DEMO_SHEET;
+  const HOUSE = () => S.mode === "household";   // a household started from nothing, on the standard: src/start.js owns it
   const savePrefs = (patch) => { const at = Date.now(); Object.assign(S.prefs, patch); store.set("prefs", S.prefs); store.set("prefsSavedAt", at); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: at }).catch(() => { if (NATIVE) toast("Preferences could not be confirmed saved on this device."); }); };
   const pref = (k, fallback) => { const v = S.prefs[k]; return v == null || v === "" ? fallback : v; };
   const today = () => (S.m ? S.m.asOf : new Date().toISOString().slice(0, 10));
@@ -336,11 +337,12 @@
   }
   function renderHeader() {
     const m = S.m;
-    if (S.mode === "live" && S.liveErr) setPill("bad", "Sheet unavailable");
+    if (HOUSE()) setPill(S.start.H.kind === "google" ? "live" : "demo", S.start.H.kind === "google" ? "Your Sheet" : "On this device");
+    else if (S.mode === "live" && S.liveErr) setPill("bad", "Sheet unavailable");
     else if (S.mode === "live") setPill("live", isDemoSheet() ? "Live · demo sheet" : "Live from your sheet");
     else if (S.mode === "local") setPill("demo", "Local test copy");
     else setPill("demo", "Demo household");
-    document.title = `The ${m.householdName.replace(/^The /, "")} Kitty`;
+    document.title = HOUSE() ? `${m.people[0] || "Your"}'s Kitty`.replace("Your's", "Your") : `The ${m.householdName.replace(/^The /, "")} Kitty`;
     $("#askbtn").hidden = !NATIVE && !S.sample;
   }
   const period = () => E.window(S.period.kind, S.period.anchor || S.m.asOf);
@@ -385,17 +387,18 @@
   const isPhone = () => PHONE.matches;
   const fixedLayout = () => FLAGS.get("layout") === "default";   // ?layout=default for screenshots: no saved layout, nothing written
   const WID = (m) => Kit.eligible(m, E.signals(m));
-  const savedLayout = () => (fixedLayout() ? null : S.prefs.layout || null);
-  const writeLayout = ({ items, hidden, seen }) => savePrefs({ layout: { items: Kit.keepAbsent(items, (S.prefs.layout || {}).items, hidden), hidden, seen } });
-  const saveLayout = (items) => { if (fixedLayout()) return; const l = S.prefs.layout || {}; writeLayout({ items, hidden: l.hidden || [], seen: l.seen || [] }); };
+  const LAYOUT = () => (HOUSE() ? "houseLayout" : "layout");   // a household's arrangement is its own, not the demo's
+  const savedLayout = () => (fixedLayout() ? null : S.prefs[LAYOUT()] || null);
+  const writeLayout = ({ items, hidden, seen }) => savePrefs({ [LAYOUT()]: { items: Kit.keepAbsent(items, (S.prefs[LAYOUT()] || {}).items, hidden), hidden, seen } });
+  const saveLayout = (items) => { if (fixedLayout()) return; const l = S.prefs[LAYOUT()] || {}; writeLayout({ items, hidden: l.hidden || [], seen: l.seen || [] }); };
   function homeLayout() {
     const lay = Kit.layout(WID(S.m), savedLayout());
     // an owner's first render is the bundled demo: wait for the live read, so `seen` records this household's own widgets
-    if (S.settled && lay.added.length && !fixedLayout()) {
-      const was = S.prefs.layout || {}; const hidden = was.hidden || [], seen = (was.seen || []).concat(lay.added), added = lay.added;
+    if (S.settled && lay.added.length && !fixedLayout() && $("#onb").hidden) {
+      const was = S.prefs[LAYOUT()] || {}; const hidden = was.hidden || [], seen = (was.seen || []).concat(lay.added), added = lay.added;
       writeLayout({ items: lay.items, hidden, seen });
       const names = added.map((id) => Kit.widget(id).title);
-      toast(`New on Home: ${names.join(", ")}, because this household has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
+      toast(`New on Home: ${names.join(", ")}, because this household has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs[LAYOUT()]; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
     }
     return lay;
   }
@@ -408,7 +411,7 @@
       return `<div class="wcell grid-stack-item" data-wid="${esc(it.id)}" gs-id="${esc(it.id)}" gs-x="${it.x}" gs-y="${it.y}" gs-w="${it.w}" gs-h="1" gs-min-w="${Math.min(...w.sizes.map((s) => s.w))}" style="--ww:${it.w};--i:${Math.min(i, 5)}"><div class="grid-stack-item-content"><div class="wbox">${tools}${body}</div></div></div>`;
     };
     const bar = `<div class="arrangebar">${a ? `${lay.hiddenOn.length ? `<span class="sub">Hidden:</span>${Kit.Tray(lay.hiddenOn.map((id) => ({ id, title: Kit.widget(id).title })))}` : ""}<button class="linkbtn" data-wreset>Back to the default</button><button class="btn sm" data-arrange>Done</button>` : `<button class="linkbtn" data-arrange>Arrange this page</button>`}</div>`;
-    return `<div class="canvas${a ? " arranging" : ""}${phone ? " phone" : ""}" id="canvas">${Kit.flow(lay.items).map((it, i, all) => cell(it, i, all.length)).join("")}</div>${fixedLayout() ? "" : bar}`;
+    return `<div class="canvas${a ? " arranging" : ""}${phone ? " phone" : ""}" id="canvas">${Kit.flow(lay.items).map((it, i, all) => cell(it, i, all.length)).join("")}</div>${fixedLayout() || (HOUSE() && !hasCanvas()) ? "" : bar}`;
   }
   function unmountCanvas() { if (S.grid) { try { S.grid.destroy(false); } catch (e) { /* the DOM is about to go */ } S.grid = null; } }
   // GridStack takes over the grid's geometry exactly, so arranging moves nothing until a card is moved. A drop saves the reading order and
@@ -439,15 +442,15 @@
   function applyOrder(items) { saveLayout(Kit.pack(items)); renderHome(); }
   function bindCanvas(v) {
     $$("[data-arrange]", v).forEach((b) => b.addEventListener("click", () => setArrange(!S.arrange)));
-    $$("[data-wreset]", v).forEach((b) => b.addEventListener("click", () => { const ws = WID(S.m); savePrefs({ layout: { items: Kit.layout(ws, null).items, hidden: [], seen: ws.filter((w) => !w.core).map((w) => w.id) } }); renderHome(); toast("Back to the default page"); }));
+    $$("[data-wreset]", v).forEach((b) => b.addEventListener("click", () => { const ws = WID(S.m); savePrefs({ [LAYOUT()]: { items: Kit.layout(ws, null).items, hidden: [], seen: ws.filter((w) => !w.core).map((w) => w.id) } }); renderHome(); toast("Back to the default page"); }));
     $$("[data-wmove]", v).forEach((b) => b.addEventListener("click", () => { const [id, d] = b.dataset.wmove.split(":"); applyOrder(Kit.reorder(currentItems(), id, +d)); toast(`${Kit.widget(id).title} moved ${+d < 0 ? "up" : "down"}`, 1400); const n = $(`[data-wmove="${id}:${d}"]`); if (n && !n.disabled) n.focus(); }));
     $$("[data-wsize]", v).forEach((b) => b.addEventListener("click", () => {
       const id = b.dataset.wsize, w = Kit.widget(id), drawn = () => +$(`.wcell[data-wid="${id}"]`).getAttribute("gs-w"), was = drawn(), it = currentItems().find((i) => i.id === id), to = Kit.nextSize(w, it.w);
       applyOrder(currentItems().map((i) => (i.id === id ? { ...i, w: to } : i))); const n = $(`[data-wsize="${id}"]`); if (n) n.focus();
       if (drawn() === was) toast(to > it.w ? `${w.title} stays full width now` : `${w.title} fills its row until a neighbour joins it`, 2600);
     }));
-    $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs.layout || {}; writeLayout({ items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] }); renderHome(); const d = $(".arrangebar .btn"); if (d) d.focus(); }));
-    $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs.layout || {}; const hidden = (l.hidden || []).filter((x) => x !== id); writeLayout({ items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] }); renderHome(); const d = $(`[data-whide="${id}"]`); if (d) d.focus(); }));
+    $$("[data-whide]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.whide; const l = S.prefs[LAYOUT()] || {}; writeLayout({ items: (l.items || currentItems()).filter((i) => i.id !== id), hidden: (l.hidden || []).concat(id), seen: l.seen || [] }); renderHome(); const d = $(".arrangebar .btn"); if (d) d.focus(); }));
+    $$("[data-wshow]", v).forEach((b) => b.addEventListener("click", () => { const id = b.dataset.wshow; const l = S.prefs[LAYOUT()] || {}; const hidden = (l.hidden || []).filter((x) => x !== id); writeLayout({ items: Kit.layout(WID(S.m), { items: l.items, hidden, seen: (l.seen || []).filter((x) => x !== id) }).items, hidden, seen: l.seen || [] }); renderHome(); const d = $(`[data-whide="${id}"]`); if (d) d.focus(); }));
     // the phone reorders by a handle: drag it past a neighbour and the cells swap, keeping the reading order as the only state
     const c = $("#canvas"); if (!c || !c.classList.contains("phone") || !S.arrange) return;
     $$(".whandle", c).forEach((h) => h.addEventListener("pointerdown", (ev) => {
@@ -461,6 +464,13 @@
     if (window.__KIT_GALLERY__) return renderGallery();   // a resize re-renders; the gallery stays the gallery
     const m = S.m, v = $("#v-home");
     unmountCanvas(); showArrange();
+    if (HOUSE()) {   // the same canvas, with a household's own parts: one step first, and nothing drawn that it has no truth for
+      const h = S.start.home(m);
+      Kit.bindCore(Object.fromEntries(Object.entries(h.parts).map(([id, html]) => [id, { data: () => html, render: (p) => p }])));
+      v.innerHTML = `${canvasHTML(homeLayout())}${h.footer}`;
+      bindCommon(v); h.bind(v); bindCanvas(v); mountCanvas();
+      return;
+    }
     if (!m.tx.length) { v.innerHTML = `<div class="card hero"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">Your sheet is set up. It just has no transactions yet.</h1><p class="vs">Bring in the last three months from each account (Setup → Getting your data in), run the importer, append the rows, move the As-of date. The page fills in as the sheet does.</p><div class="heronum"><button class="btn lime" data-go="setup">How to bring data in</button></div></div>`; bindCommon(v); return; }
     const nd = E.needs(m); const last = m.cashflow[m.cashflow.length - 1];
     const nw = m.metrics["networth.total"], sr = m.metrics["cashflow.savings_rate.3m"], cash = m.metrics["networth.cash"], sav = m.metrics["savings.recurring_per_year"];
@@ -507,11 +517,11 @@
     Kit.bindCore(Object.fromEntries(Object.entries(parts).map(([id, html]) => [id, { data: () => html, render: (p) => p }])));
     const lay = homeLayout();
     v.innerHTML = `${canvasHTML(lay)}
-      <p class="sub" style="padding:0 6px">${S.mode === "live" ? `Live from ${isDemoSheet() ? "the demo sheet" : "your sheet"}. ${esc(readAgeText())}` : "Demo household: the Davies, a fictional family in Melbourne, numbers made up to tell a story."} <button class="linkbtn" data-open="trust">Where the numbers come from</button></p>`;
+      <p class="sub" style="padding:0 6px">${S.mode === "live" ? `Live from ${isDemoSheet() ? "the demo sheet" : "your sheet"}. ${esc(readAgeText())}` : "Demo household: the Davies, a fictional family in Melbourne, numbers made up to tell a story."} <button class="linkbtn" data-open="trust">Where the numbers come from</button>${S.start && S.start.available() ? ` · <button class="linkbtn" data-start>Start yours</button>` : ""}</p>`;
     const hv = $("#heroval"); if (hv && cash) countUp(hv, cash.num, (x) => fmt0(x), "hero");
     bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending }))); bindCanvas(v); mountCanvas();
     // confetti once per device, and only when the person is looking at Home
-    if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name) && S.tab === "home" && document.visibilityState === "visible") { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 500); }
+    if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name) && S.tab === "home" && document.visibilityState === "visible" && $("#onb").hidden) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 500); }
   }
   const needHTML = (i) => `<button class="need${i.warn ? " warn" : ""}" data-need="${esc(i.go)}"><span class="em" aria-hidden="true">${i.em}</span><span class="mid"><span class="t">${esc(E.cap(i.t))}</span><span class="s">${esc(i.s)}</span></span>${i.amt != null ? `<span class="amt num">${fmtS(Math.abs(i.amt))}${i.amtNote ? `<small>${esc(i.amtNote)}</small>` : ""}</span>` : ""}${ico("i-chev", "chev")}</button>`;
   const upHTML = (u) => { const d = new Date(u.date + "T00:00:00Z"); return `<button class="upc ${u.kind}${u.warn ? " warn" : ""}" data-up="${esc(u.ref.type)}:${esc(u.ref.key)}"><span class="date"><b>${d.getUTCDate()}</b><span>${E.fmtDay(u.date).split(" ")[1].toUpperCase()}</span></span><span class="mid"><span class="t">${esc(u.title)}</span><span class="s">${esc(u.sub)} · ${E.rel(S.m.asOf, u.date)}</span></span>${u.amount != null ? `<span class="amt num ${u.amount > 0 ? "in" : ""}">${u.amount > 0 ? "+" : "−"}${fmt0(Math.abs(u.amount))}</span>` : ""}</button>`; };
@@ -553,20 +563,20 @@
     v.innerHTML = `
       ${rv.items.length ? `<div class="card" id="reviewcard" style="--i:0">
         <div class="cardhead"><span class="q">${ico("i-review")} Needs a look</span><span class="sub">${rv.items.length} ${rv.items.length === 1 ? "entry" : "entries"} · ${Object.entries(rv.counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "uncategorised", unresolved: "unknown", duplicate: "doubled", unpaired: "unpaired", first_big: "first big bill" }[k]}`).join(" · ")}</span></div>
-        <p class="sub" style="margin:-6px 0 10px">One or two taps each. ${canWriteSheet() ? "A category writes the Entries cell and a Decisions row; everything else writes a Decisions row. The sheet keeps the judgment, this page only reads it back." : S.mode === "live" ? "This sheet is read-only for you, so judgments stay on screen for this visit." : "In the demo a judgment stays on screen for this visit; the demo sheet is never written."}${phone() ? "" : " On a keyboard: 1 to 3 pick a suggestion, C categorise, Enter confirm, D merge, T match, S split, J and K move."}</p>
+        <p class="sub" style="margin:-6px 0 10px">One or two taps each. ${HOUSE() ? `Your answer is ${esc(S.start.where())}, and it's remembered.` : canWriteSheet() ? "A category writes the Entries cell and a Decisions row; everything else writes a Decisions row. The sheet keeps the judgment, this page only reads it back." : S.mode === "live" ? "This sheet is read-only for you, so judgments stay on screen for this visit." : "In the demo a judgment stays on screen for this visit; the demo sheet is never written."}${phone() ? "" : HOUSE() ? " On a keyboard: 1 to 3 pick a suggestion, C categorise, J and K move." : " On a keyboard: 1 to 3 pick a suggestion, C categorise, Enter confirm, D merge, T match, S split, J and K move."}</p>
         <div class="rcards" id="rcards">${rv.items.slice(0, 20).map((it) => Kit.ReviewCard(it, c)).join("")}</div>
         ${rv.items.length > 20 ? `<p class="sub" style="margin-top:10px">${rv.items.length - 20} more after these.</p>` : ""}
-      </div>` : S.reviewCleared ? `<div class="card" id="reviewcard" style="--i:0"><div class="rdone">${ART.allReviewed || ""}<p><b>All reviewed.</b> Every judgment is a row on the Decisions tab${canWriteSheet() ? "" : S.mode === "live" ? " (yours stayed on screen; the sheet is read-only for you)" : " (in the demo, for this visit only)"}.</p></div></div>` : ""}
+      </div>` : S.reviewCleared ? `<div class="card" id="reviewcard" style="--i:0"><div class="rdone">${ART.allReviewed || ""}<p><b>All reviewed.</b> ${HOUSE() ? "Every answer is kept in your Kitty." : `Every judgment is a row on the Decisions tab`}${canWriteSheet() || HOUSE() ? "" : S.mode === "live" ? " (yours stayed on screen; the sheet is read-only for you)" : " (in the demo, for this visit only)"}.</p></div></div>` : ""}
       ${wc.items.length && canJudge ? `<div class="card" id="worthcard" style="--i:0.5">
         <div class="cardhead"><span class="q">${ico("i-worth")} Worth it?</span><span class="sub">${wc.items.length} from the week to ${E.fmtDay(wc.to)} · over ${fmt0(wc.floor)}</span></div>
         <div class="wrows" id="wrows">${wc.items.map((e) => Kit.WorthRow(e, c)).join("")}</div>
         <p class="wnote">Not a budget, a memory check. The research on money and happiness (Dunn, Gilbert and Wilson, 2011) says experiences outlast things, many small pleasures beat a few large ones, and paying now to enjoy later feels better than the reverse. Five rows a week, one tap each, no score. Each answer is a Decisions row; once five are in, Goals shows the spend that earned a yes.</p>
       </div>` : ""}
       <div class="card" style="--i:1">
-        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries">${f.q ? `<button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button>` : ""}</div>
+        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="${HOUSE() ? "Search: a shop, a month, >500, cat:groceries, the bank's own words" : "Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words"}" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries">${f.q ? `<button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button>` : ""}</div>
         <div class="chips scroll" style="margin-top:12px" role="group" aria-label="Filters">
-          ${[["", "Everyone"]].concat(m.people.map((p) => [p, p])).concat([["Joint", "Joint"]]).map(([k, l]) => `<button class="chip" data-fp="${esc(k)}" aria-pressed="${f.person === k}">${esc(l)}</button>`).join("")}
-          <span style="width:1px;background:var(--line);margin:4px 2px"></span>
+          ${HOUSE() && m.people.length < 2 ? "" : `${[["", "Everyone"]].concat(m.people.map((p) => [p, p])).concat([["Joint", "Joint"]]).map(([k, l]) => `<button class="chip" data-fp="${esc(k)}" aria-pressed="${f.person === k}">${esc(l)}</button>`).join("")}
+          <span style="width:1px;background:var(--line);margin:4px 2px"></span>`}
           ${[["", "Spending & income"], ["out", "Spending"], ["in", "Income"], ["move", "Transfers"]].concat(m.sheetVersion >= 2 && m.entries.some((e) => e.kind !== "transaction") ? [["bal", "Balances & trades"]] : []).map(([k, l]) => `<button class="chip" data-ff="${k}" aria-pressed="${f.flow === k}">${l}</button>`).join("")}
         </div>
         <div class="periodbar" id="feedperiod" style="margin-top:10px"><span class="seg mini" role="group" aria-label="Window">${[["all", "All time"], ["month", "Month"], ["quarter", "3 months"], ["year", "12 months"], ["fy", "This FY"]].map(([k, l]) => `<button data-fpk="${k}" aria-pressed="${pk.kind === k}">${l}</button>`).join("")}</span>${pk.kind !== "all" ? `<span class="nav"><button data-fpn="-1" aria-label="Earlier">${ico("i-back")}</button><button data-fpn="1" aria-label="Later" ${atEnd ? "disabled" : ""}>${ico("i-chev")}</button></span><span class="label" style="font-size:16px">${esc(w.label)}</span>` : ""}</div>
@@ -578,7 +588,7 @@
         ${most ? `<button class="card span-4 erow" data-merchant="${esc(most[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === most[0]), "lg")}<span class="mid"><span class="s">Most often, last 3 months</span><span class="t">${esc(most[0])}</span><span class="s">${most[1]} visits</span></span></button>` : ""}
       </div>` : ""}
       <div class="card" style="--i:3">
-        <div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
+        <div id="feedlist">${HOUSE() && !m.entries.length ? `<div class="kh-blank"><div class="kh-art" aria-hidden="true">${ART.emptyActivity || ""}</div><h2>No lines yet.</h2><p class="sub">Add a bank file and every line lands here, grouped by day.</p></div>` : Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
         ${rows.length > shown.length ? `<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="feedmore">Show ${Math.min(120, rows.length - shown.length)} more of ${rows.length - shown.length}</button></div>` : ""}
       </div>`;
     const q = $("#feedq"); let tm;
@@ -633,9 +643,9 @@
     else S.sessionCats[id] = cat;
   }
   function rebuild() { if (S.mode === "live" && S.grids) { const snap = E.fromConnector(S.grids); snap.fetchedAt = null; setModel(applyLocalGoals(E.model(snap))); } else setModel(demoModel()); }
-  const judgedWhere = () => (canWriteSheet() ? "written to the sheet" : S.mode === "live" ? "kept on screen (read-only sheet)" : "kept for this visit (demo)");
+  const judgedWhere = () => (HOUSE() ? S.start.where() : canWriteSheet() ? "written to the sheet" : S.mode === "live" ? "kept on screen (read-only sheet)" : "kept for this visit (demo)");
   async function act(fn, okText) {
-    try { await fn(); rebuild(); if (!review().items.length) S.reviewCleared = true; renderAll(); if (okText) toast(`${okText} · ${judgedWhere()}`); return true; }
+    try { await fn(); if (HOUSE()) await S.start.refresh(true); else rebuild(); if (!review().items.length) S.reviewCleared = true; renderAll(); if (okText) toast(`${okText} · ${judgedWhere()}`); return true; }
     catch (e) { console.error(e); toast("Couldn't write: " + errText(e, "the sheet")); return false; }
   }
   const catName = (id) => (S.m.catById[id] || {}).name || id;
@@ -664,16 +674,17 @@
       renderNativeSetup(); toast(e.message || "The category save was not verified.", 7000); return false;
     } finally { categoryBusy = false; }
   }
-  const categorise = (id, cat) => hasCategoryWriter() ? verifiedCategory(id, cat) :
+  const categorise = (id, cat) => HOUSE() ? act(() => S.start.categorise(id, cat), catName(cat)) : hasCategoryWriter() ? verifiedCategory(id, cat) :
     act(async () => { await writeCategory(id, cat); await writeDecisions([["entry", id, "categorise", cat, ""]]); }, `${id}: ${catName(cat)}`);
-  const confirmEntry = (id) => act(() => writeDecisions([["entry", id, "confirm", (S.m.entryById[id] || {}).cat || "", ""]]), `${id} confirmed`);
+  const confirmEntry = (id) => HOUSE() ? act(() => S.start.judge("confirm", id, { category_id: (S.m.entryById[id] || {}).cat || "" }), "Confirmed") : act(() => writeDecisions([["entry", id, "confirm", (S.m.entryById[id] || {}).cat || "", ""]]), `${id} confirmed`);
   const mergeDup = (id, of) => act(() => writeDecisions([["entry", id, "merge_duplicate", of, "same merchant, amount, account and day"]]), `${id} merged into ${of}`);
   const matchTransfer = (id, mate) => act(() => writeDecisions([["entry", id, "match_transfer", mate, ""]]), `${id} matched with ${mate}`);
   const splitEntry = (id, parts) => act(() => writeDecisions([["entry", id, "split", E.formatSplit(parts), ""]]), `${id} split ${parts.length} ways`);
-  const worthIt = (id, v) => act(() => writeDecisions([["entry", id, "worth_it", v, ""]]), null);
+  const worthIt = (id, v) => act(() => (HOUSE() ? S.start.judge("worth_it", id, { answer: v }) : writeDecisions([["entry", id, "worth_it", v, ""]])), null);
   // "Make it a rule": a Rules row by explicit range, then the category on this row and every unreviewed row the pattern matches
   async function makeRule(id, proposal) {
     const m = S.m, e = m.entryById[id]; if (!e) return;
+    if (HOUSE()) { const ok = await act(() => S.start.rule(id, proposal.category_id, proposal.merchant), null); if (ok) toast(`Rule saved: ${proposal.merchant} → ${catName(proposal.category_id)}. ${judgedWhere()}.`, 5000); return; }
     const pattern = E.normalise(e.raw) || String(e.raw || "").toUpperCase(); const others = E.rowsForPattern(m, pattern, id);
     const ok = await act(async () => {
       const ruleRow = [nextId(S.grids ? S.grids.rules : m.rules.map((r) => [r.id]), "R", 4), pattern, "normalised", proposal.merchant, proposal.category_id, e.person || "", "", "", `cookie ${nowDate()}`, String(proposal.why || "").slice(0, 200)];
@@ -793,7 +804,25 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   }
 
   // ----- Insights -----
+  // A household's Insights: only what its own lines can say. No year-ago comparison before there is a year, no budget, loan or rental card until it has one.
+  function renderHouseholdInsights() {
+    const m = S.m, v = $("#v-insights");
+    if (!m.tx.length) { v.innerHTML = S.start.blank(ART.emptyActivity, "Nothing to show yet.", "Add a bank file and this fills in: where the money went, month by month."); return; }
+    const w = period(), sp = E.spend(m.tx, w), months = Math.max(1, E.monthsBetween(w.from, w.to) + 1), prev = E.spend(m.tx, { from: E.addMonths(w.from, -months), to: E.addMonths(w.to, -months) }), had = prev.out || prev.in;
+    const income = [["Salary", E.spend(m.tx, w, (t) => t.cat === "SALARY").in], ["Rent", E.spend(m.tx, w, (t) => t.cat === "RENT-INC").in], ["Interest", E.spend(m.tx, w, (t) => t.cat === "INTEREST").in]].map(([k, val]) => ({ k, v: val }));
+    const view = S.prefs.moneyView || (phone() ? "jar" : "flow"), series = m.networth.filter((n) => n.total != null).map((n) => ({ month: n.month, v: n.total })), r = S.start.H.status.readiness;
+    v.innerHTML = `<div class="card" style="--i:0">${periodBar("pb1")}<div class="statline" style="margin-top:14px"><div class="stat"><div class="k">In</div><div class="v num" style="color:var(--c-in)">${fmt0(sp.in)}</div></div><div class="stat"><div class="k">Out</div><div class="v num" style="color:var(--c-out)">${fmt0(sp.out)}</div></div>${had ? `<div class="stat"><div class="k">vs the ${months === 1 ? "month" : `${months} months`} before</div><div class="v num" style="color:${sp.out <= prev.out ? "var(--good)" : "var(--warn)"}">${sp.out <= prev.out ? "▼" : "▲"} ${fmtS(Math.abs(sp.out - prev.out))}<small>spent</small></div></div>` : ""}</div></div>
+      <div class="card" style="--i:1"><div class="cardhead"><span class="q">Where did the money go?</span><span class="cardtools"><span class="seg mini" role="group" aria-label="Show as"><button data-mv="flow" aria-pressed="${view === "flow"}">Flow</button><button data-mv="jar" aria-pressed="${view === "jar"}">Jar</button></span></span></div>
+        <div class="moneyview ${view === "jar" ? "mv-jar" : ""}" id="moneyview">${view === "jar" ? `<div>${jarSVG(sp)}<p class="sub jarlegend">Bubble size is money spent. Tap a bubble.</p></div><div class="jarlist">${sp.byCat.slice(0, 10).map(([c, val]) => `<button class="jrow" data-cat="${esc(c)}" style="${catSwatch(c)};--mh:${esc(E.catHue(c, m))}">${ico("i-" + E.catIcon(c, m), "ci")}<span class="nm">${esc((m.catById[c] || {}).name || c)}</span><span class="pct num">${Math.round((val / (sp.out || 1)) * 100)}%</span><span class="amt num">${fmt0(val)}</span></button>`).join("")}</div>` : `<div id="flowhost">${flowSVG(sp, income) || barsHTML(sp.byGroup.map(([g, val]) => ({ k: g, v: val, color: GROUP_COLOR[g] })))}</div><p class="sub">Money in on the left, where it went on the right. Transfers between your own accounts are left out. This covers ${r.accounts_known === 1 ? "the 1 account" : `the ${r.accounts_known} accounts`} we know about.</p>`}</div></div>
+      ${series.length > 1 ? `<div class="card" style="--i:2"><div class="cardhead"><span class="q">What you hold</span><span class="sub">across ${r.accounts_known === 1 ? "the 1 account" : `the ${r.accounts_known} accounts`} we know about</span></div><div id="nwchart">${areaSVG(series, CW(1), { label: "What you hold by month" })}</div></div>` : ""}`;
+    bindPeriod($("#pb1", v));
+    $$("[data-mv]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ moneyView: b.dataset.mv }); renderInsights(); }));
+    $$(".bubg,[data-cat]", v).forEach((b) => b.addEventListener("click", () => openCategory(b.dataset.cat, w)));
+    if (series.length > 1) bindArea($("#nwchart"), series, (x) => `<b>${fmt0(x.v)}</b>`);
+    bindCommon(v);
+  }
   function renderInsights() {
+    if (HOUSE()) return renderHouseholdInsights();
     const m = S.m, v = $("#v-insights"); const w = period(); const sp = E.spend(m.tx, w);
     const months = Math.max(1, E.monthsBetween(w.from, w.to) + 1);
     const prevW = { from: E.addMonths(w.from, -months), to: E.addMonths(w.to, -months) }; const prev = E.spend(m.tx, prevW); const pm = new Map(prev.byCat);
@@ -874,6 +903,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
 
   // ----- Goals -----
   function renderGoals() {
+    if (HOUSE()) return S.start.renderGoals($("#v-goals"));
     const m = S.m, v = $("#v-goals"); const lead = leadGoal(); const sf = E.safety(m);
     const extra = S.goalExtra || 0;
     const hero = lead ? (() => { const eta = E.goalEta(lead, extra, m.asOf); const pct = lead.progress || 0; return `<div class="card" style="--i:0"><div class="cardhead"><span class="q">${esc(lead.name)}</span><span class="cardtools">${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" data-editgoal="${esc(lead.name)}">Edit</button>` : ""}<button class="linkbtn" data-open="goal:${esc(lead.name)}">Details</button></span></div>
@@ -1106,7 +1136,33 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const country = SOURCES.countries.find((c) => c.code === cc) || SOURCES.countries[0];
     const sheetLink = `https://docs.google.com/spreadsheets/d/${sheetId()}/edit`;
     const onNow = WID(m).filter((w) => !w.core).map((w) => w.title);
+    /* The way in: a blank Kitty from this page. No template, no copy of anyone's sheet. A sheet from before stays readable, behind the disclosure. */
+    const startCard = () => `<div class="card" style="--i:0" id="yours"><div class="cardhead"><span class="q">Start yours</span><span class="sub">from nothing, in a few minutes</span></div>
+        <div class="clone">
+          <div class="st"><div><b>Say who it's for.</b><span>Names only. Nobody asks about a partner, a mortgage or a rental.</span></div></div>
+          <div class="st"><div><b>Choose where it lives.</b><span>Your own Google Sheet, or this device while you try it. The page adds the tabs it needs to an empty sheet, so there is nothing to copy and no family to clear out.</span></div></div>
+          <div class="st"><div><b>Drop in one bank file.</b><span>Download the last three months from your bank as a CSV, and drop it on the page. If your bank is new to us, the page reads it by its columns and shows you three rows before keeping anything. If that doesn't work, Claude or your own agent can write a recipe for it.</span></div></div>
+          <div class="st"><div><b>Follow one step at a time.</b><span>Home always shows the next most useful thing and why, for one renter or a whole family.</span></div></div>
+        </div>
+        ${S.start && S.start.available() ? `<div style="margin-top:12px"><button class="btn lime" data-start>Start yours</button></div>` : ""}
+        <details style="margin-top:14px"><summary style="font-weight:700;cursor:pointer">Already have an older Kitty sheet?</summary>
+          <div class="sheetform"><input id="sheetinput" type="text" inputmode="text" placeholder="Paste your sheet ID or its URL" value="${esc(S.prefs.sheet || "")}" aria-label="Your Google Sheet ID"><button class="btn sm" id="sheetgo">${S.mcp ? "Read it live" : "Save for when connectors are available"}</button>${S.prefs.sheet ? `<button class="btn sm ghost" id="sheetdemo">Back to the demo</button>` : ""}</div>
+          <p class="sub" style="margin-top:8px">${S.mode === "live" ? `Reading <a href="${sheetLink}" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> live.` : S.mcp ? (S.liveErr ? `Last live read failed: ${errText(S.liveErr)}` : isDemoSheet() ? "Showing the bundled demo. Paste your own ID to read a sheet you already have." : "") : "Connectors aren't available in this view, so the page shows the bundled demo household."} <button class="linkbtn" id="rerunonb">Run the setup again</button></p>
+        </details>
+      </div>`;
+    // What it costs and who sees what, in plain words, before anything about how it is built. The list of what the page asks for is the same one README gives.
+    const costCard = () => `<div class="card" style="--i:0" id="whosees"><div class="cardhead"><span class="q">What it costs, and who sees what</span></div>
+        <div class="prose"><ul style="margin:0">
+          <li><b>The Kitty costs nothing.</b> No subscription, no account with us. You need a Claude account to open this page. Trying it on this device needs nothing else. Google Sheets is free. Whether your Claude plan includes connectors, and how much you can ask Claude, is up to your plan: Claude's plans page says.</li>
+          <li><b>Your numbers live with you:</b> in your own Google Sheet, or on this device until you move them. We have no server, so nothing comes to us. No analytics, no tracking.</li>
+          <li><b>Who can see them.</b> You, and anyone you share your Sheet with. Google holds the Sheet as it holds any file of yours. The page reads and writes it through your own Google connector in Claude, only after you allow it, so that goes through Claude. When you use Ask, or ask Claude to read a file, the numbers or rows involved go to Claude, and only then.</li>
+          <li><b>This page is public; your household isn't in it.</b> Everyone opens the same page, and each person's numbers come from their own Sheet. For extra safety you can have your own private copy: ask your agent to publish a private copy of this page for you with no family in it, and to declare the same connectors. It works the same, nobody else can open it, and it can't change under you. No Python, no terminal.</li>
+          <li><b>What the page asks for.</b> Google Sheets, to read and write your Sheet, including <code>update_spreadsheet</code>, which is how it adds its tabs. Google Drive, if you allow it, to keep your bank files and to make a sheet for you. Without Drive the files stay on this device. <code>sample</code>, for Ask and for reading a new bank's file; <code>user</code> and <code>db</code>, to remember your choices; <code>downloads</code>, to save a file.</li>
+          <li><b>It's experimental.</b> In our latest blind test, on a made-up family the engine had never seen, 14 of 63 hard cases came out silently wrong. Check anything that matters against your bank, and don't treat it as tax advice.</li>
+        </ul></div></div>`;
     v.innerHTML = `
+      ${HOUSE() ? S.start.setupCard() : startCard()}
+      ${costCard()}
       <div class="card" style="--i:0"><div class="cardhead"><span class="q">Why Home looks the way it does</span></div>
         <div class="prose"><p>Home is made of widgets, and what's in your sheet switches them on, not a setting. Add a property to Accounts and its widgets appear once, with a note and an undo. A widget with nothing to say stays off, so you never see an empty tile. Arrange moves, resizes and hides them, and that layout is yours, kept with you and never in the sheet. Anything marked beta stays off until you make it active.</p>
         <p class="sub">${onNow.length ? `On for this household: ${esc(onNow.join(", "))}.` : "Nothing beyond the everyday set is on yet."}</p></div>
@@ -1139,22 +1195,10 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="inst">${country.institutions.map((i) => `<div class="instrow"><span class="n">${esc(i.name)}</span><span class="p">${esc(i.path)}</span><span class="f">${esc(i.formats)}${i.app ? ` · app: ${esc(i.app)}` : ""} · ${i.verified ? `verified ${esc(i.verified)}` : `documented ${esc(i.documented)}, not yet verified in a browser`}</span><span class="c">Columns: ${esc(i.columns)}${i.notes ? ` · ${esc(i.notes)}` : ""}</span></div>`).join("")}</div>
         <p class="sub" style="margin-top:10px">Paths move. Each row says when it was written down and whether an agent has since confirmed it on the bank's own site; the skill below confirms before trusting one and records the date.</p>
         <h3 style="margin:16px 0 8px;font-size:15px">If an agent does the download</h3>
-        <div class="prose"><p>${esc(country.agent)}</p><p>The repo ships this as a skill (<code>kitty/skills/bank-export/SKILL.md</code>) that Claude Code or Codex follows: pick the country and bank from this list, open the export page in a supervised browser, let the person or their password manager sign in, never touch a credential or a one-time code, save the file as delivered into <code>sources/&lt;account&gt;/&lt;date&gt;/</code>, run the importer, and hand back the review list. Banks and payments are high-risk sites: the browser asks the person before every click there, and that is the point.</p></div>
+        <div class="prose"><p>${esc(country.agent)}</p><p>The repo ships this as a skill (<code>skills/bank-export/SKILL.md</code>) that Claude Code or Codex follows: pick the country and bank from this list, open the export page in a supervised browser, let the person or their password manager sign in, never touch a credential or a one-time code, save the file as delivered, add it to your Kitty, and hand back the questions it raises. Banks and payments are high-risk sites: the browser asks the person before every click there, and that is the point.</p></div>
         <h3 style="margin:16px 0 8px;font-size:15px">How a file lands in the sheet</h3>
         <div class="prose"><p>${esc(SOURCES.landing.rule)}</p></div>
         <div class="tablewrap"><table class="t"><thead><tr><th>Transactions column</th><th>From the file</th></tr></thead><tbody>${SOURCES.landing.map.map(([a, b]) => `<tr><td><b>${esc(a)}</b></td><td>${esc(b)}</td></tr>`).join("")}</tbody></table></div>
-      </div>
-      <div class="card" style="--i:4" id="yours"><div class="cardhead"><span class="q">Make it yours</span><span class="sub">about an hour, once</span></div>
-        <div class="clone">
-          <div class="st"><div><b>Copy the sheet.</b><span><a href="https://docs.google.com/spreadsheets/d/${DEMO_SHEET}/copy" target="_blank" rel="noopener">Make a copy of the Davies demo sheet</a> (Google asks you to confirm). The Kitty tab, the formulas and the bound script copy with it. Clear the three raw tabs (Transactions, Payslips, Valuations) and fill Accounts, Categories, Goals and Settings for your household.</span></div></div>
-          <div class="st"><div><b>Add the Google Sheets connector in claude.ai</b><span>Settings → Connectors → Google Sheets, with the Google account that owns your copy. This page reads through it with your consent; nothing else ever sees the sheet.</span></div></div>
-          <div class="st"><div><b>Point this page at your sheet.</b><span>Paste the sheet's ID (the long part of its URL) below. It is remembered on this device${S.dbDoc ? " and in your Claude account" : ""}. The page will read it live and go back to the demo if it can't.</span></div></div>
-          <div class="st"><div><b>Bring in the first files.</b><span>Export the last three months from each account using the guide above, run <code>period-close/import_month.py</code> (or ask your agent to), settle the review list, append. Move the As-of date in Settings. The Compliance Checks tab tells you when the month is whole.</span></div></div>
-          <div class="st"><div><b>Run the setup here.</b><span>Name, country, lead goal, safety net, colour, phone. Five screens; it writes to the Kitty tab.</span></div></div>
-          <div class="st"><div><b>Optional: your own copy of the page.</b><span>The source is in the repo (<code>kitty/</code>: engine, page, build, tests). <code>python3 kitty/build.py --no-snapshot</code> gives a page with no data in it, which you publish privately from Claude with the Google Sheets connector declared. Use that one for real money; this demo page stays public.</span></div></div>
-        </div>
-        <div class="sheetform"><input id="sheetinput" type="text" inputmode="text" placeholder="Paste your sheet ID or its URL" value="${esc(S.prefs.sheet || "")}" aria-label="Your Google Sheet ID"><button class="btn sm" id="sheetgo">${S.mcp ? "Read it live" : "Save for when connectors are available"}</button>${S.prefs.sheet ? `<button class="btn sm ghost" id="sheetdemo">Back to the demo</button>` : ""}</div>
-        <p class="sub" style="margin-top:8px">${S.mode === "live" ? `Reading <a href="${sheetLink}" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> live.` : S.mcp ? (S.liveErr ? `Last live read failed: ${errText(S.liveErr)}` : isDemoSheet() ? "Showing the bundled demo. The owner's view reads the demo sheet live; paste your own ID to read yours." : "") : "Connectors aren't available in this view, so the page shows the bundled demo household."} <button class="linkbtn" id="rerunonb">Run the setup again</button></p>
       </div>
       ${appearanceCard(m)}
       <div class="card" style="--i:5" id="phonecard"><div class="cardhead"><span class="q">On your phone</span><span class="sub">it installs like an app</span></div>
@@ -1162,9 +1206,9 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       <div class="card" style="--i:6"><div class="cardhead"><span class="q">What it costs to keep</span><span class="sub">realistic, not aspirational</span></div>
         <div class="cost">
-          <div class="c"><b>20 min</b><span>a month: export each account, run the importer, settle 5 to 15 review items, move the as-of date. The agent can do all but the sign-ins.</span></div>
+          <div class="c"><b>20 min</b><span>a month: download each account, drop the files on Home, answer the questions it asks, close the month. An agent can do all but the sign-ins.</span></div>
           <div class="c"><b>1 hour</b><span>a quarter: add a valuation per asset, check Subscriptions decisions, read Compliance Checks, update work-from-home hours.</span></div>
-          <div class="c"><b>$0</b><span>to run. Google Sheets and a Claude plan you already have. No hosting, no database, no key to rotate.</span></div>
+          <div class="c"><b>$0</b><span>to us, ever. No hosting, no database, no key to rotate. See what it costs, and who sees what, at the top of this tab.</span></div>
           <div class="c"><b>What breaks</b><span>A bank changes its CSV columns (fix the adapter, a 10-minute job), a connector needs re-consent (one click), a new merchant needs a rule (one row). Nothing breaks silently: the Checks tab and the trust drawer say so.</span></div>
         </div>
       </div>
@@ -1173,16 +1217,17 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
           <div class="road"><span class="when">Now</span><div><b>Ask the Kitty.</b><span>The page can hand Claude your numbers with tools (spending, search, goals, bills) and answer in plain words: “what did we spend on dining in October?”. It runs with your consent, in the page, and remembers nothing between questions.</span></div></div>
           <div class="road"><span class="when">Next</span><div><b>The month-end close as an agent job.</b><span>A scheduled agent opens each bank in a supervised browser, waits for the sign-in, exports, imports, writes the review list, and emails three questions instead of thirty rows. The Compliance Checks tab is its definition of done.</span></div></div>
           <div class="road"><span class="when">Soon</span><div><b>Open banking as the feed.</b><span>Where an individual can hold a token over their own accounts (Up, Monzo, Akahu, GoCardless) the importer reads JSON instead of CSV and the chore disappears. The sheet does not change at all.</span></div></div>
-          <div class="road"><span class="when">Later</span><div><b>Two people, one page.</b><span>Presence (“Mia is looking at Goals”), a shared what-if slider, and a decision log in the sheet, so a couple settles a cancellation or a target together and the record shows who decided what.</span></div></div>
+          <div class="road"><span class="when">Later</span><div><b>Two people, one page.</b><span>Presence (who is looking at Goals right now), a shared what-if slider, and a decision log in the sheet, so a couple settles a cancellation or a target together and the record shows who decided what.</span></div></div>
           <div class="road"><span class="when">Always</span><div><b>The sheet outlives the page.</b><span>Every improvement is judged by one test: could the household walk away from this page and still have everything? Yes today; yes after each step above.</span></div></div>
         </div>
       </div>
       <div class="card" style="--i:7.5"><div class="cardhead"><span class="q">Privacy, plainly</span></div>
-        <div class="prose"><ul style="margin:0"><li><b>Nothing is collected.</b> No analytics, no tracking, no server of ours. This page is a file served by claude.ai.</li><li><b>Your sheet is read with your own Google connector,</b> through claude.ai, only after you allow it, and only the tabs listed in the trust drawer. The demo household is fictional and bundled in the page.</li><li><b>Ask the Kitty sends numbers to Claude only when you ask a question,</b> after you allow "Use Claude". It keeps nothing between questions.</li><li><b>Your preferences</b> (name, country, lead goal, colours, theme, your own sheet ID) stay on this device and, when available, in your Claude account's private store for this page. Nothing else is written anywhere except the three sheet cells described above, by your click.</li></ul></div>
+        <div class="prose"><ul style="margin:0"><li><b>Nothing is collected.</b> No analytics, no tracking, no server of ours. This page is a file served by claude.ai.</li><li><b>Your sheet is read with your own Google connector,</b> through claude.ai, only after you allow it, and only the tabs listed in the trust drawer. The demo household is fictional and bundled in the page.</li><li><b>Ask the Kitty sends numbers to Claude only when you ask a question,</b> after you allow "Use Claude". It keeps nothing between questions.</li><li><b>Your preferences</b> (name, country, lead goal, colours, theme, your own sheet ID) stay on this device and, when available, in your Claude account's private store for this page. A Kitty you started writes only to your own Sheet and Drive, or to this device.</li></ul></div>
       </div>
-      <p class="sub" style="--i:8;padding:0 6px">The Kitty ${VERSION} · fictional household · <button class="linkbtn" data-open="trust">Where the numbers come from</button> · <a href="${sheetLink}" target="_blank" rel="noopener">open the sheet</a> · <a href="${REPO}" target="_blank" rel="noopener">source on GitHub</a> · <a href="${REPO}/issues/new" target="_blank" rel="noopener">report a problem</a></p>`;
+      <p class="sub" style="--i:8;padding:0 6px">The Kitty ${VERSION}${HOUSE() ? " · experimental" : " · fictional household"} · <button class="linkbtn" data-open="trust">Where the numbers come from</button> ${HOUSE() ? "" : `· <a href="${sheetLink}" target="_blank" rel="noopener">open the sheet</a> `}· <a href="${REPO}" target="_blank" rel="noopener">source on GitHub</a> · <a href="${REPO}/issues/new" target="_blank" rel="noopener">report a problem</a></p>`;
     $$("[data-cc]", v).forEach((b) => b.addEventListener("click", () => { S.setupCountry = b.dataset.cc; renderSetup(); }));
     bindAppearance(v);
+    if (HOUSE()) S.start.bindSetup(v);
     const go = $("#sheetgo"); if (go) go.addEventListener("click", async () => { const raw = $("#sheetinput").value.trim(); const mt = raw.match(/\/d\/([A-Za-z0-9_-]{20,})/); const id = mt ? mt[1] : raw; if (!id) { toast("Paste a sheet ID first"); return; } savePrefs({ sheet: id === DEMO_SHEET ? "" : id }); S.canWrite = S.isOwner || !!S.prefs.sheet; if (S.mcp) { const ok = await loadLive(true); toast(ok ? "Reading your sheet live" : "Couldn't read that sheet: " + errText(S.liveErr || {}, "it")); if (!ok && SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); } else { toast("Saved. It will read live where connectors are available."); renderSetup(); } });
     const sd = $("#sheetdemo"); if (sd) sd.addEventListener("click", () => { savePrefs({ sheet: "" }); S.canWrite = S.isOwner; if (SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); toast("Back to the demo household"); });
     const ro = $("#rerunonb"); if (ro) ro.addEventListener("click", () => startOnboarding(true));
@@ -1192,6 +1237,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   // ----- Records -----
   // the standard's generated view, drawn by the kit; the page holds the picked year and binds the clicks
   function renderRecords() {
+    if (HOUSE()) return S.start.renderRecords($("#v-records"));
     const v = $("#v-records");
     v.innerHTML = Kit.Records(STANDARD, { fy: S.recordsFy });
     const pick = $("#recfy", v); if (pick) pick.addEventListener("change", () => { S.recordsFy = pick.value; $("#recyear", v).innerHTML = Kit.RecordsYear(STANDARD, S.recordsFy); });
@@ -1232,9 +1278,9 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     openDrawer(`<div style="display:flex;gap:14px;align-items:center;margin-top:4px">${Kit.monogram(e, c, "lg")}<div style="min-width:0"><h2 style="margin:0">${e.kind === "trade" ? Kit.title(e, c) : esc(name)}</h2><p class="sub">${E.weekday(e.date)} ${E.fmtDay(e.date, { year: true })}${e.kind !== "transaction" ? ` · ${Kit.subtitle(e, c)}` : ""}</p></div></div>
       <p style="font-family:var(--display);font-size:40px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px" class="num ${e.amount > 0 && e.kind !== "valuation" ? "amt in" : ""}">${e.kind === "valuation" ? fmt0(e.amount) : (e.amount > 0 ? "+" : "−") + fmt(Math.abs(e.amount))}</p>
       <div class="chips" style="margin:8px 0 4px">${e.kind === "transaction" ? `<button class="tag" data-pickfor="${esc(e.id)}" style="--ch:${esc(E.catHue(e.cat, m))};background:color-mix(in srgb,var(--ch) 16%,var(--surface));color:color-mix(in oklab,var(--ch) 58%,var(--ink))" ${canJudge ? "" : "disabled"}>${ico("i-" + E.catIcon(e.cat, m))} ${esc(cat ? cat.name : "Uncategorised")}${canJudge ? " ✎" : ""}</button><span class="tag">${esc(cat ? cat.group : "")}</span>` : ""}${e.person && e.person !== "Joint" ? `<span class="tag">${esc(e.person)}</span>` : ""}${e.receipt ? `<span class="tag ${e.receipt === "Y" ? "good" : "warn"}">receipt ${e.receipt === "Y" ? "held" : "missing"}</span>` : ""}${cat && cat.tax ? `<span class="tag amber">${esc(cat.tax)}</span>` : ""}${e.status !== "settled" ? `<span class="tag">${esc(e.status)}</span>` : ""}${Kit.badges(e, c)}</div>
-      <dl class="kv">${e.raw ? `<dt>Bank said</dt><dd><code style="font-size:12.5px">${esc(e.raw)}</code>${e.mer ? ` <span class="sub">· ${e.mer.source === "rule" ? `rule ${esc(e.mer.rule.id)}` : e.mer.source === "dictionary" ? "merchant dictionary" : "no rule knows this descriptor"}</span>` : ""}</dd>` : ""}<dt>Account</dt><dd>${acct ? `${esc(acct.name)}${acct.bank ? ` · ${esc(acct.bank)}` : ""}` : esc(e.acct)}</dd>${e.transferAcct ? `<dt>Other side</dt><dd>${esc((m.acctById[e.transferAcct] || {}).name || e.transferAcct)}${e.transferId ? ` · ${esc(e.transferId)}` : ""}</dd>` : ""}<dt>Row</dt><dd>${esc(e.id)} on the ${m.sheetVersion >= 2 ? "Entries" : "Transactions"} tab${S.grids && entryRowNumber(e.id) ? `, row ${entryRowNumber(e.id)}` : ""}</dd>${e.note ? `<dt>Note</dt><dd>${esc(e.note)}</dd>` : ""}${e.source ? `<dt>Source</dt><dd>${esc(e.source)}</dd>` : ""}${e.units != null ? `<dt>Units</dt><dd>${esc(e.units)} at ${fmt(e.price)}</dd>` : ""}${cat && cat.ato ? `<dt>Tax return</dt><dd>${esc(cat.ato)}</dd>` : ""}${cat && cat.budget ? `<dt>Budget</dt><dd>${fmt0(cat.budget)} a month for ${esc(cat.name)}</dd>` : ""}${e.split && e.split.length ? `<dt>Split</dt><dd>${e.split.map((p) => `${esc(catName(p.cat))} ${fmt(p.amount)}`).join(" · ")}</dd>` : ""}${e.dupOf ? `<dt>Merged</dt><dd>into ${esc(e.dupOf)}</dd>` : ""}${e.matchedWith ? `<dt>Matched</dt><dd>with ${esc(e.matchedWith)}</dd>` : ""}</dl>
+      <dl class="kv">${e.raw ? `<dt>Bank said</dt><dd><code style="font-size:12.5px">${esc(e.raw)}</code>${e.mer ? ` <span class="sub">· ${e.mer.source === "rule" ? `rule ${esc(e.mer.rule.id)}` : e.mer.source === "dictionary" ? "merchant dictionary" : "no rule knows this descriptor"}</span>` : ""}</dd>` : ""}<dt>Account</dt><dd>${acct ? `${esc(acct.name)}${acct.bank ? ` · ${esc(acct.bank)}` : ""}` : esc(e.acct)}</dd>${e.transferAcct ? `<dt>Other side</dt><dd>${esc((m.acctById[e.transferAcct] || {}).name || e.transferAcct)}${e.transferId ? ` · ${esc(e.transferId)}` : ""}</dd>` : ""}${HOUSE() ? "" : `<dt>Row</dt><dd>${esc(e.id)} on the ${m.sheetVersion >= 2 ? "Entries" : "Transactions"} tab${S.grids && entryRowNumber(e.id) ? `, row ${entryRowNumber(e.id)}` : ""}</dd>`}${e.note ? `<dt>Note</dt><dd>${esc(e.note)}</dd>` : ""}${e.source ? `<dt>Source</dt><dd>${esc(e.source)}</dd>` : ""}${e.units != null ? `<dt>Units</dt><dd>${esc(e.units)} at ${fmt(e.price)}</dd>` : ""}${cat && cat.ato ? `<dt>Tax return</dt><dd>${esc(cat.ato)}</dd>` : ""}${cat && cat.budget ? `<dt>Budget</dt><dd>${fmt0(cat.budget)} a month for ${esc(cat.name)}</dd>` : ""}${e.split && e.split.length ? `<dt>Split</dt><dd>${e.split.map((p) => `${esc(catName(p.cat))} ${fmt(p.amount)}`).join(" · ")}</dd>` : ""}${e.dupOf ? `<dt>Merged</dt><dd>into ${esc(e.dupOf)}</dd>` : ""}${e.matchedWith ? `<dt>Matched</dt><dd>with ${esc(e.matchedWith)}</dd>` : ""}</dl>
       ${item ? `<div class="note accent" style="margin-bottom:8px">${ico("i-review")} ${esc(E.cap(item.why))}</div>` : ""}
-      ${e.kind === "transaction" && canJudge ? `<div class="dacts"><button class="btn sm ghost" data-act="cat">${ico("i-edit")} Categorise</button>${!e.reviewed ? `<button class="btn sm ghost" data-act="confirm">${ico("i-check")} Looks right</button>` : ""}<button class="btn sm ghost" data-act="split">${ico("i-split")} Split</button>${item && item.dupOf ? `<button class="btn sm ghost" data-act="merge">${ico("i-duplicate")} Merge into ${esc(item.dupOf)}</button>` : ""}${E.discretionary(e, m) && !e.worth ? `<span class="wbtns" style="margin-left:4px">${[["yes", "Worth it"], ["meh", "Meh"], ["no", "Not worth it"]].map(([v, l]) => `<button class="chip w-${v}" data-act="worth" data-v="${v}">${l}</button>`).join("")}</span>` : ""}</div>${mates.length ? `<h3>Could be the other side of</h3><div class="chips">${mates.map((x) => `<button class="chip" data-act="mate" data-mate="${esc(x.id)}">${ico("i-transfer")} ${esc((m.acctById[x.acct] || {}).name || x.acct)} · ${E.fmtDay(x.date)} · ${esc(x.id)}</button>`).join("")}</div>` : ""}` : ""}
+      ${e.kind === "transaction" && canJudge ? `<div class="dacts"><button class="btn sm ghost" data-act="cat">${ico("i-edit")} Categorise</button>${!e.reviewed && !HOUSE() ? `<button class="btn sm ghost" data-act="confirm">${ico("i-check")} Looks right</button>` : ""}${HOUSE() ? "" : `<button class="btn sm ghost" data-act="split">${ico("i-split")} Split</button>`}${item && item.dupOf ? `<button class="btn sm ghost" data-act="merge">${ico("i-duplicate")} Merge into ${esc(item.dupOf)}</button>` : ""}${E.discretionary(e, m) && !e.worth ? `<span class="wbtns" style="margin-left:4px">${[["yes", "Worth it"], ["meh", "Meh"], ["no", "Not worth it"]].map(([v, l]) => `<button class="chip w-${v}" data-act="worth" data-v="${v}">${l}</button>`).join("")}</span>` : ""}</div>${mates.length ? `<h3>Could be the other side of</h3><div class="chips">${mates.map((x) => `<button class="chip" data-act="mate" data-mate="${esc(x.id)}">${ico("i-transfer")} ${esc((m.acctById[x.acct] || {}).name || x.acct)} · ${E.fmtDay(x.date)} · ${esc(x.id)}</button>`).join("")}</div>` : ""}` : ""}
       ${decs.length ? `<h3>Decisions on this row</h3><div class="dlist">${decs.map((d) => `<div class="d"><b>${esc(d.decision.replace(/_/g, " "))}</b><span>${esc(d.value)}</span><span class="muted">· ${esc(d.by || "")} ${d.at ? E.fmtDay(d.at, { year: true }) : ""}${d.note ? ` · ${esc(d.note)}` : ""}</span></div>`).join("")}</div>` : ""}
       ${total12 > 0 && e.flow === "Expense" ? `<h3>${esc(name)}, last 12 months</h3><div style="display:flex;gap:14px;align-items:center">${sparkSVG(series.map((s) => s.v), 160, 44, "var(--accent)")}<div><b class="num">${fmt0(total12)}</b> <span class="sub">in 12 months · ${fmt0(total12 / 12)} a month</span></div></div>` : ""}
       ${others.length ? `<h3>Other times</h3>${others.map((x) => txRow(x, { date: true, acct: false })).join("")}` : ""}
@@ -1262,6 +1308,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   }
   function openGoal(name) {
     const m = S.m, g = m.goals.find((x) => x.name === name); if (!g) return; const acct = m.acctById[g.acct]; const eta = E.goalEta(g, 0, m.asOf);
+    if (HOUSE()) { openDrawer(`${h2(`${E.goalIcon(g.name)} ${g.name}`, esc(acct ? acct.name : "Not linked to an account yet"))}<dl class="kv"><dt>Target</dt><dd><b>${fmt0(g.target)}</b>${g.date ? ` by ${E.fmtDay(g.date, { year: true })}` : ""}</dd>${g.balance != null ? `<dt>In the account</dt><dd><b>${fmt0(g.balance)}</b></dd>` : ""}<dt>Pace</dt><dd>Not worked out yet.</dd></dl>`); return; }
     const ins = m.tx.filter((t) => t.acct === g.acct && t.amount > 0).slice(0, 10);
     openDrawer(`${h2(`${E.goalIcon(g.name)} ${g.name}`, `${esc(acct ? acct.name + " · " + acct.bank : g.acct)}`)}
       <div style="display:flex;gap:18px;align-items:center;margin:12px 0">${ringSVG(g.progress, E.goalColor(g.name), ofFmt(g.balance || 0), `of ${ofFmt(g.target || 0)}`, 120)}<div><p><b class="num" style="font-family:var(--display);font-size:22px">${toGo(g.balance, g.target) === "done" ? "Target met" : toGo(g.balance, g.target)}</b></p><p class="sub">${g.date ? `Target ${E.fmtDay(g.date, { year: true })} · ${g.monthsLeft} month${g.monthsLeft === 1 ? "" : "s"} left` : "No target date"}</p></div></div>
@@ -1324,6 +1371,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   function openLoan(id) { const l = S.m.loans.find((x) => x.id === id); if (!l) return; openDrawer(`${h2(l.name, `${esc(l.lender)} · ${esc(l.type)} · ${esc(l.purpose)}`)}<dl class="kv"><dt>Balance</dt><dd><b>${fmt0(l.balance)}</b></dd><dt>Rate</dt><dd>${E.fmtPct(l.rate, 2)}</dd><dt>Repayment</dt><dd>${fmt0(l.repayment)} a month</dd><dt>Ends</dt><dd>${E.fmtDay(l.end, { year: true })} · ${l.monthsLeft} months</dd>${l.offset ? `<dt>Offset</dt><dd>${esc((S.m.acctById[l.offset] || {}).name || l.offset)} · ${fmt0((S.m.acctById[l.offset] || {}).balance)}</dd>` : ""}</dl><button class="btn ghost sm" data-go="insights">Rate and extra-repayment scenarios</button>`); }
   function openPay(person) { const m = S.m; const p = E.payday(m).find((x) => x.person === person); const slips = m.payslips.filter((x) => x.person === person).slice(-6).reverse(); openDrawer(`${h2(`${person}'s pay`, p ? `${esc(p.employer)} · next ${E.fmtDay(p.next, { year: true })} (${E.rel(m.asOf, p.next)})` : "")}<h3>Recent payslips</h3><div class="tablewrap"><table class="t"><thead><tr><th>Paid</th><th class="n">Gross</th><th class="n">Tax</th><th class="n">Super</th><th class="n">Net</th></tr></thead><tbody>${slips.map((s) => `<tr><td>${E.fmtDay(s.date, { year: true })}</td><td class="n">${fmt0(s.gross)}</td><td class="n">${fmt0(s.tax)}</td><td class="n">${fmt0(s.super)}</td><td class="n"><b>${fmt0(s.net)}</b></td></tr>`).join("")}</tbody></table></div>`); }
   function openTrust() {
+    if (HOUSE()) return S.start.openTrust();
     const m = S.m; const rec = E.reconcile(m);
     const tabs = S.mode === "live" ? Object.entries(RANGES).map(([k, r]) => [k, r.split("!")[0].replace(/'/g, ""), (S.grids[k] || []).length, S.err[k]]) : [["snapshot", "Apps Script JSON", m.tx.length + " transactions", null]];
     const liquid = m.accounts.filter((a) => a.liquid);
@@ -1587,6 +1635,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $$("[data-tx]", root).forEach((b) => b.addEventListener("click", () => openTx(b.dataset.tx)));
     $$("[data-entry]", root).forEach((b) => { if (b.tagName === "BUTTON" && !b.closest(".wrow")) b.addEventListener("click", () => openEntry(b.dataset.entry)); });
     $$("[data-go]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
+    $$("[data-start]", root).forEach((b) => b.addEventListener("click", () => S.start.begin()));
     $$("[data-open]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.open)));
     $$("[data-need]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.need)));
     $$("[data-up]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.up)));
@@ -1610,12 +1659,24 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   function openSearch() { switchTab("activity"); const q = $("#feedq"); if (q) { q.focus(); q.select(); } }
   function gate(msg, sub) { $("#v-home").innerHTML = `<div class="card hero" style="margin-top:8px"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">${esc(msg)}</h1><p class="vs">${sub || ""}</p></div>`; }
 
+  // What src/start.js needs from the page. Nothing else reaches it.
+  function startApi() {
+    return { S, E, Kit, ART, $, $$, esc, ico, toast, savePrefs, setModel, renderAll, go, switchTab, openDrawer, closeDrawer, setPill, errText, celebrate, barsHTML, monthBarsSVG, bindMonthBars,
+      showDemo: () => { if (!SNAP) return; Kit.widget("needs").title = "What needs you"; Kit.widget("months").title = "The last 12 months"; setModel(demoModel()); S.mode = "demo"; renderAll(); switchTab("home"); toast("The Davies. Your Kitty is still yours: reload to go back."); } };
+  }
   async function boot() {
     PHONE.addEventListener("change", () => { if (S.m) renderHome(); });
     const saved = window.__KIT_GALLERY__ ? "home" : store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
-    if (SNAP) { setModel(demoModel()); renderAll(); }
+    S.start = !NATIVE && !window.__KIT_GALLERY__ && window.KittyStart ? window.KittyStart(startApi()) : null;
+    if (!(S.start && S.start.available())) S.start = null;
+    const hers = () => !!(S.start && S.start.started());
+    const firstVisit = () => !!S.start && !hers() && !S.prefs.door && !S.prefs.onboarded && !S.prefs.sheet && !FLAGS.has("noonb");
+    const doorOpen = firstVisit() || (!!S.start && !hers() && !SNAP && !S.prefs.sheet);
+    if (doorOpen) S.start.door(() => { if (S.m) renderAll(); });   // before the demo draws, so nothing of its first paint plays behind the door
+    if (hers()) gate("Opening your Kitty…", "");
+    else if (SNAP) { setModel(demoModel()); renderAll(); }
     if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);
-    else if (!SNAP) gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
+    else if (!SNAP && !doorOpen && !hers()) gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
     $$("nav.tabs button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
     $("#brandbtn").addEventListener("click", () => switchTab("home"));
     $("#trustpill").addEventListener("click", () => S.m && openTrust());
@@ -1638,12 +1699,22 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     if (db && user) { try { const id = await user.id(); if (id) { S.dbDoc = db.doc(`data/users/${id}/kitty`); const snap = await S.dbDoc.get(); if (snap.exists) { const d = snap.data() || {}; if ((d.savedAt || 0) > (store.get("prefsSavedAt", 0))) { Object.assign(S.prefs, d); store.set("prefs", S.prefs); } } } } catch (e) { S.dbDoc = null; } }
     if (NATIVE && SNAP) setModel(demoModel()); // Native preference storage may be newer than WebKit's local cache.
     S.canWrite = !NATIVE && (S.isOwner || !!S.prefs.sheet);
+    if (mcp) S.mcp = mcp;
+    // Started on another device: the door is not for them. An owner chooses like anyone else, because a pinned copy's owner is a stranger to the Davies.
+    if (doorOpen && hers()) $("#onb").hidden = true, document.body.style.overflow = "";
+    if (hers()) {
+      if (await S.start.resume()) { S.settled = true; S.m && renderHome(); if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true); return; }
+      if (SNAP) { setModel(demoModel()); S.mode = "demo"; renderAll(); }
+      gate("We couldn't open your Kitty.", `${S.start.resumeError()} It hasn't gone anywhere.`);
+      S.settled = true; return;
+    }
     if (S.m) renderAll();
     if (window.__KIT_GALLERY__ && S.m) { switchTab("home", true); return; }
-    if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); } else renderHeader(); }
+    if (doorOpen && (!SNAP || !$("#onb").hidden)) { S.settled = true; return; }   // nothing asks for a connector while the door is open
+    if (mcp) { if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     S.settled = true; if (S.m) renderHome();
-    if (!NATIVE && S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);
+    if (!NATIVE && S.m && !S.prefs.onboarded && !FLAGS.has("noonb") && !doorOpen) setTimeout(() => startOnboarding(false), 700);
     if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true);
     if (FLAGS.has("onb")) startOnboarding(true);
     if (NATIVE && S.m) document.dispatchEvent(new CustomEvent("kitty:app-ready"));

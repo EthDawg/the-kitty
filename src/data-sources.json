@@ -118,7 +118,7 @@
       ["Bank description", "Exactly as delivered, so a row can always be found in the bank's own records"],
       ["Merchant", "A cleaned name (\"WOOLWORTHS 3021 BRUNSWICK\" → Woolworths) from the household's rules; new ones are proposed, never guessed into history"],
       ["Category ID", "From the Categories tab only; an unknown ID shows up in Compliance Checks"],
-      ["Person", "Jordan, Mia or Joint from the account or the card suffix"],
+      ["Person", "Someone in the household, or Joint, from the account or the card suffix"],
       ["Receipt held / Note", "Left blank by the importer; a person adds them when it matters for tax"]
     ]
   }

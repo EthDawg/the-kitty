@@ -7,13 +7,14 @@
      node tools/kitty.js decide next GROCERIES [--always]    answers the step `next` printed
      node tools/kitty.js close 2026-07
      node tools/kitty.js recipe my-recipe.json statement.csv
+     node tools/kitty.js guess statement.csv [--account "Everyday"] [--yes]   read an unknown bank file by its columns; --yes keeps the reading
    --dir picks the folder, default the current one. --today sets the clock, default the date here. --json prints what an agent wants. */
 "use strict";
 const fs = require("fs"), path = require("path");
 const K = require("../src/household/node.js");
 
 const FLAGS = new Set(["dir", "today", "name", "people", "account", "type", "reason", "reopen-if", "by", "check", "merchant"]);
-const SWITCHES = new Set(["json", "always", "help"]);
+const SWITCHES = new Set(["json", "always", "help", "yes"]);
 function parse(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
@@ -98,6 +99,16 @@ async function main() {
       const r = await K.addRecipe(store, JSON.parse(fs.readFileSync(file, "utf8")), { today, files: targets.map(fileOf), account: args.account });
       const lines = r.status === "passed" ? ["The recipe passed the gate.", ...addLines(r.read)] : r.status === "failed" ? ["The recipe failed the gate. Nothing changed.", ...r.verdict.failures.slice(0, 8).map((x) => `  ${x.check}: ${x.what}`)] : [r.message, ...r.fingerprints_seen.map((f) => `  ${f}`)];
       say(args, r, lines);
+      return r.status === "passed" ? 0 : 1;
+    }
+    case "guess": {
+      if (!rest.length) throw Object.assign(new Error("Guess what? Name a file."), { usage: true });
+      const file = fileOf(rest[0]), p = K.proposeRecipe({ ...file, stream: args.account });
+      if (!p.recipe) { say(args, p, [`Couldn't read ${file.name} by its columns: ${p.why} Nothing changed.`]); return 1; }
+      const out = [p.says.columns, p.says.proof, ...(p.says.dates ? [p.says.dates] : []), ...p.rows.map((r) => `  ${K.rowWords(r)}`)];
+      if (!args.yes) { say(args, p, [...out, "Run it again with --yes to keep this reading."]); return 0; }
+      const r = await K.addRecipe(store, p.recipe, { today, files: [file], account: args.account || "Everyday", name: args.account, author: "page" });
+      say(args, r, r.status === "passed" ? [...out, ...addLines(r.read)] : ["The gate refused it. Nothing changed."]);
       return r.status === "passed" ? 0 : 1;
     }
     default: throw Object.assign(new Error(`I don't know ${cmd}.`), { usage: true });

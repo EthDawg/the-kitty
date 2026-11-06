@@ -16,7 +16,9 @@ function scopeName(L, scope) {
   const tail = String(scope).split(" ")[0].split(":").pop(), party = L.parties.find((p) => p.party_id === tail);
   return (L.index.accounts.get(tail) || {}).name || (party && party.name) || tail;
 }
-const SPOKEN = new Set(["uncategorised", "deposit_without_payslip", "open_item", "file_refused", "unresolved_account"]);
+const SPOKEN = new Set(["uncategorised", "deposit_without_payslip", "open_item", "file_refused", "unresolved_account", "unpaired_transfer"]);
+// A payslip newer than the last bank line is a file still to come, not a question. The stale step asks for that file.
+const stillToCome = (L, r) => { if (r.kind !== "payslip_without_deposit") return false; const on = (/\d{4}-\d{2}-\d{2}/.exec(r.what) || [])[0], lines = (L.lines || []).map((l) => l.date).sort(); return !!on && on > (lines[lines.length - 1] || ""); };
 const LAW_WORDS = {
   L1: (x) => `An entry for ${x} does not balance.`,
   L2: (x) => `Two sides of the same money have not met: ${x}.`,
@@ -65,6 +67,8 @@ const steps = {
   },
   lawFails({ L, facts }) {
     const f = facts.laws.failing.find((x) => x.law !== "L12");
+    // A transfer whose other side is an account we have not met is the commonest thing a first file shows, and not a fault in anything.
+    if (f && f.law === "L2" && /transfer/.test(f.scope)) return { id: "other_side", say: "Some of your money went to an account we haven't met yet.", why: "It isn't counted as spending. Add that account's file and the two sides meet.", action: { verb: "add", label: "Add that account's file", args: { check: `${f.law}|${f.scope}` } } };
     return f && { id: "does_not_add_up", say: (LAW_WORDS[f.law] || LAW_WORDS.other)(scopeName(L, f.scope)), why: f.detail || "A number you can't trust is worse than a number you don't have.", action: { verb: "review", label: "Look at it, then add the missing file, or accept it with a reason", args: { check: `${f.law}|${f.scope}` } } };
   },
   categorise({ L, view }) {
@@ -75,7 +79,7 @@ const steps = {
   },
   // Anything else the engine wants a person for. Its own words are the question.
   otherReview({ L }) {
-    const r = L.review.find((x) => !SPOKEN.has(x.kind));
+    const r = L.review.find((x) => !SPOKEN.has(x.kind) && !stillToCome(L, x));
     return r && { id: "review", say: r.what, why: r.do || "It needs a person.", action: { verb: "review", label: "Look at it", args: { item: r.item_id } } };
   },
   noBalance({ L, facts, clock }) {
