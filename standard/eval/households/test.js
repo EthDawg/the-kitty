@@ -1129,3 +1129,46 @@ test("what a flatmate owes rings as an open item with a name", () => {
   assert.equal(c.status, "open");
   assert.ok(L.review.some((r) => r.ref === "receivable:alex"));
 });
+
+test("a tab that only shares words like date and amount reads as unknown, not as a table", () => {
+  const { conformTabs } = require("../../tools/conform");
+  const rows = conformTabs({ Reservations: ["Date", "Amount", "Notes", "Who for"], People: ["Name", "Email", "Notes", "Source"], Accounts: ["account_id", "name", "class", "type", "currency"] });
+  const by = Object.fromEntries(rows.map((r) => [r.tab, r]));
+  assert.equal(by.Reservations.maps_to, null);
+  assert.equal(by.People.maps_to, null);
+  assert.equal(by.Accounts.maps_to, "account");
+});
+
+test("a household can project across two workbooks: the manifest lists both and the answer does not move", () => {
+  const { toBundle } = require("../../engine/bundle");
+  const h = household("two-books").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).rule("SHOPS", "SHOPPING");
+  h.line("BANK", "2026-07-01", "SHOPS", -100);
+  const L = run(h), tablesSchema = require("../../schema/tables.json");
+  const one = toBundle(L, { setup: h.setup, tablesSchema });
+  const two = toBundle(L, { setup: h.setup, tablesSchema, workbooks: [{ name: "household", tables: ["account", "party"] }, { name: "ledger", tables: ["event", "posting"] }] });
+  assert.equal(two.manifest.bundle_hash, one.manifest.bundle_hash);
+  assert.deepEqual(two.manifest.tables.event.workbooks.map((w) => w.name), ["ledger"]);
+  assert.deepEqual(two.manifest.tables.account.workbooks.map((w) => w.name), ["household"]);
+  assert.deepEqual(two.manifest.tables.rule.workbooks.map((w) => w.name), ["household"], "a table no workbook names stays in the first");
+  assert.equal(two.tables.event, one.tables.event);
+});
+
+test("labels that sit on rows migrate as decisions, and the tool says how many bound", () => {
+  const { labelsToDecisions } = require("../../tools/migrate-labels");
+  const h = household("labelled").person("a").account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.line("BANK", "2026-07-01", "TFR 1188", -50000).line("BANK", "2026-07-02", "CAFE", -700).line("BANK", "2026-07-02", "CAFE", -700).line("BANK", "2026-07-03", "THE WEIRD ONE", -1200);
+  const before = run(h);
+  assert.equal(before.cash[0].spending, 52600, "with no labels every line reads as spending");
+  const { decisions, bound, unbound } = labelsToDecisions(before, [
+    { account: "BANK", date: "2026-07-01", cents: -50000, category_id: "TRANSFER" },
+    { account: "BANK", date: "2026-07-02", cents: -700, category_id: "SHOPPING" },
+    { account: "BANK", date: "2026-07-02", cents: -700, category_id: "GROCERIES" },
+    { account: "BANK", date: "2026-07-03", cents: -1200, category_id: "SHOPPING" },
+    { account: "BANK", date: "2026-07-09", cents: -999, category_id: "SHOPPING" },
+  ]);
+  assert.deepEqual([bound, unbound.length], [4, 1], "one label finds no line, and it is counted");
+  const after = run({ ...h, decisions });
+  assert.equal(after.cash[0].spending, 2600, "the transfer leaves spending");
+  assert.equal(after.cash[0].byCategory.GROCERIES, -700, "two equal lines keep their own labels");
+  assert.equal(after.review.filter((r) => r.kind === "uncategorised").length, 0);
+});
