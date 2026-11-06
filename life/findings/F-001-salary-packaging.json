@@ -1,0 +1,18 @@
+{
+ "id": "F-001",
+ "title": "Salary packaging: the payslip line is not read and the provider's credit stays unexplained",
+ "chapter": 2,
+ "trap": "T2-SALARY-PACKAGING",
+ "kind": "recipe and engine",
+ "found": "Daisy's payslip prints gross after the package and a separate 'Salary packaging, PawPack Benefits' row. pawroll-payslip-pdf has no value for that row, so salary_sacrifice_cents is never emitted. The provider's credit, PAWPACK BENEFITS PAYMENT, lands as an unexplained refund every fortnight: 185 of them by chapter 6.",
+ "shape": {
+  "payslip_row": "Salary packaging, PawPack Benefits, before tax and not in gross  346.54  7,276.34",
+  "bank_line": {
+   "desc": "PAWPACK BENEFITS PAYMENT",
+   "cents": 34654
+  }
+ },
+ "want": "The credit is the person's pay. A payslip that names a package claims the credit that matches it, and the package reaches the income statement's reportable fringe benefit.",
+ "landing": "one small base change",
+ "owner": "data model session: the payslip recipe, then the wage match"
+}

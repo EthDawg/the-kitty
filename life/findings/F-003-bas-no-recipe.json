@@ -1,0 +1,23 @@
+{
+ "id": "F-003",
+ "title": "No public recipe reads a business activity statement",
+ "chapter": 7,
+ "trap": "T7-GST-FREE",
+ "kind": "unread",
+ "found": "activity_statement is in the vocabulary and the tax draft reads it, but standard/recipes has no recipe for it, so chapter 7's three BAS files are unknown.",
+ "shape": {
+  "family": "life-bas-pdf",
+  "fingerprint": "fp1:f2328efa2e8c2f3ae44cc5d5",
+  "lines": [
+   "01 Jan 2037 to 31 Mar 2037",
+   "BAS for Daisy Davies",
+   "Period start  Period end  G1 Total sales",
+   "01 Jan 2037  31 Mar 2037  29,422.47",
+   "G3 GST-free sales  1A GST on sales  1B GST on purchases",
+   "27,492.18  175.47  395.46"
+  ]
+ },
+ "want": "A recipe emits activity_statement with g1_cents, gst_collected_cents and gst_paid_cents. GST-free sales need a field: the vocabulary has none.",
+ "landing": "one small base change",
+ "owner": "data model session, when chapter 7 is built"
+}

@@ -30,6 +30,7 @@ function folderAdapter({ dir, fs }) {
       for (const t of tabs) fs.writeFileSync(file(t.table), "");
       whole(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
     },
+    async addTable(tab) { if (!fs.existsSync(file(tab.table))) fs.writeFileSync(file(tab.table), ""); },
     async read(table) { return parse(text(table)); },
     async keys(table) { const pk = pkOf(table); return parse(text(table)).map((r) => r[pk]); },
     async append(table, rows) {

@@ -1,0 +1,99 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "A row of the friction ledger",
+ "description": "Every snag gets a row and lands in one of four places. The fields are the ones blind runs already write (pace-setter/lifecycle/runs/ch00-baseline/friction.jsonl), plus lands and case. Delight is recorded and never scored. Severity: 1 trivial, 2 annoying, 3 a real person hesitates, 4 they leave.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "id",
+  "chapter",
+  "step",
+  "role",
+  "wanted",
+  "did",
+  "happened",
+  "kind",
+  "severity",
+  "evidence",
+  "lands"
+ ],
+ "properties": {
+  "id": {
+   "type": "string",
+   "description": "F001 from a blind run, S001 from the scripted harness."
+  },
+  "chapter": {
+   "type": "string",
+   "pattern": "^ch[0-9]{2}$"
+  },
+  "step": {
+   "type": [
+    "integer",
+    "string"
+   ]
+  },
+  "role": {
+   "enum": [
+    "person",
+    "agent",
+    "scripted"
+   ]
+  },
+  "wanted": {
+   "type": "string"
+  },
+  "did": {
+   "type": "string"
+  },
+  "happened": {
+   "type": "string"
+  },
+  "kind": {
+   "enum": [
+    "confusing",
+    "delight",
+    "slow",
+    "missing",
+    "wrong",
+    "dead-end",
+    "silent"
+   ]
+  },
+  "severity": {
+   "type": "integer",
+   "minimum": 1,
+   "maximum": 4
+  },
+  "evidence": {
+   "type": "string"
+  },
+  "lands": {
+   "enum": [
+    "base",
+    "small-base-change",
+    "tailoring",
+    "declined",
+    "tbd"
+   ],
+   "description": "base: fixed in the runtime or page. small-base-change: one change to the standard, owned by the data model session. tailoring: an x_ for a family, not the project. declined: honestly not doing it, with the reason in happened. tbd: nobody has decided, which is what a blind run leaves."
+  },
+  "case": {
+   "type": [
+    "string",
+    "null"
+   ],
+   "description": "The fixture or scripted step that holds it, so it cannot come back. Required once lands is not tbd, unless the row is delight."
+  },
+  "state": {
+   "enum": [
+    "open",
+    "landed"
+   ],
+   "description": "landed: the case passes today. A row with no state is open."
+  },
+  "trap": {
+   "type": "string",
+   "description": "The trap in life/world/traps.md this row holds. A silently wrong trap with no row fails --check."
+  }
+ }
+}

@@ -43,6 +43,15 @@ function withDefaults(setup) {
     category: [...setup.category, ...d.categories.filter((c) => !have.has(c.category_id))],
     tax_map: [...setup.tax_map, ...d.tax_map.filter((t) => !mapped.has(`${t.selector_type}|${t.selector}`))] };
 }
+/* SPEC 13: shared data reads through. A release a household has taken adds its rules from the first open month, so a locked month is never moved by an update. */
+function sharedRules(decisions, today) {
+  const releases = base().releases || {}, out = [];
+  for (const d of decisions) {
+    const r = d.value && d.value.release && d.status === "accepted" && (!today || dayOf(d.at) <= today) && releases[d.value.release];
+    if (r) for (const rule of r.rules || []) out.push({ ...rule, valid_from: d.value.rules_from, recorded_at: d.at });
+  }
+  return out;
+}
 /* The household as it stood on today. Pure. An observation only counts once its source row is written: the source row is the commit, so
    a run cut off half way leaves rows nobody reads. */
 function viewOf(o, today) {
@@ -58,7 +67,7 @@ function viewOf(o, today) {
   const held = new Set(sources.map((s) => s.source_id));
   const observations = o.observation.filter((x) => held.has(x.source_id)).map((x) => ({ ...x }));
   const decisions = o.decision.filter((d) => !today || dayOf(d.at) <= today);
-  const rules = latest("rule", knownOn(o.rule, today));
+  const rules = [...latest("rule", knownOn(o.rule, today)), ...sharedRules(o.decision, today)];
   const deliveries = o.x_delivery.filter((d) => !today || d.day <= today);
   const receipts = [...sources.filter((s) => s.stream_id).map((s) => ({ stream_id: s.stream_id, day: dayOf(s.captured_at) })), ...deliveries.map((d) => ({ stream_id: d.stream_id, day: d.day }))];
   const faults = sources.filter((s) => s.status === "quarantined").map((s) => ({ code: "file_refused", path: s.uri || s.name, what: String(s.note || `${s.name} failed its checks and was not imported.`).replace(/^refused: /, "") }));
@@ -81,8 +90,9 @@ function assumedYears(L, today) {
   if (today) years.add(fyOf(today));
   return [...years].filter((fy) => fyRange(fy).start > verified).sort();
 }
-async function rebuildAt(store, { today, originals } = {}) {
+async function rebuildAt(store, { today, originals, extraRules } = {}) {
   const o = originals || (await loadOriginals(store)), b = base(), view = viewOf(o, today);
+  if (extraRules) view.rules = [...view.rules, ...extraRules];
   const evidence = horizon(view.observations), asOf = asOfFor(today, evidence);
   const L = rebuild({ setup: view.setup, sources: view.sources, observations: view.observations, decisions: view.decisions, rules: view.rules, schema: { events: b.schema.events }, reference: b.reference, receipts: view.receipts, faults: view.faults, asOf });
   // Metrics need a month to read. A household with nothing in it yet has none, and that is a state, not an error. Finding R-001.

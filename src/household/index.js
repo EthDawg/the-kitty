@@ -14,10 +14,17 @@ const { googleStore, createSpreadsheet, NEEDS } = require("./store/google");
 const { fakeStore, fakeConnector, FakeSheet } = require("./store/fake");
 const { memfs } = require("./store/memfs");
 const { setBase, base } = require("./base");
+const { transfer, slice, audit, homes, proposals, move, handover } = require("./transfer");
+const { merge, shareHistory } = require("./merge");
+const { tailor, write, ask, check, widgets, stageOf, ageOn } = require("./tailor");
+const { planUpdate, update, EXTENSIONS: SHARED_EXTENSIONS } = require("./update");
+const { spawn } = require("./spawn");
 const { TABS, MANAGED, STANDARD_VERSION, RUNTIME_VERSION } = require("./tabs");
 
 module.exports = {
   init, add, addRecipe, record, status, readiness, next, pick, decide, close, rebuildAt, loadOriginals, bytesState, readState,
   folderStore, googleStore, createSpreadsheet, NEEDS, fakeStore, fakeConnector, FakeSheet, memfs,
+  transfer, slice, audit, homes, proposals, move, handover, merge, shareHistory, spawn,
+  tailor, writeOwn: write, ask, checkTailoring: check, widgets, stageOf, ageOn, planUpdate, update, SHARED_EXTENSIONS,
   replayWorld, treeHash, tableHashes, setBase, base, TABS, MANAGED, DOMAINS, STANDARD_VERSION, RUNTIME_VERSION,
 };

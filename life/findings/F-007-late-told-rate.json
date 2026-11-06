@@ -1,0 +1,24 @@
+{
+ "id": "F-007",
+ "title": "A rate told at onboarding, after the notices, overrides them",
+ "chapter": 5,
+ "trap": "T5-RATE-BACKDATED",
+ "kind": "engine",
+ "found": "A term with an open valid_to and a later recorded_at beats every materialised notice, which is what the bitemporal rule says. The world tells the rate at settlement. A household onboarding in 2030 and typing the 2028 rate would silently lose two years of notices, and L6 was the only alarm: it showed gaps of $149.13 a month on the first run.",
+ "shape": {
+  "term": {
+   "term": "interest_rate",
+   "value": "6.54",
+   "valid_from": "2028-01-01",
+   "recorded_at": "2030-06-30T00:00:00Z"
+  },
+  "notice": {
+   "value": "6.29",
+   "effective_on": "2028-03-01",
+   "notified_on": "2028-03-03"
+  }
+ },
+ "want": "init writes a setup rate with valid_to, or dates recorded_at at valid_from, so a notice can close it.",
+ "landing": "the runtime's init",
+ "owner": "life/household"
+}

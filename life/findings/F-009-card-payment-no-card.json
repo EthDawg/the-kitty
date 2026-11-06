@@ -1,0 +1,17 @@
+{
+ "id": "F-009",
+ "title": "Before a card is added, its repayment reads as spending",
+ "chapter": 1,
+ "trap": "T1-CARD-PAYMENT-NO-CARD",
+ "kind": "engine",
+ "found": "AMEWX PAYMENT 37004 has no transfer word, so with no card in the Kitty it books as a purchase: three months of chapter 1 spending are overstated by the card repayment. Once the card is held the pair forms by amount.",
+ "shape": {
+  "bank_line": {
+   "desc": "AMEWX PAYMENT 37004",
+   "cents": -95291
+  }
+ },
+ "want": "A line naming a card product reads as an unknown-account transfer until the card is held, with a next step to add it. The public dictionary could carry the parody card names; a real card's name has the same shape.",
+ "landing": "the dictionary, or one small base change",
+ "owner": "data model session"
+}

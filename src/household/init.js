@@ -52,6 +52,7 @@ async function ready(store) {
   const probe = await store.probe();
   if (!probe.recognised) throw fail("no_kitty", "There is no Kitty here yet. Run init first.");
   if (probe.manifest.standard_version !== STANDARD_VERSION) throw fail("newer_standard", `This Kitty was written by ${probe.manifest.standard_version}. It is read-only here.`);
+  if (probe.manifest.state === "moved") throw fail("moved", `This Kitty moved to ${probe.manifest.moved_to} and stopped here. Nothing was changed. Open the new one.`);
   if (probe.manifest.state !== "ready") throw fail("half_made", "This Kitty was not finished. Run init again; it picks up where it stopped.");
   return probe.manifest;
 }
