@@ -176,21 +176,20 @@ const laws = {
     const inner = new Set(["cash", "property", "super", "shares", "crypto", "vehicle", "device", "loans"]);
     const byAccount = groupBy(L.stated, (s) => s.account);
     let months = 0, worst = 0, worstM = null;
+    // Valuations set a value, so they cannot check one. The test runs over every account a source states a balance for.
     for (const m of L.balances.months) {
       const end = monthEnd(m);
-      let posted = 0, stated = 0, complete = true, seen = 0;
-      for (const [account, series] of L.balances.table) {
+      let posted = 0, stated = 0, seen = 0;
+      for (const [account, rowsAll] of byAccount) {
         const a = L.index.accounts.get(account);
-        if (!a || !inner.has(a.reporting_group) || (a.fidelity === "snapshot")) continue;
-        const bal = series.get(m) || 0;
-        if (!bal) continue;
-        const rows = (byAccount.get(account) || []).filter((s) => s.date <= end && monthOf(s.date) === m);
-        if (!rows.length) { complete = false; break; }
+        if (!a || !inner.has(a.reporting_group) || a.fidelity === "snapshot") continue;
+        const rows = rowsAll.filter((s) => monthOf(s.date) === m);
+        if (!rows.length) continue;
         const last = rows.reduce((x, y) => (y.date >= x.date ? y : x));
         const value = L.dailyBalance(account)(last.date);
         posted += value; stated += last.any && last.any.includes(value) ? value : last.cents; seen += 1;
       }
-      if (!complete || !seen) continue;
+      if (!seen) continue;
       months += 1;
       if (Math.abs(posted - stated) > Math.abs(worst)) { worst = posted - stated; worstM = m; }
     }

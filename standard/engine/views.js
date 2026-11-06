@@ -61,7 +61,7 @@ function balances(L) {
     flows.get(k).set(m, (flows.get(k).get(m) || 0) + p.amount_cents);
   }
   const allMonths = [...new Set([...flows.values()].flatMap((f) => [...f.keys()]))].sort();
-  if (!allMonths.length) return { months: [], rows: [], at: () => 0 };
+  if (!allMonths.length) return { months: [], rows: [], table: new Map(), at: () => 0 };
   const lastHeld = L.asOf && monthOf(L.asOf) > allMonths[allMonths.length - 1] ? monthOf(L.asOf) : allMonths[allMonths.length - 1];
   const months = monthsBetween(allMonths[0], lastHeld);
   const rows = [], table = new Map();
@@ -212,18 +212,23 @@ function budgetVariance(L, month) {
 
 // ---------- coverage: expected against held ----------
 function coverage(L) {
-  const held = groupBy(L.sources.filter((s) => s.stream_id && s.status === "active"), (s) => s.stream_id);
+  // A period counts as held if any file arrived for it, including a byte-identical re-delivery. A period that has not ended, plus its grace, is not due yet.
+  const received = L.receipts && L.receipts.length ? L.receipts : L.sources.filter((s) => s.stream_id && s.status === "active").map((s) => ({ stream_id: s.stream_id, day: s.issued_on || s.captured_at }));
+  const held = groupBy(received, (s) => s.stream_id);
   const stepMonths = { fortnightly: 1, monthly: 1, quarterly: 3, half_yearly: 6, yearly: 12 };
   const rows = [];
   for (const s of L.streams) {
     const step = stepMonths[s.cadence];
     if (!step) continue;
     const start = monthOf(s.valid_from), end = monthOf(s.valid_to ? addDays(s.valid_to, -1) : L.asOf);
-    const got = new Set((held.get(s.stream_id) || []).map((x) => monthOf(x.issued_on || x.captured_at)));
+    const got = new Set((held.get(s.stream_id) || []).map((x) => monthOf(x.day)));
+    const grace = s.grace_days ?? 45;
     let expected = 0, have = 0; const missing = [];
     const ms = monthsBetween(start, end);
     for (let i = 0; i < ms.length; i += step) {
-      const window = ms.slice(i, i + Math.max(step, 2));
+      const window = monthsBetween(ms[i], ms[Math.min(i + step + Math.ceil(grace / 30), ms.length - 1)]);
+      const closes = monthEnd(ms[Math.min(i + step - 1, ms.length - 1)]);
+      if (addDays(closes, grace) > L.asOf && !window.some((m) => got.has(m))) continue;
       expected += 1;
       if (window.some((m) => got.has(m))) have += 1; else missing.push(ms[i]);
     }

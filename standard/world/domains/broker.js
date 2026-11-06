@@ -168,7 +168,7 @@ function run(w) {
   w.alias("account", "ACC-BRK", "account_number", ACCOUNT, "2020-06-15"); w.alias("account", "ETF", "hin", HIN, "2020-06-15");
   stream(w, "ACC-BRK", "Cedar Trade cash statement", "transactions", "account", "ACC-BRK", "monthly", "2020-06-15", { issuer_party_id: "CEDAR", grace_days: 10 });
   stream(w, "BRK-NOTES", "Contract notes", "contract_note", "account", "ACC-BRK", "event", "2020-07-06", { issuer_party_id: "CEDAR" });
-  stream(w, "BRK-HOLD", "Holdings statements", "holding", "account", "ETF", "monthly", "2020-06-30", { issuer_party_id: "CEDAR", grace_days: 10, note: "Yearly to June 2025, then monthly." });
+  stream(w, "BRK-HOLD", "Holdings statements", "holding", "account", "ETF", "yearly", "2020-06-30", { issuer_party_id: "CEDAR", grace_days: 10, note: "Yearly to June 2025, then monthly." });
   stream(w, "REG-DIST", "Distribution and dividend statements", "dividend", "account", "ETF", "event", "2020-08-01", { issuer_party_id: "COMPUTERPAW" });
   stream(w, "REG-TAX", "Annual tax statements", "distribution", "account", "ETF", "yearly", "2021-06-30", { issuer_party_id: "COMPUTERPAW", grace_days: 60 });
   const m = model(w), land = landing(w, m); w.broker = m; w.brokerLand = land;

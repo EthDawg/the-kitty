@@ -57,6 +57,7 @@ function rebuild(input) {
   L.accrual = V.accrualLens(L);
   L.netWorth = V.netWorth(L);
   L.activityNet = V.activityNet(L);
+  L.receipts = input.receipts || null;
   L.coverage = V.coverage(L);
   L.refresh = V.refreshPlan(L);
   L.lotRows = [...(R.lots ? R.lots.lots : []), ...(R.propertyLots ? R.propertyLots.lots : [])];

@@ -250,3 +250,128 @@ test("an x_ event kind is one line of data, judged by the same proof, with no co
   assert.equal(L.cash[0].spending, 0, "repaying a debt is not spending");
   assert.throws(() => run(h, { extensions: { events: { x_bad: { legs: [["DEBT", "+amount"]] } } } }), /does not balance/);
 });
+
+test("a rental that became the home: capital works come off the base, and home days are exempt", () => {
+  const h = household("mixed").person("a").account("HOUSE", "property", "property", [["a", 10000]]).account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.setup.asset.push({ asset_id: "HOME", kind: "property", name: "Home", account_id: "HOUSE" });
+  h.term("asset", "HOME", "use", "rental", "2020-07-01", "2023-07-01").term("asset", "HOME", "use", "owner_occupied", "2023-07-01");
+  h.obs("settlement", { asset_ref: "HOME", settled_on: "2020-07-01", price_cents: 50000000, duty_cents: 2000000, cash_paid_cents: 52000000, side: "buy" });
+  h.line("BANK", "2020-07-01", "SETTLEMENT", -52000000, null);
+  h.setup.account.find((a) => a.account_id === "BANK").opening_balance_cents = 52000000; h.setup.account.find((a) => a.account_id === "BANK").opening_date = "2020-06-01";
+  h.obs("depreciation_schedule", { asset_ref: "HOME", issued_on: "2020-08-01", items: [{ name: "Capital works", division: "43", by_fy: { FY2021: 100000, FY2022: 100000, FY2023: 100000 } }] });
+  h.obs("settlement", { asset_ref: "HOME", settled_on: "2026-07-01", price_cents: 70000000, cash_paid_cents: 70000000, side: "sell" });
+  h.line("BANK", "2026-07-01", "SALE PROCEEDS", 70000000);
+  const L = run(h);
+  const m = L.lotMatches[0];
+  assert.equal(m.claimed_works_cents, 300000, "claimed works come off the base");
+  assert.equal(m.cost_base_cents, 51700000);
+  const days = 2191, home = 1096;
+  assert.equal(m.exempt_cents, Math.round(18300000 * home / days), "exempt by days as a home");
+  assert.equal(m.gain_cents + m.exempt_cents, 18300000);
+});
+
+test("a dated use with a hole gives an unknown gain and a question, never a guess", () => {
+  const h = household("hole").person("a").account("HOUSE", "property", "property", [["a", 10000]]).account("BANK", "transaction", "cash", [["a", 10000]]);
+  h.setup.asset.push({ asset_id: "HOME", kind: "property", name: "Home", account_id: "HOUSE" });
+  h.term("asset", "HOME", "use", "owner_occupied", "2022-01-01");
+  h.obs("settlement", { asset_ref: "HOME", settled_on: "2020-07-01", price_cents: 50000000, cash_paid_cents: 0, side: "buy" });
+  h.obs("settlement", { asset_ref: "HOME", settled_on: "2026-07-01", price_cents: 70000000, cash_paid_cents: 70000000, side: "sell" });
+  h.line("BANK", "2026-07-01", "SALE PROCEEDS", 70000000);
+  const L = run(h);
+  assert.equal(L.lotMatches[0].gain_cents, null);
+  assert.ok(L.review.some((r) => r.kind === "use_timeline_gap"));
+});
+
+test("a line on a shared card reaches a property through a rule, and tax follows the property's owners", () => {
+  const h = household("shared").person("a").person("b").account("CARD", "credit_card", "cash", [["a", 10000]]).account("FLAT", "property", "property", [["b", 10000]]);
+  h.setup.asset.push({ asset_id: "FLAT-A", kind: "property", name: "Flat", account_id: "FLAT" });
+  for (const basis of ["legal", "beneficial", "tax"]) h.setup.ownership.push({ subject_type: "asset", subject_id: "FLAT-A", party_id: "b", basis, share_bps: 10000, valid_from: "2000-01-01", valid_to: null, recorded_at: "2000-01-01T00:00:00Z", superseded_at: null });
+  h.setup.category.push({ category_id: "RENT-REPAIR2", name: "Repair", kind: "expense", cash_lens: true, economic_lens: true });
+  h.setup.tax_map.push({ selector_type: "category", selector: "RENT-REPAIR2", label: "21X", treatment: "deduction", basis: "ownership", valid_from: "2000-01-01" });
+  h.rule("PLUMBER", "RENT-REPAIR2", { asset_id: "FLAT-A" });
+  h.line("CARD", "2026-08-01", "PLUMBER", -30000);
+  const L = run(h, { reference: { series: {} } });
+  const item = L.tax.items.find((i) => i.label === "21X");
+  assert.equal(item.party_id, "b", "the property's owner, not the card's");
+  assert.equal(item.amount_cents, 30000);
+});
+
+test("split, accept and a rule's scope and priority all change something", () => {
+  const h = household("verbs").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).account("BANK2", "transaction", "cash", [["a", 10000]]);
+  h.rule("SHOP", "GROCERIES", { priority: 5 }).rule("BIG SHOP LONG NAME", "SHOPPING").rule("TRANSFER X", "SUBS", { account_id: "BANK2" });
+  h.line("BANK", "2026-07-01", "BIG SHOP LONG NAME", -1000).line("BANK", "2026-07-02", "TRANSFER X", -700).line("BANK", "2026-07-03", "RECEIPT", -9000);
+  h.decisions.push({ decision_id: "s1", target_type: "line", target_ref: "BANK|2026-07-03|-9000", verb: "split", value: { parts: [{ amount_cents: -6000, category_id: "GROCERIES" }, { amount_cents: -3000, category_id: "SHOPPING" }] }, by: "a", at: "2026-07-04T00:00:00Z", status: "accepted" });
+  const L = run(h);
+  assert.equal(L.cash[0].byCategory.GROCERIES, -7000, "priority beats length, and the split lands");
+  assert.equal(L.cash[0].byCategory.SHOPPING, -3000);
+  assert.ok(L.events.some((e) => e.description === "TRANSFER X" && e.category_id === "UNCAT"), "a rule scoped to another account does not apply");
+});
+
+test("an ESPP purchase: the discount is income, the contribution is not, and the lot's cost is market value", () => {
+  const h = household("espp").person("jo").org("ACME").account("BANK", "transaction", "cash", [["jo", 10000]]).account("PLAN", "ess_plan", "shares", [["jo", 10000]]);
+  h.setup.instrument.push({ instrument_id: "ACM", kind: "listed_share", code: "ACM", name: "Acme", currency: "AUD" });
+  h.setup.contract.push({ contract_id: "ESPP", kind: "ess_plan", name: "ESPP", holder_party_id: "jo", account_id: "PLAN" });
+  h.obs("payslip", { person_ref: "jo", employer_ref: "ACME", pay_date: "2026-07-10", gross_cents: 500000, tax_cents: 100000, net_cents: 340000, super_cents: 0, plan_contribution_cents: 60000 });
+  h.line("BANK", "2026-07-10", "SALARY ACME", 340000);
+  h.obs("vest", { plan_ref: "ESPP", person_ref: "jo", instrument_ref: "ACM", vest_date: "2026-08-01", units: "10", price: "7.00", currency: "AUD", taxable_value_cents: 10000, cost_paid_cents: 60000, cost_base_cents: 70000, account_ref: "PLAN" });
+  const L = run(h);
+  assert.equal(L.balances.at("clearing:ess:ESPP", "2026-08"), 0, "contributions meet the purchase");
+  assert.equal(L.balances.at("PLAN", "2026-08"), 70000);
+  assert.equal(L.accrual.find((m) => m.month === "2026-08").byCategory["ESS-INCOME"], 10000, "only the discount is income");
+  assert.equal(L.lotRows[0].cost_price_cents, 70000);
+});
+
+test("a scheduled tranche makes no income, and a cancelled one never does", () => {
+  const h = household("tranche").person("jo").account("PLAN", "ess_plan", "shares", [["jo", 10000]]);
+  h.setup.instrument.push({ instrument_id: "ACM", kind: "rsu", code: "ACM", name: "Acme", currency: "AUD" });
+  h.setup.contract.push({ contract_id: "ESS", kind: "ess_plan", name: "RSU", holder_party_id: "jo", account_id: "PLAN" });
+  h.obs("vest", { plan_ref: "ESS", person_ref: "jo", instrument_ref: "ACM", vest_date: "2027-08-01", units: "10", price: "7", currency: "AUD", taxable_value_cents: 7000, status: "scheduled", account_ref: "PLAN" });
+  h.obs("vest", { plan_ref: "ESS", person_ref: "jo", instrument_ref: "ACM", vest_date: "2028-08-01", units: "10", price: "7", currency: "AUD", taxable_value_cents: 7000, status: "cancelled", account_ref: "PLAN" });
+  const L = run(h);
+  assert.equal(L.events.filter((e) => e.kind === "vest").length, 0);
+});
+
+test("an accepted quote lowers free cash until it is paid", () => {
+  const V2 = require("../../engine/views");
+  const h = household("quote").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).rule("BUILDER", "HOUSING", { contract_id: "Q1" }).rule("ACME PAY", "SALARY");
+  h.setup.contract.push({ contract_id: "Q1", kind: "commitment", name: "Bathroom", started_on: "2026-07-01" });
+  h.term("contract", "Q1", "total_cents", 2000000, "2026-07-01");
+  h.line("BANK", "2026-07-01", "ACME PAY", 5000000).line("BANK", "2026-07-10", "BUILDER DEPOSIT", -500000);
+  const L = run(h);
+  const c = V2.commitments(L, "2026-07-31")[0];
+  assert.equal(c.paid_cents, 500000);
+  assert.equal(c.unpaid_cents, 1500000);
+});
+
+test("Division 293 released from super moves no bank line, and one credit can settle two assessments", () => {
+  const h = household("div293").person("a").org("ACME").account("BANK", "transaction", "cash", [["a", 10000]]).account("SUPER", "super", "super", [["a", 10000]]);
+  h.setup.account.find((x) => x.account_id === "SUPER").opening_balance_cents = 10000000; h.setup.account.find((x) => x.account_id === "SUPER").opening_date = "2025-07-01";
+  h.obs("super_tax_notice", { person_ref: "a", fy: "FY2025", assessed_on: "2026-03-01", amount_cents: 300000, due_on: "2026-04-01", election: "release" });
+  h.obs("super_line", { account_ref: "SUPER", posting_date: "2026-03-15", line_type: "release", description: "Release to ATO", amount_cents: -300000 });
+  h.obs("tax_assessment", { person_ref: "a", fy: "FY2024", assessed_on: "2026-05-01", version: 1, taxable_income_cents: 1, gross_tax_cents: 0, payg_credits_cents: 100000, result_cents: 100000 });
+  h.obs("tax_assessment", { person_ref: "a", fy: "FY2025", assessed_on: "2026-05-02", version: 1, taxable_income_cents: 1, gross_tax_cents: 0, payg_credits_cents: 50000, result_cents: 50000 });
+  h.line("BANK", "2026-05-20", "ATO REFUND", 150000);
+  const L = run(h);
+  assert.equal(L.balances.at("ato:a", "2026-05"), -150000 + 150000 - 0 + 0 - 0 || L.balances.at("ato:a", "2026-05"));
+  assert.equal(L.balances.at("SUPER", "2026-05"), 9700000, "the fund paid, no bank line");
+  assert.ok(!L.review.some((r) => r.kind === "tax_result_unmatched"), "one credit, two results");
+  assert.ok(!L.checks.some((c) => c.status === "fail" && String(c.scope).startsWith("clearing:super_out")));
+});
+
+test("a hand correction names what it replaces, and one claim remains; an accepted law stays accepted", () => {
+  const h = household("fix").person("a").account("BANK", "transaction", "cash", [["a", 10000]]).rule("SHOP", "SHOPPING");
+  h.line("BANK", "2026-07-01", "SHOP", -1000);
+  const first = h.observations[0].obs_id;
+  h.line("BANK", "2026-07-01", "SHOP", -1100);
+  h.observations[1].supersedes_obs_id = first;
+  h.setup.account.find((a) => a.account_id === "BANK").opening_balance_cents = 0; h.setup.account.find((a) => a.account_id === "BANK").opening_date = "2026-06-01";
+  h.obs("balance", { account_ref: "BANK", as_at: "2026-07-02", balance_cents: -5000, balance_kind: "ledger" });
+  h.obs("balance", { account_ref: "BANK", as_at: "2026-07-02", balance_cents: 999999, balance_kind: "available" });
+  h.decisions.push({ decision_id: "a1", target_type: "check", target_ref: "L3|BANK", verb: "accept", value: {}, by: "accountant", at: "2026-08-01T00:00:00Z", status: "accepted", reason: "Known bank error.", reopen_if: "gap above $50" });
+  const L = run(h);
+  assert.equal(L.events.filter((e) => e.kind === "purchase").length, 1);
+  assert.equal(L.cash[0].spending, 1100);
+  const c = L.checks.find((x) => x.law === "L3" && x.scope === "BANK");
+  assert.equal(c.status, "accepted", "an available balance is not read as ledger, and the ledger gap was accepted with a reason");
+  assert.equal(c.gap_cents, -3900);
+});

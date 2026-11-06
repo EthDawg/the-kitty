@@ -34,7 +34,8 @@ function run() {
   const rules = mode === "returning" ? readJson(path.join(world, "decisions", "rules.json"), []) : [];
   const schema = { events: readJson(path.join(root, "schema", "events.json")), metrics: readJson(path.join(root, "schema", "metrics.json")) };
   const reference = readJson(path.join(root, "reference", "au.json"), null);
-  const L = rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions, rules, schema, reference });
+  const receipts = (intake.files || []).map((f) => { const parts = f.path.split("/"); return { stream_id: parts[1], day: parts[2] }; });
+  const L = rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions, rules, schema, reference, receipts });
   const t2 = process.hrtime.bigint();
   const s = score(L, world);
   const secs = (a, b) => Number(b - a) / 1e9;
