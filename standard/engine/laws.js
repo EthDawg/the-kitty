@@ -3,6 +3,7 @@
 "use strict";
 const { groupBy, cmp, monthOf, monthEnd, nextMonth, monthsBetween, addDays, daysBetween, fyOf, fyRange, parseUnits, fmtUnits, hash64, stableStringify } = require("./util");
 const { activeOn, termAt, validOn } = require("./temporal");
+const V = require("./views");
 
 const row = (law, scope, status, extra = {}) => ({ law, scope, status, expected: extra.expected ?? null, actual: extra.actual ?? null, gap_cents: extra.gap_cents ?? null, detail: extra.detail ?? null, accepted_by: null });
 const money = (c) => (c == null ? "" : (c / 100).toFixed(2));
@@ -59,17 +60,28 @@ const laws = {
       const a = X.accounts.get(account);
       if (!a) continue;
       if (a.fidelity === "snapshot") continue;
+      /* Interval by interval, so one error stays in its interval and a hole cannot hide a contradiction. The movement between two stated
+         balances must be the ledger's movement. Where the interval spans a month with no lines held, a difference is a gap; otherwise a fail. */
       const series = L.dailyBalance(account);
-      let bad = 0, worst = null;
-      for (const s of [...rows].sort((x, y) => cmp(x.date, y.date))) {
-        const b = series(s.date);
-        if (s.any ? !s.any.includes(b) : b !== s.cents) { bad += 1; if (!worst) worst = { s, b }; }
-      }
-      // A break that follows a hole in the evidence is a gap: lines are missing, nothing contradicts. A break with no hole before it is a fail.
       const held = [...new Set((L.linesByAccount.get(account) || []).map((l) => monthOf(l.date)))].sort();
-      const hole = held.length ? monthsBetween(held[0], held[held.length - 1]).find((m) => !held.includes(m)) : null;
-      const afterHole = bad && hole && monthOf(worst.s.date) >= hole;
-      out.push(row("L3", account, !bad ? "pass" : afterHole ? "gap" : "fail", bad ? { expected: money(worst.s.cents), actual: money(worst.b), gap_cents: worst.s.cents - worst.b, detail: afterHole ? `Lines are missing from ${hole}; ${bad} later balances are off by what they held.` : `${bad} of ${rows.length} stated balances disagree; first on ${worst.s.date}.` } : { detail: `${rows.length} stated balances tie.` }));
+      const holes = held.length ? new Set(monthsBetween(held[0], held[held.length - 1]).filter((m) => !held.includes(m))) : new Set();
+      const day = (s) => { const b = series(s.date); return s.any && s.any.includes(b) ? b : s.cents; };
+      const sorted = [...rows].sort((x, y) => cmp(x.date, y.date));
+      let fails = 0, gaps = 0, worst = null, prev = null;
+      for (const s of sorted) {
+        if (prev && prev.date !== s.date) {
+          const stated = day(s) - day(prev), moved = series(s.date) - series(prev.date);
+          if (stated !== moved) {
+            const spans = monthsBetween(monthOf(prev.date), monthOf(s.date)).some((m) => holes.has(m));
+            if (spans) gaps += 1; else { fails += 1; if (!worst) worst = { s, prev, gap: stated - moved }; }
+          }
+        }
+        prev = s;
+      }
+      // The first stated balance has no interval before it, so it is held to the ledger itself.
+      const first = sorted[0];
+      if (first && day(first) !== series(first.date) && !holes.size) { fails += 1; if (!worst) worst = { s: first, gap: day(first) - series(first.date) }; }
+      out.push(row("L3", account, fails ? "fail" : gaps ? "gap" : "pass", fails ? { gap_cents: worst.gap, detail: `${fails} of ${sorted.length} intervals disagree; first ending ${worst.s.date}.` } : gaps ? { detail: `Lines are missing in ${gaps} intervals.` } : { detail: `${sorted.length} stated balances tie.` }));
     }
     // Between held evidence: months with no lines on an open account are a gap, never a fail.
     for (const [account, lines] of L.linesByAccount) {
@@ -245,13 +257,27 @@ const laws = {
     return gaps.length ? gaps.map((r) => row("L13", r.stream_id, "gap", { expected: String(r.expected), actual: String(r.have), detail: `Missing ${r.missing.join(", ")}.` })) : [row("L13", `${rows.length} streams`, "pass")];
   },
 
+  // Quarter by quarter: what payslips said went to the fund had reached it by the deadline for that quarter.
   L14(L) {
     const out = [];
-    for (const [account, series] of L.balances.table) {
-      if (!account.startsWith("clearing:super:")) continue;
-      const last = L.balances.months[L.balances.months.length - 1];
-      const open = series.get(last) || 0;
-      out.push(row("L14", account, Math.abs(open) > 2000000 ? "fail" : "pass", { gap_cents: open, detail: `Contributions on payslips not yet at the fund: ${money(open)}.` }));
+    const flows = new Map();
+    for (const e of L.events) {
+      if (e.kind === "wage") for (const [acct] of [[e.refs.fund]]) { if (!flows.has(acct)) flows.set(acct, { due: [], got: [] }); flows.get(acct).due.push({ d: e.occurred_on, c: (e.fields.super || 0) + (e.fields.sacrifice || 0) }); }
+      if (e.kind === "super_contribution") { const a = e.refs.account; if (!flows.has(a)) flows.set(a, { due: [], got: [] }); flows.get(a).got.push({ d: e.occurred_on, c: e.amount_cents }); }
+    }
+    for (const [account, f] of flows) {
+      if (!f.got.length) continue;
+      const first = f.due.map((x) => x.d).sort()[0];
+      let late = 0, worst = null;
+      const quarters = monthsBetween(monthOf(first), monthOf(L.asOf)).filter((m) => ["03", "06", "09", "12"].includes(m.slice(5)));
+      for (const q of quarters) {
+        const end = monthEnd(q), lag = end < "2026-07-01" ? 35 : 14, deadline = addDays(end, lag);
+        if (deadline > L.asOf) continue;
+        const due = f.due.filter((x) => x.d <= end).reduce((s, x) => s + x.c, 0);
+        const got = f.got.filter((x) => x.d <= deadline).reduce((s, x) => s + x.c, 0);
+        if (due - got > 100) { late += 1; if (!worst) worst = { q, gap: due - got }; }
+      }
+      out.push(row("L14", account, late ? "fail" : "pass", late ? { gap_cents: worst.gap, detail: `${late} quarters short at the deadline, first ${worst.q}.` } : { detail: `${quarters.length} quarters reached the fund on time.` }));
     }
     return out.length ? out : [row("L14", "super", "skip")];
   },
@@ -266,7 +292,7 @@ const laws = {
 
   L16(L) {
     if (!L.tax || !L.tax.caps) return [row("L16", "caps", "skip")];
-    return L.tax.caps.map((c) => row("L16", `${c.person} ${c.fy} ${c.cap}`, c.used > c.limit ? "open" : "pass", { expected: money(c.limit), actual: money(c.used) }));
+    return L.tax.caps.length ? L.tax.caps.map((c) => row("L16", `${c.person} ${c.fy} ${c.cap}`, c.used > c.limit ? "open" : "pass", { expected: money(c.limit), actual: money(c.used), gap_cents: Math.max(c.used - c.limit, 0), detail: c.used > c.limit ? "Over the cap for that year." : null })) : [row("L16", "caps", "skip")];
   },
 
   L17(L) {
@@ -275,9 +301,14 @@ const laws = {
     return out.length ? out : [row("L17", `${L.decisions.length} decisions`, "pass")];
   },
 
+  // One dollar, one level: name what the wrapper's balance already counts, and leave it out of the headline.
   L18(L) {
     const wrappers = L.parties.filter((p) => ["smsf", "trust", "company"].includes(p.kind));
-    return [row("L18", "one level", wrappers.length ? "pass" : "skip", { detail: wrappers.length ? `${wrappers.length} wrappers held as one value each.` : "No wrappers." })];
+    if (!wrappers.length) return [row("L18", "one level", "skip", { detail: "No wrappers." })];
+    const held = [...V.wrappedAccounts(L)];
+    const last = L.balances.months[L.balances.months.length - 1];
+    const cents = held.reduce((s, a) => s + L.balances.at(a, last), 0);
+    return wrappers.map((w) => row("L18", w.party_id, held.length ? "open" : "pass", { gap_cents: cents, detail: held.length ? `${money(cents)} held inside it is left out of net worth, so it counts once.` : "Held as one value." }));
   },
 
   L20(L) {

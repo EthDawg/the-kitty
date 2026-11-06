@@ -106,11 +106,14 @@ function score(L, worldRoot) {
   if (lots) {
     const pairs = [];
     for (const [code, rows] of Object.entries(lots.instruments)) {
-      const mine = L.lotRows.filter((l) => l.instrument_id === code).reduce((n, l) => n + (l.cost_price_cents || 0) + (l.cost_incidental_cents || 0), 0);
-      void mine;
-      pairs.push([`${code} parcels`, rows.length, L.lotRows.filter((l) => l.instrument_id === code).length]);
+      const held = new Map();
+      // Truth lists what is still held, so a parcel part-sold shows the cost left in it.
+      for (const l of L.lotRows.filter((x) => x.instrument_id === code && x.units_open > 0n)) held.set(l.acquired_on, (held.get(l.acquired_on) || 0) + l.cost_price_cents + l.cost_incidental_cents);
+      const want = new Map();
+      for (const r of rows) want.set(r.date, (want.get(r.date) || 0) + r.cost);
+      for (const [d, c] of want) pairs.push([`${code} ${d}`, c, held.get(d) || 0]);
     }
-    add(cmp("lots: parcels per instrument", pairs));
+    add(cmp("lots: cost of each parcel", pairs));
   }
   const cgt = T("cgt.json");
   if (cgt && L.tax) {
@@ -123,13 +126,15 @@ function score(L, worldRoot) {
   if (notices) {
     const pairs = [];
     const { termAt } = require("../engine/temporal");
+    const pct = (v) => Math.round(Number(v) * 100);
     for (const n of notices) {
-      const final = notices.filter((x) => x.contract === n.contract && x.effective_on <= n.effective_on && x.notified_on <= "9999").sort((a, b) => (a.notified_on < b.notified_on ? -1 : a.notified_on > b.notified_on ? 1 : 0)).pop();
-      const hit = notices.find((x) => x.contract === n.contract && x.effective_on === n.effective_on && x.notified_on === n.notified_on);
-      pairs.push([`${n.contract} ${n.effective_on} as known ${n.notified_on}`, Math.round(Number(hit.value) * 100), Math.round(Number(termAt(L.termIdx, "contract", n.contract, "interest_rate", n.effective_on, n.notified_on)) * 100)]);
-      void final;
+      // what was believed the day it was notified
+      pairs.push([`${n.contract} ${n.effective_on} as known ${n.notified_on}`, pct(n.value), pct(termAt(L.termIdx, "contract", n.contract, "interest_rate", n.effective_on, n.notified_on))]);
+      // and what is believed now, which a later correction can change
+      const later = notices.filter((x) => x.contract === n.contract && x.effective_on <= n.effective_on).sort((a, b) => (a.notified_on < b.notified_on ? 1 : a.notified_on > b.notified_on ? -1 : a.effective_on < b.effective_on ? 1 : -1))[0];
+      pairs.push([`${n.contract} ${n.effective_on} as known now`, pct(later.value), pct(termAt(L.termIdx, "contract", n.contract, "interest_rate", n.effective_on))]);
     }
-    add(cmp("rates: the rate on each date, as known that day", pairs));
+    add(cmp("rates: the rate on each date, as known then and as known now", pairs));
   }
   const vals = T("valuations.json");
   if (vals) {
@@ -146,9 +151,10 @@ function score(L, worldRoot) {
   }
   const bills = T("bills.json");
   if (bills) {
-    const attached = new Set();
-    for (const e of L.events) for (const w of e.witnesses || []) if (w.role === "corroborates" && L.obsKind && L.obsKind.get(w.obs_id) === "bill") attached.add(e.event_id);
-    add(cmp("bills: attached to their bank line", [["bills", bills.length, attached.size]]));
+    const seen = new Map();
+    for (const e of L.events) for (const w of e.witnesses || []) if (L.obsKind && L.obsKind.get(w.obs_id) === "bill" && e.line) seen.set(`${e.line.account}|${e.line.date}|${e.line.cents}`, (seen.get(`${e.line.account}|${e.line.date}|${e.line.cents}`) || 0) + 1);
+    const pairs = bills.filter((b) => b.line).map((b) => [`${b.kind} ${b.bill_date}`, 1, seen.get(b.line.join("|")) ? 1 : 0]);
+    add(cmp("bills: each attached to its bank line", pairs));
   }
   const tax = T("tax.json");
   if (tax && L.tax) {
@@ -168,7 +174,7 @@ function score(L, worldRoot) {
       results.push([`gross tax ${person} ${fy}`, row.gross_tax_cents, e.gross_tax_cents]);
       results.push([`refund or payable ${person} ${fy}`, row.result_cents, e.result_cents]);
     }
-    add(cmp("tax: gross tax and the result, against the assessment", results, 200));
+    add(cmp("tax: gross tax and the result, against the assessment, within 99 cents", results, 99));
   }
   // Base truth: the category the world gave every bank line. Conservation cannot catch a wrong category, so this is where it is caught.
   const months = tryJson(path.join(worldRoot, "..", "..", "..", "portals", "data", "months.json"));

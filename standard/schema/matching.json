@@ -1,0 +1,17 @@
+{
+  "_about": "The matching model, in one place. Identity is (account, date, cents) plus these windows, and each is a choice with a reason. A witness pairs only inside its window; outside it, it stays a question. The engine reads these; nothing is a magic number in code.",
+  "windows_days": {
+    "transfer": { "days": 5, "why": "Bank-to-bank transfers settle within a few business days." },
+    "wage": { "days": 5, "why": "A deposit can land before or after the pay date." },
+    "settle": { "days": 7, "why": "T+2 plus a weekend and a public holiday." },
+    "pending": { "days": 7, "why": "A hold posts or drops within a week." },
+    "date_drift": { "days": 3, "why": "A statement dates by transaction, a download by posting." },
+    "rent_disbursement": { "days": 10, "why": "Agents disburse after month end." },
+    "tax_result": { "days": 60, "why": "A refund follows its assessment within weeks." },
+    "receipt": { "days": 5, "why": "A receipt and its card line." },
+    "bill": { "days": 35, "why": "Paid near the due date." },
+    "childcare": { "days": 20, "why": "Gap fee debited after the statement." },
+    "policy": { "days": 14, "why": "A premium paid around the start of its period." }
+  },
+  "similarity": { "minimum": 0.25, "why": "Two descriptions of one line share at least a quarter of their words." }
+}

@@ -38,10 +38,12 @@ A payslip and its bank deposit are one salary. A CSV and its PDF statement are o
 accounts. A rental statement, a bank line and a lender statement can all describe the same dollars. Add them up and the
 household earns three times what it does.
 
-The usual fix is a filter after the fact. Here the double count has no way in. **One fact is recognised once, by the best
-witness, and every other witness clears against it.** Every two-sided fact passes through a clearing account that must
-return to zero, so a missing payslip shows up as an open item with an age and a name, not as spending. Two identical
-coffees on one day stay two, and one coffee in two overlapping downloads stays one, because identity is a multiset.
+The usual fix is a filter after the fact. Here **one fact is recognised once, by the best witness, and every other witness
+clears against it.** Every two-sided fact passes through a clearing account that must return to zero, so an unmatched side
+is an open item with an age and a name, not spending. Two identical coffees on one day stay two, and one coffee in two
+overlapping downloads stays one, because identity is a multiset. When two witnesses cannot be proved one or two, it stays
+a question for a person. The matching model is declared in [`schema/matching.json`](schema/matching.json), every window
+with its reason.
 
 Then [twenty laws](SPEC.md#8-the-laws) check that the numbers can all be true at once. They include the things that are
 hard to fake: statements that chain, interest that matches the rate on each day net of the offset, units that match the
@@ -98,22 +100,22 @@ observations.
 
 | Level | Asks |
 |---|---|
-| **Replay** | From nothing but files, are the balances, income, tax and net worth right to the cent? |
-| **Ladder** | Presentation rungs mangle the delivery and must land on the same bundle hash. Semantic rungs break one thing and must ring the right alarm in the right place. |
+| **Replay** | From files plus a person's setup, are the balances, income, tax and net worth right to the cent? |
+| **Ladder** | Presentation rungs mangle the delivery and must land on the same bundle hash. Semantic rungs break one thing and must ring the right alarm. One rung per law, so a hollow law fails. |
 | **Households** | Does the model tell the truth about a renter, a retiree, a trust, a separation, an SMSF, a mid-life start? |
 | **Keep and update** | Tailor it, type in the sheet, take an update. Are originals byte-identical and every decision still bound? |
 | **Cold start** | How many tokens does it cost a cheap model to read this household from scratch? |
 
-Some oracle figures were computed independently by Google Sheets formulas, not by this engine.
+Some oracle figures were computed by Google Sheets formulas, not by this engine. The scoreboard says plainly what the eval is given and where its truth comes from, and a household generated blind, under [`eval/heldout/`](eval/heldout/), tests what tuning cannot.
 
 ## Compared with
 
 | | Keeps source evidence | Double counts structurally impossible | Bitemporal | Tax as law by date | Model-writable importers | Benchmark |
 |---|---|---|---|---|---|---|
 | Plaid, CDR, Open Banking schemas | no | no | no | no | n/a | no |
-| Beancount, Ledger | partly | yes, within what you enter | no | no | no | no |
+| Beancount, Ledger | partly | within what you enter | no | no | no | no |
 | Budgeting apps | no | no | no | no | no | no |
-| This | yes | yes | yes | yes | yes | yes |
+| This | yes | where witnesses pair; otherwise a question | yes | yes | yes | yes |
 
 Field names follow the Consumer Data Right where one applies, so a CDR feed is one more container. Double-entry bookkeeping is old
 and good; this keeps it, and puts evidence, time and judgement around it.
@@ -130,6 +132,7 @@ when the base moves. See [SPEC section 13](SPEC.md#13-upgrades).
 - Fictional data. Numbers here are not tax advice, and a lodged return outranks any draft.
 - Australia only for now. A second jurisdiction is a reference file and a tax map.
 - Company, trust and SMSF returns and sole-trader derivation are declined for now: held as evidence, shown as not modelled.
+- The engine is pure and written to run in a page, but it has not been bundled for a browser or a phone yet.
 - Surfaces around the model are honest about what they are. See [`EXPERIMENTAL.md`](EXPERIMENTAL.md).
 
 ## Contributing

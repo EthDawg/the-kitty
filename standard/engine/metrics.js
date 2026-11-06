@@ -20,7 +20,7 @@ const REGISTRY = {
   "income.receipts": (L) => wageByFy(L, "gross"),
   "income.total": (L) => taxField(L, "taxable_income_cents"),
   "income.taxable": (L) => taxField(L, "taxable_income_cents"),
-  "income.surcharge": (L) => taxField(L, "taxable_income_cents"),
+  "income.surcharge": (L) => taxField(L, "surcharge_income_cents"),
   "income.composition": (L) => { const out = []; const fys = [...new Set(L.events.map((e) => fyOf(e.occurred_on)))].sort(); for (const fy of fys) for (const p of people(L)) { const c = composition(L, p, fy); for (const part of c.parts) out.push({ grain: `${fy}|${p}|${part.section}`, value: part.amount_cents, grade: c.grade }); } return out; },
   "position.balance": (L) => L.balances.rows.filter((r) => r.balance_cents).map((r) => ({ grain: `${r.month_end}|${r.account_id}`, value: r.balance_cents })),
   "position.cash": (L) => L.netWorth.map((r) => ({ grain: r.month, value: r.groups.cash || 0 })),

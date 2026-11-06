@@ -254,7 +254,7 @@ function buildLots(log, R) {
   for (const t of rows) {
     if (t.kind === "buy") {
       seq += 1;
-      lots.push({ lot_id: `lot_${seq}`, seq, instrument_id: t.instrument, account_id: t.holding, party_id: t.person || null, acquired_on: t.date, units_bought: t.units, units_open: t.units, cost_known: t.cost != null, cost_price_cents: t.cost ?? null, cost_incidental_cents: t.incidental || 0, cost_ownership_cents: 0, cost_capital_cents: 0, cost_adjustment_cents: 0, ess: !!t.ess, ref: t.ref });
+      lots.push({ lot_id: `lot_${seq}`, seq, instrument_id: t.instrument, account_id: t.holding, party_id: t.person || null, acquired_on: t.date, units_bought: t.units, units_open: t.units, cost_known: t.cost != null, original_cost_cents: t.cost == null ? null : t.cost + (t.incidental || 0), cost_price_cents: t.cost ?? null, cost_incidental_cents: t.incidental || 0, cost_ownership_cents: 0, cost_capital_cents: 0, cost_adjustment_cents: 0, ess: !!t.ess, ref: t.ref });
     } else if (t.kind === "action") {
       if (t.action === "split" || t.action === "consolidation") {
         const [a, b] = String(t.ratio).split(":").map(Number);

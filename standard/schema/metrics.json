@@ -60,6 +60,7 @@
       "lens": "economic",
       "laws": [
         "L1",
+        "L2",
         "L8"
       ],
       "stability": "stable",
@@ -71,6 +72,7 @@
       "lens": "economic",
       "laws": [
         "L1",
+        "L2",
         "L8"
       ],
       "stability": "stable",
@@ -80,7 +82,9 @@
       "unit": "cents",
       "grain": "fy,person",
       "lens": "economic",
-      "laws": [],
+      "laws": [
+        "L2"
+      ],
       "stability": "stable",
       "doc": "Gross receipts before any cost, from payslips and activities."
     },
@@ -363,7 +367,7 @@
         "L10"
       ],
       "stability": "experimental",
-      "doc": "This year's tax at the current run rate."
+      "doc": "This year's tax at the current run rate. No rows yet."
     },
     "advice.tax_return": {
       "unit": "text",
@@ -373,7 +377,7 @@
         "L11"
       ],
       "stability": "experimental",
-      "doc": "A model reads the draft and asks what is missing. Needs the Australian Tax MCP wired in."
+      "doc": "A model reads the draft and asks what is missing. Needs the Australian Tax MCP wired in. No rows yet."
     }
   }
 }

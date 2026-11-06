@@ -204,30 +204,309 @@
   "2027-03": 611437
  },
  "tax": {
-  "JORDAN FY2019": 10444400,
-  "MIA FY2019": 6426100,
-  "JORDAN FY2020": 10779500,
-  "MIA FY2020": 6872000,
-  "JORDAN FY2021": 10840500,
-  "MIA FY2021": 7155300,
-  "JORDAN FY2022": 11808900,
-  "MIA FY2022": 6212700,
-  "JORDAN FY2023": 11573200,
-  "MIA FY2023": 5576700,
-  "JORDAN FY2024": 12488500,
-  "MIA FY2024": 6439900,
-  "JORDAN FY2025": 12916300,
-  "MIA FY2025": 6735800,
-  "JORDAN FY2026": 12297200,
-  "MIA FY2026": 6817300,
-  "JORDAN FY2027": 9986900,
-  "MIA FY2027": 5662600,
-  "JORDAN FY2028": 0,
-  "MIA FY2028": 0,
-  "JORDAN FY2029": 0,
-  "MIA FY2029": 0,
-  "JORDAN FY2030": 0,
-  "MIA FY2030": 0
+  "JORDAN FY2019": [
+   10444400,
+   190518
+  ],
+  "MIA FY2019": [
+   6426100,
+   77504
+  ],
+  "JORDAN FY2020": [
+   10779500,
+   200110
+  ],
+  "MIA FY2020": [
+   6872000,
+   72360
+  ],
+  "JORDAN FY2021": [
+   10840500,
+   247571
+  ],
+  "MIA FY2021": [
+   7155300,
+   50779
+  ],
+  "JORDAN FY2022": [
+   11808900,
+   243148
+  ],
+  "MIA FY2022": [
+   6212700,
+   53451
+  ],
+  "JORDAN FY2023": [
+   11573200,
+   271402
+  ],
+  "MIA FY2023": [
+   5576700,
+   47617
+  ],
+  "JORDAN FY2024": [
+   12488500,
+   281248
+  ],
+  "MIA FY2024": [
+   6439900,
+   55647
+  ],
+  "JORDAN FY2025": [
+   12916300,
+   226962
+  ],
+  "MIA FY2025": [
+   6735800,
+   22168
+  ],
+  "JORDAN FY2026": [
+   12297200,
+   521169
+  ],
+  "MIA FY2026": [
+   6817300,
+   181720
+  ],
+  "JORDAN FY2027": [
+   9986900,
+   380118
+  ],
+  "MIA FY2027": [
+   5662600,
+   352255
+  ],
+  "JORDAN FY2028": [
+   0,
+   0
+  ],
+  "MIA FY2028": [
+   0,
+   0
+  ],
+  "JORDAN FY2029": [
+   0,
+   0
+  ],
+  "MIA FY2029": [
+   0,
+   0
+  ],
+  "JORDAN FY2030": [
+   0,
+   0
+  ],
+  "MIA FY2030": [
+   0,
+   0
+  ]
  },
- "fingerprint": "3fced2c4f3dade1f"
+ "laws": {
+  "L1": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L2": {
+   "pass": 14,
+   "fail": 0,
+   "gap": 2,
+   "open": 1,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L3": {
+   "pass": 15,
+   "fail": 0,
+   "gap": 0,
+   "open": 1,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L4": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L5": {
+   "pass": 0,
+   "fail": 0,
+   "gap": 2,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L6": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 2
+  },
+  "L7": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L8": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L9": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L10": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L11": {
+   "pass": 16,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L12": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L13": {
+   "pass": 0,
+   "fail": 0,
+   "gap": 1,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L14": {
+   "pass": 2,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L15": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L16": {
+   "pass": 18,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L17": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L18": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L20": {
+   "pass": 1,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 0,
+   "accepted": 0
+  },
+  "L19": {
+   "pass": 0,
+   "fail": 0,
+   "gap": 0,
+   "open": 0,
+   "skip": 1,
+   "accepted": 0
+  }
+ },
+ "review": {
+  "open_item": 3
+ },
+ "grades": {
+  "stated": 859,
+  "reconciled": 1877,
+  "corroborated": 3553
+ },
+ "metric_rows": {
+  "cash.income": 98,
+  "cash.spending": 1338,
+  "cash.net": 98,
+  "cash.savings_rate": 97,
+  "budget.variance": 525,
+  "economic.income": 97,
+  "economic.expense": 97,
+  "income.receipts": 18,
+  "income.total": 24,
+  "income.taxable": 24,
+  "income.surcharge": 24,
+  "income.composition": 60,
+  "position.balance": 2213,
+  "position.cash": 98,
+  "position.net_worth": 98,
+  "position.net_worth_by_group": 784,
+  "position.net_worth_by_owner": 3,
+  "position.free_cash": 98,
+  "loan.interest": 205,
+  "loan.principal_paid": 99,
+  "loan.rate_on": 206,
+  "loan.expected_interest": 3,
+  "activity.net_income": 27,
+  "property.cost_base": 2,
+  "super.contributions": 18,
+  "super.cap_used": 18,
+  "shares.holdings": 6,
+  "shares.realised_gain": 12,
+  "tax.item": 356,
+  "tax.estimate": 24,
+  "tax.readiness": 18,
+  "things.refresh_due": 14,
+  "bills.committed": 1,
+  "evidence.coverage": 61,
+  "forecast.cash": 12
+ },
+ "fingerprint": "8f4d2edfef1d5607"
 }

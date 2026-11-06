@@ -276,7 +276,9 @@ function derive({ L, R, reference, setup }) {
     // Offsets cannot take income tax below zero, and they do not touch the levy or a HELP repayment.
     const taxAfter = gross - offsets;
     const result = payg + franking - taxAfter - levy - help;
-    out.estimates.push({ person, fy, taxable_income_cents: taxable, gross_tax_cents: gross, offsets_cents: offsets, levy_cents: levy, help_cents: help, payg_cents: payg, franking_cents: franking, foreign_cents: foreign, result_cents: result });
+    // Income for surcharge purposes adds back what taxable income hides: a net rental loss and reportable super.
+    const surcharge = taxable + Math.max(0, -rentNet) + get("RESC");
+    out.estimates.push({ person, fy, taxable_income_cents: taxable, surcharge_income_cents: surcharge, gross_tax_cents: gross, offsets_cents: offsets, levy_cents: levy, help_cents: help, payg_cents: payg, franking_cents: franking, foreign_cents: foreign, result_cents: result });
   }
 
   // ---------- L11: the draft against what was lodged. A lodged year is history; the gap is the finding ----------
@@ -382,4 +384,35 @@ function composition(L, person, fy) {
   return { fy, person, grade: "derived", parts: items.map((i) => ({ section: i.label, amount_cents: i.amount_cents })) };
 }
 
-module.exports = { derive, scaleTax, seriesAt, materialiseReturns, composition };
+/* How much of a year's expected evidence is held. A step every household has counts always; an optional step counts once something is held. */
+const STEPS = [
+  { id: "income", name: "Income statements", kinds: ["income_statement"], person: true },
+  { id: "payslips", name: "Payslips", kinds: ["payslip"], person: true },
+  { id: "interest", name: "Bank interest", events: (e) => e.category_id === "INTEREST" },
+  { id: "dividends", name: "Dividends and tax statements", kinds: ["dividend", "distribution"], optional: true },
+  { id: "rental", name: "Rental statements and loan interest", kinds: ["owner_statement"], optional: true },
+  { id: "super", name: "Super contributions", kinds: ["super_statement", "super_line"] },
+  { id: "health", name: "Private health statement", kinds: ["health_statement"], person: true, optional: true },
+  { id: "prefill", name: "ATO pre-fill", kinds: ["prefill"], person: true, optional: true },
+  { id: "lodged", name: "Lodged and assessed", kinds: ["tax_assessment"], person: true },
+];
+function readinessFor(L, R, fy, person) {
+  const { start, stop } = fyRange(fy);
+  const inYear = (o) => { const p = o.payload; const d = p.fy ? null : o.occurred_on || p.period_end || p.pay_date || p.as_at || p.posting_date; return p.fy ? p.fy === fy : d >= start && d < stop; };
+  const mine = (o) => { const ref = o.payload.person_ref; return !ref || R.partyOf(ref, stop) === person; };
+  const steps = STEPS.map((s) => {
+    const held = s.events ? L.events.filter((e) => s.events(e) && e.occurred_on >= start && e.occurred_on < stop).length : s.kinds.flatMap((k) => (R.byKind.get(k) || []).filter((o) => inYear(o) && (!s.person || mine(o)))).length;
+    const state = held ? "held" : "missing";
+    return { id: s.id, name: s.name, state, count: held, counts: state === "held" || !s.optional };
+  });
+  const relevant = steps.filter((s) => s.counts);
+  const held = relevant.filter((s) => s.state === "held").length;
+  return { fy, person, pct: relevant.length ? Math.round((held / relevant.length) * 100) : 0, held, needed: relevant.length, steps };
+}
+function readiness(L, R, setup) {
+  const adults = (setup.membership || []).filter((m) => m.role === "adult").map((m) => m.party_id);
+  const fys = [...new Set(L.events.map((e) => fyOf(e.occurred_on)))].sort();
+  return fys.flatMap((fy) => adults.map((p) => readinessFor(L, R, fy, p)));
+}
+
+module.exports = { derive, scaleTax, seriesAt, materialiseReturns, composition, readiness, readinessFor };

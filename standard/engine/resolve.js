@@ -6,6 +6,7 @@ const { collapse, similarity } = require("./lines");
 const { indexTerms, termAt, timeline, activeOn } = require("./temporal");
 const Engine = require("../../src/engine.js");
 const VOCAB = require("../schema/observations.json");
+const WINDOW = Object.fromEntries(Object.entries(require("../schema/matching.json").windows_days).map(([k, v]) => [k, v.days]));
 
 const dollarsToCents = (v) => Math.round(Number(v) * 100);
 const nz = (v) => (v == null ? 0 : v);
@@ -212,7 +213,7 @@ class Resolver {
     let seq = 0;
     for (const o of this.byKind.get("txn_line") || []) take(o, ++seq);
     const { lines, faults } = collapse(items);
-    for (const f of faults) this.review.push({ kind: f.kind, ref: f.ref, amount_cents: null, what: f.what, do: "" });
+    for (const f of faults) this.review.push({ kind: f.kind, ref: f.ref, amount_cents: f.cents ?? null, what: f.what, do: "" });
     this.lines = lines;
     this.linesByAccount = groupBy(lines, (l) => l.account);
     // super lines collapse the same way, in their own space
@@ -288,7 +289,7 @@ class Resolver {
       const k = c && this.contracts.get(c);
       if (!k) continue;
       const on = p.paid_on || p.period_start;
-      const l = this.lines.find((x) => x.cents === -p.premium_cents && !x.cls.contract_id && Math.abs(daysBetween(on, x.date)) <= 14 && (!x.cls.category_id || x.cls.via !== "decision"));
+      const l = this.lines.find((x) => x.cents === -p.premium_cents && !x.cls.contract_id && Math.abs(daysBetween(on, x.date)) <= WINDOW.policy && (!x.cls.category_id || x.cls.via !== "decision"));
       if (!l) continue;
       l.cls.contract_id = c; l.policyWitness = o;
       if (k.category_id) { l.cls.category_id = k.category_id; l.cls.via = "contract"; }
@@ -339,18 +340,36 @@ class Resolver {
         grade: "stated", rule: "payslip", witnesses: this.docWitness(o),
         fields: { gross: p.gross_cents, tax: p.tax_cents, super: nz(p.super_cents), plan_contribution: nz(p.plan_contribution_cents), sacrifice: nz(p.salary_sacrifice_cents), allowance: nz(p.allowance_cents), reimbursement: nz(p.reimbursement_cents), post_tax: nz(p.post_tax_deductions_cents) },
         refs: { person, employer, fund: fund || this.defaultFund(person), plan: planOf(this, person) } });
-      const cand = (byAmount.get(p.net_cents) || []).filter((l) => !l.claimed && Math.abs(daysBetween(p.pay_date, l.date)) <= 5)
+      const near = (l) => !l.claimed && Math.abs(daysBetween(p.pay_date, l.date)) <= WINDOW.wage;
+      const cand = (byAmount.get(p.net_cents) || []).filter(near)
         .sort((a, b) => Math.abs(daysBetween(p.pay_date, a.date)) - Math.abs(daysBetween(p.pay_date, b.date)) || similarity(b.desc, this.name(employer)) - similarity(a.desc, this.name(employer)) || cmp(a.key, b.key));
-      if (cand.length) {
-        const l = cand[0];
-        this.claim(l, "wage_receipt");
-        this.event({ key: `wage_receipt|${l.key}`, kind: "wage_receipt", occurred_on: l.date, description: l.desc, merchant: this.name(employer), category_id: "SALARY", person, amount_cents: l.cents, grade: "corroborated", rule: "payslip+bank",
-          witnesses: [...this.lineWitness(l, "clears"), { obs_id: o.obs_id, role: "corroborates", amount_cents: p.net_cents }], fields: { amount: l.cents }, refs: { account: l.account, employer }, line: l });
-        ev.witnesses.push({ obs_id: l.witnesses[0].obs_id, role: "corroborates", amount_cents: l.cents });
+      // A person can split their pay across accounts: several deposits from this employer that add to the net.
+      let parts = cand.length ? [cand[0]] : null;
+      if (!parts) {
+        const pool = open.filter((l) => near(l) && (similarity(l.desc, this.name(employer)) > 0 || /SALARY|PAY/i.test(l.desc))).map((l) => ({ ...l, cents: -l.cents, src: l }));
+        const hit = subsetSum(pool, p.net_cents);
+        if (hit && hit.length > 1) parts = hit.map((x) => x.src);
+      }
+      if (parts) {
+        for (const l of parts) {
+          this.claim(l, "wage_receipt");
+          this.event({ key: `wage_receipt|${l.key}`, kind: "wage_receipt", occurred_on: l.date, description: l.desc, merchant: this.name(employer), category_id: "SALARY", person, amount_cents: l.cents, grade: "corroborated", rule: "payslip+bank",
+            witnesses: [...this.lineWitness(l, "clears"), { obs_id: o.obs_id, role: "corroborates", amount_cents: p.net_cents }], fields: { amount: l.cents }, refs: { account: l.account, employer }, line: l });
+          ev.witnesses.push({ obs_id: l.witnesses[0].obs_id, role: "corroborates", amount_cents: l.cents });
+        }
         ev.grade = "corroborated";
       } else {
         this.fault("payslip_without_deposit", o, `Payslip of ${p.pay_date} shows net ${p.net_cents / 100} with no bank line.`, "Find the deposit, or check the account the employer pays into.", p.net_cents);
       }
+    }
+  }
+  // A salary deposit with no payslip is income on the bank's word alone: provisional, net, with a question. It upgrades when the payslip arrives.
+  recogniseUnmatchedWages() {
+    for (const l of this.lines) {
+      if (l.claimed || l.cents <= 0 || l.cls.category_id !== "SALARY") continue;
+      this.claim(l, "wage_unmatched");
+      this.event({ key: `wage_unmatched|${l.key}`, kind: "wage_unmatched", occurred_on: l.date, description: l.desc, merchant: l.cls.merchant, category_id: "SALARY", person: l.cls.person, amount_cents: l.cents, status: "provisional", grade: "stated", rule: "bank_only", witnesses: this.lineWitness(l), fields: { amount: l.cents }, refs: { account: l.account }, line: l });
+      this.review.push({ kind: "deposit_without_payslip", ref: l.key, amount_cents: l.cents, what: `A salary deposit of ${l.cents / 100} on ${l.date} has no payslip.`, do: "Add the payslip. Until then gross, tax and super for this pay are unknown." });
     }
   }
   defaultFund(person) {
@@ -515,7 +534,6 @@ class Resolver {
     return false;
   }
   pairTransfers() {
-    const WINDOW = 5;
     // One side reading as a transfer is enough: the other side may be a broker's plain "DEPOSIT". An exact opposite amount on another
     // of the household's own accounts within days is a mate. Everything else stays a question.
     const open = this.lines.filter((l) => !l.claimed);
@@ -523,7 +541,8 @@ class Resolver {
     const legs = open.filter((l) => this.isTransferLine(l)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key));
     for (const leg of legs) {
       if (leg.claimed) continue;
-      const mates = (byCents.get(-leg.cents) || []).filter((c) => !c.claimed && c.account !== leg.account && Math.abs(daysBetween(leg.date, c.date)) <= WINDOW)
+      const unexplained = (c) => this.isTransferLine(c) || !c.cls.category_id || c.cls.category_id === "UNCAT";
+      const mates = (byCents.get(-leg.cents) || []).filter((c) => !c.claimed && c.account !== leg.account && unexplained(c) && Math.abs(daysBetween(leg.date, c.date)) <= WINDOW.transfer)
         .sort((a, b) => Number(this.isTransferLine(b)) - Number(this.isTransferLine(a)) || Math.abs(daysBetween(leg.date, a.date)) - Math.abs(daysBetween(leg.date, b.date)) || this.transferHint(b, leg) - this.transferHint(a, leg) || cmp(a.key, b.key));
       if (!mates.length) continue;
       const d = leg.cents < 0 ? leg : mates[0], c = leg.cents < 0 ? mates[0] : leg;
@@ -606,7 +625,9 @@ class Resolver {
   // Bills, receipts and childcare statements add detail to a line and change no amount. A bill can say which property a line belongs to.
   corroborate() {
     const attach = (o, cents, on, window, apply) => {
-      const l = this.lines.find((x) => x.cents === -cents && !x.claimed && Math.abs(daysBetween(on, x.date)) <= window && !(x.docs || []).some((q) => q.kind === o.kind));
+      const options = this.lines.filter((x) => x.cents === -cents && !x.claimed && Math.abs(daysBetween(on, x.date)) <= window && !(x.docs || []).some((q) => q.kind === o.kind));
+      const prefer = o.payload.subject_ref ? this.links.filter((k) => k.relation === "serves" && k.to_id === o.payload.subject_ref).map((k) => k.from_id) : [];
+      const l = options.find((x) => prefer.includes(x.account)) || options[0];
       if (!l) return false;
       (l.docs = l.docs || []).push(o);
       if (apply) apply(l);
@@ -615,10 +636,10 @@ class Resolver {
     for (const o of this.byKind.get("bill") || []) {
       const p = o.payload;
       const asset = p.subject_ref ? (this.assets.has(p.subject_ref) ? p.subject_ref : this.alias("asset", p.subject_ref, p.bill_date)) : null;
-      attach(o, p.amount_cents, p.due_on || p.bill_date, 35, (l) => { if (asset && !l.cls.asset_id) l.cls.asset_id = asset; });
+      attach(o, p.amount_cents, p.due_on || p.bill_date, WINDOW.bill, (l) => { if (asset && !l.cls.asset_id) l.cls.asset_id = asset; });
     }
-    for (const o of this.byKind.get("receipt") || []) attach(o, o.payload.total_cents, o.payload.date, 5);
-    for (const o of this.byKind.get("childcare_statement") || []) attach(o, o.payload.gap_cents, o.payload.period_end, 20);
+    for (const o of this.byKind.get("receipt") || []) attach(o, o.payload.total_cents, o.payload.date, WINDOW.receipt);
+    for (const o of this.byKind.get("childcare_statement") || []) attach(o, o.payload.gap_cents, o.payload.period_end, WINDOW.childcare);
   }
 
   decisionBound(d) {
@@ -655,6 +676,7 @@ class Resolver {
     this.recogniseMarkets();
     this.recogniseTrusts();
     this.recogniseTax();
+    this.recogniseUnmatchedWages();
     this.pairTransfers();
     this.recogniseEveryday();
     this.finishOpenings();

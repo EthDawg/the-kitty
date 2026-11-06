@@ -348,11 +348,15 @@ test("Division 293 released from super moves no bank line, and one credit can se
   h.setup.account.find((x) => x.account_id === "SUPER").opening_balance_cents = 10000000; h.setup.account.find((x) => x.account_id === "SUPER").opening_date = "2025-07-01";
   h.obs("super_tax_notice", { person_ref: "a", fy: "FY2025", assessed_on: "2026-03-01", amount_cents: 300000, due_on: "2026-04-01", election: "release" });
   h.obs("super_line", { account_ref: "SUPER", posting_date: "2026-03-15", line_type: "release", description: "Release to ATO", amount_cents: -300000 });
+  h.obs("payslip", { person_ref: "a", employer_ref: "ACME", pay_date: "2024-03-10", gross_cents: 500000, tax_cents: 100000, net_cents: 400000, super_cents: 0 });
+  h.line("BANK", "2024-03-10", "SALARY ACME", 400000);
+  h.obs("payslip", { person_ref: "a", employer_ref: "ACME", pay_date: "2025-03-10", gross_cents: 300000, tax_cents: 50000, net_cents: 250000, super_cents: 0 });
+  h.line("BANK", "2025-03-10", "SALARY ACME", 250000);
   h.obs("tax_assessment", { person_ref: "a", fy: "FY2024", assessed_on: "2026-05-01", version: 1, taxable_income_cents: 1, gross_tax_cents: 0, payg_credits_cents: 100000, result_cents: 100000 });
   h.obs("tax_assessment", { person_ref: "a", fy: "FY2025", assessed_on: "2026-05-02", version: 1, taxable_income_cents: 1, gross_tax_cents: 0, payg_credits_cents: 50000, result_cents: 50000 });
   h.line("BANK", "2026-05-20", "ATO REFUND", 150000);
   const L = run(h);
-  assert.equal(L.balances.at("ato:a", "2026-05"), -150000 + 150000 - 0 + 0 - 0 || L.balances.at("ato:a", "2026-05"));
+  assert.equal(L.balances.at("ato:a", "2026-05"), 0, "assessments, the release and the one credit all meet in the ATO position");
   assert.equal(L.balances.at("SUPER", "2026-05"), 9700000, "the fund paid, no bank line");
   assert.ok(!L.review.some((r) => r.kind === "tax_result_unmatched"), "one credit, two results");
   assert.ok(!L.checks.some((c) => c.status === "fail" && String(c.scope).startsWith("clearing:super_out")));
@@ -374,4 +378,44 @@ test("a hand correction names what it replaces, and one claim remains; an accept
   const c = L.checks.find((x) => x.law === "L3" && x.scope === "BANK");
   assert.equal(c.status, "accepted", "an available balance is not read as ledger, and the ledger gap was accepted with a reason");
   assert.equal(c.gap_cents, -3900);
+});
+
+test("the holes the audit found: drift without a declared basis, a held amount, split pay, and a look-alike sweep", () => {
+  const two = (name) => { const h = household(name).person("a").org("ACME").account("CARD", "credit_card", "cash", [["a", 10000]]).account("BANK", "transaction", "cash", [["a", 10000]]).account("SAVE", "savings", "cash", [["a", 10000]]).rule("SHOP", "SHOPPING").rule("RENT", "HOUSING").rule("SWEEP", "TRANSFER"); h.sources.push({ source_id: "s2", sha256: "x", name: "b", origin: "manual", captured_at: "2020-01-02T00:00:00Z", status: "active" }); return h; };
+  // one charge, two files, a day apart, both files covering both days, no date basis
+  let h = two("drift");
+  h.line("CARD", "2026-07-01", "OPEN A", -100).line("CARD", "2026-07-02", "SHOP ONE", -9900).line("CARD", "2026-07-09", "CLOSE A", -200);
+  h.line("CARD", "2026-07-01", "OPEN A", -100); h.line("CARD", "2026-07-03", "SHOP ONE", -9900); h.line("CARD", "2026-07-09", "CLOSE A", -200);
+  h.observations.slice(3).forEach((o) => { o.source_id = "s2"; });
+  assert.equal(run(h).events.filter((e) => /SHOP ONE/.test(e.description)).length, 1, "one charge");
+  // a charge a cent apart stays two, and asks
+  h = two("cent");
+  h.line("CARD", "2026-07-01", "OPEN A", -100).line("CARD", "2026-07-02", "SHOP FX", -9900).line("CARD", "2026-07-09", "CLOSE A", -200);
+  h.line("CARD", "2026-07-01", "OPEN A", -100); h.line("CARD", "2026-07-02", "SHOP FX", -9901); h.line("CARD", "2026-07-09", "CLOSE A", -200);
+  h.observations.slice(3).forEach((o) => { o.source_id = "s2"; });
+  assert.ok(run(h).review.some((r) => r.kind === "possible_duplicate"));
+  // a hold at 50 that posts at 58
+  h = two("hold");
+  h.obs("txn_line", { account_ref: "CARD", posting_date: "2026-07-02", description: "SHOP FUEL STATION", amount_cents: -5000, status: "pending" });
+  h.line("CARD", "2026-07-03", "SHOP FUEL STATION", -5800).line("CARD", "2026-07-20", "SHOP OTHER", -100);
+  assert.equal(run(h).cash[0].spending, 5900, "the hold is replaced by what posted");
+  // net pay split across two accounts
+  h = two("split");
+  h.obs("payslip", { person_ref: "a", employer_ref: "ACME", pay_date: "2026-07-10", gross_cents: 400000, tax_cents: 100000, net_cents: 300000, super_cents: 0 });
+  h.line("BANK", "2026-07-10", "SALARY ACME", 150000).line("SAVE", "2026-07-10", "SALARY ACME", 150000);
+  let L = run(h);
+  assert.equal(L.accrual[0].byCategory.SALARY, 400000, "gross, once");
+  assert.equal(L.balances.at("clearing:payroll:ACME", "2026-07"), 0);
+  // a rent payment equal to a savings sweep is not a transfer
+  h = two("lookalike");
+  h.line("BANK", "2026-07-01", "RENT PAYMENT", -200000).line("SAVE", "2026-07-01", "SWEEP IN", 200000);
+  L = run(h);
+  assert.equal(L.cash[0].spending, 200000, "rent is still spending");
+  assert.ok(L.review.some((r) => r.kind === "unpaired_transfer"), "and the sweep with no partner is a question");
+  // a salary deposit with no payslip is provisional and asks
+  h = two("noslip").rule("ACME PAY", "SALARY");
+  h.line("BANK", "2026-07-10", "ACME PAY", 300000);
+  L = run(h);
+  assert.equal(L.events[0].status, "provisional");
+  assert.ok(L.review.some((r) => r.kind === "deposit_without_payslip"));
 });

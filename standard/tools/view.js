@@ -5,40 +5,13 @@
 const fs = require("fs"), path = require("path");
 const { run } = require("../eval/run");
 const V = require("../engine/views");
+const Tax = require("../engine/tax");
 const { fyRange, fyOf, monthEnd, cmp } = require("../engine/util");
 
 const root = path.join(__dirname, "..");
 const checks = JSON.parse(fs.readFileSync(path.join(root, "schema", "checks.json"), "utf8")).laws;
 const metrics = JSON.parse(fs.readFileSync(path.join(root, "schema", "metrics.json"), "utf8")).metrics;
 const tablesDoc = JSON.parse(fs.readFileSync(path.join(root, "schema", "tables.json"), "utf8"));
-
-const STEPS = [
-  { id: "income", name: "Income statements", kinds: ["income_statement"], person: true },
-  { id: "payslips", name: "Payslips", kinds: ["payslip"], person: true },
-  { id: "interest", name: "Bank interest", events: (e) => e.category_id === "INTEREST" },
-  { id: "dividends", name: "Dividends and tax statements", kinds: ["dividend", "distribution"], scope: "shares" },
-  { id: "rental", name: "Rental statements and loan interest", kinds: ["owner_statement"], scope: "property" },
-  { id: "super", name: "Super contributions", kinds: ["super_statement", "super_line"], scope: "super" },
-  { id: "health", name: "Private health statement", kinds: ["health_statement"], person: true },
-  { id: "prefill", name: "ATO pre-fill", kinds: ["prefill"], person: true },
-  { id: "lodged", name: "Lodged and assessed", kinds: ["tax_assessment"], person: true },
-];
-
-function readiness(L, R, fy, person) {
-  const { start, stop } = fyRange(fy);
-  const inYear = (o) => { const p = o.payload; const d = p.fy ? null : o.occurred_on || p.period_end || p.pay_date || p.as_at || p.posting_date; return p.fy ? p.fy === fy : d >= start && d < stop; };
-  const mine = (o) => { const ref = o.payload.person_ref; return !ref || R.partyOf(ref, stop) === person; };
-  const optional = new Set(["dividends", "rental", "health", "prefill"]);
-  const steps = STEPS.map((s) => {
-    const held = s.events ? L.events.filter((e) => s.events(e) && e.occurred_on >= start && e.occurred_on < stop).length : s.kinds.flatMap((k) => (R.byKind.get(k) || []).filter((o) => inYear(o) && (!s.person || mine(o)))).length;
-    const state = held ? "held" : "missing";
-    // A step counts toward the percentage when this household has it, or when every household must.
-    return { id: s.id, name: s.name, state, count: held, counts: state === "held" || !optional.has(s.id) };
-  });
-  const relevant = steps.filter((s) => s.counts);
-  const held = relevant.filter((s) => s.state === "held").length;
-  return { pct: relevant.length ? Math.round((held / relevant.length) * 100) : 0, held, needed: relevant.length, steps };
-}
 
 function build() {
   const { L, s } = run();
@@ -58,7 +31,7 @@ function build() {
     const est = L.tax ? (L.tax.estimates || []).find((x) => x.person === p.party_id && x.fy === fy) : null;
     const tie = L.tax ? (L.tax.ties || []).find((x) => x.person === p.party_id && x.fy === fy) : null;
     const assess = (R.collapseDocs("tax_assessment") || []).filter((o) => R.partyOf(o.payload.person_ref, o.payload.assessed_on) === p.party_id && o.payload.fy === fy).sort((a, b) => b.payload.version - a.payload.version)[0];
-    return { person: p.party_id, name: p.name.split(" ")[0], status: assess ? "lodged" : "open", readiness: readiness(L, R, fy, p.party_id), lodged: assess ? { version: assess.payload.version, taxable_income_cents: assess.payload.taxable_income_cents, result_cents: assess.payload.result_cents, assessed_on: assess.payload.assessed_on } : null, derived: est || null, tie: tie || null,
+    return { person: p.party_id, name: p.name.split(" ")[0], status: assess ? "lodged" : "open", readiness: Tax.readinessFor(L, R, fy, p.party_id), lodged: assess ? { version: assess.payload.version, taxable_income_cents: assess.payload.taxable_income_cents, result_cents: assess.payload.result_cents, assessed_on: assess.payload.assessed_on } : null, derived: est || null, tie: tie || null,
       items: L.tax ? (L.tax.items || []).filter((i) => i.party_id === p.party_id && i.fy === fy && !["M2-DAYS", "18H-DIST"].includes(i.label)).map((i) => ({ label: i.label, amount_cents: i.amount_cents, method: i.method, evidence: i.evidence })) : [] };
   }) }));
 

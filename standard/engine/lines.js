@@ -4,8 +4,9 @@
    shows, and lines across sources pair one to one by description. See SPEC 6.2. */
 "use strict";
 const { groupBy, cmp, daysBetween } = require("./util");
+const MATCH = require("../schema/matching.json");
 
-const PENDING_DAYS = 7;
+const PENDING_DAYS = MATCH.windows_days.pending.days, DRIFT_DAYS = MATCH.windows_days.date_drift.days, SIMILAR = MATCH.similarity.minimum;
 
 const words = (s) => new Set(String(s || "").toUpperCase().replace(/[^A-Z0-9 ]+/g, " ").split(/\s+/).filter((w) => w.length > 1));
 function similarity(a, b) {
@@ -62,18 +63,31 @@ function collapse(items) {
     for (const b of buckets) lines.push(makeLine(b[0], b));
   }
 
-  // A statement dates a charge by the transaction, its CSV by the posting. Same charge, two dates. Where two sources
-  // declare different date bases, a line seen in only one of them matches across up to three days.
+  /* A statement dates a charge by the transaction, its CSV by the posting. Same charge, two dates. If each source covers both days and
+     shows the line only on its own day, it is one line: a source that covers a day and does not show the line there is saying so.
+     Declared date bases are a hint, never a requirement. */
+  const span = new Map();
+  for (const x of posted) { const k = `${x.sourceId}|${x.account}`; const r = span.get(k) || { lo: x.date, hi: x.date }; if (x.date < r.lo) r.lo = x.date; if (x.date > r.hi) r.hi = x.date; span.set(k, r); }
+  const sourcesOf = (l) => new Set(l.witnesses.map((o) => o.source_id));
+  const covers = (l, day) => [...sourcesOf(l)].every((src) => { const r = span.get(`${src}|${l.account}`); return r && r.lo <= day && day <= r.hi; });
   const merged = new Set();
   for (const [, group] of groupBy(lines, (l) => `${l.account}|${l.cents}`)) {
     const sorted = [...group].sort((a, b) => cmp(a.date, b.date) || a.seq - b.seq);
     for (let i = 0; i < sorted.length; i++) {
       const a = sorted[i];
-      if (merged.has(a) || !a.dateBasis) continue;
+      if (merged.has(a)) continue;
       for (let j = i + 1; j < sorted.length; j++) {
         const b = sorted[j];
-        if (merged.has(b) || !b.dateBasis || b.dateBasis === a.dateBasis || daysBetween(a.date, b.date) > 3) continue;
-        if (similarity(a.desc, b.desc) < 0.25) continue;
+        if (merged.has(b) || daysBetween(a.date, b.date) > DRIFT_DAYS || a.date === b.date) continue;
+        const A = sourcesOf(a), B = sourcesOf(b);
+        if ([...A].some((x) => B.has(x))) continue;                         // one source showing both means two charges
+        const declared = a.dateBasis && b.dateBasis && a.dateBasis !== b.dateBasis;
+        if (similarity(a.desc, b.desc) < SIMILAR) continue;
+        if (!declared && !(covers(a, b.date) && covers(b, a.date))) {
+          // Neither file covers the other's day, so nothing proves it one charge or two. It stays two and becomes a question.
+          if (similarity(a.desc, b.desc) >= 0.5) faults.push({ kind: "possible_duplicate", ref: `${a.account}|${a.date}|${a.cents}`, account: a.account, cents: a.cents, what: `${a.desc} on ${a.date} and ${b.date} in two files. One charge or two?` });
+          continue;
+        }
         const keep = a.dateBasis === "posting" ? a : b.dateBasis === "posting" ? b : a, drop = keep === a ? b : a;
         keep.witnesses.push(...drop.witnesses); merged.add(drop);
         break;
@@ -82,11 +96,25 @@ function collapse(items) {
   }
   if (merged.size) { const live = lines.filter((l) => !merged.has(l)); lines.length = 0; lines.push(...live); }
 
+  // The same charge a cent apart, from two sources covering both days, cannot be proved one or two. It stays two and becomes a question.
+  for (const [, group] of groupBy(lines, (l) => l.account)) {
+    const sorted = [...group].sort((a, b) => cmp(a.date, b.date) || a.cents - b.cents);
+    for (let i = 0; i < sorted.length; i++) for (let j = i + 1; j < sorted.length && daysBetween(sorted[i].date, sorted[j].date) <= DRIFT_DAYS; j++) {
+      const a = sorted[i], b = sorted[j];
+      if (a.cents === b.cents || Math.abs(a.cents - b.cents) > Math.max(5, Math.abs(a.cents) * 0.01)) continue;
+      const A = sourcesOf(a), B = sourcesOf(b);
+      if ([...A].some((x) => B.has(x)) || similarity(a.desc, b.desc) < 0.5) continue;
+      faults.push({ kind: "possible_duplicate", ref: `${a.account}|${a.date}|${a.cents}`, account: a.account, cents: a.cents, what: `${a.desc} appears as ${a.cents / 100} and ${b.cents / 100} in two files. One charge or two?` });
+    }
+  }
+
   // A pending line is a witness that expires: replaced by its posted form, kept only while nothing later has covered its date.
   const coverage = new Map();
   for (const l of lines) coverage.set(l.account, l.date > (coverage.get(l.account) || "") ? l.date : coverage.get(l.account));
   for (const p of pending) {
-    const match = lines.find((l) => l.account === p.account && l.cents === p.cents && !l.pendingMatched && daysBetween(p.date, l.date) >= -1 && daysBetween(p.date, l.date) <= PENDING_DAYS);
+    // A hold can post at a different amount: a tip, a fuel pre-authorisation. Same merchant inside the window is the same charge.
+    const inWindow = (l) => l.account === p.account && !l.pendingMatched && daysBetween(p.date, l.date) >= -1 && daysBetween(p.date, l.date) <= PENDING_DAYS;
+    const match = lines.find((l) => inWindow(l) && l.cents === p.cents) || lines.find((l) => inWindow(l) && similarity(l.desc, p.desc) >= 0.5);
     if (match) { match.pendingMatched = true; match.witnesses.push(p.obs); continue; }
     if ((coverage.get(p.account) || "") > p.date && daysBetween(p.date, coverage.get(p.account)) > PENDING_DAYS) { faults.push({ kind: "pending_dropped", ref: p.obs.obs_id, account: p.account, what: `Pending ${p.desc} never posted; dropped.` }); continue; }
     const line = makeLine(p, [p]); line.provisional = true; lines.push(line);

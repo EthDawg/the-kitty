@@ -104,6 +104,7 @@ function rebuild(input) {
   };
   L.excludedObs = new Set();
   L.tax = Tax.derive({ L, R, reference, setup });
+  L.readiness = Tax.readiness(L, R, setup);
   L.returns = Tax.materialiseReturns(R);
   L.resolverObs = R.byKind;
   L.obsKind = new Map(R.obs.map((o) => [o.obs_id, o.kind]));
@@ -114,6 +115,12 @@ function rebuild(input) {
   for (const d of decisions) if (d.verb === "accept" && d.target_type === "check" && d.status === "accepted") {
     for (const c of L.checks) if (`${c.law}|${c.scope}` === d.target_ref && c.status !== "pass") { c.status = "accepted"; c.accepted_by = d.decision_id; c.detail = `${d.reason || ""} Was: ${c.detail || ""}`.trim(); }
   }
+  // An open clearing item or a gap is something a person can act on. A file the gate refused is too.
+  for (const c of L.checks) if (c.law === "L2" && (c.status === "open" || c.status === "gap")) R.review.push({ kind: "open_item", ref: c.scope, amount_cents: c.gap_cents, what: `${c.scope} holds ${(c.gap_cents || 0) / 100}. ${c.detail}`, do: "It clears when the other witness arrives." });
+  for (const f of input.faults || []) if (f.code === "file_refused") R.review.push({ kind: "file_refused", ref: f.path, amount_cents: null, what: f.what, do: "Its format may have changed. Fix the recipe; nothing from it is in the ledger." });
+  // Reconciled means tied to a stated balance that holds, not merely that the file had a balance column.
+  const shaky = new Set(L.checks.filter((c) => c.law === "L3" && (c.status === "fail" || c.status === "gap")).map((c) => c.scope));
+  for (const e of R.events) if (e.grade === "reconciled" && e.line && shaky.has(e.line.account)) e.grade = "stated";
   L.review = rankReview(R.review);
   if (schema.metrics) L.metrics = allMetrics(L, schema.metrics);
 

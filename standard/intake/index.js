@@ -36,11 +36,25 @@ function ingestFiles(files, opts) {
     if (!cand.length) { unknown.push({ path: f.path, reason: "no_recipe", fingerprint: fp, container }); continue; }
     const recipe = cand[0];
     entry.recipe = recipe.id;
-    const a = run(recipe, d, { vocab: opts.vocab, stream: f.stream });
-    a.observations.forEach((o, i) => {
+    let a = run(recipe, d, { vocab: opts.vocab, stream: f.stream });
+    // A bank can flip its row order. If the chain fails one way and holds the other, the file is read the way that proves.
+    if (a.controls.some((c) => !c.pass) && recipe.table && recipe.table.order && recipe.table.order !== "any") {
+      const flipped = { ...recipe, table: { ...recipe.table, order: recipe.table.order === "newest_first" ? "oldest_first" : "newest_first" } };
+      const b = run(flipped, d, { vocab: opts.vocab, stream: f.stream });
+      if (b.controls.every((c) => c.pass) && !b.faults.length) a = b;
+    }
+    // A file that fails its own controls, or whose dates cannot be in the order it delivered them, is refused whole. SPEC 7.2.
+    const stamped = a.observations.filter((o) => o.kind === "txn_line" || o.kind === "super_line").map((o) => o.payload.posting_date).filter(Boolean);
+    const up = stamped.every((x, i) => i === 0 || stamped[i - 1] <= x), down = stamped.every((x, i) => i === 0 || stamped[i - 1] >= x);
+    const orderBad = stamped.length > 2 && !up && !down && !(recipe.table && recipe.table.order === "any");
+    const refused = a.faults.length || a.unconsumed.length || a.controls.some((c) => !c.pass) || orderBad;
+    if (orderBad) a.faults.push({ code: "date_order", what: "Dates run neither forwards nor backwards. The date format may have changed." });
+    if (refused) { src.status = "quarantined"; a.refused = true; }
+    else a.observations.forEach((o, i) => {
       const obs_id = `obs-${sha256(new TextEncoder().encode(`${sha}|${o.kind}|${o.locator}|${i}`)).slice(0, 20)}`;
       observations.push({ obs_id, source_id, ...o });
     });
+    if (refused) faults.push({ path: f.path, code: "file_refused", what: `${f.name} failed its checks and was not imported.` });
     entry.observations = a.observations.length; entry.by_kind = {}; for (const o of a.observations) entry.by_kind[o.kind] = (entry.by_kind[o.kind] || 0) + 1;
     for (const x of a.faults) faults.push({ path: f.path, ...x });
     for (const u of a.unconsumed) faults.push({ path: f.path, code: "row_not_consumed", ...u });

@@ -150,7 +150,8 @@ A `period` moves `open → closing → closed → locked`. A month is **closed**
 by a stated balance and its clearing accounts are zero or explained. It is **locked** when nothing in it is provisional.
 A lock stores `seal_hash`, a hash over the canonical form of that period's events and postings.
 
-A rebuild that changes a locked period MUST stop and report the difference. To change a locked period a person writes a
+`engine/close.js` reports each month's status and writes the seal. A rebuild that changes a locked period fails L12 and
+reports it. To change a locked period a person writes a
 `decision` of verb `reopen`, or books a dated adjustment in the open period. A locked month never changes unexplained.
 
 ### 3.5 Lodged tax is evidence
@@ -418,8 +419,8 @@ No per-institution code is needed. An importer is anything that produces valid o
 
 | Tier | What it is | Runs on | Cost after the first time |
 |---|---|---|---|
-| **Recipe, table** | Data: which columns mean what, the date format, the sign rule. Interpreted by one small engine over CSV, TSV, OFX, QIF, XLSX, JSON and HTML tables. | anything, including a phone | zero tokens |
-| **Recipe, document** | Data: anchors and row patterns over extracted text lines. Same engine, over PDF, HTML and email. | anything | zero tokens |
+| **Recipe, table** | Data: which columns mean what, the date format, the sign rule. Interpreted by one small engine over CSV, TSV, OFX, QIF, XLSX, JSON and HTML tables. | pure JavaScript, written for any host | zero tokens |
+| **Recipe, document** | Data: anchors and row patterns over extracted text lines. Same engine, over PDF, HTML and email. | same | zero tokens |
 | **Agent extraction** | A model reads a scan or a one-off and emits observations directly. Each MUST carry a locator and a quote, its control totals go through the same gate, and it lands in review below the confidence threshold. | a harness | tokens, every time |
 
 A recipe is written by a model once per format, from a few samples, and cached by a **fingerprint** of the file's
@@ -546,8 +547,9 @@ stability (`stable` or `experimental`), and the view that computes it. Any surfa
 them: a Sheet tab, the page, an agent, a phone. The page's canvas is a composition of metrics, so a new widget needs no
 new model.
 
-Every metric value can be opened: metric → postings → events → witnesses → observations → the exact line of the exact
-file. A number that cannot be opened is not shown.
+Every event can be opened: postings → witnesses → observations → the exact line of the exact file. A tax item carries the
+events behind it. Metric-level drill from a figure to its events is built for net worth and tax items, and is the standard
+for every new surface.
 
 ---
 

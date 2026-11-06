@@ -225,6 +225,18 @@ function coverage(L) {
     const grace = s.grace_days ?? 45;
     let expected = 0, have = 0; const missing = [];
     const ms = monthsBetween(start, end);
+    if (s.cadence === "fortnightly") {
+      // A fortnightly stream is counted in fortnights, so one missing payslip shows.
+      const days = (held.get(s.stream_id) || []).map((x) => x.day).filter(Boolean).sort();
+      const stop = s.valid_to && s.valid_to < L.asOf ? s.valid_to : L.asOf;
+      let exp = 0, got2 = 0; const miss = [];
+      for (let d = s.valid_from; addDays(d, 14 + grace) <= stop; d = addDays(d, 14)) {
+        exp += 1;
+        if (days.some((x) => x >= d && x < addDays(d, 14 + 3))) got2 += 1; else miss.push(d);
+      }
+      rows.push({ stream_id: s.stream_id, name: s.name, expected: exp, have: got2, ratio: exp ? got2 / exp : 1, missing: miss.slice(-6) });
+      continue;
+    }
     for (let i = 0; i < ms.length; i += step) {
       const window = monthsBetween(ms[i], ms[Math.min(i + step + Math.ceil(grace / 30), ms.length - 1)]);
       const closes = monthEnd(ms[Math.min(i + step - 1, ms.length - 1)]);
