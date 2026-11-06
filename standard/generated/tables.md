@@ -19,6 +19,7 @@ The unit this bundle describes.
 | `fy_start_month` | int | required |
 | `timezone` | text | required |
 | `standard_version` | text | required |
+| `budget_date` | text | charged, posted |
 
 ### `party` (static)
 

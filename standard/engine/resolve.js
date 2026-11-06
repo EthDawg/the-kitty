@@ -6,7 +6,9 @@ const { collapse, similarity } = require("./lines");
 const { indexTerms, termAt, timeline, activeOn } = require("./temporal");
 const Engine = require("../../src/engine.js");
 const VOCAB = require("../schema/observations.json");
-const WINDOW = Object.fromEntries(Object.entries(require("../schema/matching.json").windows_days).map(([k, v]) => [k, v.days]));
+const MATCHING = require("../schema/matching.json");
+const WINDOW = Object.fromEntries(Object.entries(MATCHING.windows_days).map(([k, v]) => [k, v.days]));
+const TRANSFER_WORDS = new Set(MATCHING.transfer_words.words);
 
 const dollarsToCents = (v) => Math.round(Number(v) * 100);
 const nz = (v) => (v == null ? 0 : v);
@@ -207,7 +209,7 @@ class Resolver {
       if (!account) { this.fault("unresolved_account", o, `No account for ${p.account_ref} on ${date}.`, "Add an alias for this account."); return; }
       const src = this.sources.get(o.source_id);
       items.push({ obs: o, account, date, valueDate: p.value_date, cents: p.amount_cents, desc: p.description, ref: p.reference, status: p.status || "posted",
-        sourceId: o.source_id, seq, balanceAfter: p.balance_after_cents, cardMember: p.card_member, foreignAmount: p.foreign_amount, foreignCurrency: p.foreign_currency,
+        sourceId: o.source_id, stream: src && src.stream_id, seq, balanceAfter: p.balance_after_cents, cardMember: p.card_member, foreignAmount: p.foreign_amount, foreignCurrency: p.foreign_currency,
         capturedAt: src && src.captured_at, issuedOn: src && src.issued_on, dateBasis: p.date_basis, lineType: p.line_type });
     };
     let seq = 0;
@@ -334,7 +336,9 @@ class Resolver {
       const employer = this.partyOf(p.employer_ref, p.pay_date) || p.employer_ref;
       const contract = (this.ctx.setup.contract || []).find((c) => c.kind === "employment" && c.holder_party_id === person && c.counterparty_party_id === employer) || null;
       const fundLink = contract ? activeOn(this.links.filter((k) => k.relation === "contributes_to" && k.from_id === contract.contract_id), p.pay_date)[0] : null;
-      const fund = fundLink ? fundLink.to_id : contract ? this.term("contract", contract.contract_id, "super_fund", p.pay_date) : null;
+      const named = fundLink ? fundLink.to_id : contract ? this.term("contract", contract.contract_id, "super_fund", p.pay_date) : null;
+      // contributes_to may name the member account or the fund's contract. Both are the same money, and it meets the fund at the account.
+      const fund = named && this.contracts.has(named) ? this.contracts.get(named).account_id || this.defaultFund(person) : named;
       const key = `wage|${person}|${employer}|${p.pay_date}|${p.net_cents}`;
       const ev = this.event({ key, kind: "wage", occurred_on: p.pay_date, description: `Pay, ${this.name(employer)}`, category_id: "SALARY", person, contract_id: contract && contract.contract_id, amount_cents: p.gross_cents,
         grade: "stated", rule: "payslip", witnesses: this.docWitness(o),
@@ -548,9 +552,10 @@ class Resolver {
       const d = leg.cents < 0 ? leg : mates[0], c = leg.cents < 0 ? mates[0] : leg;
       this.claim(d, "transfer"); this.claim(c, "transfer");
       const category = d.cls.category_id || c.cls.category_id || "TRANSFER";
-      this.event({ key: `transfer|${d.key}|${c.key}`, kind: "transfer", occurred_on: d.date, settled_on: c.date, description: d.desc, category_id: category, amount_cents: c.cents, grade: "corroborated", rule: "pair",
+      this.event({ key: `transfer|${d.key}|${c.key}`, kind: "transfer", occurred_on: d.date, settled_on: c.date, leg_dates: { [d.account]: d.date, [c.account]: c.date }, description: d.desc, category_id: category, amount_cents: c.cents, grade: "corroborated", rule: "pair",
         witnesses: [...this.lineWitness(d, "recognises"), ...this.lineWitness(c, "clears")], fields: { amount: c.cents }, refs: { from_account: d.account, to_account: c.account }, lines: [d, c] });
     }
+    this.pairUnexplained();
     for (const l of this.lines) {
       if (l.claimed || !this.isTransferLine(l)) continue;
       this.claim(l, "open_transfer");
@@ -558,6 +563,28 @@ class Resolver {
         witnesses: this.lineWitness(l), fields: { amount: l.cents }, refs: { account: l.account }, line: l });
       this.review.push({ kind: "unpaired_transfer", ref: l.key, amount_cents: l.cents, what: `${l.desc} has no other side in the household's accounts.`, do: "Is this someone outside the household? If so it is spending, income or a loan to them." });
     }
+  }
+  /* Neither side was named a transfer, but both are unexplained, opposite to the cent, days apart, on two of the household's own accounts,
+     and one says how the money moved or whose it is. Only a person can make that a stranger. */
+  pairUnexplained() {
+    const open = this.lines.filter((l) => !l.claimed && !l.noPair && !l.excluded && (!l.cls.category_id || l.cls.category_id === "UNCAT"));
+    const cash = (l) => { const a = this.accounts.get(l.account); return a && !["loans", "super"].includes(a.reporting_group); };
+    const byCents = groupBy(open.filter(cash), (l) => l.cents);
+    for (const d of open.filter((l) => l.cents < 0 && cash(l)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key))) {
+      if (d.claimed) continue;
+      const mates = (byCents.get(-d.cents) || []).filter((c) => !c.claimed && c.account !== d.account && Math.abs(daysBetween(d.date, c.date)) <= WINDOW.transfer && (this.saysMoved(d) || this.saysMoved(c)))
+        .sort((a, b) => Math.abs(daysBetween(d.date, a.date)) - Math.abs(daysBetween(d.date, b.date)) || similarity(b.desc, d.desc) - similarity(a.desc, d.desc) || cmp(a.key, b.key));
+      if (!mates.length) continue;
+      const c = mates[0];
+      this.claim(d, "transfer"); this.claim(c, "transfer");
+      this.event({ key: `transfer|${d.key}|${c.key}`, kind: "transfer", occurred_on: d.date, settled_on: c.date, leg_dates: { [d.account]: d.date, [c.account]: c.date }, description: d.desc, category_id: "TRANSFER", amount_cents: c.cents, grade: "stated", rule: "pair_unexplained",
+        witnesses: [...this.lineWitness(d, "recognises"), ...this.lineWitness(c, "clears")], fields: { amount: c.cents }, refs: { from_account: d.account, to_account: c.account }, lines: [d, c] });
+    }
+  }
+  saysMoved(l) {
+    const words = String(l.desc).toUpperCase().split(/[^A-Z0-9]+/);
+    if (words.some((w) => TRANSFER_WORDS.has(w))) return true;
+    return (this.setup.party || []).some((p) => p.kind === "person" && String(p.name).toUpperCase().split(/\s+/).slice(1).some((n) => n.length > 2 && words.includes(n)));
   }
   transferHint(a, b) {
     const name = this.accountName(b.account).toUpperCase();
@@ -598,14 +625,14 @@ class Resolver {
       }
       if (!category) {
         category = "UNCAT";
-        this.review.push({ kind: "uncategorised", ref: l.key, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });
+        this.review.push({ kind: "uncategorised", ref: l.key, question: c.norm || l.desc, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });
       }
       const k = this.catKind(category);
       const isIncome = k === "income";
       const ev = isIncome ? "income" : l.cents < 0 ? "purchase" : "refund";
       this.claim(l, ev);
       const fields = ev === "purchase" ? { cost: -l.cents } : { amount: l.cents };
-      this.event({ key: `${ev}|${l.key}`, kind: ev, occurred_on: l.date, settled_on: l.valueDate, description: l.desc, merchant: c.merchant, category_id: category, person: c.person, claimant: c.claimant, asset_id: c.asset_id || this.assetOfAccount(l.account, l.date), activity_id: c.activity_id, contract_id: c.contract_id, amount_cents: l.cents, status: category === "UNCAT" || l.provisional ? "provisional" : "recognised", grade: this.lineGrade(l), rule: c.via || "none",
+      this.event({ key: `${ev}|${l.key}`, kind: ev, occurred_on: l.date, settled_on: l.valueDate, charged_on: l.valueDate, description: l.desc, merchant: c.merchant, category_id: category, person: c.person, claimant: c.claimant, asset_id: c.asset_id || this.assetOfAccount(l.account, l.date), activity_id: c.activity_id, contract_id: c.contract_id, amount_cents: l.cents, status: category === "UNCAT" || l.provisional ? "provisional" : "recognised", grade: this.lineGrade(l), rule: c.via || "none",
         witnesses: [...this.lineWitness(l), ...(l.docs || []).map((o) => ({ obs_id: o.obs_id, role: "corroborates", amount_cents: l.cents })), ...(l.policyWitness ? [{ obs_id: l.policyWitness.obs_id, role: "corroborates", amount_cents: l.cents }] : [])], fields, refs: { account: l.account, category }, line: l });
     }
   }

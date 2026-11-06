@@ -38,6 +38,17 @@
         },
         "standard_version": {
           "bsonType": "string"
+        },
+        "budget_date": {
+          "bsonType": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "charged",
+            "posted",
+            null
+          ]
         }
       },
       "description": "The unit this bundle describes."

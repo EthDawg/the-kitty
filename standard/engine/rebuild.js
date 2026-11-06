@@ -48,7 +48,7 @@ function rebuild(input) {
     asOf: asOf || latestDate(R),
     accounts: [...(setup.account || []), ...auto],
     categories: setup.category || [], parties: setup.party || [], contracts: setup.contract || [], assets: setup.asset || [], ownership: setup.ownership || [],
-    links: setup.link || [], streams: setup.stream || [], periods: setup.period || [], budgets: setup.budget || [], activities: setup.activity || [],
+    households: setup.household || [], links: setup.link || [], streams: setup.stream || [], periods: setup.period || [], budgets: setup.budget || [], activities: setup.activity || [],
     sources: sources || [], observations: R.obs, decisions, events: R.events, postings, witnesses, terms: R.terms, termIdx: indexTerms(R.terms), lines: R.lines, linesByAccount: R.linesByAccount,
   };
   L.index = V.ledgerIndex(L);
@@ -80,7 +80,7 @@ function rebuild(input) {
   const dailyCache = new Map();
   L.dailyBalance = (account) => {
     if (dailyCache.has(account)) return dailyCache.get(account);
-    const flows = postings.filter((p) => p.account_id === account).map((p) => ({ d: L.index.events.get(p.event_id).occurred_on, c: p.amount_cents })).sort((a, b) => cmp(a.d, b.d));
+    const flows = postings.filter((p) => p.account_id === account).map((p) => ({ d: V.balanceDate(L.index.events.get(p.event_id), account), c: p.amount_cents })).sort((a, b) => cmp(a.d, b.d));
     const days = []; let run = 0;
     for (const f of flows) { run += f.c; if (days.length && days[days.length - 1].d === f.d) days[days.length - 1].b = run; else days.push({ d: f.d, b: run }); }
     const at = (d) => { let lo = 0, hi = days.length - 1, ans = 0; while (lo <= hi) { const mid = (lo + hi) >> 1; if (days[mid].d <= d) { ans = days[mid].b; lo = mid + 1; } else hi = mid - 1; } return ans; };

@@ -63,13 +63,26 @@ function collapse(items) {
     for (const b of buckets) lines.push(makeLine(b[0], b));
   }
 
-  /* A statement dates a charge by the transaction, its CSV by the posting. Same charge, two dates. If each source covers both days and
+  /* A statement dates a charge by the transaction, its CSV by the posting. Same charge, two dates. If each side covers both days and
      shows the line only on its own day, it is one line: a source that covers a day and does not show the line there is saying so.
-     Declared date bases are a hint, never a requirement. */
-  const span = new Map();
-  for (const x of posted) { const k = `${x.sourceId}|${x.account}`; const r = span.get(k) || { lo: x.date, hi: x.date }; if (x.date < r.lo) r.lo = x.date; if (x.date > r.hi) r.hi = x.date; span.set(k, r); }
+     A side is a file, or a whole stream of files when the other side is a different stream: the statement for July and the download
+     for August can hold one charge, and neither file alone covers the other's day. Two files of one stream that do not overlap are
+     never two views of a line; each speaks for its own days. Declared date bases are a hint, never a requirement. */
+  const span = new Map(), streamDays = new Map(), streamOfSource = new Map();
+  for (const x of posted) {
+    const k = `${x.sourceId}|${x.account}`; const r = span.get(k) || { lo: x.date, hi: x.date }; if (x.date < r.lo) r.lo = x.date; if (x.date > r.hi) r.hi = x.date; span.set(k, r);
+    streamOfSource.set(x.sourceId, x.stream || x.sourceId);
+  }
+  for (const [k, r] of span) { const [src, account] = k.split("|"); const key = `${streamOfSource.get(src)}|${account}`; if (!streamDays.has(key)) streamDays.set(key, []); streamDays.get(key).push({ ...r }); }
+  for (const [key, rows] of streamDays) {
+    const merged = [];
+    for (const r of rows.sort((a, b) => cmp(a.lo, b.lo))) { const top = merged[merged.length - 1]; if (top && daysBetween(top.hi, r.lo) <= DRIFT_DAYS) { if (r.hi > top.hi) top.hi = r.hi; } else merged.push(r); }
+    streamDays.set(key, merged);
+  }
   const sourcesOf = (l) => new Set(l.witnesses.map((o) => o.source_id));
-  const covers = (l, day) => [...sourcesOf(l)].every((src) => { const r = span.get(`${src}|${l.account}`); return r && r.lo <= day && day <= r.hi; });
+  const streamsOf = (l) => new Set([...sourcesOf(l)].map((s) => streamOfSource.get(s) || s));
+  const fileCovers = (l, day) => [...sourcesOf(l)].every((src) => { const r = span.get(`${src}|${l.account}`); return r && r.lo <= day && day <= r.hi; });
+  const streamCovers = (l, day) => [...streamsOf(l)].every((st) => (streamDays.get(`${st}|${l.account}`) || []).some((r) => r.lo <= day && day <= r.hi));
   const merged = new Set();
   for (const [, group] of groupBy(lines, (l) => `${l.account}|${l.cents}`)) {
     const sorted = [...group].sort((a, b) => cmp(a.date, b.date) || a.seq - b.seq);
@@ -83,13 +96,20 @@ function collapse(items) {
         if ([...A].some((x) => B.has(x))) continue;                         // one source showing both means two charges
         const declared = a.dateBasis && b.dateBasis && a.dateBasis !== b.dateBasis;
         if (similarity(a.desc, b.desc) < SIMILAR) continue;
-        if (!declared && !(covers(a, b.date) && covers(b, a.date))) {
-          // Neither file covers the other's day, so nothing proves it one charge or two. It stays two and becomes a question.
-          if (similarity(a.desc, b.desc) >= 0.5) faults.push({ kind: "possible_duplicate", ref: `${a.account}|${a.date}|${a.cents}`, account: a.account, cents: a.cents, what: `${a.desc} on ${a.date} and ${b.date} in two files. One charge or two?` });
+        const oneStream = [...streamsOf(a)].some((x) => streamsOf(b).has(x));
+        const proved = oneStream ? fileCovers(a, b.date) && fileCovers(b, a.date) : streamCovers(a, b.date) && streamCovers(b, a.date);
+        if (!declared && !proved) {
+          // Nothing proves it one charge or two. Between two streams that is a question; inside one stream it is two charges in two files.
+          if (!oneStream && similarity(a.desc, b.desc) >= 0.5) faults.push({ kind: "possible_duplicate", ref: `${a.account}|${a.date}|${a.cents}`, account: a.account, cents: a.cents, what: `${a.desc} on ${a.date} and ${b.date} in two files. One charge or two?` });
           continue;
         }
-        const keep = a.dateBasis === "posting" ? a : b.dateBasis === "posting" ? b : a, drop = keep === a ? b : a;
+        // A line keeps the day its balance moved: the side that declares the posting or carries the running balance, else the later day,
+        // since nothing posts before it is charged. The other day is when it was charged, and budgets read that.
+        const dated = (l) => l.dateBasis === "posting" || (l.dateBasis == null && l.balanceAfter != null);
+        const keep = dated(a) ? a : b, drop = keep === a ? b : a;
         keep.witnesses.push(...drop.witnesses); merged.add(drop);
+        if (!keep.valueDate && drop.date < keep.date) keep.valueDate = drop.date;
+        if (keep.balanceAfter == null) keep.balanceAfter = drop.balanceAfter;
         break;
       }
     }

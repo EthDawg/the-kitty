@@ -9,7 +9,8 @@ CREATE TABLE "household" (
   "base_currency" TEXT NOT NULL,
   "fy_start_month" INTEGER NOT NULL,
   "timezone" TEXT NOT NULL,
-  "standard_version" TEXT NOT NULL
+  "standard_version" TEXT NOT NULL,
+  "budget_date" TEXT CHECK ("budget_date" IN ('charged', 'posted'))
 );
 
 -- setup, static. Anyone or anything that can own, owe, pay, employ, insure or be paid. Tax file numbers and passwords never enter this table.

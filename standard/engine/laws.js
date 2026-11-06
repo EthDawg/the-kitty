@@ -266,7 +266,7 @@ const laws = {
       if (e.kind === "super_contribution") { const a = e.refs.account; if (!flows.has(a)) flows.set(a, { due: [], got: [] }); flows.get(a).got.push({ d: e.occurred_on, c: e.amount_cents }); }
     }
     for (const [account, f] of flows) {
-      if (!f.got.length) continue;
+      if (!f.got.length || !f.due.length) continue;
       const first = f.due.map((x) => x.d).sort()[0];
       let late = 0, worst = null;
       const quarters = monthsBetween(monthOf(first), monthOf(L.asOf)).filter((m) => ["03", "06", "09", "12"].includes(m.slice(5)));
@@ -358,8 +358,9 @@ function sealOf(L, p) {
 function runLaws(L) {
   const out = [];
   for (const k of Object.keys(laws)) {
-    const rows = laws[k](L);
-    out.push(...rows);
+    // A law that cannot run is a failed check with its reason. It never stops a rebuild.
+    try { out.push(...laws[k](L)); }
+    catch (e) { out.push(row(k, "law", "fail", { detail: `This law could not run: ${e.message}` })); }
   }
   return out;
 }

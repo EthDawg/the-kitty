@@ -15,7 +15,8 @@
         "base_currency",
         "fy_start_month",
         "timezone",
-        "standard_version"
+        "standard_version",
+        "budget_date"
       ]
     },
     {

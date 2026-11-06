@@ -22,7 +22,8 @@
         "base_currency:text:req",
         "fy_start_month:int:req",
         "timezone:text:req",
-        "standard_version:text:req"
+        "standard_version:text:req",
+        "budget_date:text:enum=charged|posted"
       ]
     },
     "party": {

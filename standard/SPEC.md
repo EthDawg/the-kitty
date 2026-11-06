@@ -226,6 +226,7 @@ Zero, not held, does not apply, and not asked are different facts. `scope` recor
 
 A relative's spend on your card, an employer reimbursement, a fund's reimbursement and financed offset cash cross the
 household's rails and are not income, spending or savings. A `pass_through` category posts to `receivable:{party}`.
+`PASS-THROUGH` ships for this. `REIMBURSE` is the payslip's own reimbursement line.
 
 ### 4.5 Assets are not just accounts
 
@@ -329,8 +330,12 @@ without passing through recipe validation or a decision.
 Two identical coffees on one day are two purchases. The same coffee in two overlapping downloads is one. Identity is
 therefore a **multiset**, never a hash set:
 
-- Group lines by `(account, posting_date, amount_cents)`. Where two sources declare different date bases (a statement
-  dates by transaction, its CSV by posting), a line seen in only one of them matches across up to three days.
+- Group lines by `(account, posting_date, amount_cents)`. A statement can date by transaction and its CSV by posting, so
+  a line seen on different days matches across the window in `schema/matching.json`, on two conditions. Its two sides are
+  different streams or overlapping files, and each side covers the other's day. A side that covers a day and does not
+  show the line there is saying so, and a stream speaks for a day even when the file that speaks is next month's. Two
+  files of one stream that do not overlap are not two views of a line. Where nothing proves it, it stays two and asks.
+- A line that gets two dates keeps both. Its balance moves on the posting; the other date is when it was charged.
 - If the bank gave a stable `reference`, that is the identity.
 - Otherwise, within a group, the true count is the **largest count any single source shows**. A source can repeat a
   charge; two sources cannot add one.
@@ -391,6 +396,8 @@ transaction has to pick, and then one view is wrong for ever. Both are read from
   `transfer` and `capital`, or with `cash_lens = false`, are left out. A loan repayment carries its loan's category, so it
   counts at its cash amount. Interest charged on the loan has no cash posting, so it does not count again. A redraw has
   no category, so it is neither income nor spending. A card purchase counts when charged; the repayment is a transfer.
+  Where a line shows both dates, the month is the charge date, unless the household's `budget_date` is `posted`. Balances
+  move on the posting either way, so statements tie.
 - **Economic lens** sums postings on categories with `economic_lens = true`. Interest counts; principal does not. It is
   not strict accrual: income lands on the date the evidence gives. No household books wages by the day.
 
@@ -406,7 +413,8 @@ net_worth(end) - net_worth(start) = income - expenses + revaluation
 Under law L1 this identity holds by construction, so alone it proves nothing. Law L8 therefore tests it against
 independent evidence: net worth as posted against net worth as sources stated it, every month that has a stated figure
 for every account. Revaluation is an event, posted from a dated valuation, to an equity account. Headline net worth
-excludes `clearing` and the `tax` position. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
+excludes `clearing` and the `tax` position, with one exception: `clearing:settle` is a debt or a receivable, because a buy
+between trade and settlement has raised holdings and has not yet lowered cash. A dollar counts at one level: an asset owned by a wrapper (SMSF, trust,
 company) is not counted beside the wrapper's balance. Look-through is a view.
 
 ---

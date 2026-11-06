@@ -15,13 +15,16 @@ function cashLens(L, opts = {}) {
   const X = L.index;
   const inScope = opts.accounts ? new Set(opts.accounts) : null;
   const isCash = (id) => { const a = X.accounts.get(id); return a && a.reporting_group === "cash" && (!inScope || inScope.has(id)); };
+  // A purchase counts when it was charged, unless the household keeps its books by the day the bank posted it. Balances always move on the posting.
+  const posted = (L.households || []).some((h) => h.budget_date === "posted");
+  const when = (e) => (posted ? e.occurred_on : e.charged_on || e.occurred_on);
   const months = new Map();
   const bucket = (m) => { if (!months.has(m)) months.set(m, { month: m, income: 0, spending: 0, net: 0, byCategory: {} }); return months.get(m); };
   for (const p of L.postings) {
     if (!p.account_id || !isCash(p.account_id)) continue;
     const e = X.events.get(p.event_id);
     const cat = X.categories.get(e.category_id);
-    const m = bucket(monthOf(e.occurred_on));
+    const m = bucket(monthOf(when(e)));
     if (!cat || cat.kind === "transfer" || cat.kind === "capital" || cat.cash_lens === false) { continue; }
     m.byCategory[e.category_id] = (m.byCategory[e.category_id] || 0) + p.amount_cents;
     if (cat.kind === "income") m.income += p.amount_cents; else m.spending -= p.amount_cents;
@@ -49,16 +52,20 @@ function accrualLens(L) {
 }
 
 // ---------- position ----------
+const TRANSIT = "clearing:transit";
+// A balance moves on the day its own account moved. The legs of a transfer can do that on different days.
+function balanceDate(e, account) { return (e.leg_dates && e.leg_dates[account]) || e.occurred_on; }
 function balances(L) {
   const X = L.index;
   const flows = new Map();
+  const add = (k, m, c) => { if (!flows.has(k)) flows.set(k, new Map()); flows.get(k).set(m, (flows.get(k).get(m) || 0) + c); };
   for (const p of L.postings) {
     if (!p.account_id) continue;
     const e = X.events.get(p.event_id);
-    const m = monthOf(e.occurred_on);
-    const k = p.account_id;
-    if (!flows.has(k)) flows.set(k, new Map());
-    flows.get(k).set(m, (flows.get(k).get(m) || 0) + p.amount_cents);
+    const m = monthOf(balanceDate(e, p.account_id));
+    add(p.account_id, m, p.amount_cents);
+    // A transfer that crosses a month end sits on neither account at that month end. It is in the air, and still the household's.
+    if (m !== monthOf(e.occurred_on)) { add(TRANSIT, monthOf(e.occurred_on), p.amount_cents); add(TRANSIT, m, -p.amount_cents); }
   }
   const allMonths = [...new Set([...flows.values()].flatMap((f) => [...f.keys()]))].sort();
   if (!allMonths.length) return { months: [], rows: [], table: new Map(), at: () => 0 };
@@ -84,11 +91,14 @@ function netWorth(L, opts = {}) {
     const row = { month: m, month_end: monthEnd(m), total: 0, groups: {} };
     for (const [account] of L.balances.table) {
       const a = X.accounts.get(account);
-      if (!a || !groups.has(a.reporting_group) || wrapped.has(account)) continue;
-      if (inScope && !inScope.has(account)) continue;
+      // A trade between trade date and settlement is a real debt or receivable, and a transfer in the air is still owned. No other clearing balance is.
+      const unsettled = account.startsWith("clearing:settle:") || account === TRANSIT;
+      if (!unsettled && (!a || !groups.has(a.reporting_group) || wrapped.has(account))) continue;
+      if (inScope && !inScope.has(account) && !unsettled) continue;
       const v = L.balances.at(account, m);
       row.total += v;
-      row.groups[a.reporting_group] = (row.groups[a.reporting_group] || 0) + v;
+      const group = unsettled ? "unsettled" : a.reporting_group;
+      row.groups[group] = (row.groups[group] || 0) + v;
     }
     out.push(row);
   }
@@ -211,20 +221,42 @@ function budgetVariance(L, month) {
 }
 
 // ---------- coverage: expected against held ----------
+// What a file speaks for: the days its own contents cover, whenever it was downloaded.
+const SPOKEN_DAYS = ["posting_date", "as_at", "period_start", "period_end", "pay_date", "bill_date", "assessed_on", "trade_date", "vest_date", "issued_on"];
+function spokenSpans(L) {
+  const byStream = new Map(), source = new Map(L.sources.map((s) => [s.source_id, s]));
+  const span = new Map();
+  for (const o of L.observations) {
+    const src = source.get(o.source_id), st = src && src.stream_id;
+    if (!st) continue;
+    const r = span.get(o.source_id) || { stream: st, lo: null, hi: null, delivered: L.receipts && L.receipts.length ? src.captured_at : src.issued_on || src.captured_at };
+    for (const f of SPOKEN_DAYS) { const d = o.payload && o.payload[f]; if (typeof d !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(d)) continue; if (!r.lo || d < r.lo) r.lo = d; if (!r.hi || d > r.hi) r.hi = d; }
+    span.set(o.source_id, r);
+  }
+  for (const r of span.values()) if (r.lo) { if (!byStream.has(r.stream)) byStream.set(r.stream, []); byStream.get(r.stream).push(r); }
+  return byStream;
+}
 function coverage(L) {
-  // A period counts as held if any file arrived for it, including a byte-identical re-delivery. A period that has not ended, plus its grace, is not due yet.
+  /* A period is held if a file speaks for it, whenever the file was downloaded. In a stream whose files say nothing about their dates, each delivery
+     answers for one period, so a late file next door cannot hide a missing month. A period that has not ended, plus its grace, is not due yet. */
   const received = L.receipts && L.receipts.length ? L.receipts : L.sources.filter((s) => s.stream_id && s.status === "active").map((s) => ({ stream_id: s.stream_id, day: s.issued_on || s.captured_at }));
-  const held = groupBy(received, (s) => s.stream_id);
+  const held = groupBy(received, (s) => s.stream_id), spoken = spokenSpans(L);
+  // A delivery whose own contents already speak has nothing more to say. What is left is a quiet file: an empty month, a byte-identical re-delivery.
+  const spent = new Map();
+  for (const rows of spoken.values()) for (const r of rows) { const k = `${r.stream}|${String(r.delivered).slice(0, 10)}`; spent.set(k, (spent.get(k) || 0) + 1); }
+  const quiet = (id) => (held.get(id) || []).filter((x) => { const k = `${id}|${String(x.day).slice(0, 10)}`, n = spent.get(k) || 0; if (!n) return true; spent.set(k, n - 1); return false; });
   const stepMonths = { fortnightly: 1, monthly: 1, quarterly: 3, half_yearly: 6, yearly: 12 };
   const rows = [];
   for (const s of L.streams) {
     const step = stepMonths[s.cadence];
     if (!step) continue;
     const start = monthOf(s.valid_from), end = monthOf(s.valid_to ? addDays(s.valid_to, -1) : L.asOf);
-    const got = new Set((held.get(s.stream_id) || []).map((x) => monthOf(x.day)));
     const grace = s.grace_days ?? 45;
     let expected = 0, have = 0; const missing = [];
     const ms = monthsBetween(start, end);
+    const speaks = (i) => (spoken.get(s.stream_id) || []).some((r) => r.lo <= monthEnd(ms[Math.min(i + step - 1, ms.length - 1)]) && r.hi >= `${ms[i]}-01`);
+    const silent = []; for (let i = 0; i < ms.length; i += step) if (!speaks(i)) silent.push(i);
+    const answered = answerPeriods(ms, silent, step + Math.ceil(grace / 30), quiet(s.stream_id).map((x) => monthOf(x.day)));
     if (s.cadence === "fortnightly") {
       // A fortnightly stream is counted in fortnights, so one missing payslip shows.
       const days = (held.get(s.stream_id) || []).map((x) => x.day).filter(Boolean).sort();
@@ -238,15 +270,31 @@ function coverage(L) {
       continue;
     }
     for (let i = 0; i < ms.length; i += step) {
-      const window = monthsBetween(ms[i], ms[Math.min(i + step + Math.ceil(grace / 30), ms.length - 1)]);
       const closes = monthEnd(ms[Math.min(i + step - 1, ms.length - 1)]);
-      if (addDays(closes, grace) > L.asOf && !window.some((m) => got.has(m))) continue;
+      const isHeld = speaks(i) || answered.has(i);
+      if (addDays(closes, grace) > L.asOf && !isHeld) continue;
+      // A stream that starts mid-period, or ends mid-period, owes nothing for the stub.
+      const stub = (i === 0 && s.valid_from.slice(8) !== "01") || i + step > ms.length;
+      if (stub && !isHeld) continue;
       expected += 1;
-      if (window.some((m) => got.has(m))) have += 1; else missing.push(ms[i]);
+      if (isHeld) have += 1; else missing.push(ms[i]);
     }
     rows.push({ stream_id: s.stream_id, name: s.name, expected, have, ratio: expected ? have / expected : 1, missing: missing.slice(-6) });
   }
   return rows;
+}
+// Which periods the deliveries answer, one delivery each. The commonest lag explains most of them; a late one then fills the period it is near.
+function answerPeriods(ms, periods, span, months) {
+  const left = new Map();
+  for (const m of months) left.set(m, (left.get(m) || 0) + 1);
+  const lastIndex = ms.length - 1;
+  const take = (i) => { const n = left.get(ms[i]); if (!n) return false; left.set(ms[i], n - 1); return true; };
+  let best = 0, bestScore = -1;
+  for (let lag = 0; lag <= span; lag++) { const score = periods.filter((p) => p + lag <= lastIndex && left.get(ms[p + lag])).length; if (score > bestScore) { bestScore = score; best = lag; } }
+  const out = new Set();
+  for (const p of periods) if (p + best <= lastIndex && take(p + best)) out.add(p);
+  for (const p of periods) { if (out.has(p)) continue; for (let i = p; i <= Math.min(p + span, lastIndex); i++) if (take(i)) { out.add(p); break; } }
+  return out;
 }
 
 // Open any number: metric -> postings -> events -> witnesses -> observations -> the line of the file.
@@ -261,4 +309,4 @@ function explain(L, eventId) {
   }) };
 }
 
-module.exports = { commitments, ledgerIndex, cashLens, accrualLens, balances, netWorth, netWorthByOwner, activityNet, loanTable, refreshPlan, billsCommitted, budgetVariance, coverage, explain, wrappedAccounts };
+module.exports = { balanceDate, commitments, ledgerIndex, cashLens, accrualLens, balances, netWorth, netWorthByOwner, activityNet, loanTable, refreshPlan, billsCommitted, budgetVariance, coverage, explain, wrappedAccounts };

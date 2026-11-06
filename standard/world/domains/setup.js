@@ -14,6 +14,7 @@ const CATEGORIES = [
   cat("SALARY", "Salary and wages", "income", "Income", null, true, true),
   cat("SALARY-ALLOW", "Allowances", "income", "Income", null, true, true),
   cat("REIMBURSE", "Employer reimbursements", "income", "Income", null, true, false, "Comes back through payroll; never income for tax."),
+  cat("PASS-THROUGH", "Third-party money", "pass_through", "Other", null, false, false, "Crosses the household's rails and is nobody's income or spending: a reimbursement by separate credit, a relative's spend on your card."),
   cat("SUPER-EMPLOYER", "Employer super", "income", "Super", null, false, true),
   cat("SUPER-SACRIFICE", "Salary sacrificed to super", "income", "Super", null, false, true),
   cat("PAYROLL-DED", "Post-tax payroll deductions", "expense", "Income", null, true, true),
@@ -71,7 +72,7 @@ const org = (id, name, extra) => party(id, "organisation", name, extra);
 
 function run(w) {
   const S = w.setup, sheet = w.sheet;
-  S.household.push({ household_id: HOUSEHOLD, name: "Davies household (fictional)", jurisdiction: "AU", base_currency: "AUD", fy_start_month: 7, timezone: "Australia/Melbourne", standard_version: "household-standard/1" });
+  S.household.push({ household_id: HOUSEHOLD, name: "Davies household (fictional)", jurisdiction: "AU", base_currency: "AUD", fy_start_month: 7, timezone: "Australia/Melbourne", standard_version: "household-standard/1", budget_date: "posted" });
   S.party.push(
     party("JORDAN", "person", "Jordan Davies", { birth_date: "1985-06-12" }), party("MIA", "person", "Mia Davies", { birth_date: "1987-02-03" }), party("AVA", "person", "Ava Davies", { birth_date: "2022-03-20" }),
     org("NORTHWIND", "Northwind Logistics"), org("BAYVIEW", "Bayview Health"), org("HARBOUR", "Harbour Bank"), org("SOUTHERN", "Southern Card"), org("WATTLE", "Wattle Credit Union"), org("BARK", "Bark Bank"),

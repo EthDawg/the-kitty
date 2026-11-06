@@ -5,6 +5,7 @@ const { groupBy, cmp, addDays, daysBetween, parseUnits, fmtUnits, unitsValueCent
 
 const nz = (v) => (v == null ? 0 : v);
 const CGT_MONTHS = 12;
+const WINDOW_SETTLE = require("../schema/matching.json").windows_days.settle.days;
 
 module.exports = (Resolver) => {
   const P = Resolver.prototype;
@@ -37,9 +38,16 @@ module.exports = (Resolver) => {
   P.recogniseMarkets = function () {
     this.tradeLog = [];
     const log = (t) => this.tradeLog.push(t);
+    /* The hub first. A registry or broker can pay through any of the household's accounts, so failing that, one unexplained line
+       on any cash account, to the cent, near the date. Two such lines is a question, not a guess. */
     const settleMatch = (cash, cents, date, description, key, role = "settle_cash") => {
-      const hit = this.lines.filter((l) => !l.claimed && l.account === cash && l.cents === cents && Math.abs(daysBetween(date, l.date)) <= 7)
-        .sort((a, b) => Math.abs(daysBetween(date, a.date)) - Math.abs(daysBetween(date, b.date)) || cmp(a.key, b.key))[0];
+      const near = (l) => !l.claimed && l.cents === cents && Math.abs(daysBetween(date, l.date)) <= WINDOW_SETTLE;
+      const closest = (a, b) => Math.abs(daysBetween(date, a.date)) - Math.abs(daysBetween(date, b.date)) || cmp(a.key, b.key);
+      let hit = this.lines.filter((l) => near(l) && l.account === cash).sort(closest)[0];
+      if (!hit) {
+        const away = this.lines.filter((l) => near(l) && l.account !== cash && (!l.cls.category_id || l.cls.category_id === "UNCAT" || this.isTransferLine(l)) && (this.accounts.get(l.account) || {}).reporting_group === "cash");
+        if (away.length === 1) hit = away[0];
+      }
       if (!hit) return null;
       this.claim(hit, role);
       return hit;
@@ -55,17 +63,18 @@ module.exports = (Resolver) => {
       const cents = p.consideration_cents;
       const key = `${account}|${instrument}|${p.side}|${p.trade_date}|${p.units}`;
       const person = this.personOfAccount(holding, p.trade_date);
+      const line = settleMatch(cash, p.side === "buy" ? -cents : cents, p.settlement_date || p.trade_date, "", key);
+      const through = line ? line.account : cash;
       if (p.side === "buy") {
         this.event({ key: `trade_buy|${key}`, kind: "trade_buy", occurred_on: p.trade_date, settled_on: p.settlement_date, description: `Buy ${p.units} ${p.instrument_ref}`, person, amount_cents: cents, grade: "stated", rule: "contract_note", witnesses: this.docWitness(o),
-          fields: { consideration: cents }, refs: { holding, cash_account: cash }, holding, units: String(p.units), instrument_id: instrument });
+          fields: { consideration: cents }, refs: { holding, cash_account: through }, holding, units: String(p.units), instrument_id: instrument });
         log({ kind: "buy", date: p.trade_date, instrument, holding, person, units: parseUnits(p.units), cost: cents - nz(p.brokerage_cents), incidental: nz(p.brokerage_cents), ref: key, o });
       } else {
         this.event({ key: `trade_sell|${key}`, kind: "trade_sell", occurred_on: p.trade_date, settled_on: p.settlement_date, description: `Sell ${p.units} ${p.instrument_ref}`, person, amount_cents: cents, grade: "stated", rule: "contract_note", witnesses: this.docWitness(o),
-          fields: { proceeds: cents }, refs: { holding, cash_account: cash }, holding, units: `-${p.units}`, instrument_id: instrument });
+          fields: { proceeds: cents }, refs: { holding, cash_account: through }, holding, units: `-${p.units}`, instrument_id: instrument });
         log({ kind: "sell", date: p.trade_date, instrument, holding, person, units: parseUnits(p.units), proceeds: cents, ref: key, o });
       }
-      const line = settleMatch(cash, p.side === "buy" ? -cents : cents, p.settlement_date || p.trade_date, "", key);
-      if (line) this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "note+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: cash }, line });
+      if (line) this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "note+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: through }, line });
       else this.fault("trade_unsettled", o, `Trade on ${p.trade_date} has no cash line in ${cash}.`, "", cents);
     }
 
@@ -84,10 +93,11 @@ module.exports = (Resolver) => {
           fields: { amount: gross }, refs: { holding }, ownerAccount: holding, holding, units: String(p.drp_units), instrument_id: instrument, tax: p.attributed_later ? {} : { franked: nz(p.franked_cents), unfranked: nz(p.unfranked_cents), franking: nz(p.franking_credit_cents) } });
         log({ kind: "buy", date: p.pay_date, instrument, holding, person, units: parseUnits(p.drp_units), cost: gross, incidental: 0, ref: `drp|${key}`, o });
       } else {
-        this.event({ key: `dividend|${key}`, kind: "dividend", occurred_on: p.pay_date, description: `Dividend, ${p.instrument_ref}`, category_id: "DIVIDEND", person, amount_cents: gross, grade: "stated", rule: "dividend", witnesses: this.docWitness(o),
-          fields: { gross_cash: gross, withholding: nz(p.withholding_cents), net: p.net_cents }, refs: { person: person || "household", cash_account: cash }, ownerAccount: holding, tax: p.attributed_later ? {} : { franked: nz(p.franked_cents), unfranked: nz(p.unfranked_cents), franking: nz(p.franking_credit_cents) } });
         const line = settleMatch(cash, p.net_cents, p.pay_date, "", key, "dividend_receipt");
-        if (line) this.event({ key: `dividend_receipt|${line.key}`, kind: "dividend_receipt", occurred_on: line.date, description: line.desc, category_id: "DIVIDEND", amount_cents: line.cents, grade: "corroborated", rule: "registry+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: cash }, line });
+        const through = line ? line.account : cash;
+        this.event({ key: `dividend|${key}`, kind: "dividend", occurred_on: p.pay_date, description: `Dividend, ${p.instrument_ref}`, category_id: "DIVIDEND", person, amount_cents: gross, grade: "stated", rule: "dividend", witnesses: this.docWitness(o),
+          fields: { gross_cash: gross, withholding: nz(p.withholding_cents), net: p.net_cents }, refs: { person: person || "household", cash_account: through }, ownerAccount: holding, tax: p.attributed_later ? {} : { franked: nz(p.franked_cents), unfranked: nz(p.unfranked_cents), franking: nz(p.franking_credit_cents) } });
+        if (line) this.event({ key: `dividend_receipt|${line.key}`, kind: "dividend_receipt", occurred_on: line.date, description: line.desc, category_id: "DIVIDEND", amount_cents: line.cents, grade: "corroborated", rule: "registry+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: through }, line });
         else this.fault("dividend_unpaid", o, `Dividend of ${p.pay_date} has no cash line in ${cash}.`, "", p.net_cents);
       }
     }
@@ -197,17 +207,25 @@ module.exports = (Resolver) => {
       }
       else this.fault("crypto_move_unpaired", (out || inn).o, `Crypto move ${txid} has one side only. Is it an external send?`);
     }
-    // A snapshot holding with no trade history opens lots of unknown cost. Unknown is a value, not zero, so a later sale reports an unknown gain.
-    for (const o of this.byKind.get("holding") || []) {
+    /* What the first holdings statement shows and no trade explains was held before the files begin. It opens lots of unknown cost.
+       Unknown is a value, not zero, so a later sale reports an unknown gain. Only the first statement can do this; after it, a difference is a question for L7. */
+    const firsts = new Map();
+    for (const o of [...(this.byKind.get("holding") || [])].sort((a, b) => cmp(a.payload.as_at, b.payload.as_at) || cmp(a.obs_id, b.obs_id))) {
       const p = o.payload;
       const account = this.accountOf(o, p.account_ref, p.as_at);
-      if (!account) continue;
-      const instrument = this.instrumentOf(p.instrument_ref, p.as_at);
+      const instrument = account && this.instrumentOf(p.instrument_ref, p.as_at);
       if (!instrument) continue;
-      const holding = this.holdingOf(instrument, account);
-      if ((this.accounts.get(holding) || {}).fidelity !== "snapshot") continue;
-      if (this.tradeLog.some((t) => t.instrument === instrument && t.holding === holding && t.kind === "buy" && t.date <= p.as_at)) continue;
-      log({ kind: "buy", date: p.as_at, instrument, holding, person: this.personOfAccount(holding, p.as_at), units: parseUnits(p.units), cost: null, incidental: 0, ref: `snapshot|${holding}|${instrument}`, o });
+      const k = `${this.holdingOf(instrument, account)}|${instrument}`;
+      if (!firsts.has(k)) firsts.set(k, { o, p, holding: this.holdingOf(instrument, account), instrument });
+    }
+    const traded = [...this.tradeLog];
+    for (const [, f] of firsts) {
+      // If trades already run before this statement the files had begun, and a shortfall is a missing note: L7 asks.
+      const snapshot = (this.accounts.get(f.holding) || {}).fidelity === "snapshot";
+      const earlier = traded.filter((t) => t.holding === f.holding && t.date <= f.p.as_at);
+      if (snapshot ? earlier.some((t) => t.instrument === f.instrument && t.kind === "buy") : earlier.length) continue;
+      const open = parseUnits(f.p.units);
+      if (open > 0n) log({ kind: "buy", date: f.p.as_at, instrument: f.instrument, holding: f.holding, person: this.personOfAccount(f.holding, f.p.as_at), units: open, cost: null, incidental: 0, ref: `snapshot|${f.holding}|${f.instrument}`, o: f.o });
     }
     this.lots = buildLots(this.tradeLog, this);
   };

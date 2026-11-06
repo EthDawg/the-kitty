@@ -4,6 +4,7 @@ const { groupBy, cmp, addDays, daysBetween, monthOf } = require("./util");
 const { activeOn } = require("./temporal");
 
 const nz = (v) => (v == null ? 0 : v);
+const DEPOSIT_DAYS = require("../schema/matching.json").windows_days.settlement_deposit.days;
 
 module.exports = (Resolver) => {
   const P = Resolver.prototype;
@@ -26,9 +27,9 @@ module.exports = (Resolver) => {
         witnesses: this.docWitness(o), fields: { cost, loan_drawn: loanDrawn }, refs: { asset_account: asset.account_id, loan: loan || "clearing:asset:unknown", asset: assetId } });
       const want = p.cash_paid_cents;
       if (!want) continue;
-      const pool = this.lines.filter((l) => !l.claimed && l.cents < 0 && Math.abs(daysBetween(p.settled_on, l.date)) <= 5)
-        .sort((a, b) => a.cents - b.cents || cmp(a.key, b.key));
-      const hit = subsetSum(pool, want);
+      // The balance at settlement first, then with a deposit paid at exchange. The largest lines in the window, adding to the cent.
+      const window = (days) => this.lines.filter((l) => !l.claimed && l.cents < 0 && l.date <= addDays(p.settled_on, 5) && daysBetween(l.date, p.settled_on) <= days).sort((a, b) => a.cents - b.cents || cmp(a.key, b.key));
+      const hit = subsetSum(window(5), want) || subsetSum(window(DEPOSIT_DAYS), want);
       if (!hit) { this.fault("settlement_unmatched", o, `Settlement of ${p.settled_on} paid ${want / 100} in cash and no bank lines add to it.`, "Mark which lines paid for this.", want); continue; }
       for (const l of hit) {
         this.claim(l, "asset_payment");
@@ -301,7 +302,9 @@ module.exports = (Resolver) => {
       const first = [...lines].sort((a, b) => cmp(a.date, b.date) || a.seq - b.seq)[0];
       if (first && first.balanceAfter != null) {
         const day = lines.filter((l) => l.date === first.date);
-        if (day.length === 1) note(account, first.date, first.balanceAfter - first.cents, first.witnesses[0]);
+        // The file speaks from its stream's first day, so nothing moved between there and its first line.
+        const start = (this.ctx.setup.stream || []).filter((s) => s.subject_id === account && s.valid_from && s.valid_from <= first.date && !(this.ctx.setup.account || []).some((a) => a.account_id === account && a.opened_on > s.valid_from)).map((s) => s.valid_from).sort()[0];
+        if (day.length === 1) note(account, start || first.date, first.balanceAfter - first.cents, first.witnesses[0]);
       }
     }
     for (const [account, s] of firstStated) {
