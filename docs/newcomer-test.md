@@ -42,3 +42,33 @@ silently. That is a gap in the base, and it goes to the Standard as a failing ca
 
 **What worked.** The task table in `START-HERE`. `MAP` stopped a wrong turn into `fixtures/`. A single command with a plain result, and a
 standard area quick enough to loop on. "A score after repair proves only the repair" made the agent state its limits.
+
+## Round 2, 7 November 2026
+
+One agent (Claude Haiku 5.5), a fresh clone with round 1's fixes in it, and a new task: an adult son lives at home and pays board. Its
+model is cheaper, so the test is harder. It finished, and `python3 check.py` passed with `portals` skipped. It held the shape as
+tailoring, at the rule rung, and said why. It also answered three questions correctly from the docs alone: which engine the page runs
+and how a household reaches the other one, what the family is called in data and in prose, and whether `tax/` is used and `sources/` is
+safe to edit.
+
+**What held.** Where a fixture goes, the steps to a watched failure, what to refresh after a change, the quick loop, and how to add
+someone outside the household. None of those had to be guessed again.
+
+**What it still had to guess, and what changed.**
+
+| Guess | Fix |
+|---|---|
+| Round 1's fix said `CATS` in `kit.js` is the whole category list. It is not. We took one agent's word for it | `CONTRIBUTING` step 2 is corrected and names where a household's own category goes |
+| How to name and declare an `x_` category | `CONTRIBUTING` step 2 points at a working example |
+| That `all.js --write` changes timing lines and adds a history row on every run | `CONTRIBUTING` step 6 |
+| Which section of the changelog, and which address an agent commits with | `CONTRIBUTING` |
+| Why the prose names three children and the data has one | `START-HERE` says who is who, and that two are not born yet |
+| Whether the new names apply to a new household | `START-HERE`: any other household has its own names |
+| `conform.js` was said to answer the question for a bundle, and it does not check references | `CONTRIBUTING` says so |
+
+"Branch from `main`" misled it only because this branch had not merged, and that ends when it does.
+
+**What it found.** A rule to an undeclared category drops the money from income, with an empty review queue and no failing law. Reproduced
+and passed to the Standard's owners with the share house, as a failing case to write.
+
+These last fixes are not retested. The next round should cover them.

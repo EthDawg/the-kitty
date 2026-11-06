@@ -45,8 +45,9 @@ A household cannot start on the Standard yet. That is the next large piece of wo
 Danny Davies (born 1985) and Daisy Davies (born 1987) have children called Salt, George and Evie.
 
 **The data has not caught up.** The sheet, the portals and the Standard's world still call the parents Jordan and Mia and the
-child Ava, until a rename. It is the same family. Use Danny, Daisy, Salt, George and Evie in new prose, and leave existing data
-alone. The blind households under `standard/eval/heldout*/` are other families, each with its own invented names.
+child Ava, until a rename. Danny is Jordan, Daisy is Mia and Salt is Ava. George and Evie are born later, so they are not in the data
+yet. Use the new names in new prose about the Davies, and leave existing data alone. Any other household is a different family with
+its own invented names, as the blind households under `standard/eval/heldout*/` are.
 
 ## First run
 
@@ -83,6 +84,6 @@ The last column is the quick loop while you work. Run all of `python3 check.py` 
 ## What is proved, and what is not
 
 Trust the check, and read its limits. `standard/eval/SCOREBOARD.md` has the Standard's numbers. The Davies score well because
-the engine was built around them. The three blind households scored much worse, and those results are kept as written, because a
-fixture proves a repair and only a blind run tests whether it generalises. On the page's side, a passing test on `data/` is
+the engine was built around them. The blind households scored much worse, and those results are kept as written, because a fixture
+proves a repair and only a blind run tests whether it generalises. On the page's side, a passing test on `data/` is
 fictional data at rest. A live read or write has been exercised only on the fictional sheet.
