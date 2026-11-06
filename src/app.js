@@ -4,7 +4,7 @@
    the sheet already computes; see engine.js for the rest. */
 (function () {
   "use strict";
-  const E = window.Engine, SOURCES = window.KITTY_SOURCES || { countries: [] }, SNAP = window.KITTY_SNAPSHOT || null;
+  const E = window.Engine, SOURCES = window.KITTY_SOURCES || { countries: [] }, SNAP = window.KITTY_SNAPSHOT || null, STANDARD = window.KITTY_STANDARD_VIEW || null;
   if (window.KITTY_MERCHANTS) E.loadMerchants(window.KITTY_MERCHANTS);   // the merchant dictionary (merchants/), bundled at build
   const Kit = window.Kit, ART = window.KITTY_ART || {}, LOGOS = window.KITTY_LOGOS || {}, Motion = window.KittyMotion || null;
   const GS = "Google Sheets";
@@ -33,7 +33,7 @@
     storedAt: null, unknownReadAge: false, err: {}, loading: false, liveTried: false, isOwner: false, canWrite: false,
     prefs: Object.assign({}, DEFAULT_PREFS, store.get("prefs", {})), period: { kind: "month", anchor: null },
     feed: { person: "", flow: "", q: "", limit: 80, period: { kind: "all", anchor: null } }, chat: [], asking: false, kittyRows: null, settingsRows: null, goalsRowBase: 2,
-    sessionDecisions: [], sessionCats: {}, cookie: null, perf: {},
+    sessionDecisions: [], sessionCats: {}, cookie: null, perf: {}, recordsFy: null,
   };
   if (window.__LOCAL__) S.mode = "local";
   // test flags for local checks: ?noonb skips the tour, ?noanim freezes motion, ?tab=insights opens a tab
@@ -329,7 +329,7 @@
     if (!S.m) return;
     applyTheme(); applyAccent();
     // one broken card must never blank a tab: each view renders inside its own boundary
-    for (const [name, fn] of [["header", renderHeader], ["home", renderHome], ["activity", renderActivity], ["insights", renderInsights], ["goals", renderGoals], ["setup", renderSetup]]) {
+    for (const [name, fn] of [["header", renderHeader], ["home", renderHome], ["activity", renderActivity], ["insights", renderInsights], ["goals", renderGoals], ["records", renderRecords], ["setup", renderSetup]]) {
       try { fn(); } catch (e) { console.error("render " + name, e); const v = $(`#v-${name}`); if (v) v.innerHTML = `<div class="card"><div class="cardhead"><span class="q">This part couldn't be drawn</span></div><p class="sub">${esc(e && e.message ? e.message : String(e))}. The other tabs still work. If it keeps happening, <a href="${REPO}/issues" target="_blank" rel="noopener">report it</a> with the sheet's tab names.</p></div>`; }
     }
     moveGlow();
@@ -1189,6 +1189,15 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     bindCommon(v);
   }
 
+  // ----- Records -----
+  // the standard's generated view, drawn by the kit; the page holds the picked year and binds the clicks
+  function renderRecords() {
+    const v = $("#v-records");
+    v.innerHTML = Kit.Records(STANDARD, { fy: S.recordsFy });
+    const pick = $("#recfy", v); if (pick) pick.addEventListener("change", () => { S.recordsFy = pick.value; $("#recyear", v).innerHTML = Kit.RecordsYear(STANDARD, S.recordsFy); });
+    bindCommon(v);
+  }
+
   // ---------- drawers ----------
   let lastFocus = null;
   function openDrawer(html, focusFirst = true) {
@@ -1298,6 +1307,18 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   function openUpcoming() {
     const m = S.m; const up = E.upcoming(m); const ahead = E.num(m.kitty.look_ahead_days) || 35; const out = up.filter((u) => u.amount != null && u.amount < 0).reduce((a, u) => a - u.amount, 0), inc = up.filter((u) => u.amount > 0).reduce((a, u) => a + u.amount, 0);
     openDrawer(`${h2(`The next ${ahead} days`, `${fmt0(out)} going out · ${fmt0(inc)} coming in, from the Subscriptions, Loans and Payslips tabs`)}<div class="uplist" style="margin-top:10px">${up.map(upHTML).join("")}</div><p class="sub" style="margin-top:10px">Next charges roll forward from each bill's last charge at its cadence; pay days from the last payslip. Nothing here is a prediction of the amount, only of the date.</p>`);
+  }
+  // the Records drawers: the kit draws them from the standard's view
+  function openLaw(id) { const l = Kit.recordLaw(STANDARD, id); if (l) openDrawer(Kit.RecordLaw(l)); }
+  function openTrace(i) { const t = STANDARD && (STANDARD.traces || [])[+i]; if (t) openDrawer(Kit.RecordTrace(t, STANDARD), false); }
+  function openAction(id) {
+    const a = Kit.recordAction(STANDARD, id); if (!a) return;
+    openDrawer(Kit.RecordAction(a, STANDARD, { fy: S.recordsFy, canSave: !!S.downloads }), id === "tax_pack");
+    $$("#drawer [data-pack]").forEach((b) => b.addEventListener("click", () => saveTaxPack(b.dataset.pack)));
+  }
+  async function saveTaxPack(person) {
+    const pack = Kit.taxPack(STANDARD, S.recordsFy, person); if (!pack || !S.downloads) return;
+    try { const r = await S.downloads.save({ filename: pack.filename, data: new Blob([pack.csv], { type: "text/csv" }) }); if (r && r.status === "saved") toast("Saved the tax pack"); } catch (e) { if (e && e.code !== "cancelled") toast("Couldn't save the file here"); }
   }
   function openNeeds() { const nd = E.needs(S.m); openDrawer(`${h2(nd.verdict, nd.line)}<div class="nlist" style="margin-top:10px;grid-template-columns:1fr">${nd.all.map(needHTML).join("")}</div>`); }
   function openLoan(id) { const l = S.m.loans.find((x) => x.id === id); if (!l) return; openDrawer(`${h2(l.name, `${esc(l.lender)} · ${esc(l.type)} · ${esc(l.purpose)}`)}<dl class="kv"><dt>Balance</dt><dd><b>${fmt0(l.balance)}</b></dd><dt>Rate</dt><dd>${E.fmtPct(l.rate, 2)}</dd><dt>Repayment</dt><dd>${fmt0(l.repayment)} a month</dd><dt>Ends</dt><dd>${E.fmtDay(l.end, { year: true })} · ${l.monthsLeft} months</dd>${l.offset ? `<dt>Offset</dt><dd>${esc((S.m.acctById[l.offset] || {}).name || l.offset)} · ${fmt0((S.m.acctById[l.offset] || {}).balance)}</dd>` : ""}</dl><button class="btn ghost sm" data-go="insights">Rate and extra-repayment scenarios</button>`); }
@@ -1538,7 +1559,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   function go(target) {
     const [kind, ...rest] = String(target).split(":"); const key = rest.join(":");
     switch (kind) {
-      case "insights": case "goals": case "setup": case "home": case "activity": switchTab(kind); if (key === "save") setTimeout(() => { const el = $("#savecard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
+      case "insights": case "goals": case "records": case "setup": case "home": case "activity": switchTab(kind); if (key === "save") setTimeout(() => { const el = $("#savecard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       case "cat": openCategory(key); break;
       case "entry": openEntry(key); break;
       case "review": S.focusReview = true; switchTab("activity"); setTimeout(() => { const el = $("#reviewcard"); if (el) el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); const first = $("#rcards .rcard"); if (first && !phone()) first.focus({ preventScroll: true }); }, 80); break;
@@ -1554,6 +1575,9 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
       case "upcoming": openUpcoming(); break;
       case "needs": openNeeds(); break;
       case "trust": openTrust(); break;
+      case "law": openLaw(key); break;
+      case "trace": openTrace(key); break;
+      case "xp": openAction(key); break;
       case "safety": switchTab("goals"); break;
       case "budget": case "networth": switchTab("insights"); setTimeout(() => { const el = $(kind === "networth" ? "#nwchart" : "#v-insights .grid"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       default: break;
