@@ -103,7 +103,7 @@ footer{padding-block:28px;color:var(--muted);font-size:14px}
 </div></section>
 <section><div class="wrap">
   <h2>A family it had never seen.</h2>
-  <p class="sub">Everything above was built with the Davies in view, so it cannot show the model works for anyone else. So a worker that could not read the engine simulated a different household, with its own banks, traps and truth, and ran it once. No rules, no decisions, only what a person would answer at onboarding. Then the engine was repaired, and a new family tried it, because a score after repair proves only the repair.</p>
+  <p class="sub">Everything above was built with the Davies in view, so it cannot show the model works for anyone else. So a worker that could not read the engine simulated a different household, with its own banks, traps and truth, and ran it once. No rules, no decisions, only what a person would answer at onboarding. Then the engine was repaired and a new, harder family tried it, because a score after repair proves only the repair. Each column is a different family's first run.</p>
   <div class="tbl"><table id="blind"></table></div>
   <p class="note" id="blindnote"></p>
   <h3>What a person's answers buy</h3>
@@ -203,10 +203,10 @@ footer{padding-block:28px;color:var(--muted);font-size:14px}
   const blindRow = (label, f) => `<tr><th scope="row">${label}</th>${B.map((b) => `<td class="num">${esc(f(b))}</td>`).join("")}</tr>`;
   $("blind").innerHTML = `<thead><tr><th scope="col">Measure</th>${B.map((b) => `<th scope="col" class="num">${esc(b.name)}</th>`).join("")}</tr></thead><tbody>${[
     blindRow("Months of income exact", (b) => b.income), blindRow("Months of spending exact", (b) => b.spending), blindRow("Net worth, mean error a month", (b) => `$${b.worth}`),
-    blindRow("Card lines counted twice", (b) => b.extra), blindRow("Own transfers paired", (b) => b.paired), blindRow("Traps handled", (b) => `${b.handled} of ${b.of}`), blindRow("Flagged for a person", (b) => b.flagged), blindRow("Silently wrong", (b) => b.silent), blindRow("Rebuild crashed", (b) => (b.crash ? "yes" : "no")),
+    blindRow("Card lines counted twice", (b) => b.extra), blindRow("Own transfers paired", (b) => b.paired), blindRow("Traps handled", (b) => `${b.handled} of ${b.of}`), blindRow("Flagged for a person", (b) => b.flagged), blindRow("Silently wrong", (b) => b.silent), blindRow("Silent share", (b) => `${(b.silent / b.of * 100).toFixed(1)}%`), blindRow("Rebuild crashed", (b) => (b.crash ? "yes" : "no")),
   ].join("")}</tbody>`;
-  $("blindnote").textContent = "Blind columns are what shipped before anyone looked, kept as written. Each repair came with a failing fixture and read none of that family's numbers, but the family is why it exists, so an after-repairs column shows only that the repair works. The first repairs did not make the second family easy: that is what this test is for.";
-  const C = B.filter((b) => b.curve && b.curve.length).slice(-1)[0];
+  $("blindnote").textContent = "Each column is what the engine did before anyone looked, kept as written, and the last is the engine as it stands. Exact months stay low because no one has answered a question yet, and a flagged number is still a wrong number until they do. The figure to watch is silently wrong: the number is wrong and nothing says so. Of 30 shapes the fourth family repeated, 7 got better, 21 held and 2 got worse.";
+  const C = B.filter((b) => b.curve && b.curve.length).slice(-1)[0]; // the last family, as it stands
   if (C) $("curve").innerHTML = `<thead><tr><th scope="col">Answers given</th><th scope="col" class="num">Unknown dollars answered</th><th scope="col" class="num">Months of income exact</th><th scope="col" class="num">Months of spending exact</th></tr></thead><tbody>${C.curve.map((r) => `<tr><th scope="row">${esc(r[1])}</th><td class="num">${esc(r[2])}</td><td class="num">${esc(r[3])}</td><td class="num">${esc(r[4])}</td></tr>`).join("")}</tbody>`;
   $("rungsP").innerHTML = D.ladder.filter((r) => r.kind === "presentation").map((r) => rung(r, "same")).join("");
   $("rungsS").innerHTML = D.ladder.filter((r) => r.kind === "semantic").map((r) => rung(r, "rang")).join("");

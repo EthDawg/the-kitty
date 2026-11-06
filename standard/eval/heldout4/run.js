@@ -354,7 +354,7 @@ function report(r, o = {}) {
     p();
     for (const n of SEEN) p(`- ${n}`);
   }
-  if (!o.dry) fs.writeFileSync(path.join(__dirname, "BLIND-4.md"), `${out.join("\n")}\n`);
+  if (!o.dry) fs.writeFileSync(path.join(__dirname, "RESULT.md"), `${out.join("\n")}\n`);
   if (o.dry) return { tally, traps, rec, T };
   console.log(out.join("\n"));
 }
