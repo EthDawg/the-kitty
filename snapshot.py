@@ -6,7 +6,7 @@
 The sheet's bound Apps Script serves every table as JSON (apps-script/Code.js, ?format=json). Run this
 after each month-end close; `build.py` bundles the file into the page so the demo opens instantly and
 still works for a reader who has no Google Sheets connector. Real households never bundle: they read
-live through the connector (see README.md, "Make it yours").
+live through the connector (see README.md, "Start yours").
 
 A copy of a sheet carries its bound script but not the script's web-app deployment, so a fresh copy has no
 feed until someone deploys it (Extensions > Apps Script > Deploy > New deployment > Web app, execute as me,

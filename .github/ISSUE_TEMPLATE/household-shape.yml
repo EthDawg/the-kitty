@@ -1,0 +1,51 @@
+name: A household shape the model gets wrong
+description: A kind of household life that the Standard or the page does not tell the truth about.
+title: "Shape: "
+labels: ["household shape"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The most useful report there is. Describe a **shape**, not a real household. Change the people, places and amounts until only the shape is left, and use no real figures. `CONTRIBUTING.md` has the path from here to a fixture.
+  - type: textarea
+    id: shape
+    attributes:
+      label: The shape
+      description: The household in a few sentences, with invented people.
+      placeholder: Two adults, one retired mid-year. A pension starts and the wage stops. The old job's final pay arrives after the pension does.
+    validations:
+      required: true
+  - type: textarea
+    id: truth
+    attributes:
+      label: What should be true
+      description: The numbers or statements a correct model would give.
+      placeholder: Income for the year is the wage plus the pension. Neither is spending.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What the model does instead
+      description: What you saw, or what you expect it to do, and where. Say if you have not run it.
+    validations:
+      required: true
+  - type: dropdown
+    id: lands
+    attributes:
+      label: Where do you think this lands?
+      options:
+        - The base holds it, and there is a bug
+        - One small change to the base
+        - Tailoring holds it
+        - It should be honestly declined
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: fiction
+    attributes:
+      label: Only shapes, never data
+      options:
+        - label: Nothing here is a real person, account, amount, file or sheet link.
+          required: true

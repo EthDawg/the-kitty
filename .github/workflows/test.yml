@@ -1,4 +1,5 @@
 name: test
+# Every check lives in check.py, so a fresh clone and CI run the same thing. Add a check there, not here.
 on:
   pull_request:
   push:
@@ -13,39 +14,7 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: one app, two hosts (repository shape)
-        run: |
-          python3 -m unittest discover -s tools -p 'test_check_shape.py' -v
-          python3 tools/check_shape.py
-      - name: Shared brand sources are current and drive both hosts
-        run: |
-          python3 brand/generate_tokens.py --check
-          python3 brand/build_brand.py --icons-only
-          git diff --exit-code -- brand/icons
-          python3 -m unittest discover -s tools -p 'test_brand_pipeline.py' -v
-      - run: node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js
-      - run: node --test tools/period-core.test.js
-      - name: the JavaScript period core plans what Python plans
-        run: python3 tools/period_parity.py --quiet
-      - name: offline native bundle and capability contract
-        run: |
-          python3 -m unittest discover -s tools -p 'test_native_build.py' -v
-          node --test src/hosts/native.test.js
-      - name: the importer's promises (identity, fail loud, shapes, plan, verify)
-        run: python3 -m unittest discover -s period-close -v
-      - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py period-close/writeplan.py period-close/verify.py period-close/pdftext.py period-close/pull_portals.py
-      - run: python3 build.py && test -s dist/kitty.html
-      - run: python3 build.py --v2 && test -s dist/kitty-v2.html
-      - name: every inline script parses, in both builds
-        run: for f in dist/kitty.html dist/kitty-v2.html; do node -e "const h=require('fs').readFileSync('$f','utf8');for(const m of h.matchAll(/<script>([\s\S]*?)<\/script>/g)) new Function(m[1]);console.log('$f ok')"; done
-      - name: a repeated month appends nothing (1.1 sheet)
-        run: python3 period-close/import_month.py 2027-01 | grep -q "0 rows to append"
-      - name: a repeated month appends nothing (the ledger)
-        run: python3 period-close/import_month.py 2027-01 --sheet data/snapshot-v2.json | grep -q "0 rows to append"
-      - name: a repeated month plans no write (the ledger)
-        run: python3 period-close/import_month.py 2027-01 --sheet data/snapshot-v2.json >/dev/null && python3 -c "import json; p=json.load(open('period-close/2027-01/write-plan.json')); assert p['status']=='ready' and p['writes']==[], p['totals']; print('plans nothing:', p['totals'])"
-      - name: the fixtures are exactly what the snapshot cuts
-        run: python3 fixtures/make-v2-fixtures.py && git diff --exit-code --stat fixtures/
+      - run: python3 check.py --ci test
 
   standard:
     runs-on: ubuntu-latest
@@ -53,14 +22,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
-      - name: generated files are current and every event template balances
-        run: node standard/tools/generate.js --check
-      - name: the Davies world builds the same every time
-        run: node standard/world/build.js
-      - name: importers and households
-        run: node --test standard/intake/test.js standard/eval/households/test.js
-      - name: replay, ladder and locked numbers
-        run: node standard/eval/all.js --check
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python3 check.py --ci standard
 
   portals:
     runs-on: ubuntu-latest
@@ -72,14 +36,9 @@ jobs:
         with: { python-version: "3.12" }
       - run: npm ci
         working-directory: portals
-      - name: the simulator still builds the portals' data
-        run: python3 portals/build-data.py --out /tmp/months.json
-      - run: python3 build.py --v2
       - run: npx playwright install --with-deps chromium
         working-directory: portals
-      - name: sign in, download every shape, import, reconcile, repeat appends nothing
-        run: npx playwright test
-        working-directory: portals
+      - run: python3 check.py --ci portals
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: portals/playwright-report, retention-days: 7 }

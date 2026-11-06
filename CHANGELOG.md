@@ -1,5 +1,10 @@
 # Changelog
 
+## The front door
+- `python3 check.py` checks everything from a fresh clone, a plain pass, fail or skip per area. CI calls it and runs no check of its own, so the two cannot drift. A check that changes the working tree now fails.
+- `tools/check_public.py` catches private paths, addresses and document links in anything tracked.
+- `AGENTS.md`, `docs/START-HERE.md`, `docs/GLOSSARY.md`, `docs/MAP.md`, decision records, `MAINTAINERS.md`, `CODEOWNERS`, and pull request and issue templates. `README.md` is three doors now; its detail moved to `period-close/README.md`, `portals/README.md`, `ARCHITECTURE.md` and here.
+
 ## The Digital Davies Standard, draft
 - `standard/`: the data model as a public standard: 41 tables, 39 observation kinds, 59 event kinds, 20 laws, generated SQL, MongoDB validators, ER diagram, Sheet tabs and a schema card.
 - A truth-first Davies world: 2,369 files in 59 families across 10 containers, including super, a broker, RSUs, crypto, a second rental, returns as lodged, bills and things.
@@ -31,6 +36,12 @@
 - The published page moves to the v2 ledger sheet. `staging_url` is gone; the page's QR code and "Copy the sheet" follow the v2 sheet, which must be shared as anyone-with-link Viewer before publishing.
 - Verified live on the v2 sheet, 4 November 2026: the fortune cookie proposed rule `R0086` for T0687, which wrote the rule, the category and decision `D0019`. Not exercised live: a plain category pick on T0761.
 - Known and harmless: `data/snapshot-v2.json` predates those three writes, so the bundled demo still shows T0687 for review.
+
+## Status notes from the old README
+- Version 1.1 was verified live on 3 November 2026: live read and write through the viewer's Google Sheets connector, the onboarding's writes, Ask the Kitty, two month-end closes through the import pipeline, light and dark themes, phone install.
+- 2.0, phase A (the ledger), 4 November 2026: the data model carried every store of value on a copy of the demo sheet, "Digital Davies v2". `python3 build.py --v2` builds the published page.
+- 2.0, phase B (the row and the review), 4 November 2026: Activity on `EntryRow`, the merchant dictionary, the Review queue with its sheet writes, the fortune cookie that proposes rules, and "Worth it?". The fortune cookie's proposal, rule write, category write and Decisions row were verified live against the v2 sheet (rule `R0086`).
+- 2.0, phase C (widgets, signals, the canvas, the kit gallery), 5 November 2026: Home is widgets the sheet switches on, arranged per person, on GridStack.
 
 ## 2.0, phase B: the row and the review — 4 November 2026 (unreleased, branch `v2-row`; staging artifact only, the public page is untouched)
 - **Merchant dictionary** (`merchants/`): 370 Australian merchants, generic transfers, fees, income and government descriptors, each with regex patterns over a normalised descriptor, a category from the sheet's Categories tab, a brand hue, a website and a kind; `categories.json` maps every category to a brand icon and a hue. `Engine.normalise` strips card suffixes, store numbers, dates, amounts, trailing state and capital-city tokens, `PTY LTD` and `AU`; `Engine.merchant` tries the sheet's Rules (tokens in order, tolerant of a descriptor a bank cut at 24 characters), then the dictionary, then a flagged Title Case fallback. Measured over the 925 historical rows: Rules then dictionary resolve all 925; the dictionary alone misses 2.4% (`merchants/README.md`). No logos in the repo: a gitignored `logos/` pack is embedded at build if a household supplies one.

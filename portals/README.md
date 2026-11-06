@@ -72,6 +72,14 @@ The vault is generated, so a checkout builds it from the repo root. Without it a
 node standard/world/build.js && node portals/build-vault.js
 ```
 
+## What CI proves
+
+The `portals` area of `check.py` uses Playwright, in Chromium only. It signs in, downloads every bank shape for the first month after
+the sheet's as-of date, checks names, headers, CRLF and closing balances against the simulator, imports against a scratch copy of the
+snapshot, and checks IDs, accounts, categories and totals. A re-import has nothing to append. The card's straddling statement imports
+only the month asked for. A whole financial year of 2021-22 imports in order, with September-before-July held. Statements, owner
+statements, payslips, income statements and renewals download from every portal.
+
 ## Rebuilding the sheet from the files
 
 The point of the portals is that an agent can populate the sheet from nothing but what the institutions hand over.

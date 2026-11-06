@@ -29,6 +29,28 @@ preview the exact answer, then choose an app in the iOS share sheet. The public
 Claude link is explicitly the fictional demo, never a private household session.
 See [Ask behaviour, tests and provider limits](docs/ask.md).
 
+## The sheet today
+
+This is `sheet_version` 2, the sheet the page reads. The Standard's tabs are a later version.
+
+Raw tabs are append-only. Input tabs are set up once (Accounts, Categories, Goals, Loans, Settings and the Kitty tab this page
+owns). View tabs are formulas only (Cash Flow, Budget, Savings Finder, Mortgage Scenarios, Tax Forecast, Compliance Checks, Net
+Worth). Metrics names each headline figure once. The page draws from Metrics and the views, derives only what a search or a
+window needs, and checks its derivations against the sheet in the trust drawer. It writes few things, each to the owning tab.
+
+Every store of value is a row on Accounts with a type (transaction, savings, offset, credit card, loan, property, vehicle,
+device, shares, crypto, super, smsf), an owner, an opening anchor and date, a class, a valuation method (ledger, statement,
+appraisal, market, estimate) and a status (active, beta, closed). Everything that happens is a row on Entries of one of three
+kinds: a transaction (money moved), a trade (units at a price) or a valuation (a value observed on a date). Balances holds the
+balance of every account at every month end: the anchor plus entries for a ledger account, the last valuation carried forward
+for the rest. Net Worth is derived from it. Contracts holds recurring obligations, Decisions holds human judgements, and Rules
+maps descriptors to merchant, category, tax label and property.
+
+Transactions, Valuations, Assets and Subscriptions are formula views over these, so clearing one breaks it. A transfer is one
+event on two accounts paired by `transfer_id`. The sheet and the engine both check the invariant: a mate of the opposite amount
+within four days, pairs never count as spending, and each month's change in total balances equals income less spending plus
+valuation changes. Loan terms stay on the Loans tab, and Contracts mirrors them by formula.
+
 `brand/` owns tokens, icons, mascot, app icons and motion. Hosts request semantic
 names. Generated native tokens are the only place for Swift color literals; no
 SF Symbols substitute for the shared icons. The dog remains a single-flag
