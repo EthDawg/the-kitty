@@ -14,7 +14,11 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     private var exportDirectory: URL?
     private weak var exportPicker: UIDocumentPickerViewController?
     private static var clearedAbandonedExports = false
+    private let importPicker = ImportFilePicker()
+    private let bankImport = NativeBankImport()
     private var pageReady = false
+    private let startupIndicator = UIActivityIndicatorView(style:.medium)
+    private var blockerInstalled = false
     private lazy var google = GoogleConnection(defaults: preferences)
     private var verifiedSheet: GoogleSheetSelection.Verified?
     private var liveSheet: GoogleSheetSelection.Verified?
@@ -23,6 +27,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     private lazy var privacy = DevicePrivacyLock(defaults:preferences)
     private var openingLive = false, shield: UIView?, shieldNavigation: WKNavigation?
     private var choosingSheet = false
+    private var practiceChoice: GooglePracticeSheet.Choice?
 
     init(pageURL: URL? = Bundle.main.url(forResource: "kitty-native", withExtension: "html"),
          preferences: UserDefaults = .standard, websiteDataStore: WKWebsiteDataStore? = nil) {
@@ -58,6 +63,9 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
         configuration.userContentController.addScriptMessageHandler(
             HostMessages(owner: self), contentWorld: .page, name: "kitty")
         webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.isOpaque = false
+        webView.backgroundColor = KittyTokens.background
+        webView.scrollView.backgroundColor = KittyTokens.background
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -73,6 +81,14 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
+        startupIndicator.translatesAutoresizingMaskIntoConstraints = false
+        startupIndicator.color = KittyTokens.text
+        startupIndicator.isAccessibilityElement = true
+        startupIndicator.accessibilityLabel = "Opening The Kitty"
+        view.addSubview(startupIndicator)
+        NSLayoutConstraint.activate([startupIndicator.centerXAnchor.constraint(equalTo:view.centerXAnchor),
+                                     startupIndicator.centerYAnchor.constraint(equalTo:view.centerYAnchor)])
+        startupIndicator.startAnimating()
         NotificationCenter.default.addObserver(self, selector: #selector(environmentChanged),
                                                name: UIContentSizeCategory.didChangeNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(environmentChanged),
@@ -85,15 +101,27 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
         }
         // CSP in the bundle blocks network assets/fetches. A WebKit rule is defense in depth.
         let rules = "[{\"trigger\":{\"url-filter\":\"^https?://\"},\"action\":{\"type\":\"block\"}}]"
-        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "KittyOffline", encodedContentRuleList: rules) { [weak self] list, error in
+        guard let store = WKContentRuleListStore.default() else {
+            showFailure("The Kitty couldn't open its offline resources. Close and reopen the app.")
+            return
+        }
+        let identifier = "KittyBlockRemoteHTTPAndHTTPS-v1"
+        let useRules: (WKContentRuleList?, Error?) -> Void = { [weak self] list, error in
             guard let self else { return }
             guard let list, error == nil else {
                 self.showFailure("The Kitty couldn't prepare its offline page. Close and reopen the app.")
                 return
             }
             self.webView.configuration.userContentController.add(list)
+            self.blockerInstalled = true
             // All resources are inline: no access to sibling files or document directories.
             self.webView.loadFileURL(pageURL, allowingReadAccessTo: pageURL)
+        }
+        // Install the blocker before opening the bundle. WebKit can reuse the compiled
+        // rules across launches instead of recompiling them whenever the app opens.
+        store.lookUpContentRuleList(forIdentifier:identifier) { list, _ in
+            if let list { useRules(list,nil) }
+            else { store.compileContentRuleList(forIdentifier:identifier,encodedContentRuleList:rules,completionHandler:useRules) }
         }
     }
 
@@ -118,6 +146,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     @objc private func background() { if privacy.enabled { closeProtectedSession() } }
     @objc private func protectedDataLost() { closeProtectedSession() }
     private func closeProtectedSession() {
+        importPicker.cancel(); bankImport.clear(); practiceChoice = nil
         coverLive(); privacy.lock(); liveSession = UUID()
         guard liveSheet != nil || openingLive else { return }
         liveSheet = nil; verifiedSheet = nil; pageReady = false; pendingRoute = "setup"
@@ -125,6 +154,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     }
 
     private func showFailure(_ message: String) {
+        startupIndicator.stopAnimating()
         let label = UILabel()
         label.textColor = KittyTokens.text
         label.text = message
@@ -163,6 +193,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        startupIndicator.stopAnimating()
         if let reset = shieldNavigation, reset === navigation { shieldNavigation = nil; uncoverLive() }
         pageReady = true
         environmentChanged()
@@ -171,6 +202,9 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         pageReady = false
+        bankImport.clear()
+        importPicker.cancel()
+        guard blockerInstalled else { return }
         let recover = { [weak self] in
             guard let self else { return }
             self.finishExport(HostPolicy.failure("cancelled", "The page restarted. Please export again."))
@@ -248,6 +282,61 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 preferences.set(data, forKey: key)
                 reply(HostPolicy.reply(), nil)
             }
+        case "files.open":
+            let session = liveSession, owner = liveSheet?.preferenceID ?? "native-demo"
+            guard liveSheet == nil ? params["session"] == nil : params["session"] as? String == session.uuidString else {
+                reply(HostPolicy.failure("stale_session", "Choose the file again in this household."),nil); return
+            }
+            bankImport.clear()
+            importPicker.open(on:self,scope:owner,check:{ [weak self] in
+                guard let self else { return false }
+                return self.liveSession == session && (self.liveSheet?.preferenceID ?? "native-demo") == owner
+            },reply:{ reply($0,nil) })
+        case "files.bank-preview", "files.bank-commit", "files.bank-cancel", "files.bank-status", "files.bank-manual":
+            guard let owner = liveSheet, owner.canImportBankFiles, owner.selection.sheetID != GoogleSheetSelection.demoFileID,
+                  !choosingSheet, privacy.permitsLive, shield == nil, google.selection == owner.selection,
+                  params["session"] as? String == liveSession.uuidString, params["sheetID"] as? String == owner.selection.sheetID else {
+                reply(HostPolicy.failure("not_granted","Open a privately shared Kitty Sheet you own before confirming an import."),nil); return
+            }
+            let session = liveSession
+            let api = GoogleSheetTools(http:GoogleHTTP(),selected:owner.selection,current:{
+                self.privacy.permitsLive && self.liveSession == session && self.liveSheet?.selection == owner.selection
+                    && self.google.selection == owner.selection ? owner.selection : nil
+            },token:{try await self.google.accessToken(for:$0)})
+            Task { @MainActor in
+                do {
+                    let result: [String:Any]
+                    if method == "files.bank-status" {
+                        guard Set(params.keys) == ["session","sheetID"] else { throw api.invalid }
+                        result = try await bankImport.outstanding(session:session,owner:owner,api:api)
+                    } else if method == "files.bank-preview" {
+                        guard let account = params["account"] as? String, let month = params["month"] as? String,
+                              let day = params["downloadDay"] as? String else { throw api.invalid }
+                        let original = try importPicker.reviewedOriginal(params:params,scope:owner.preferenceID)
+                        result = try await bankImport.preview(original:original,account:account,month:month,day:day,
+                                                               session:session,owner:owner,api:api)
+                    } else {
+                        guard Set(params.keys) == ["session","sheetID","ticket"], let ticket = params["ticket"] as? String else { throw api.invalid }
+                        if method == "files.bank-manual" {
+                            result = try await bankImport.closeForReview(ticket:ticket,session:session,owner:owner,api:api)
+                        } else {
+                            result = try await bankImport.finish(ticket:ticket,cancel:method == "files.bank-cancel",session:session,
+                                                                 owner:owner,api:api)
+                        }
+                    }
+                    try api.check(); reply(HostPolicy.reply(result), nil)
+                } catch { reply(googleFailure(error),nil) }
+            }
+        case "files.practice-sample":
+            let demo = liveSheet == nil && params["session"] == nil
+            let practice = liveSheet?.isPracticeCopy == true && liveSheet?.canImportBankFiles == true &&
+                liveSheet?.selection == google.selection && privacy.permitsLive && params["session"] as? String == liveSession.uuidString
+            guard !choosingSheet, !openingLive, shield == nil, demo || practice,
+                  let url = Bundle.main.url(forResource:"Kitty-2027-01-card-proof",withExtension:"csv"),
+                  let bytes = try? Data(contentsOf:url) else {
+                reply(HostPolicy.failure("not_granted","Open your private practice Sheet to save its sample."),nil); return
+            }
+            export(["filename":url.lastPathComponent,"base64":bytes.base64EncodedString()],reply:reply)
         case "icon.status", "icon.set":
             let app = UIApplication.shared
             let state = { ["supported": app.supportsAlternateIcons, "alternate": app.alternateIconName == "KittyAlternate"] }
@@ -272,8 +361,9 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 catch { reply(googleFailure(error),nil) }
             }
         case "google.open":
-            guard !choosingSheet, let id = params["sheetID"] as? String, id == GoogleSheetSelection.demoFileID else {
-                reply(HostPolicy.failure("not_granted", "Only the fictional demo Sheet can be opened in this build."), nil); return
+            guard !choosingSheet, params.isEmpty || (params.count == 1 &&
+                (params["sheetID"] as? String).map(GoogleConnection.validSheetID) == true) else {
+                reply(HostPolicy.failure("not_granted", "Choose a v2 Sheet in Google."), nil); return
             }
             choosingSheet = true; openingLive = true; liveSheet = nil; liveSession = UUID()
             let openingTicket = liveSession
@@ -283,12 +373,22 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                     try await privacy.open()
                     let selection: GoogleConnection.Selection?
                     if let old = google.selection { selection = old } else { selection = try await google.restore() }
-                    guard let selection, selection.sheetID == id else {
-                        throw GoogleSheetTools.Failure(code: "selection_required", message: "Choose the demo Sheet in Google first.")
+                    guard let selection, params["sheetID"] == nil || params["sheetID"] as? String == selection.sheetID else {
+                        throw GoogleSheetTools.Failure(code: "selection_required", message: "Choose your Sheet in Google first.")
                     }
                     let probe = GoogleSheetSelection(http: GoogleHTTP(), current: { self.google.selection },
                                                      token: { try await self.google.accessToken(for: $0) })
-                    let verified = try await probe.verify(selection)
+                    var verified = try await probe.verify(selection)
+                    let pendingPractice = "kitty.practice-feed." + verified.preferenceID
+                    if verified.isPracticeCopy, preferences.bool(forKey:pendingPractice) {
+                        let api = GoogleSheetTools(http:GoogleHTTP(),selected:selection,current:{
+                            self.privacy.permitsLive && self.liveSession == openingTicket ? self.google.selection : nil
+                        },token:{try await self.google.accessToken(for:$0)})
+                        try await GooglePracticeSheet.disablePracticeFeed(owner:verified,api:api)
+                        verified = try await probe.verify(selection)
+                        guard verified.canImportBankFiles else { throw GoogleSheetSelection.Failure.noAccess }
+                        preferences.removeObject(forKey:pendingPractice)
+                    }
                     guard privacy.permitsLive, liveSession == openingTicket else {
                         throw GoogleSheetTools.Failure(code:"device_locked",message:"Unlock and reopen the live Sheet.")
                     }
@@ -299,7 +399,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             }
         case "google.close":
             guard !choosingSheet else { reply(HostPolicy.failure("busy", "Finish the current Google action."), nil); return }
-            liveSheet = nil; privacy.lock()
+            liveSheet = nil; liveSession = UUID(); privacy.lock(); bankImport.clear(); importPicker.cancel()
             reply(HostPolicy.reply(), nil)
         case "sheets.call", "sheets.category-plan", "sheets.category-pending":
             guard let verified = liveSheet, !choosingSheet, privacy.permitsLive, google.selection == verified.selection,
@@ -334,23 +434,67 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                 }
                 catch { reply(googleFailure(error), nil) }
             }
-        case "google.choose":
+        case "google.choose", "google.practice", "google.practice-open":
             guard !choosingSheet, presentedViewController == nil,
-                  let id = params["sheetID"] as? String, id == GoogleSheetSelection.demoFileID else {
+                  params.isEmpty || (params.count == 1 && method == "google.choose" &&
+                  params["sheetID"] as? String == GoogleSheetSelection.demoFileID) ||
+                  (params.count == 1 && method == "google.practice-open" && params["ticket"] is String) else {
                 reply(HostPolicy.failure("busy", "Finish the current selection before choosing a Sheet."), nil)
                 return
             }
             choosingSheet = true
             verifiedSheet = nil
             liveSheet = nil
+            bankImport.clear(); importPicker.cancel()
+            liveSession = UUID()
+            let ticket = liveSession
+            let choice = practiceChoice
+            practiceChoice = nil
             privacy.lock()
             Task { @MainActor in
                 defer { choosingSheet = false; notifyGoogleStatus() }
                 do {
-                    let selection = try await google.authorize(fileID: id)
+                    let selection: GoogleConnection.Selection
+                    if method == "google.practice" {
+                        try await privacy.open()
+                        let source: GoogleConnection.Selection?
+                        if let current = google.selection { source = current } else { source = try await google.restore() }
+                        guard let source, source.sheetID == GoogleSheetSelection.demoFileID else {
+                            throw GoogleSheetTools.Failure(code:"selection_required",message:"Choose the Davies demo in Google before making a practice copy.")
+                        }
+                        let api = GoogleSheetTools(http:GoogleHTTP(),selected:source,current:{
+                            self.privacy.permitsLive && self.liveSession == ticket ? self.google.selection : nil
+                        },token:{try await self.google.accessToken(for:$0)})
+                        let copy = try await GooglePracticeSheet(api:api,preferences:preferences).findOrCreate()
+                        try api.check()
+                        let offered = GooglePracticeSheet.Choice(copy)
+                        practiceChoice = offered
+                        reply(HostPolicy.reply(offered.offer),nil)
+                        return
+                    } else if method == "google.practice-open" {
+                        guard let choice else { throw GoogleSheetSelection.Failure.changed }
+                        let picked = try choice.selected(by:params["ticket"] as? String,source:google.selection)
+                        try await privacy.open()
+                        guard liveSession == ticket else { throw GoogleSheetSelection.Failure.changed }
+                        selection = try google.adoptPractice(picked)
+                    } else {
+                        selection = try await google.authorize(fileID: params["sheetID"] as? String)
+                    }
                     let probe = GoogleSheetSelection(http: GoogleHTTP(), current: { self.google.selection },
                                                      token: { try await self.google.accessToken(for: $0) })
-                    let verified = try await probe.verify(selection)
+                    var verified = try await probe.verify(selection)
+                    guard liveSession == ticket else { throw GoogleSheetSelection.Failure.changed }
+                    if method == "google.practice-open" {
+                        let pendingPractice = "kitty.practice-feed." + verified.preferenceID
+                        preferences.set(true,forKey:pendingPractice)
+                        let api = GoogleSheetTools(http:GoogleHTTP(),selected:selection,current:{
+                            self.liveSession == ticket && self.privacy.permitsLive ? self.google.selection : nil
+                        },token:{try await self.google.accessToken(for:$0)})
+                        try await GooglePracticeSheet.disablePracticeFeed(owner:verified,api:api)
+                        verified = try await probe.verify(selection)
+                        guard verified.canImportBankFiles else { throw GoogleSheetSelection.Failure.noAccess }
+                        preferences.removeObject(forKey:pendingPractice)
+                    }
                     verifiedSheet = verified
                     preferences.set(verified.preferenceID,forKey:"kitty.native.last-preference-scope")
                     #if DEBUG
@@ -359,9 +503,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
                     reply(HostPolicy.reply(verified.summary), nil)
                 } catch {
                     // Never pass token responses, raw URLs or provider bodies to the page.
-                    let detail = (error as? GoogleConnection.ConnectionError)?.errorDescription ??
-                        (error as? GoogleSheetSelection.Failure)?.errorDescription ?? "Google could not verify this Sheet."
-                    reply(HostPolicy.failure("not_connected", detail), nil)
+                    reply(googleFailure(error), nil)
                 }
             }
         case "google.disconnect":
@@ -377,6 +519,7 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
             preferences.removeObject(forKey:"kitty.native.last-preference-scope")
             verifiedSheet = nil
             liveSheet = nil
+            bankImport.clear(); importPicker.cancel(); liveSession = UUID()
             privacy.lock()
             Task { @MainActor in
                 defer { choosingSheet = false; notifyGoogleStatus() }
@@ -392,6 +535,14 @@ final class KittyViewController: UIViewController, WKNavigationDelegate, WKUIDel
     }
 
     private func googleFailure(_ error: Error) -> [String: Any] {
+        if let e = error as? SourceIntakeError { return HostPolicy.failure("invalid_source",e.localizedDescription) }
+        if let e = error as? PeriodBankAppend.Failure {
+            switch e {
+            case .staleLedger: return HostPolicy.failure("review_changed","The entries changed. Preview the file again before saving.")
+            case .ambiguousWrite,.unverifiedRows: return HostPolicy.failure("import_pending","Google has not verified the receipt. Open the original file again to check the import.")
+            default: return HostPolicy.failure("unsupported_import","Kitty cannot verify this bank file as a single-account import. Review the source.")
+            }
+        }
         if let e = error as? GoogleSheetTools.Failure { return HostPolicy.failure(e.code, e.message) }
         if let e = error as? GoogleConnection.ConnectionError { return HostPolicy.failure("needs_reauth", e.localizedDescription) }
         if let e = error as? GoogleSheetSelection.Failure { return HostPolicy.failure("not_granted", e.localizedDescription) }

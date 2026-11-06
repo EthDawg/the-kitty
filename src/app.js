@@ -541,14 +541,11 @@
   function renderActivity() {
     const t0 = performance.now();
     const m = S.m, v = $("#v-activity"); const f = S.feed; const c = ctx(); const rv = review();
-    const rows = feedRows(); const shown = rows.slice(0, f.limit);
-    const sumOut = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Expense" ? a - e.amount : a), 0), sumIn = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Income" ? a + e.amount : a), 0);
     const everyday = (t) => t.group !== "Housing" && t.group !== "Property";
     const mo = E.spend(m.tx, E.window("month", m.asOf), everyday);
     const topMerchant = mo.byMerchant[0], biggest = m.tx.filter((t) => E.inWin(t, E.window("month", m.asOf)) && t.flow === "Expense" && everyday(t)).sort((a, b) => a.amount - b.amount)[0];
     const freq = new Map(); for (const t of m.tx) if (E.inWin(t, E.window("quarter", m.asOf)) && t.flow === "Expense" && everyday(t)) freq.set(t.merchant, (freq.get(t.merchant) || 0) + 1); const most = [...freq.entries()].sort((a, b) => b[1] - a[1])[0];
     const w = feedPeriod(); const wc = E.worthCandidates(m); const canJudge = canWriteSheet() || S.mode !== "live";
-    const quiet = !f.q && !f.person && !f.flow && !w;
     const pk = S.feed.period; const atEnd = (pk.anchor || m.asOf) >= m.asOf;
     v.innerHTML = `
       ${rv.items.length ? `<div class="card" id="reviewcard" style="--i:0">
@@ -563,34 +560,63 @@
         <p class="wnote">Not a budget, a memory check. The research on money and happiness (Dunn, Gilbert and Wilson, 2011) says experiences outlast things, many small pleasures beat a few large ones, and paying now to enjoy later feels better than the reverse. Five rows a week, one tap each, no score. Each answer is a Decisions row; once five are in, Goals shows the spend that earned a yes.</p>
       </div>` : ""}
       <div class="card" style="--i:1">
-        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries">${f.q ? `<button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button>` : ""}</div>
+        <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries"><button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button></div>
         <div class="chips scroll" style="margin-top:12px" role="group" aria-label="Filters">
           ${[["", "Everyone"]].concat(m.people.map((p) => [p, p])).concat([["Joint", "Joint"]]).map(([k, l]) => `<button class="chip" data-fp="${esc(k)}" aria-pressed="${f.person === k}">${esc(l)}</button>`).join("")}
           <span style="width:1px;background:var(--line);margin:4px 2px"></span>
           ${[["", "Spending & income"], ["out", "Spending"], ["in", "Income"], ["move", "Transfers"]].concat(m.sheetVersion >= 2 && m.entries.some((e) => e.kind !== "transaction") ? [["bal", "Balances & trades"]] : []).map(([k, l]) => `<button class="chip" data-ff="${k}" aria-pressed="${f.flow === k}">${l}</button>`).join("")}
         </div>
         <div class="periodbar" id="feedperiod" style="margin-top:10px"><span class="seg mini" role="group" aria-label="Window">${[["all", "All time"], ["month", "Month"], ["quarter", "3 months"], ["year", "12 months"], ["fy", "This FY"]].map(([k, l]) => `<button data-fpk="${k}" aria-pressed="${pk.kind === k}">${l}</button>`).join("")}</span>${pk.kind !== "all" ? `<span class="nav"><button data-fpn="-1" aria-label="Earlier">${ico("i-back")}</button><button data-fpn="1" aria-label="Later" ${atEnd ? "disabled" : ""}>${ico("i-chev")}</button></span><span class="label" style="font-size:16px">${esc(w.label)}</span>` : ""}</div>
-        <div class="sumbar"><span><b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}</span><span>${f.flow !== "bal" ? `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
+        <div class="sumbar"><span id="feedcount"></span><span><span id="feedsums"></span>${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
       </div>
-      ${quiet ? `<div class="grid" style="--i:2">
+      ${!f.person && !f.flow && !w ? `<div class="grid" id="feedhighlights" style="--i:2">
         ${biggest ? `<button class="card span-4 erow" data-entry="${esc(biggest.id)}" style="align-items:center">${avatar(biggest, "lg")}<span class="mid"><span class="s">Biggest everyday buy this month</span><span class="t">${esc(biggest.merchant)}</span><span class="s">${esc(biggest.catName)} · ${E.fmtDay(biggest.date)}</span></span><span class="amt num">${fmt0(-biggest.amount)}</span></button>` : ""}
         ${topMerchant ? `<button class="card span-4 erow" data-merchant="${esc(topMerchant[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === topMerchant[0]), "lg")}<span class="mid"><span class="s">Most spent with, outside the home</span><span class="t">${esc(topMerchant[0])}</span><span class="s">${E.fmtMonth(m.asOf)}</span></span><span class="amt num">${fmt0(topMerchant[1])}</span></button>` : ""}
         ${most ? `<button class="card span-4 erow" data-merchant="${esc(most[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === most[0]), "lg")}<span class="mid"><span class="s">Most often, last 3 months</span><span class="t">${esc(most[0])}</span><span class="s">${most[1]} visits</span></span></button>` : ""}
       </div>` : ""}
-      <div class="card" style="--i:3">
-        <div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
-        ${rows.length > shown.length ? `<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="feedmore">Show ${Math.min(120, rows.length - shown.length)} more of ${rows.length - shown.length}</button></div>` : ""}
-      </div>`;
-    const q = $("#feedq"); let tm;
-    q.addEventListener("input", () => { clearTimeout(tm); tm = setTimeout(() => { S.feed.q = q.value.trim(); S.feed.limit = 80; renderActivity(); const nq = $("#feedq"); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length); }, 220); });
-    const fc = $("#feedclear"); if (fc) fc.addEventListener("click", () => { S.feed.q = ""; renderActivity(); });
+      <div class="card" id="feedresults" style="--i:3"></div>`;
+    const q = $("#feedq", v), clear = $("#feedclear", v), highlights = $("#feedhighlights", v), results = $("#feedresults", v);
+    let timer, observer;
+    // Keep the actual editing control connected. Replacing it interrupts slow typing, marked text and selections in WebKit.
+    function refreshResults() {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+      if (!q.isConnected) return;
+      const rows = feedRows(), shown = rows.slice(0, f.limit), quiet = !f.q && !f.person && !f.flow && !w;
+      const sumOut = rows.reduce((a, e) => e.kind === "transaction" && e.flow === "Expense" ? a - e.amount : a, 0);
+      const sumIn = rows.reduce((a, e) => e.kind === "transaction" && e.flow === "Income" ? a + e.amount : a, 0);
+      $("#feedcount", v).innerHTML = `<b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}`;
+      $("#feedsums", v).innerHTML = f.flow === "bal" ? "" : `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}`;
+      clear.style.display = q.value ? "" : "none";
+      if (highlights) highlights.style.display = quiet ? "" : "none";
+      results.innerHTML = `<div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
+        ${rows.length > shown.length ? `<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="feedmore">Show ${Math.min(120, rows.length - shown.length)} more of ${rows.length - shown.length}</button></div>` : ""}`;
+      bindCommon(results);
+      const more = $("#feedmore", results);
+      if (more) {
+        more.addEventListener("click", () => {
+          if (!more.isConnected) return;
+          const top = more.getBoundingClientRect().top + window.scrollY;
+          f.limit += 120; refreshResults(); window.scrollTo({ top: top - 400 });
+        });
+        if ("IntersectionObserver" in window) {
+          observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) more.click(); }, { rootMargin: "600px" });
+          observer.observe(more);
+        }
+      }
+    }
+    q.addEventListener("input", () => {
+      f.q = q.value.trim(); f.limit = 80;
+      clearTimeout(timer); timer = setTimeout(refreshResults, 220);
+    });
+    clear.addEventListener("click", () => { q.value = ""; f.q = ""; f.limit = 80; q.focus(); refreshResults(); });
     $$("[data-fp]", v).forEach((b) => b.addEventListener("click", () => { S.feed.person = b.dataset.fp; buzz(); renderActivity(); }));
     $$("[data-ff]", v).forEach((b) => b.addEventListener("click", () => { S.feed.flow = b.dataset.ff; S.feed.limit = 80; buzz(); renderActivity(); }));
     $$("[data-fpk]", v).forEach((b) => b.addEventListener("click", () => { S.feed.period = { kind: b.dataset.fpk, anchor: null }; S.feed.limit = 80; buzz(); renderActivity(); }));
     $$("[data-fpn]", v).forEach((b) => b.addEventListener("click", () => { const step = { month: 1, quarter: 3, year: 12, fy: 12 }[S.feed.period.kind] || 1; const a = E.addMonths(E.monthStart(S.feed.period.anchor || m.asOf), +b.dataset.fpn * step); S.feed.period.anchor = a >= m.asOf.slice(0, 7) + "-01" ? m.asOf : E.monthEnd(a); renderActivity(); }));
-    const more = $("#feedmore"); if (more) { more.addEventListener("click", () => { S.feed.limit += 120; renderActivity(); window.scrollTo({ top: more.getBoundingClientRect().top + window.scrollY - 400 }); }); if ("IntersectionObserver" in window) { const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); more.click(); } }, { rootMargin: "600px" }); io.observe(more); } }
-    const csv = $("#csvbtn"); if (csv) csv.addEventListener("click", () => exportCSV(rows));
+    const csv = $("#csvbtn", v); if (csv) csv.addEventListener("click", () => exportCSV(feedRows()));
     bindReview(v); bindWorth(v); bindCommon(v);
+    refreshResults();
     S.perf.activity = performance.now() - t0;
   }
   async function exportCSV(rows) {
@@ -970,7 +996,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
   }
   const googlePicker = { busy: "", verified: null, message: "", pending: null, attempted: false, canResume: false, checked: false, lockEnabled: false, privacyMessage:"", revision: 0 };
-  const verifiedDemo = v => v?.sheetID === DEMO_SHEET && v.sheetVersion === 2 &&
+  const verifiedNativeSheet = v => /^[A-Za-z0-9_-]{20,200}$/.test(v?.sheetID || "") && v.sheetVersion === 2 &&
     typeof v.title === "string" && v.title.trim() !== "" && typeof v.canEdit === "boolean";
   async function syncGoogleStatus() {
     if (!NATIVE || !S.m || googlePicker.busy) return;
@@ -981,7 +1007,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       // This call reads only native in-memory state. It neither signs in nor opens a Sheet.
       const status = await window.KittyNative.google.status();
       if (revision !== googlePicker.revision || googlePicker.busy) return;
-      const checked = verifiedDemo(status?.verified) ? status.verified : null;
+      const checked = verifiedNativeSheet(status?.verified) ? status.verified : null;
       const canResume = status?.canResume === true || !!checked;
       const lockEnabled = status?.lockEnabled === true;
       if (!checked && !googlePicker.verified && canResume === googlePicker.canResume && lockEnabled === googlePicker.lockEnabled) return;
@@ -1006,8 +1032,8 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     googlePicker.revision++; googlePicker.busy = "open"; googlePicker.message = ""; renderNativeSetup();
     try {
       if (!S.nativeSheet || !S.mcp) {
-        const v = await window.KittyNative.google.open(DEMO_SHEET);
-        if (!verifiedDemo(v)) throw new Error("Google did not verify the selected v2 Sheet.");
+        const v = await window.KittyNative.google.open(googlePicker.verified?.sheetID);
+        if (!verifiedNativeSheet(v)) throw new Error("Google did not verify the selected v2 Sheet.");
         const mcp = await window.claude.use("mcp");
         if (!mcp) throw new Error("The Sheet connection was interrupted.");
         googlePicker.verified = v; googlePicker.canResume = true; googlePicker.attempted = true;
@@ -1027,14 +1053,17 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       googlePicker.message = error.message || "The live Sheet could not be opened.";
     } finally { googlePicker.busy = ""; renderNativeSetup(); }
   }
-  async function chooseDemoSheet(disconnect = false) {
+  async function chooseNativeSheet(action) {
     if (googlePicker.busy) return;
+    const disconnect = action === "disconnect";
     const clearDisplayPrefs = id => {
       if (!/^native-[0-9a-f]{64}$/.test(id || "")) return;
       try { const prefix = "kitty:" + id + ":"; for (const k of Object.keys(localStorage)) if (k.startsWith(prefix)) localStorage.removeItem(k); } catch (_) {}
     };
     if (disconnect) clearDisplayPrefs(S.nativeSheet?.preferenceID);
-    googlePicker.revision++; googlePicker.busy = disconnect ? "disconnect" : "choose"; googlePicker.message = ""; googlePicker.verified = null;
+    const choice = googlePicker.practiceChoice;
+    googlePicker.practiceChoice = null;
+    googlePicker.revision++; googlePicker.busy = action; googlePicker.message = ""; googlePicker.verified = null;
     leaveNativeSheet();
     googlePicker.attempted = true; renderNativeSetup();
     try {
@@ -1042,13 +1071,21 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         const cleared = await window.KittyNative.google.disconnect(); clearDisplayPrefs(cleared?.clearedPreferenceID);
         googlePicker.message = "Disconnected from Google."; googlePicker.attempted = false; googlePicker.canResume = false;
       } else {
-        const result = await window.KittyNative.google.select(DEMO_SHEET);
-        if (!verifiedDemo(result))
+        if (action === "practice") {
+          const offered = await window.KittyNative.google.practice();
+          if (typeof offered?.title !== "string" || typeof offered.ticket !== "string") throw Error("Choose your private Sheet in Google.");
+          googlePicker.practiceChoice = offered;
+          return;
+        }
+        const result = action === "practice-open" ? await window.KittyNative.google.openPractice(choice?.ticket) :
+          await window.KittyNative.google.select(action === "demo" ? DEMO_SHEET : undefined);
+        if (!verifiedNativeSheet(result))
           throw new Error("Google did not confirm the selected v2 Sheet.");
         googlePicker.verified = result; googlePicker.canResume = true;
       }
     } catch (error) { googlePicker.message = error.message || "Google Sheet selection was not confirmed."; }
     finally { googlePicker.busy = ""; renderNativeSetup(); }
+    if (action === "practice-open" && googlePicker.verified?.isPracticeCopy) await openNativeSheet();
   }
   async function changePrivacy() {
     if (googlePicker.busy) return;
@@ -1060,16 +1097,56 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     } catch (e) { googlePicker.privacyMessage = e.message || "The privacy setting did not change."; }
     finally { googlePicker.busy = ""; renderNativeSetup(); }
   }
+  function openFileImport() {
+    const live = S.mode === "live" && S.grids, model = S.m, mcp = S.mcp, id = sheetId();
+    const source = live ? E.fromConnector(S.grids) : window.KITTY_SNAPSHOT;
+    if (!source?.entries) { toast("Choose a version 2 Sheet for import."); return; }
+    const files=NATIVE && window.KittyNative?.files, selected=S.nativeSheet;
+    const eligible=files && live && selected?.sheetID===id && selected.canEdit===true && selected.canImportBankFiles===true;
+    window.KittyIntake.open({sheet:source,grids:live?S.grids:null,asOf:model.asOf,sheetID:live?id:null,title:selected?.title||model.householdName,
+      drawer:openDrawer,current:()=>S.m===model && S.mcp===mcp && sheetId()===id && S.nativeSheet===selected,
+      pick:files?()=>files.pick():null,preview:eligible?request=>files.previewBank(request):null,
+      commit:eligible?ticket=>files.commitBank(ticket):null,cancel:eligible?ticket=>files.cancelBank(ticket):null});
+  }
+  async function checkUnfinishedBankImport() {
+    const selected = S.nativeSheet, files = window.KittyNative?.files;
+    if (!selected?.canImportBankFiles || !files?.outstandingBank) return;
+    openDrawer(h2("Unfinished bank import",esc(selected.title)) + '<p id="bank-recovery" role="status">Checking the saved import in Google…</p><button class="btn sm ghost" id="bank-discard" hidden>Discard unfinished import</button>');
+    const status = $("#bank-recovery"), button = $("#bank-discard");
+    const current = () => status.isConnected && S.nativeSheet?.session === selected.session;
+    try {
+      const response = await files.outstandingBank();
+      if (!current()) return;
+      const details = response.month && response.account ? response.month+" · "+response.account+" · "+response.rowCount+" reviewed rows. " : "";
+      status.textContent = details + (response.message || "Open the original file to check this import.");
+      const manual = response.manualTicket;
+      if (!manual && !response.discardTicket) return;
+      if (manual) button.textContent = "Close for manual review";
+      button.hidden = false;
+      button.onclick = async () => {
+        if (!current() || button.disabled) return;
+        button.disabled = true;
+        try {
+          const reply = manual ? await files.reviewBankManually(manual) : await files.cancelBank(response.discardTicket);
+          if(current()) status.textContent = reply.message || "Check the result in Google.";
+        } catch(e) { if(current()) status.textContent = e.message || "Check the unfinished import again."; }
+        finally { if(current()) button.hidden = true; }
+      };
+    } catch(e) { if(current()) status.textContent = e.message || "Google could not check the saved import."; }
+  }
   function renderNativeSetup() {
     const m = S.m, v = $("#v-setup");
     const live = S.mode === "live" && !!S.nativeSheet;
     v.innerHTML = `
       <div class="card" id="nativeconnection"><div class="cardhead"><span class="q">Your Google Sheet</span></div>
-        <p>${live ? "The dashboard reads Digital Davies v2 directly from Google." : "Choose your Google account, then select <b>Digital Davies v2</b>. Open it here to read the live dashboard. This check changes no rows."}</p>
-        <div class="chips"><button class="btn sm" id="nativepick" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "choose" ? "Waiting for Google…" : "Choose demo Sheet"}</button>
+        <p>${live ? "Connected to <b>" + esc(S.nativeSheet.title) + "</b>." : "Choose your household’s Kitty v2 Sheet, or explore the fictional Davies household."}</p>
+        <div class="chips"><button class="btn sm" id="nativeown" ${googlePicker.busy ? "disabled" : ""}>Choose your Sheet</button>
+          <button class="btn sm ghost" id="nativepick" ${googlePicker.busy ? "disabled" : ""}>Choose demo Sheet</button>
           ${googlePicker.canResume ? `<button class="btn sm" id="nativelive" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "open" ? "Reading Sheet…" : live ? "Refresh live Sheet" : "Open live Sheet"}</button>` : ""}
           ${googlePicker.attempted || googlePicker.canResume ? `<button class="btn sm ghost" id="nativedisconnect" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "disconnect" ? "Disconnecting…" : "Disconnect Google"}</button>` : ""}</div>
-        <p role="status" aria-live="polite">${googlePicker.message ? esc(googlePicker.message) : googlePicker.busy === "open" ? "Reading the selected Sheet from Google…" : googlePicker.verified ? `<b>Verified in Google:</b> ${esc(googlePicker.verified.title)} · Kitty v2 · ${googlePicker.verified.canEdit ? "editor" : "viewer"}. No rows were changed.` : googlePicker.busy === "choose" ? "Finish choosing the Sheet in Google." : googlePicker.busy ? "Disconnecting from Google." : googlePicker.canResume ? "A saved Google connection is available. Open the Sheet to verify it again." : "Sheet not verified yet."}</p>
+        <p role="status" aria-live="polite">${googlePicker.message ? esc(googlePicker.message) : googlePicker.busy === "practice" ? "Opening a private copy in your Drive…" : googlePicker.busy === "open" ? "Reading the selected Sheet from Google…" : googlePicker.verified ? `<b>Verified in Google:</b> ${esc(googlePicker.verified.title)} · Kitty v2 · ${googlePicker.verified.canEdit ? "editor" : "viewer"}.` : ["own","demo"].includes(googlePicker.busy) ? "Finish choosing the Sheet in Google." : googlePicker.busy === "disconnect" ? "Disconnecting from Google." : googlePicker.canResume ? "A saved Google connection is available. Open the Sheet to verify it again." : "Sheet not verified yet."}</p>
+        ${googlePicker.verified?.sheetID === DEMO_SHEET ? `<p>Try importing the fictional bank file in a copy you own.</p><button class="btn sm" id="nativepractice" ${googlePicker.busy ? "disabled" : ""}>Make a private practice Sheet</button>` : ""}
+        ${googlePicker.practiceChoice ? `<p>Choose this same Sheet on each phone. Kitty will turn off its public feed setting.</p><button class="btn sm" id="openpractice">Open ${esc(googlePicker.practiceChoice.title)}</button>` : ""}
       </div>
       <div class="card"><div class="cardhead"><span class="q">The Kitty on your phone</span><span class="sub">${live ? "Live Sheet" : "Offline demo"}</span></div>
         ${live ? `<div class="prose"><p>Home, Activity, Review, Insights and Goals use <b>${esc(S.nativeSheet.title)}</b>. The Sheet's as-of date is ${E.fmtDay(m.asOf, { year: true })}. ${hasCategoryWriter() ? "A category you choose in Review is saved to this Sheet and checked." : "You have read-only access here."}</p></div>` : `
@@ -1079,9 +1156,13 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       ${live && googlePicker.pending ? `<div class="card"><b>A category save needs checking</b><p>${esc(googlePicker.pending.entry)} → ${esc(catName(googlePicker.pending.category))}. Kitty checks the original save before sending anything else.</p><button class="btn sm" id="nativecheckpending">Check this save</button></div>` : ""}
       ${window.KittyNative?.privacy ? `<div class="card"><div class="cardhead"><span class="q">Lock your live Sheet</span></div><p>${googlePicker.lockEnabled ? "On. Leaving Kitty locks the live Sheet. Use Face ID, Touch ID or your device passcode to reopen it." : "Require Face ID, Touch ID or your passcode when you return to your live numbers. The fictional offline demo stays available."}</p><button id="nativelock" class="btn sm ghost" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.lockEnabled ? "Turn off Sheet lock" : "Turn on Sheet lock"}</button><p role="status">${esc(googlePicker.privacyMessage)}</p></div>` : ""}
+      <div class="card"><div class="cardhead"><span class="q">Bank imports</span></div><p>${live && S.nativeSheet.canImportBankFiles ? "Choose a bank CSV from Files. Review the entries before saving them to your Sheet." : esc(S.nativeSheet?.bankImportHint || "Preview the file here. To save entries, open a private v2 Sheet you own.")}</p>
+        <button class="btn sm" data-import-file>Import a bank file</button>
+        ${live && S.nativeSheet.canImportBankFiles ? `<button class="btn sm ghost" id="checkbank">Check unfinished import</button>` : ""}
+        ${!live || S.nativeSheet.isPracticeCopy ? `<button class="btn sm ghost" id="practicesample">Save a sample CSV…</button>` : ""}</div>
       ${appearanceCard(m)}
       <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
-        <div class="prose"><p>Display preferences and demo goal edits stay on this device. ${live && hasCategoryWriter() ? "Only a category you choose in Review writes to the Sheet in this build." : "Demo review decisions last for this visit and do not change the Google Sheet."}</p>
+        <div class="prose"><p>Display preferences and demo goal edits stay on this device. ${live && S.nativeSheet.canImportBankFiles ? "Confirmed imports save the entries to your Sheet and keep the original CSV in your Drive." : live && hasCategoryWriter() ? "A category you choose in Review saves to your Sheet." : "Demo review decisions last for this visit."}</p>
         <p>${S.downloads ? "Activity can export its filtered rows as a CSV through the iOS file picker. A save is confirmed only after the picker finishes." : "Native file export is unavailable in this view."}</p>
         <p>Text size and reduced motion follow your device settings.</p></div>
       </div>
@@ -1091,11 +1172,20 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}
           <a class="btn sm ghost" href="${REPO}/blob/main/docs/ios-support.md" target="_blank" rel="noopener">Get help</a></div>
       </div>`;
-    $("#nativepick", v).addEventListener("click", () => chooseDemoSheet());
+    $("#nativepick", v).addEventListener("click", () => chooseNativeSheet("demo"));
+    $("#nativeown", v).addEventListener("click", () => chooseNativeSheet("own"));
+    $("#nativepractice", v)?.addEventListener("click", () => chooseNativeSheet("practice"));
+    $("#checkbank", v)?.addEventListener("click", checkUnfinishedBankImport);
+    $("#openpractice", v)?.addEventListener("click", () => chooseNativeSheet("practice-open"));
+    $("#practicesample", v)?.addEventListener("click", async () => {
+      try { await window.KittyNative.files.savePracticeSample(); toast("Sample CSV saved to Files."); }
+      catch (e) { if (e.code !== "cancelled") toast(e.message || "The sample could not be saved."); }
+    });
     $("#nativelock", v)?.addEventListener("click", changePrivacy);
     $("#nativecheckpending", v)?.addEventListener("click", () => verifiedCategory(googlePicker.pending.entry, googlePicker.pending.category));
     $("#nativelive", v)?.addEventListener("click", openNativeSheet);
-    $("#nativedisconnect", v)?.addEventListener("click", () => chooseDemoSheet(true));
+    $("#nativedisconnect", v)?.addEventListener("click", () => chooseNativeSheet("disconnect"));
+    $("[data-import-file]",v)?.addEventListener("click",openFileImport);
     bindAppearance(v);
     bindCommon(v);
     if (!googlePicker.checked) void syncGoogleStatus();
@@ -1156,6 +1246,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="sheetform"><input id="sheetinput" type="text" inputmode="text" placeholder="Paste your sheet ID or its URL" value="${esc(S.prefs.sheet || "")}" aria-label="Your Google Sheet ID"><button class="btn sm" id="sheetgo">${S.mcp ? "Read it live" : "Save for when connectors are available"}</button>${S.prefs.sheet ? `<button class="btn sm ghost" id="sheetdemo">Back to the demo</button>` : ""}</div>
         <p class="sub" style="margin-top:8px">${S.mode === "live" ? `Reading <a href="${sheetLink}" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> live.` : S.mcp ? (S.liveErr ? `Last live read failed: ${errText(S.liveErr)}` : isDemoSheet() ? "Showing the bundled demo. The owner's view reads the demo sheet live; paste your own ID to read yours." : "") : "Connectors aren't available in this view, so the page shows the bundled demo household."} <button class="linkbtn" id="rerunonb">Run the setup again</button></p>
       </div>
+      <div class="card"><div class="cardhead"><span class="q">Bank imports</span></div><p>Preview the original file and check for duplicates against this household.</p><button class="btn sm" data-import-file>Import a bank file</button></div>
       ${appearanceCard(m)}
       <div class="card" style="--i:5" id="phonecard"><div class="cardhead"><span class="q">On your phone</span><span class="sub">it installs like an app</span></div>
         <div class="qr">${qrHTML() ? `<div>${qrHTML()}</div>` : ""}<div>${installStepsHTML()}<p class="sub" style="margin-top:10px">Claude publishes every artifact with a web-app manifest, so the home-screen icon, the full-screen window and the name “${esc(document.title)}” come for free. Your connector sign-in travels with your Claude session, so the phone copy is live too.</p></div></div>
@@ -1182,6 +1273,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       <p class="sub" style="--i:8;padding:0 6px">The Kitty ${VERSION} · fictional household · <button class="linkbtn" data-open="trust">Where the numbers come from</button> · <a href="${sheetLink}" target="_blank" rel="noopener">open the sheet</a> · <a href="${REPO}" target="_blank" rel="noopener">source on GitHub</a> · <a href="${REPO}/issues/new" target="_blank" rel="noopener">report a problem</a></p>`;
     $$("[data-cc]", v).forEach((b) => b.addEventListener("click", () => { S.setupCountry = b.dataset.cc; renderSetup(); }));
+    $("[data-import-file]",v)?.addEventListener("click",openFileImport);
     bindAppearance(v);
     const go = $("#sheetgo"); if (go) go.addEventListener("click", async () => { const raw = $("#sheetinput").value.trim(); const mt = raw.match(/\/d\/([A-Za-z0-9_-]{20,})/); const id = mt ? mt[1] : raw; if (!id) { toast("Paste a sheet ID first"); return; } savePrefs({ sheet: id === DEMO_SHEET ? "" : id }); S.canWrite = S.isOwner || !!S.prefs.sheet; if (S.mcp) { const ok = await loadLive(true); toast(ok ? "Reading your sheet live" : "Couldn't read that sheet: " + errText(S.liveErr || {}, "it")); if (!ok && SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); } else { toast("Saved. It will read live where connectors are available."); renderSetup(); } });
     const sd = $("#sheetdemo"); if (sd) sd.addEventListener("click", () => { savePrefs({ sheet: "" }); S.canWrite = S.isOwner; if (SNAP) { setModel(demoModel()); S.mode = "demo"; } renderAll(); toast("Back to the demo household"); });

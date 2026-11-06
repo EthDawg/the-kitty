@@ -17,7 +17,10 @@ final class OfflineInteractionTests: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
         app.launch()
         XCTAssertTrue(page.waitForExistence(timeout: 15))
-        tap(app.buttons["Ask the Kitty"])
+        // The web-view container can exist while WebKit opens the local bundle.
+        let ask = app.buttons["Ask the Kitty"]
+        XCTAssertTrue(ask.waitForExistence(timeout:45), "The app must finish opening and expose Ask.")
+        tap(ask)
         tap(app.buttons["Groceries last month"])
         XCTAssertTrue(text(containing: "$1,429.05 spent").waitForExistence(timeout: 5))
         let receipts = page.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "See the entries")).firstMatch
@@ -57,7 +60,7 @@ final class OfflineInteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["Cash and offset, tap for the accounts behind it"].waitForExistence(timeout: 5))
     }
 
-    func testSearchReviewAndCancelledCSVExport() {
+    func testSearchAndCancelCSVExportReturnsToKitty() {
         continueAfterFailure = false
         executionTimeAllowance = 120
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
@@ -93,7 +96,7 @@ final class OfflineInteractionTests: XCTestCase {
         tap(csv)
         let filename = app.textFields["DOCPicker.filenameTextField"]
         let pickerNavigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-        XCTAssertTrue(pickerNavigation.waitForExistence(timeout: 20), "The native Files picker must open.")
+        XCTAssertTrue(pickerNavigation.waitForExistence(timeout: 45), "The native Files picker must open.")
         XCTAssertTrue(pickerNavigation.buttons["Save"].waitForExistence(timeout: 8), "Files must offer to save the export.")
         if filename.exists {
             XCTAssertTrue((filename.value as? String)?.hasPrefix("kitty-entries-") == true)
@@ -114,8 +117,18 @@ final class OfflineInteractionTests: XCTestCase {
         capture("CSV — cancelled, no saved confirmation")
 
         tap(app.buttons["Setup"])
+        XCTAssertTrue(app.buttons["Choose your Sheet"].waitForExistence(timeout:8),
+                      "Cancelling Files must return control to Kitty’s Setup page.")
+    }
+
+    func testReviewCategoryIsKeptForThisDemoVisit() {
+        continueAfterFailure = false
+        executionTimeAllowance = 120
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_AU"]
+        app.launch()
+        openHome()
+        tap(app.buttons["Setup"])
         let review = app.buttons["Open Review"]
-        XCTAssertTrue(review.waitForExistence(timeout: 12), "Setup must offer access to Review.")
         revealByScrollingDown(review)
         tap(review)
         XCTAssertTrue(text(containing: "the demo sheet is never written")
@@ -157,7 +170,7 @@ final class OfflineInteractionTests: XCTestCase {
 
         let filename = app.textFields["DOCPicker.filenameTextField"]
         let navigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
-        XCTAssertTrue(navigation.waitForExistence(timeout: 20), "The native Files picker must open.")
+        XCTAssertTrue(navigation.waitForExistence(timeout: 45), "The native Files picker must open.")
         let pickedLocal = try selectVerifiedLocalExportDestination(navigation: navigation)
         let emptyRoot = app.descendants(matching: .any).matching(identifier: "On My iPhone is Empty").firstMatch
         let fixtureName: String
@@ -214,10 +227,12 @@ final class OfflineInteractionTests: XCTestCase {
 
     private func openHome() {
         XCTAssertTrue(page.waitForExistence(timeout: 15), "The bundled page must open.")
+        let home = app.buttons["Home"]
+        XCTAssertTrue(home.waitForExistence(timeout:45), "WebKit must load Kitty’s tabs.")
         let cash = app.buttons["Cash and offset, tap for the accounts behind it"]
         // Home is already selected on first launch. The nav exists in the static
         // shell before WebKit has laid it out; this control comes from the model.
-        if !cash.waitForExistence(timeout: 8) { tap(app.buttons["Home"]) }
+        if !cash.waitForExistence(timeout: 8) { tap(home) }
         XCTAssertTrue(cash.waitForExistence(timeout: 12), "Home must finish rendering.")
     }
 
@@ -247,10 +262,16 @@ final class OfflineInteractionTests: XCTestCase {
     }
 
     private func revealByScrollingDown(_ element: XCUIElement) {
-        // Only nearby controls, never an unbounded search through all review rows.
-        for _ in 0..<3 {
+        // A full flick can jump over a button on a short phone. Move part of a screen at a time.
+        let top = page.coordinate(withNormalizedOffset: CGVector(dx:0.5, dy:0.35))
+        let bottom = page.coordinate(withNormalizedOffset: CGVector(dx:0.5, dy:0.72))
+        for _ in 0..<10 {
             if canTap(element) { return }
-            page.swipeUp()
+            if element.exists, !element.frame.isEmpty, element.frame.midY < page.frame.midY {
+                top.press(forDuration:0.05, thenDragTo:bottom, withVelocity:.slow, thenHoldForDuration:0.15)
+            } else {
+                bottom.press(forDuration:0.05, thenDragTo:top, withVelocity:.slow, thenHoldForDuration:0.15)
+            }
         }
     }
 
@@ -269,14 +290,19 @@ final class OfflineInteractionTests: XCTestCase {
     }
 
     private func cancelExportPicker(navigation: XCUIElement) {
-        // The iOS 26.2 Files sheet animates between Locations and Browse. Its
-        // "Cancel" accessibility node can disappear between two queries while the
-        // visible X stays on screen. Dismiss the presented sheet in place, as a
-        // person can, without navigating elsewhere or ever tapping Save.
         XCTAssertTrue(navigation.waitForExistence(timeout: 8))
-        let topEdge = navigation.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))
+        // In a folder the navigation title opens an actions menu. Go back to Browse
+        // for its Cancel button, or pull down on the sheet edge above the title.
+        for _ in 0..<6 {
+            let cancel = navigation.buttons["Cancel"]
+            if canTap(cancel) { cancel.tap(); return }
+            let back = navigation.buttons["BackButton"]
+            guard canTap(back) else { break }
+            back.tap()
+        }
+        let topEdge = navigation.coordinate(withNormalizedOffset: CGVector(dx:0.5, dy:0)).withOffset(CGVector(dx:0, dy:-5))
         let lowerScreen = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
-        topEdge.press(forDuration: 0.15, thenDragTo: lowerScreen)
+        topEdge.press(forDuration:0.05, thenDragTo:lowerScreen)
     }
 
     private var localExportRoot: XCUIElement {

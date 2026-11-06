@@ -164,17 +164,33 @@
     if(session!==activeGoogle?.session) throw failure("stale_session","The selected Sheet changed.");
     return value;
   }
+  async function bankRPC(method, input) {
+    const selected=activeGoogle;
+    if(!selected || selected.sheetVersion!==2 || selected.canEdit!==true || selected.canImportBankFiles!==true) throw failure("not_granted","Open a privately shared Kitty Sheet you own before importing.");
+    const keys=method==="files.bank-preview"?["sourceID","name","byteLength","mimeType","account","month","downloadDay"]:method==="files.bank-status"?[]:["ticket"];
+    if(!plain(input) || Object.keys(input).length!==keys.length || !keys.every(key=>Object.prototype.hasOwnProperty.call(input,key))) throw failure("invalid_request","Check the original and preview this import again.");
+    if(method==="files.bank-preview") {
+      if(!keys.filter(key=>key!=="byteLength").every(key=>typeof input[key]==="string" && input[key].length>0 && input[key].length<=255) ||
+          !/^[a-f0-9]{64}$/.test(input.sourceID) || input.mimeType!=="text/csv" || !Number.isInteger(input.byteLength) || input.byteLength<1 || input.byteLength>5*1024*1024) throw failure("invalid_request","The selected original metadata is invalid.");
+    } else if(method!=="files.bank-status" && (typeof input.ticket!=="string" || !/^[a-zA-Z0-9_-]{1,160}$/.test(input.ticket))) throw failure("invalid_request","Preview this import again to get its saved review.");
+    const value=await rpc(method,{session:selected.session,sheetID:selected.sheetID,...input});
+    if(activeGoogle?.session!==selected.session) throw failure("stale_session","The selected Sheet changed. Open the original household to check its receipt.");
+    return value;
+  }
   root.KittyNative = Object.freeze({
     ask: Object.freeze({share:text=>askRPC("ask.share",{text})}),
     icon: Object.freeze({status: () => rpc("icon.status", {}), select: alternate => rpc("icon.set", {alternate})}),
     privacy: Object.freeze({setEnabled:enabled => rpc("privacy.set",{enabled:enabled === true})}),
     google: Object.freeze({
       status: () => rpc("google.status", {}),
-      select: (sheetID) => { activeGoogle = null; return rpc("google.choose", { sheetID }); },
+      select: (sheetID) => { activeGoogle = null; return rpc("google.choose", sheetID ? {sheetID} : {}); },
+      practice: () => { activeGoogle = null; return rpc("google.practice", {}); },
+      openPractice: (ticket) => { activeGoogle = null; return rpc("google.practice-open", {ticket}); },
       async open(sheetID) {
         activeGoogle = null;
-        const v = await rpc("google.open", { sheetID });
-        if (!v || v.sheetID !== sheetID || v.sheetVersion !== 2 || typeof v.canEdit !== "boolean" ||
+        const v = await rpc("google.open", sheetID ? {sheetID} : {});
+        if (!v || !/^[A-Za-z0-9_-]{20,200}$/.test(v.sheetID || "") || (sheetID && v.sheetID !== sheetID) ||
+            v.sheetVersion !== 2 || typeof v.canEdit !== "boolean" ||
             !/^native-[0-9a-f]{64}$/.test(v.preferenceID || "") ||
             !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v.session || "")) {
           throw failure("invalid_response", "The selected Sheet could not be opened.");
@@ -184,6 +200,10 @@
       close: () => { activeGoogle = null; return rpc("google.close", {}); },
       disconnect: () => { activeGoogle = null; return rpc("google.disconnect", {}); }
     }),
+    files: Object.freeze({pick: () => askRPC("files.open"), savePracticeSample: () => askRPC("files.practice-sample"),
+      previewBank:request=>bankRPC("files.bank-preview",request), commitBank:ticket=>bankRPC("files.bank-commit",{ticket}),
+      cancelBank:ticket=>bankRPC("files.bank-cancel",{ticket}), outstandingBank:()=>bankRPC("files.bank-status",{}),
+      reviewBankManually:ticket=>bankRPC("files.bank-manual",{ticket})}),
     get ready() { return ready; },
     get environment() { return environment(); },
     receiveEnvironment(value) {

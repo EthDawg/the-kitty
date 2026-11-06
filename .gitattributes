@@ -1,0 +1,2 @@
+# The app's practice receipt verifies these original bank-export bytes, including CRLF.
+fixtures/Kitty-2027-01-card-proof.csv -text whitespace=cr-at-eol

@@ -21,6 +21,12 @@ html[data-kitty-host="native"] .hero .big small {
   -webkit-text-size-adjust: var(--kitty-native-text-size, 100%);
   text-size-adjust: var(--kitty-native-text-size, 100%);
 }
+@media (max-width:400px) {
+  html[data-kitty-large-text="true"] .topbar { column-gap:6px; }
+  html[data-kitty-large-text="true"] .topbar .pill { min-width:0; white-space:normal; }
+  html[data-kitty-large-text="true"] .topbar .pill .txt { overflow-wrap:anywhere; }
+  html[data-kitty-large-text="true"] .topbar .iconbtn { width:44px; height:44px; }
+}
 @media (max-width:819px) {
   html[data-kitty-large-text="true"] .hero .facts { grid-template-columns:1fr; }
   html[data-kitty-large-text="true"] .hero .fact { min-width:0; }

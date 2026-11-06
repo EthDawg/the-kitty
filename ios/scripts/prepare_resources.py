@@ -40,11 +40,14 @@ def prepare_assets(root):
 
 
 def main():
+    sys.path.insert(0, str(ROOT))
+    from build import period_bank_script
     subprocess.run([sys.executable, str(ROOT / "brand/generate_tokens.py"), "--check"], check=True)
     subprocess.run([sys.executable, str(ROOT / "build.py"), "--host", "native"], check=True)
     resources = ROOT / "ios/Kitty/Resources"
     resources.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / "dist/kitty-native.html", resources / "kitty-native.html")
+    (resources / "kitty-period-bank.js").write_text(period_bank_script(ROOT), encoding="utf-8")
     prepare_assets(ROOT)
     print("Prepared bundled page, primary/alternate icons, launch colour and tint")
 
