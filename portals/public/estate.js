@@ -102,7 +102,7 @@
     try {
       const t = await get("/api/mail/get_thread", { threadId: id });
       c.$("#mthread").innerHTML = `<div class="crumbs"><a href="#/">Back to the inbox</a></div><h1 style="font-size:20px;margin-bottom:6px">${c.esc(t.messages[0].subject)}</h1>
-        ${t.messages.map((m) => `<article class="message"><div class="head"><b>${c.esc(whoOf(m.sender))}</b> · ${c.esc(m.sender)}<br>to ${c.esc(m.toRecipients.join(", "))} · ${c.fmtDate(m.date)}</div><div class="body">${c.esc(m.plaintextBody)}</div>
+        ${t.messages.map((m) => `<article class="message"><div class="head"><b>${c.esc(whoOf(m.sender))}</b> ${c.esc((m.sender.match(/<[^>]+>/) || [""])[0])}<br>to ${c.esc(m.toRecipients.join(", "))} · ${c.fmtDate(m.date)}</div><div class="body">${c.esc(m.plaintextBody)}</div>
           ${m.attachments.length ? `<div class="chips">${m.attachments.map((a) => { const u = `/api/mail/open?${new URLSearchParams({ messageId: m.id, attachmentId: a.id })}`; return `<span class="chip" data-attachment="${c.esc(a.filename)}">${c.esc(a.filename)} <span class="muted">${size(a.size)}</span> <a href="${u}" target="_blank" rel="noopener">Open</a> <a href="${u}&download=1" download="${c.esc(a.filename)}">Download</a> <button type="button" data-keep="${c.esc(m.id)}|${c.esc(a.id)}">Save to Litterbox</button></span>`; }).join("")}</div>` : ""}</article>`).join("")}
         <div class="actions"><a class="btn secondary" id="mreply" href="#/compose/${id}">Reply</a><span class="status" id="mstatus"></span></div>`;
       for (const b of c.$("#mthread").querySelectorAll("[data-keep]")) b.addEventListener("click", async () => {

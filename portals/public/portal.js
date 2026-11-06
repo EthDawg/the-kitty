@@ -191,7 +191,7 @@
   };
 
   // what this portal limits, in its own words, for a named person
-  const rulesLine = () => { const r = data.rules || {}, bits = []; if (r.back_years) bits.push(`keeps ${r.back_years} years online`); if (r.window_days) bits.push(`exports at most ${r.window_days} days at a time`); if (r.gap_seconds) bits.push("hands over one document at a time"); return bits.length ? ` ${esc(brand.name)} ${bits.join(", ")}.` : ""; };
+  const rulesLine = () => { const r = data.rules || {}, p = data.person, bits = []; if (r.back_years) bits.push(`keeps ${r.back_years} years online`); if (r.window_days) bits.push(`exports at most ${r.window_days} days at a time`); if (r.gap_seconds) bits.push("hands over one document at a time"); return `${bits.length ? ` ${esc(brand.name)} ${bits.join(", ")}.` : ""}${p && p.world_first_name !== p.first_name ? ` The papers still say ${esc(p.world_first_name)}.` : ""}`; };
 
   // ---- routing, sign-in, boot
   const route = () => {

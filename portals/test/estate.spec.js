@@ -225,6 +225,21 @@ test("a person uses the Drive: folders, search, preview, download and upload", a
   await expect(page.locator('tr[data-title="new-note.txt"]')).toBeVisible();
 });
 
+test("a phone never scrolls sideways", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/litterbox#/");
+  await page.fill("#name", "Daisy");
+  await page.fill("#password", "demo");
+  await page.click("#loginbtn");
+  await page.click('#dtree a[data-folder="tax stuff"]');
+  await expect(page.locator('tr[data-title="scan0003.pdf"]')).toBeVisible();
+  const sideways = () => page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(await sideways(), "the Drive").toBe(false);
+  await page.goto("/gmeow#/");
+  await expect(page.locator(".mailrow").first()).toBeVisible();
+  expect(await sideways(), "the inbox").toBe(false);
+});
+
 test("a person uses the inbox: read, search, attachments, compose with a Drive file", async ({ page }) => {
   await page.goto("/gmeow");
   await page.fill("#name", "Daisy");

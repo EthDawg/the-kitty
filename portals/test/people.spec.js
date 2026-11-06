@@ -130,6 +130,12 @@ test("statements only go back so many years, and an export only covers so many d
   expect((await anyone.get("/api/export?brand=westpaw&account=ACC-EVD&from=2019-04-01&to=2025-06-30&format=csv")).status()).toBe(200);
 });
 
+test("the history limit counts from the clock, past the end of the world too", async () => {
+  await signIn(daisy, "kittenhood", "Daisy");
+  expect((await getJson(daisy, "/api/files?brand=kittenhood&as_of=2031-06-30")).files, "two years back from 2031 is after the world ends").toEqual([]);
+  expect((await getJson(daisy, "/api/files?brand=kittenhood&as_of=2027-01-31")).files.length).toBeGreaterThan(0);
+});
+
 test("one document at a time: a second download waits, then goes through", async () => {
   await signIn(daisy, "westpaw", "Daisy");
   const url = "/api/export?brand=westpaw&account=ACC-EVD&from=2027-01-01&to=2027-01-31&format=csv";

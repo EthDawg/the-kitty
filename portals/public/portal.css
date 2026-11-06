@@ -44,8 +44,9 @@ nav.primary a.off::after{content:" · not in this demo";font-size:11px}
 main{padding:22px 0 60px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 20px}
 .card+.card{margin-top:16px}
-.grid{display:grid;gap:16px;grid-template-columns:1fr}
-@media (min-width:900px){.grid.side{grid-template-columns:300px 1fr}.grid.two{grid-template-columns:1fr 1fr}.grid.cards{grid-template-columns:repeat(3,1fr)}}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.grid>*{min-width:0}
+@media (min-width:900px){.grid.side{grid-template-columns:300px minmax(0,1fr)}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.cards{grid-template-columns:repeat(3,1fr)}}
 @media (min-width:600px) and (max-width:899px){.grid.cards{grid-template-columns:repeat(2,1fr)}}
 .crumbs{font-size:12.5px;color:var(--muted);margin-bottom:10px}
 .crumbs a{color:var(--muted)}
@@ -134,7 +135,7 @@ tbody tr:last-child td{border-bottom:0}
 .tree a:hover{background:var(--soft)}
 .tree a[aria-current="true"]{background:var(--soft);color:var(--ink);font-weight:700}
 .tree .deep{padding-left:22px}
-.files td.name{white-space:normal;min-width:220px;overflow-wrap:anywhere}
+.files td.name{white-space:normal;min-width:180px;overflow-wrap:anywhere}
 .files a{text-decoration:none;color:var(--ink);font-weight:600}
 .files a:hover{color:var(--brand)}
 .files .kind{display:inline-block;min-width:44px;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase}

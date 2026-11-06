@@ -35,7 +35,7 @@ const balanceAt = (accountId, to) => balanceBefore(accountId, addDays(to, 1));
 const monthsOf = (first, last) => D.months.filter((m) => m >= first && m <= last);
 // the last day this view can see, and the first, and the most one download may cover
 const lastDay = (view) => Clock.upTo(view, monthEnd(lastMonth));
-const firstDay = (view) => { const y = view.rules.back_years; if (!y) return null; const at = lastDay(view); return `${Number(at.slice(0, 4)) - y}${at.slice(4)}`; };
+const firstDay = (view) => { const y = view.rules.back_years; if (!y) return null; const at = view.as_of || lastDay(view); return `${Number(at.slice(0, 4)) - y}${at.slice(4)}`; };
 const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1;
 const fits = (view, from, to) => !view.rules.window_days || daysBetween(from, to) <= view.rules.window_days;
 const fysBetween = (fromIso, toIso) => { const out = []; for (let fy = fyOf(toIso); fy >= fyOf(fromIso); fy--) out.push(fy); return out; };
