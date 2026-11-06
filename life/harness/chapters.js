@@ -156,7 +156,7 @@ const chapters = {
     const checks = await K.checkTailoring(J.store), widgets = await K.widgets(J.store, { today: later });
     // The project promotes it. The family takes the update, dry run first.
     await H.addFiles(J, F.W.files.filter((f) => f.held_from == null && f.delivered_on <= later && F.heldStreams.has(f.stream)).map(F.toFile), later);
-    await sitting(J, F, later, 40);
+    await drive(J, actor(F), { today: later, limit: 40, until: (x) => ["close", "lock", "other_side", "stale"].includes(x.id) }); // the new months stay open, so a release has somewhere to land
     const release = base.releases["2036-04-pocket-money"], dry = await K.planUpdate(J.store, release, { today: later, migrate: [P.MIGRATION] });
     const taken = await K.update(J.store, release, { today: later, migrate: [P.MIGRATION], by: F.A.name, plan: dry });
     H.ask(J, later, "Take the update? Nothing you entered changes.", F.A.name);

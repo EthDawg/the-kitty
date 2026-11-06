@@ -4,7 +4,7 @@ Taken on 7 November 2026 while building, without stopping to ask. Each is a defa
 
 ## The law that bent
 
-**A term keeps its `recorded_at` when it moves.** GOAL says adopted setup rows get `recorded_at` at transfer time. The engine orders a term against dated notices by that column, so a loan's opening rate re-stamped in 2038 would replace every rate notice since 2028, and a moved Kitty would rebuild to a different household. So `term` is the one exception: it keeps its own time and its note says it was adopted. Everything else follows the rule. `H-006` holds the fix: a known-order column that is not the record's date. Then the exception goes.
+**A term keeps its `recorded_at` when it moves.** GOAL says adopted setup rows get `recorded_at` at transfer time. The engine orders a term against dated notices by that column, so a loan's opening rate re-stamped in 2038 would replace every rate notice since 2028, and the household would read the wrong rate on every date since. So `term` is the one exception: it keeps its own time and its note says it was adopted. Everything else follows the rule. `H-006` shows the wrong rate on the smallest case, and holds the fix: a known-order column that is not the record's date. Then the exception goes. The Davies' bundle hash does not catch this, because their interest comes from the lender's lines: a mutation audit re-stamped terms and the hash held. `src/household/life.test.js` holds the exception instead.
 
 ## Transfer
 
@@ -48,6 +48,7 @@ Taken on 7 November 2026 while building, without stopping to ask. Each is a defa
 - **A silently wrong trap fails `--check` unless a friction row holds it.** Fourteen are recorded, and they stay on the report until they land.
 - **Trap T4-ACCOUNTANT-ZIP is `not_run`.** `pack` is on `life/pack`, PR 28.
 - **Traps are judged at the chapter their evidence reaches.** The couple's transfer is on 5 March, in files that arrive in April, so T3-COUPLE-TRANSFER is judged at chapter 4 and listed under 3.
+- **The harness was audited by breaking it on purpose.** Fourteen mutations, each removing one safety: the rebind, the slice's date, the fence on a release, a spawn's closing entries and so on. Each turns the verb tests or `--check` red. Two are caught only by the verb tests, because the harness always supplies them: consent, and the term exception.
 - **Tax labels are compared for years that ended 90 days before the chapter.** Label D10 is the agent's fee and label 12 the plan's statement, so neither is a figure this household derives. Labels 18A and 18H are in the ratchet under F-005.
 
 ## What `next` learned
@@ -68,7 +69,7 @@ Taken on 7 November 2026 while building, without stopping to ask. Each is a defa
 - **Numbers the script does not give are the family's and invented:** jars 50, 30 and 20, 6% a year on the save jar paid at month end, George's $3 a week. Salt's $5 and the $2 chore every second week come from `life.json`.
 - **The book starts on the first Saturday after she says the sentence.** Truth says nil on chapter day, and says the first Saturday falls after it, while two Saturdays passed after the 20th in the script. Starting from her sentence ties to nil and is what happens at a kitchen table. S026.
 - **Bands from research: jars at 5, an account of their own at 14, a Kitty at 18.** Age is worked out from `birth_date`. Evie is 2, so she has none yet.
-- **The release carries a real rule so the diff has something to show:** fuel reads as a car cost, with a priority, so it beats a household's rule and loses to a person's decision. It starts at the first open month. What it would have done to each locked month is a proposal.
+- **The release carries a real rule so the diff has something to show:** a phone plan reads as a utility, with a priority, so it beats a household's rule and loses to a person's decision. It names a merchant every family has, because a release tuned to the Davies moved nothing for a variant, and the check said so. It starts at the first open month. What it would have done to each locked month is a proposal.
 - **A shared extension's table is a new table.** The family's `x_pocket` stays as it was, and `x_jars` gets its rows through a declared column map. A map that loses a cent is refused before anything is written.
 - **`spawn` copies the whole history and closes the rest with one entry per jar.** So the book that stays adds to nil, and nothing is counted in two households.
 

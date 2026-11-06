@@ -103,6 +103,13 @@ function compare(results, expected, frictionCases) {
       }
       if (r.join && (!r.join.audit_ok || !r.join.homes.ok || r.join.unbound)) fails.push(`${family}/${r.store} ch3: a merge law broke: ${JSON.stringify(r.join)}`);
       if (r.pocket && (!r.pocket.bundle_same || r.pocket.ledger_memo_cents || !r.pocket.example_ok || r.pocket.taken.originals_changed.length || r.pocket.taken.locked_moved.length || r.pocket.taken.unbound)) fails.push(`${family}/${r.store} ch6: tailoring broke a law: ${JSON.stringify({ b: r.pocket.bundle_same, m: r.pocket.ledger_memo_cents, e: r.pocket.example_ok, o: r.pocket.taken.originals_changed, l: r.pocket.taken.locked_moved.length, u: r.pocket.taken.unbound })}`);
+      if (r.pocket) {
+        const s = r.pocket.spawned, left = Object.values(s.left_behind || {}).reduce((n, c) => n + c, 0), held = Object.values(s.held_after).flatMap((j) => Object.values(j)).reduce((n, c) => n + c, 0), carried = r.pocket.taken.carried[0];
+        if (left !== 0 || held !== s.moved_cents || !s.moved_cents) fails.push(`${family}/${r.store} ch6: spawn did not conserve the jars: ${JSON.stringify(s)}`);
+        if (!carried || carried.read_back !== carried.rows || !carried.keeps_sum) fails.push(`${family}/${r.store} ch6: the x_ table did not carry across: ${JSON.stringify(carried)}`);
+        if (r.pocket.taken.tailoring.some((t) => !/: pass$/.test(t))) fails.push(`${family}/${r.store} ch6: an example failed after the update: ${r.pocket.taken.tailoring}`);
+        if (!r.pocket.dry.moved || !r.pocket.dry.proposals) fails.push(`${family}/${r.store} ch6: the update's diff showed nothing, so it proved nothing.`);
+      }
       if (r.move && !(r.move.hash.same && r.move.audit_ok && r.move.sources_same && r.move.observations_same && r.move.jars_same && r.move.next === "moved" && r.move.refused === "moved" && !r.move.l12_fails)) fails.push(`${family}/${r.store}: the move did not hold: ${JSON.stringify(r.move)}`);
       for (const [id, t] of Object.entries(r.traps)) {
         if (t.verdict === "silently_wrong" && !frictionCases.has(id)) fails.push(`${family}/${r.store} ${id} is silently wrong and no friction row holds it: ${t.note}`);

@@ -28,9 +28,13 @@ for (const [kind, make] of Object.entries(stores)) {
     await K.add(a, [{ ...bankFile(SAM, MAY), download_date: "2026-06-01" }], { today: "2026-06-01" });
     await K.add(a, [{ ...bankFile(SAM, JUNE, 92000), name: "June.csv", download_date: "2026-07-01" }], { today: "2026-07-01" });
     await K.record(a, "rule", [{ rule_id: "r1", pattern: "KOALATEL MOBILE", match: "normalised", category_id: "TELCO", provenance: "said", status: "accepted", recorded_at: "2026-06-01T00:00:00Z" }], {});
+    await K.record(a, "term", [{ term_id: "t1", subject_type: "account", subject_id: "ACC-6789", term: "interest_rate", value: "6.54", valid_from: "2026-05-01", recorded_at: "2026-05-02T00:00:00Z" }], {});
     await assert.rejects(K.transfer(a, b, { from: "2026-06-01" }, { today: "2026-08-05" }), /needs someone's yes/);
-    const r = await K.transfer(a, b, { from: "2026-06-01", setup: (t) => ["account", "alias", "ownership", "stream"].includes(t) }, { today: "2026-08-05", consent: yes("Sam") });
+    const r = await K.transfer(a, b, { from: "2026-06-01", setup: (t) => ["account", "alias", "ownership", "stream", "term"].includes(t) }, { today: "2026-08-05", consent: yes("Sam") });
     assert.ok(r.audit.ok);
+    const term = (await b.tables.read("term"))[0];
+    assert.equal(term.recorded_at, "2026-05-02T00:00:00Z", "the one exception: the engine orders a term against notices by this column. H-006");
+    assert.match(term.note, /Adopted 2026-08-05/);
     const obs = await b.tables.read("observation");
     assert.ok(obs.every((o) => !o.payload.posting_date || o.payload.posting_date >= "2026-06-01"), "nothing from before the window crossed");
     const src = await b.tables.read("source");
@@ -214,11 +218,9 @@ for (const [kind, make] of Object.entries(stores)) {
 
   test(`an update on ${kind}: dry run, a metric diff, originals untouched, x_ carried, locked months stay`, async () => {
     const today = "2026-08-05", s = await solo(make, "Sam", today);
-    const fuel0 = [["2026-06-10", "PAWPUMP FUEL", -4000]], fuel1 = [["2026-07-10", "PAWPUMP FUEL", -4100], ["2026-07-11", "PAWPUMP FUEL", -3000]];
-    await K.add(s, [bankFile(SAM, [...MAY, ...JUNE.slice(0, 1), ...fuel0, ...JUNE.slice(1), ...JULY.slice(0, 1), ...fuel1, ...JULY.slice(1)])], { today });
-    const { L } = await K.rebuildAt(s, { today }), fuel = L.review.find((r) => /PAWPUMP/.test(r.what));
+    await K.add(s, [bankFile(SAM, [...MAY, ...JUNE, ["2026-07-02", "KOALATEL MOBILE", -4100], ...JULY])], { today });
     await K.decide(s, { scope: { domain: "payroll", state: "none" } }, { today });
-    if (fuel) await K.decide(s, { item: fuel.item_id, category_id: "TRANSPORT", always: true }, { today });
+    await K.decide(s, { verb: "categorise", target_type: "line", target_ref: "ACC-6789|2026-07-02|-4100", value: { category_id: "TELCO" } }, { today });
     await K.record(s, "rule", [{ rule_id: "r1", pattern: "WOOLWORTHS", match: "contains", category_id: "GROCERIES", provenance: "said", status: "accepted" }, { rule_id: "r2", pattern: "KOALATEL MOBILE", match: "contains", category_id: "TELCO", provenance: "said", status: "accepted" }], { today });
     assert.equal((await K.close(s, "2026-06", { today })).status, "locked");
     await K.tailor(s, { rung: "x_table", name: "x_pocket", sentence: "Jars", definition: { columns: ["line:id:pk", "day:date:req", "child:id:req", "jar:text:req", "what:text:req", "amount:cents:req"] } }, { today });
@@ -230,7 +232,7 @@ for (const [kind, make] of Object.entries(stores)) {
     const dry = await K.planUpdate(s, release, { today, migrate: [job] });
     assert.ok(dry.dry_run); assert.match(dry.summary, /^Nothing you entered changes\./);
     assert.equal(dry.rules_from, "2026-07-01", "a rule starts after the last locked month");
-    assert.ok(dry.moved.some((m) => m.category === "CAR" && m.month === "2026-07"), "fuel moves in the open month");
+    assert.ok(dry.moved.some((m) => m.category === "UTILITIES" && m.month === "2026-07"), "the phone moves in the open month");
     assert.ok(dry.proposals.some((p) => p.period === "2026-06"), "and the locked month is a proposal");
     await assert.rejects(K.update(s, release, { today, migrate: [{ ...job, map: { ...job.map, cents: { value: 0 } } }] }), /would not carry across whole/, "a migration that loses money is refused, and writes nothing");
     assert.equal((await s.tables.read("decision")).filter((d) => /^update-/.test(d.decision_id)).length, 0);
@@ -246,8 +248,8 @@ for (const [kind, make] of Object.entries(stores)) {
     assert.ok(store_backup_ok(t));
     const { L: after } = await K.rebuildAt(s, { today });
     const july = after.cash.find((m) => m.month === "2026-07"), june = after.cash.find((m) => m.month === "2026-06");
-    assert.equal(july.byCategory.CAR, -3000, "the rule moves what no person decided"); assert.equal(july.byCategory.TRANSPORT, -4100, "and a person's own answer stands");
-    assert.equal(june.byCategory.CAR, undefined, "June stays as it was locked");
+    assert.equal(july.byCategory.UTILITIES, -3000, "the rule moves what no person decided"); assert.equal(july.byCategory.TELCO, -4100, "and a person's own answer stands");
+    assert.equal(june.byCategory.UTILITIES, undefined, "June stays as it was locked");
     assert.equal(after.checks.filter((c) => c.law === "L12" && c.status === "fail").length, 0);
   });
 

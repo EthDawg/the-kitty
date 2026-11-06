@@ -38,7 +38,7 @@ async function slice(store, spec = {}) {
   for (const t of SETUP) tables[t] = spec.setup ? o[t].filter((r) => spec.setup(t, r)) : o[t];
   tables.period = (spec.period ? o.period.filter(spec.period) : o.period.filter((p) => within(p.start_on)));
   tables.rule = o.rule; tables.recipe = o.recipe;
-  tables.decision = o.decision.filter(spec.decision || ((d) => {
+  tables.decision = latest("decision", o.decision).filter(spec.decision || ((d) => {
     if (d.target_type === "line") { const [, day] = String(d.target_ref).split("|"); return within(day); }
     return d.target_type === "period" && within(`${d.target_ref}-01`);
   }));
