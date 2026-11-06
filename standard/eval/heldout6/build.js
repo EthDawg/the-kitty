@@ -114,7 +114,7 @@ function everyday() {
   const a = rng("atm"); let d = "2023-07-04";
   while (d <= END) { const c = a.pick([10000, 10000, 15000, 20000]); ATM.push(spend(JT, d, "ATM WITHDRAWAL LIEBIG ST", c, "PERSONAL")); count("atm"); d = addDays(d, a.int(8, 14)); }
   trap("T6-ATM", "An ATM withdrawal is spending, whatever happens to the notes", `${JT}: ${ATM.length} lines reading "ATM WITHDRAWAL LIEBIG ST"`, "Money that left the accounts for the household to spend. Spending, and not an open transfer waiting for a pair.",
-    { kind: "lines", lines: [ATM[3], ATM[25], ATM[60]].map((x) => plain(x, "spending")) });
+    { kind: "lines", lines: ATM.filter((x) => x.date < TRUNC_FROM || x.date > TRUNC_TO).filter((x, i) => [3, 25, 60].includes(i)).map((x) => plain(x, "spending")) });
   // Tess is a dependant at university in Melbourne, with an account nobody declared
   for (let x = "2024-02-23"; x <= END; x = addDays(x, 14)) RENT.push(spend(JT, x, "OSKO TO T MULCAHY RENT", 42000, "KIDS-ACT"));
   trap("T6-UNI-RENT", "Rent for a daughter at university, to a member's account nobody declared", `${JT}: ${RENT.length} fortnights of 420.00, "OSKO TO T MULCAHY RENT". Tess is a dependant in setup and no account of hers is`, "Spending. A member's surname does not make it an own transfer, and no account of the household's receives it.",
@@ -352,7 +352,7 @@ const lastVal = (list, e) => { const h = list.filter((x) => x[0] <= e); if (!h.l
 function assets() {
   const s = line(JT, VAN_SOLD, "OSKO FROM T HOWARD CARAVAN", 3150000, { capital: true });
   trap("T6-CARAVAN-SOLD", "A caravan sold to a stranger by Osko, to pay for the move", `${JT} ${s.date}: +31,500.00. ${VN} is typed in setup at 34,000.00, closed on that day`, "Capital, neither. The caravan leaves net worth on the day it goes, and the cash is not income or a refund.",
-    { kind: "lines", lines: [plain(s, "neither")], zero_after: { account: VN, from: "2024-02" } });
+    { kind: "lines", lines: [plain(s, "neither")], group_total: ["2024-02", "2024-12", "2026-06"].map((month) => ({ month, group: "vehicle", want: CAR_VALUE, named: VN })) });
 }
 
 // ---------- bills, cover, care ----------
@@ -396,7 +396,7 @@ function bills() {
   trap("T6-STORM-CLAIM", "An insurer pays a storm claim: the credit is a real recovery, in another category from its contract, above any premium ever paid", `${JT}: -8,300.00 to a roofer on ${rf.date}, +7,300.00 from Purrsure on ${cl.date}. The home policy's contract says HOME-INS, and the largest premium is ${money(229000)}`, "Lowers HOME-MAINT spending: the household's cost was the 1,000.00 excess. Not income, and it is not a refund of a premium. A rule that a credit above any payment is no refund is wrong here.",
     { kind: "lines", lines: [plain(rf, "spending"), plain(cl, "spending")] }, { fresh: true, dc: true });
   // the same district that was her employer sends Paul's day surgery bill, and refunds part of it
-  const ps = spend(JT, "2025-02-11", "BPAY MOYNE COAST HEALTH PATIENT 4412", 64000, "HEALTH"), pr = line(JT, "2025-03-18", "MOYNE COAST HEALTH PATIENT REFUND", 21500, { lens: "spending", cat: "HEALTH" });
+  const ps = spend(JT, "2025-02-11", "BPAY MOYNE COAST HEALTH PATIENT 4412", 64000, "HEALTH"), pr = line(JT, "2025-04-08", "MOYNE COAST HEALTH PATIENT REFUND", 21500, { lens: "spending", cat: "HEALTH" });
   trap("T6-PATIENT-REFUND", "A credit from a former employer that is a refund of a hospital bill", `${JT} ${pr.date}: +215.00, "${pr.desc}", from the party that was Dee's employer and took ${money(64000)} of patient fees the month before`, "Lowers HEALTH spending. An employer named in setup must not make a refund into wages.",
     { kind: "lines", lines: [plain(ps, "spending"), plain(pr, "spending")] }, { fresh: true, dc: true });
   // private health by the month, and a statement of the year that repeats it
