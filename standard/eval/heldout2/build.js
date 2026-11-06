@@ -254,14 +254,14 @@ function chargeInterest() {
 function loanTraps() {
   const ms = ["2024-03", "2024-08"], sample = ms.map((m) => nextBiz(`${m}-01`));
   trap("T2-SPLIT-SAME-AMOUNT", "Two loan splits, same lender, same day, same amount, same account", `${HB}: "WESTPAW HOME LOAN 0881" and "0882", 1,950.00 each, on the first working day of every month to February 2025`, "Two repayments, both spending at cash, one to each split. Neither is a duplicate and each split's balance is the lender's.",
-    { kind: "lines", clearing: "clearing:loan", lines: sample.map((d) => ({ account: HB, date: d, cents: -195000, want: "spending", n: 2 })), balances: [{ account: HF, months: ["2024-03", "2024-08", "2025-03"] }, { account: HV, months: ["2024-03", "2024-08", "2025-03"] }] }, { fresh: true });
+    { kind: "lines", clearing: "clearing:loan:ACC-HOME", lines: sample.map((d) => ({ account: HB, date: d, cents: -195000, want: "spending", n: 2 })), balances: [{ account: HF, months: ["2024-03", "2024-08", "2025-03"] }, { account: HV, months: ["2024-03", "2024-08", "2025-03"] }] }, { fresh: true });
   const io = B.lines.filter((x) => x.acct === OF && /PING FINANCE LOAN REPAYMENT/.test(x.desc));
   trap("T2-INTEREST-ONLY", "An interest-only loan: the repayment is the interest", `${IP}: ${io.length} repayments on ${OF}, each last month's interest, the balance flat at ${money(-PING_OPEN)}`, "Spending once at the cash amount. The interest on the lender's file does not count again, and the balance does not move.",
     { kind: "lines", lines: [io[2], io[9]].map((x) => plain(x, "spending")), balances: [{ account: IP, months: ["2023-12", "2024-06", "2024-12"] }] }, { fresh: true, dc: true });
   trap("T2-REFINANCE", "A refinance with no bank line, and a cash-out", `${IP} paid out ${REFI} by ${IW}, ${money(LOANS.payout)}, no cash on any bank file. The new loan is drawn ${money(LOANS.payout + CASHOUT)} and ${money(CASHOUT)} reaches ${OF}`, "The old loan ends at zero, the new one is the lender's figure, and net worth does not move. The drawdown is neither income nor spending.",
-    { kind: "lines", zero_after: { account: IP, from: "2025-02" }, lines: [plain(LOANS.cashout, "neither"), plain(LOANS.fee, "spending")], balances: [{ account: IW, months: ["2025-02", "2025-03", "2025-06"] }] }, { fresh: true, dc: true });
+    { kind: "lines", zero_after: { account: IP, from: "2025-02" }, lines: [plain(LOANS.cashout, "neither"), plain(LOANS.fee, "spending")], balances: [{ account: IW, months: ["2025-01", "2025-02", "2025-03", "2025-06"] }] }, { fresh: true, dc: true });
   trap("T2-OFFSET-INTEREST", "Interest on a split net of its offset", `${HV}: daily interest on the balance less ${OF}, at a rate that falls three times, one notice backdated`, "L6 holds for the variable split every month: the offset link is read and the rate history is the notices'.",
-    { kind: "law", law: "L6", scope: HV }, { fresh: true });
+    { kind: "law", law: "L6", scope: "CON-HOME-VAR" }, { fresh: true });
 }
 
 // ---------- the rental, by two agents ----------
@@ -432,10 +432,10 @@ function shares() {
     { kind: "lines", lines: [{ account: HB, date: after.pay, cents: after.net, want: "income" }] }, { fresh: true });
   const sell = trades[1];
   trap("T2-SELL-STRADDLE-FY", "A sale that settles across a financial year end", `${sell.units} KRL sold ${sell.d}, settles ${sell.settle}, ${money(sell.total)}: the holding has gone at 2025-06-30, the broker's cash has not arrived`, "Selling shares does not lower net worth. At 2025-06-30 the broker owes the household the proceeds.",
-    { kind: "networth", months: ["2025-06"] }, { fresh: false });
+    { kind: "lines", settle: [{ account: `clearing:settle:${BK}`, month: "2025-06", want: sell.total }, { account: `clearing:settle:${BK}`, month: "2025-07", want: 0 }] }, { fresh: false });
   const dr = SHARES.dists.filter((v) => v.drp);
   trap("T2-DRP", "A distribution reinvested in fractional units, with no cash line", `OWL from ${dr[0].pay}: ${dr.length} distributions as units, and an annual tax statement beside each year`, "No cash income, the units rise by the allotment and L7 holds, and the annual statement is not a second distribution.",
-    { kind: "lines", balances: [{ account: SH, months: ["2024-07", "2025-01", "2025-07", "2026-01"] }], law: { law: "L7", scope: "holdings" }, absent: [{ account: BK, date: dr[0].pay, cents: dr[0].net }, { account: HB, date: dr[0].pay, cents: dr[0].net }], accrual: [{ month: ymOf(dr[0].pay), category: "DIVIDEND", cents: dr[0].net, atLeast: true }] }, { fresh: true, dc: true });
+    { kind: "lines", balances: [{ account: SH, months: ["2024-07", "2025-01", "2025-07", "2026-01"] }], lots: { instrument: "INS-OWL", units: unitsOn("OWL", END) * 10000 }, absent: [{ account: BK, date: dr[0].pay, cents: dr[0].net }, { account: HB, date: dr[0].pay, cents: dr[0].net }], accrual: [{ month: ymOf(dr[0].pay), category: "DIVIDEND", cents: dr[0].net, atLeast: true }] }, { fresh: true, dc: true });
   trap("T2-HOLDINGS-GAP", "A month's holdings file never downloaded", `${SH}: no file for 2025-11-30`, "Only that month is missing. The stale price is flagged, not shown as the month's value.",
     { kind: "gap", stream: SH, month: "2025-11" });
 }
@@ -464,7 +464,7 @@ function rsu() {
   trap("T2-RSU-VEST", "A vest in US dollars: wealth, tax, and no cash", `${PL}: ${PLAN.vests.length} quarterly vests of 110 units, for example ${v.date} at USD ${v.price}, ${money(v.value)}`, "No cash income. The holding rises and the month-end balance is the plan's own AUD value.",
     { kind: "lines", balances: [{ account: PL, months: [ymOf(v.date), "2024-12", "2025-05"] }] }, { fresh: true });
   trap("T2-RSU-WIRE", "A US sale, the wire a week later, a different AUD figure and a fee taken off", `${PL} sold ${s.units} on ${s.d}: the sale note says ${money(s.aud)}; ${HB} is credited ${money(s.got)} on ${s.wire}, across a month end`, "Neither income nor spending. Net worth holds the money while it is in the air, and no residue of the gap stays in net worth after the wire.",
-    { kind: "lines", lines: PLAN.sales.map((x) => plain(x.line, "neither")), networth_months: ["2026-02"], unsettled_clear: ["2024-04", "2025-09", "2026-03"] }, { fresh: true, dc: true });
+    { kind: "lines", lines: PLAN.sales.map((x) => plain(x.line, "neither")), settle: [{ account: `clearing:settle:${HB}`, month: "2024-04", want: 0 }, { account: `clearing:settle:${HB}`, month: "2025-09", want: 0 }, { account: `clearing:settle:${HB}`, month: "2026-02", want: s.got }, { account: `clearing:settle:${HB}`, month: "2026-03", want: 0 }] }, { fresh: true, dc: true });
   trap("T2-PLAN-GAP", "A month's plan holdings file never downloaded", `${PL}: no file for 2026-03-31`, "Coverage names the month.", { kind: "gap", stream: PL, month: "2026-03" });
 }
 
@@ -679,7 +679,7 @@ function fileTraps() {
   trap("T2-STATEMENT-GAP", "A card statement never downloaded, its lines only on the activity file", `The statement closing ${STATEMENT_MISSING} is missing`, "The lines stay, on their posting dates. Coverage names the missing statement.",
     { kind: "gap", stream: "STM-CARD", month: STATEMENT_MISSING.slice(0, 7) }, { fresh: true });
   trap("T2-CRYPTO-THIRD-COIN", "A holdings page with a third row", `${CX}: month-end pages for 2025-08 to 2025-10 list three coins and every other page two, so the page's structure changes with what is held`, "Those pages are read, or the months are named as missing. A stale price must not pass as the month's value.",
-    { kind: "lines", unread: `sources/${CX}/`, balances: [{ account: CX, months: ["2025-08", "2025-09", "2025-10"] }, { account: CW, months: ["2025-08", "2025-09", "2025-10"] }] }, { fresh: true });
+    { kind: "lines", unread: `sources/${CX}/`, must_name: { stream: CX, months: ["2025-08", "2025-09", "2025-10"] }, balances: [{ account: CX, months: ["2025-08", "2025-09", "2025-10"], strict: true }] }, { fresh: true });
 }
 
 const CARD = { statements: [] };
@@ -767,7 +767,7 @@ function truth() {
     },
     balances, income, spending, spending_by_category: byCat, networth, in_transit: transit,
     counts: B.counts, lines_by_account: Object.fromEntries(Object.entries(chains).map(([a, l]) => [a, l.length])),
-    cash_lines: B.lines.filter((x) => CASH.includes(x.acct)).sort(byTime).map((x) => ({ account: x.acct, date: x.date, ...(x.posted && x.posted !== x.date ? { posted: x.posted } : {}), cents: x.cents, what: x.desc, lens: x.lens || "neither", ...(x.cat ? { category: x.cat } : {}), ...(x.xfer ? { own: true } : {}), ...(x.fee ? { fee: x.fee } : {}) })),
+    cash_lines: B.lines.filter((x) => CASH.includes(x.acct)).sort(byTime).map((x) => ({ account: x.acct, date: x.date, ...(x.posted && x.posted !== x.date ? { posted: x.posted } : {}), cents: x.cents, what: x.desc, lens: x.lens || "neither", ...(x.cat ? { category: x.cat } : {}), ...(x.xfer ? { own: true } : {}), ...(x.fee ? { fee: x.fee } : {}), ...(x.altDate ? { alt: x.altDate } : {}) })),
     own_transfers: B.pairs,
     traps: B.traps,
   };

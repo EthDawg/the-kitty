@@ -61,9 +61,19 @@ function Reader(L, setup) {
   const gapTo = (e, account, date, post) => Math.min(...datesOf(e, account).flatMap((d) => [days(d, date), post ? days(d, post) : Infinity]));
   const find = (account, date, cents, wide, post) => { const w = wide != null ? wide : account === CARD ? 1 : 0; return (events.get(`${account}|${cents}`) || []).filter((e) => gapTo(e, account, date, post) <= w); };
   const asked = (account, date, cents, post) => { const w = account === CARD ? 3 : 0; return L.review.filter((r) => { const p = String(r.ref).split("|"); return p[0] === account && p[1] && /^\d{4}-/.test(p[1]) && Math.min(days(p[1], date), post ? days(p[1], post) : Infinity) <= w && Number(p[2]) === cents; }); };
+  // a doubled line is only asked about when the question is whether it is doubled; a question about the merchant does not put the double in front of anyone
+  const askedDup = (account, date, cents, post) => L.review.filter((r) => { if (r.kind !== "possible_duplicate") return false; const p = String(r.ref).split("|"); return p[0] === account && Math.abs(Number(p[2]) - cents) <= 300 && Math.min(days(p[1], date), post ? days(p[1], post) : Infinity) <= 9; });
+  // review items that name a statement, an assessment or a trade rather than a line
+  const askedOther = (x, found) => L.review.filter((r) => {
+    const what = String(r.what || "");
+    if (r.kind === "owner_statement_unmatched") { const m = /Owner statement (\d{4}-\d{2}-\d{2})/.exec(what); if (!m) return false; const gap = (Date.parse(x.date) - Date.parse(m[1])) / 864e5; return x.account === "ACC-OFFSET" && ((gap >= 0 && gap <= 14) || (x.date.slice(0, 7) === m[1].slice(0, 7) && Math.abs(x.cents) !== Math.abs(r.amount_cents))); }
+    if (r.kind === "tax_result_unmatched") return found.some((e) => /\bATO\b/.test(e.description || ""));
+    if (r.kind === "trade_unsettled") { const m = /on (\d{4}-\d{2}-\d{2}) has no (?:cash )?line in (\S+?)\.?$/.exec(what); if (!m) return false; const gap = (Date.parse(x.date) - Date.parse(m[1])) / 864e5; return m[2] === x.account && gap >= -2 && gap <= 14; }
+    return false;
+  });
   const balance = (a, m) => (bal[a] && bal[a][m] != null ? bal[a][m] : 0);
   const held = (a) => (bal[a] ? Object.keys(bal[a]) : []);
-  return { treat, find, asked, balance, held, cats, setup, cashAcct, datesOf };
+  return { treat, find, asked, askedDup, askedOther, balance, held, cats, setup, cashAcct, datesOf };
 }
 
 function scoreTable(L, truth, R) {
@@ -95,7 +105,7 @@ function reconcile(L, truth, R) {
   for (const pass of [0, 1, 6, 14]) for (const v of legs) {
     if (v.t) continue;
     let best = null, gap = Infinity;
-    for (const x of pool.get(`${v.account}|${v.cents}`) || []) { if (taken.has(x.i)) continue; const d = Math.min(...v.dates.flatMap((q) => [days(x.date, q), x.posted ? days(x.posted, q) : Infinity])); if (d <= pass && d < gap && (pass <= 1 || v.account === CARD || x.own)) { best = x; gap = d; } }
+    for (const x of pool.get(`${v.account}|${v.cents}`) || []) { if (taken.has(x.i)) continue; const d = Math.min(...v.dates.flatMap((q) => [days(x.date, q), x.posted ? days(x.posted, q) : Infinity, x.alt ? days(x.alt, q) : Infinity])), rank = d + (x.lens === R.treat(v.e) ? 0 : 0.25); if (d <= pass && rank < gap && (pass <= 1 || v.account === CARD || x.own || x.alt)) { best = x; gap = rank; } }
     if (best) { taken.add(best.i); v.t = best; }
   }
   const effect = { income: 0, spending: 0 };   // what each class of error does to the 36-month totals, so the table adds up to the gap
@@ -110,7 +120,7 @@ function reconcile(L, truth, R) {
       if (got === "income") w.income += v.cents; if (got === "spending") w.spending -= v.cents;
     }
   }
-  const missing = truth.cash_lines.filter((x, i) => !taken.has(i) && x.date >= truth.window[0]);
+  const missing = truth.cash_lines.filter((x, i) => !taken.has(i) && x.date >= truth.window[0] && x.date <= truth.window[1]);
   const missedByLens = (l) => missing.filter((x) => x.lens === l).reduce((t, x) => t + x.cents, 0);
   const windowExtra = extra.filter((v) => v.dates.some(inWin));
   for (const v of windowExtra) { const got = R.treat(v.e); if (got === "income") effect.income += v.cents; if (got === "spending") effect.spending -= v.cents; }
@@ -133,16 +143,19 @@ function judgeLine(R, x) {
   if (fine) return { outcome: "handled", said, dollars: 0 };
   // the dollars a wrong line moves: how far its count and treatment sit from what truth wants
   const dollars = found.length !== n ? Math.abs(x.cents) * Math.max(1, Math.abs(found.length - n)) : Math.abs(x.cents);
-  return { outcome: R.asked(x.account, x.date, x.cents, x.posted).length ? "flagged" : "silently wrong", said, dollars };
+  const flagged = found.length > n ? R.askedDup(x.account, x.date, x.cents, x.posted).length : R.asked(x.account, x.date, x.cents, x.posted).length + R.askedOther(x, found).length;
+  return { outcome: flagged ? "flagged" : "silently wrong", said, dollars };
 }
 const worstOf = (list) => (list.includes("silently wrong") ? "silently wrong" : list.includes("flagged") ? "flagged" : "handled");
 
 function judge(trap, ctx) {
-  const { R, L, truth, intake } = ctx, p = trap.probe, notes = [], outcomes = []; let cents = 0;
+  const { R, L, truth, intake } = ctx, p = trap.probe, notes = [], outcomes = []; let cents = 0, flaggedCents = 0;
+  const HOLDINGS = ["ACC-SHARES", "ACC-PLAN", "ACC-COIN", "ACC-COLD"];
+  const tallyOf = (o, c) => { if (o === "silently wrong") cents += c; else if (o === "flagged") flaggedCents += c; };
   const months = Object.keys(truth.income);
-  const lawBad = (a) => L.checks.some((c) => (c.law === "L3" || c.law === "L7") && (String(c.scope) === a || (c.law === "L7" && /holding/i.test(String(c.scope)))) && !["pass", "skip", "accepted"].includes(c.status));
+  const lawBad = (a) => L.checks.some((c) => (c.law === "L3" && String(c.scope) === a || (c.law === "L7" && HOLDINGS.includes(a))) && !["pass", "skip", "accepted"].includes(c.status));
   const lines = (p.lines || []).map((x) => judgeLine(R, x));
-  for (const l of lines) { outcomes.push(l.outcome); if (l.outcome === "silently wrong") cents += l.dollars; }
+  for (const l of lines) { outcomes.push(l.outcome); tallyOf(l.outcome, l.dollars); }
   const bad = lines.filter((l) => l.outcome !== "handled");
   if (p.clearing) {
     const cs = L.checks.filter((x) => x.law === "L2" && String(x.scope).startsWith(p.clearing)), off = cs.filter((c) => c.status !== "pass");
@@ -153,7 +166,7 @@ function judge(trap, ctx) {
   for (const b of balanceList) {
     const off = b.months.filter((m) => truth.balances[b.account][m] !== R.balance(b.account, m)), worst = off.reduce((t, m) => Math.max(t, Math.abs(truth.balances[b.account][m] - R.balance(b.account, m))), 0);
     notes.push(`${b.account}: ${b.months.length - off.length} of ${b.months.length} month-ends exact${off.length ? `, worst ${money(worst)} off` : ""}`);
-    if (off.length) { const o = lawBad(b.account) ? "flagged" : "silently wrong"; outcomes.push(o); if (o === "silently wrong") cents += worst; }
+    if (off.length) { const o = b.strict ? "silently wrong" : lawBad(b.account) ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, worst); }
   }
   if (p.zero_after) {
     const ms = months.filter((m) => m >= p.zero_after.from), off = ms.filter((m) => R.balance(p.zero_after.account, m) !== 0);
@@ -163,14 +176,13 @@ function judge(trap, ctx) {
   if (p.zero_before) for (const a of p.zero_before.accounts) {
     const ms = months.filter((m) => m < p.zero_before.until), off = ms.filter((m) => R.balance(a, m) !== 0);
     notes.push(`${a} before ${p.zero_before.until}: ${ms.length - off.length} of ${ms.length} month-ends at zero${off.length ? `, ${off[0]} shows ${money(R.balance(a, off[0]))}` : ""}`);
-    if (off.length) { outcomes.push(lawBad(a) ? "flagged" : "silently wrong"); cents += Math.abs(R.balance(a, off[off.length - 1])); }
+    if (off.length) { const o = lawBad(a) ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, Math.abs(R.balance(a, off[off.length - 1]))); }
   }
   if (p.accrual) for (const x of p.accrual) {
     const row = L.accrual.find((r) => r.month === x.month), got = row ? (row.byCategory[x.category] || 0) : 0, ok = x.atLeast ? Math.abs(got) >= Math.abs(x.cents) && Math.abs(got) < Math.abs(x.cents) * 2 : got === x.cents;
     notes.push(`economic lens ${x.month} ${x.category}: want ${x.atLeast ? "about " : ""}${money(x.cents)}, got ${money(got)}`);
     if (!ok) { outcomes.push("silently wrong"); cents += Math.abs(got - x.cents); }
   }
-  if (p.law) outcomesForLaw(p.law);
   if (p.kind === "law") outcomesForLaw(p);
   function outcomesForLaw(q) {
     const cs = L.checks.filter((c) => c.law === q.law && String(c.scope).includes(q.scope)), off = cs.filter((c) => c.status !== "pass");
@@ -180,16 +192,24 @@ function judge(trap, ctx) {
   if (p.absent) for (const x of p.absent) {
     const f = R.find(x.account, x.date, x.cents, x.account === CARD ? 9 : 2, x.posted);
     notes.push(`${x.account} ${money(x.cents)} near ${x.date}: ${f.length ? `booked, ${f.map((e) => `${e.kind}/${e.category_id || "no category"}`).join(", ")}` : "not booked"}`);
-    if (f.length) { const o = R.asked(x.account, x.date, x.cents, x.posted).length ? "flagged" : "silently wrong"; outcomes.push(o); if (o === "silently wrong") cents += Math.abs(x.cents); }
+    if (f.length) { const o = (x.account === CARD ? R.askedDup(x.account, x.date, x.cents, x.posted) : R.asked(x.account, x.date, x.cents, x.posted)).length ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, Math.abs(x.cents)); }
   }
-  const networth = (m) => {
-    const sum = Object.keys(truth.balances).reduce((t, a) => t + R.balance(a, m), 0), row = L.netWorth.find((x) => x.month === m), held = row ? row.total - sum : null, want = truth.in_transit[m];
-    notes.push(`${m}: ${money(want)} in the air in truth, ${money(held)} in the engine's net worth`);
-    if (held !== want) { outcomes.push("silently wrong"); cents += Math.abs(held - want); } else outcomes.push("handled");
-  };
-  if (p.kind === "networth") p.months.forEach(networth);
-  if (p.networth_months) p.networth_months.forEach(networth);
-  if (p.unsettled_clear) p.unsettled_clear.forEach(networth);
+  /* what one settlement account holds in net worth, read on its own, so one trap's residue does not land on another's month */
+  if (p.settle) {
+    let worst = 0;
+    for (const x of p.settle) { const got = R.balance(x.account, x.month); notes.push(`${x.account} at ${x.month}: ${money(x.want)} in truth, ${money(got)} in the engine's net worth`); worst = Math.max(worst, Math.abs(got - x.want)); }
+    if (worst) { const named = L.review.some((r) => r.kind === "trade_unsettled") && L.checks.some((c) => c.law === "L2" && p.settle.some((x) => c.scope === x.account) && c.status !== "pass"), o = named ? "flagged" : "silently wrong"; outcomes.push(o); if (o === "flagged") flaggedCents = Math.max(flaggedCents, worst); else cents = Math.max(cents, worst); }
+  }
+  if (p.lots) {
+    const got = L.lotRows.filter((l) => l.instrument_id === p.lots.instrument).reduce((t, l) => t + Number(l.units_open), 0);
+    notes.push(`${p.lots.instrument} open lots at the end: ${got / 1e8}, truth ${p.lots.units / 1e8}`);
+    if (got !== p.lots.units) outcomes.push("silently wrong");
+  }
+  if (p.must_name) {
+    const c = L.coverage.find((x) => x.stream_id === p.must_name.stream), missing = c ? (c.missing || []).map(String) : [], said = p.must_name.months.every((m) => missing.some((x) => x.includes(m)));
+    notes.push(`coverage for ${p.must_name.stream}: ${c ? `${c.have} of ${c.expected}, missing ${missing.join(", ") || "nothing"}` : "no row"}`);
+    if (said) outcomes.splice(0, outcomes.length, "flagged");
+  }
   if (p.kind === "gap") {
     const c = L.coverage.find((x) => x.stream_id === p.stream), missing = c ? (c.missing || []).map(String) : [], said = missing.some((x) => x.includes(p.month));
     notes.push(`coverage for ${p.stream}: ${c ? `${c.have} of ${c.expected}, missing ${missing.join(", ") || "nothing"}` : "no row"}`);
@@ -204,12 +224,12 @@ function judge(trap, ctx) {
     const l3 = L.checks.find((x) => x.law === "L3" && x.scope === p.account), c = L.coverage.find((x) => x.stream_id === p.account), re = new RegExp(p.match);
     const said = l3 && l3.status !== "pass" && re.test(String(l3.detail));
     notes.push(`L3 ${l3 ? `${l3.status}: ${l3.detail || ""}` : "absent"}; coverage ${c ? `${c.have} of ${c.expected}` : "no row"}; the ${money(p.net_cents)} that moved ${said ? "is named" : "is not named"}`);
-    outcomes.push(said ? "flagged" : "silently wrong"); if (!said) cents += Math.abs(p.net_cents);
+    { const o = said ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, Math.abs(p.net_cents)); }
   }
   if (p.kind === "card_lag") {
     const x = ctx.rec.card_doubles;
     notes.push(`${x.count} extra card lines, ${money(x.cents)}, ${x.by_lag}; ${x.asked} of them asked about`);
-    outcomes.push(x.count === 0 ? "handled" : x.asked === x.count ? "flagged" : "silently wrong"); if (x.asked !== x.count) cents += x.cents;
+    { const o = x.count === 0 ? "handled" : x.asked === x.count ? "flagged" : "silently wrong"; outcomes.push(o); tallyOf(o, x.cents); }
   }
   if (p.no_events_before) {
     const q = p.no_events_before, re = new RegExp(q.match), found = L.events.filter((e) => e.occurred_on < q.before && (!q.kinds || e.kind.includes(q.kinds)) && re.test(JSON.stringify(e)));
@@ -220,7 +240,7 @@ function judge(trap, ctx) {
     const u = intake.unknown_files.filter((f) => f.path.startsWith(p.unread));
     notes.push(`${u.length} files unread and reported by intake`);
   }
-  return { id: trap.id, name: trap.name, fresh: trap.fresh, dc: trap.dc, where: trap.where, expect: trap.expect, outcome: worstOf(outcomes), cents, lines_ok: lines.filter((l) => l.outcome === "handled").length, lines_total: lines.length, notes, bad: bad.slice().sort((a, b) => (a.outcome === "silently wrong" ? -1 : 1) - (b.outcome === "silently wrong" ? -1 : 1)).map((l) => `${l.outcome}: ${l.said}`) };
+  return { id: trap.id, name: trap.name, fresh: trap.fresh, dc: trap.dc, where: trap.where, expect: trap.expect, outcome: worstOf(outcomes), cents, flaggedCents, lines_ok: lines.filter((l) => l.outcome === "handled").length, lines_total: lines.length, notes, bad: bad.slice().sort((a, b) => (a.outcome === "silently wrong" ? -1 : 1) - (b.outcome === "silently wrong" ? -1 : 1)).map((l) => `${l.outcome}: ${l.said}`) };
 }
 
 // ---------- the report ----------
@@ -261,8 +281,18 @@ function report(r) {
   const dollarsSW = traps.filter((t) => t.outcome === "silently wrong");
   p("## Silently wrong, with the dollars");
   p();
+  p("Dollars are the gross amount on the wrong lines, or the worst balance error, and they overlap: a late-posted line sits in both T2-HOLIDAY-LAG and T2-POSTING-LAG.");
+  p();
   p(dollarsSW.length ? "| Trap | Dollars | What |\n|---|---:|---|" : "None.");
   for (const t of dollarsSW) p(`| ${t.id} | ${money(t.cents)} | ${t.name} |`);
+  p();
+  const dollarsF = traps.filter((t) => t.outcome === "flagged" && t.flaggedCents > 0).sort((a, b) => b.flaggedCents - a.flaggedCents);
+  p("## Wrong and flagged, the largest numbers");
+  p();
+  p("A flag is not a fix. These numbers stay wrong until a person answers.");
+  p();
+  p("| Trap | Dollars | What |\n|---|---:|---|");
+  for (const t of dollarsF.slice(0, 10)) p(`| ${t.id} | ${money(t.flaggedCents)} | ${t.name} |`);
   p();
   p("## Line by line");
   p();
@@ -327,7 +357,15 @@ function report(r) {
     p("## Changed after the first run");
     p();
     for (const n of AFTER) p(`- ${n}`);
+    p();
+    p("| Trap | First run | This table | Way |");
+    p("|---|---|---|---|");
+    for (const [t, a, b, w] of MOVES) p(`| ${t} | ${a} | ${b} | ${w} |`);
   }
+  p();
+  p("## Seen but not planted");
+  p();
+  for (const n of SEEN) p(`- ${n}`);
   fs.writeFileSync(path.join(__dirname, "BLIND-2.md"), `${out.join("\n")}\n`);
   console.log(out.join("\n"));
 }
@@ -340,9 +378,25 @@ const NOTES = [
   "Setup gives no opening balance a file states. Three categories are added by SPEC 12 because a person would need them: child support, parental pay, side income. PASS-THROUGH is added because SPEC 4.4c says it ships and the first household's list predates it. `contributes_to` points at the fund's contract, as SPEC 4.4 says, the shape that crashed the first household.",
   "T2-REIMB is scored on the employer's credit only. The engine cannot know a flight was for work unless told, so the outlay stays in truth as neither, moves the spending total, and is not held against it as a trap. T2-FALSE-PAIR is fair even though SPEC 8 says no law catches a crossed pair: a limit that is declared still leaves a wrong number.",
   "The RentPurrfect recipe's fingerprint could not be recovered in reasonable search time, so the second managing agent uses the PropertyMeow layout, and a netted repair sits in that layout's Management fees box with its own line in the table. A wrong economic split there is scored as silently wrong even though the cash is right; the dollars say how much. Tax is not scored: L11 is printed as the engine reports it. Salary packaging is left out because the public payslip recipe has no line for it.",
-  "A flagged outcome needs the engine to name the line in review, or a law that fails or shows a gap on that account, or coverage that names the month. A file listed as unread by intake is a report of the intake, and does not by itself flag a number.",
+  "A flagged outcome needs the engine to name the line in review, or a law that fails or shows a gap on that account, or coverage that names the month; for a hole in a bank file the law must name the month, as BLIND-1 required. A file listed as unread by intake is a report of the intake, and does not by itself flag a number.",
 ];
-const AFTER = [];
+const AFTER = [
+  "The household did not change. Bundle a7003e9321dc340c, 2766 events, and every figure in the Scores table down to the review queue are the first run's, to the cent. What changed is how traps were read, the probes of the traps named below in build.js, and a date field on the one re-dated truth line. No money, no file and no setup row moved. The last convention above gained its clause about holes after the first run, to say what the code already did.",
+  "First run: 21 handled, 17 flagged, 18 silently wrong. Now: 24 handled, 15 flagged, 17 silently wrong. Thirteen traps moved, eight up and five down, in the table below.",
+  "Scorer bugs, which overstated the engine's errors and moved a trap up. T2-OFFSET-INTEREST looked for L6 at the account when it sits at the contract, and called the law check twice, so it read \"no check ran\". T2-SPLIT-SAME-AMOUNT's clearing test caught the PING loan's clearing by prefix. T2-DRP took a failing L7 as its own, when L7 names BTC and its ten differences match the ten BTC month-ends read after the move to the cold wallet; it now compares open OWL lots with truth. T2-SELL-STRADDLE-FY read all of the unsettled group, so the share plan's residue landed on it; it now reads the broker's settlement account alone, which is exactly right in both months. Review items that name a statement, an assessment or a trade rather than a bank line were invisible to the line matcher, so T2-AGENT-LATE, T2-RSU-WIRE, T2-CRYPTO-DEPOSIT and T2-TAX-BILL read as unasked when the engine had asked.",
+  "Scorer bugs, which understated the errors and moved a trap down. A failing L7 anywhere flagged every account's balance probe. Limited to holding accounts, T2-HELP falls to silently wrong: nothing says the debt has no opening.",
+  "Stricter after reading the first run, each lowering a score. A doubled line now counts as asked only if review asks whether it is doubled; a question about the merchant does not put the double in front of anyone. BLIND-1 let that stand as flagged, so on its rule T2-FX-AUTH and T2-HOLIDAY-LAG would read flagged. T2-CRYPTO-THIRD-COIN must be named by coverage, because the L7 failure beside it is about BTC units and not about a stale price; it also now measures the exchange alone, since the cold wallet's zero belongs to T2-CRYPTO-MOVE. T2-REFINANCE gained January 2025 after the balance table showed the new loan a month before it was drawn.",
+  "Line table only, no total moved. Equal lines on one day now pair with the truth line of the same treatment, which took T2-REPAY-VS-SWEEP's false pairs out of the table; a re-dated line no longer shows as both extra and never booked; June's rent, banked 2 July, is no longer counted as never booked.",
+];
+const MOVES = [["T2-SELL-STRADDLE-FY", "silently wrong", "handled", "up"], ["T2-DRP", "flagged", "handled", "up"], ["T2-SPLIT-SAME-AMOUNT", "flagged", "handled", "up"], ["T2-AGENT-LATE", "silently wrong", "flagged", "up"], ["T2-RSU-WIRE", "silently wrong", "flagged", "up"], ["T2-CRYPTO-DEPOSIT", "silently wrong", "flagged", "up"], ["T2-TAX-BILL", "silently wrong", "flagged", "up"], ["T2-OFFSET-INTEREST", "silently wrong", "flagged", "up"], ["T2-HELP", "flagged", "silently wrong", "down"], ["T2-REFINANCE", "flagged", "silently wrong", "down"], ["T2-FX-AUTH", "flagged", "silently wrong", "down"], ["T2-HOLIDAY-LAG", "flagged", "silently wrong", "down"], ["T2-CRYPTO-THIRD-COIN", "flagged", "silently wrong", "down"]];
+const SEEN = [
+  "An ownership_change event: SPEC 4.3 says one records a change of owners. The everyday account changes owners in setup and the ledger holds none. position.net_worth_by_owner reports, and was not scored.",
+  "Coverage for T2-CRYPTO-THIRD-COIN rests on the call pattern. run.js passes every received file as a receipt, as the first household did, so ACC-COIN shows 17 of 17 with three pages unread. Passing only read files, tried once outside this table, names 2025-08 and 2025-09 and not 2025-10, which a quarterly CSV fills. STM-CARD shows 37 of 37 either way, with 36 files in its folder and none dated May 2025.",
+  "A fingerprint moved with the values. RECIPES.md says fingerprints come from structure, never values, but the seq in fingerprint.js runs through table rows that do not open with a date. The Coinpurr page's fingerprint is two coins, the first priced to two decimals and the second not: a third coin is a new format, so is a BTC price ending in a single decimal.",
+  "L4 reports 47 observations unattached, and the ones it lists are childcare statements. Spending on those debits was right; the statements explain nothing.",
+  "L5 said Tomasz's FY2025 payslips are held only from 2025-04-15, and no wage entered before he joined. That is the right answer to a year-end document reaching back.",
+  "clearing:super:ACC-SUPER-IM's 1,608.00 is June 2026's two contributions, which land in July, outside the window. Not an error.",
+];
 
 if (require.main === module) report(run());
 module.exports = { run, report };
