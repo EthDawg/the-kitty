@@ -183,6 +183,9 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
     sources = json.loads(read(src, 'data-sources.json'))
     snapshot_file = 'snapshot-v2.json' if v2 else 'snapshot.json'
     snapshot = None if no_snapshot else json.loads(read(root, 'data', snapshot_file))
+    # The Records tab reads the standard's generated view. Like the snapshot it is the fictional household, so a page with no bundled data has none.
+    view_file = root / 'data' / 'standard-view.json'
+    standard_view = json.loads(view_file.read_text(encoding='utf-8')) if v2 and not no_snapshot and view_file.is_file() else None
     if native:
         versions = [str(row.get('value')) for row in snapshot.get('kitty', []) if row.get('key') == 'sheet_version']
         if versions != ['2'] or snapshot.get('household') != 'Davies household (fictional)':
@@ -219,7 +222,8 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
     page = (shell
             .replace('/*STYLE*/', styles)
             .replace('/*SOURCES*/', 'window.KITTY_SOURCES=' + js(sources) + ';window.KITTY_MERCHANTS=' + js(merchants) + ';window.KITTY_ART=' + js(art) + ';window.KITTY_LOGOS=' + js(logos) + ';')
-            .replace('/*SNAPSHOT*/', 'window.KITTY_SNAPSHOT=' + js(snapshot) + ';window.KITTY_PAGE_URL=' + js(config['page_url']) + ';window.KITTY_SHEET=' + js(sheet_id) + ';')
+            .replace('/*SNAPSHOT*/', 'window.KITTY_SNAPSHOT=' + js(snapshot) + ';window.KITTY_PAGE_URL=' + js(config['page_url']) + ';window.KITTY_SHEET=' + js(sheet_id) + ';'
+                     + ('' if standard_view is None else 'window.KITTY_STANDARD_VIEW=' + js(standard_view) + ';'))
             .replace('/*MOTION*/', read(brand, 'motion', 'motion.js'))
             .replace('/*ENGINE*/', read(src, 'engine.js'))
             .replace('/*KIT*/', kit)
@@ -248,7 +252,7 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
         if v2:
             outputs['kit.html'] = SKELETON + '<script>window.__KIT_GALLERY__=1;</script>' + page + '</body></html>'
     report = (f"dist/{name}: {len(page.encode()) // 1024} KB page; snapshot "
-              f"{'omitted' if no_snapshot else snapshot_file + ' bundled'}; sheet {sheet_id}; "
+              f"{'omitted' if no_snapshot else snapshot_file + ' bundled'}; standard view {'omitted' if standard_view is None else 'bundled'}; sheet {sheet_id}; "
               f"{len(merchants['merchants']['merchants'])} merchants; {len(logos)} logos")
     return outputs, report
 
