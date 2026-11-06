@@ -7,6 +7,7 @@ const { post } = require("./post");
 const V = require("./views");
 const { runLaws } = require("./laws");
 const Tax = require("./tax");
+const { allMetrics } = require("./metrics");
 
 const AUTO_ACCOUNT = [
   [/^clearing:/, { class: "clearing", type: "clearing", reporting_group: "clearing" }],
@@ -104,8 +105,10 @@ function rebuild(input) {
   L.returns = Tax.materialiseReturns(R);
   L.resolverObs = R.byKind;
 
+  L.reservations = setup.reservation || [];
   L.checks = runLaws(L);
   L.review = rankReview(R.review);
+  if (schema.metrics) L.metrics = allMetrics(L, schema.metrics);
 
   const hashInput = { events: R.events.map((e) => [e.event_id, e.kind, e.occurred_on, e.amount_cents, e.category_id]), postings: postings.map((p) => [p.event_id, p.line, p.account_id, p.category_id, p.amount_cents]) };
   L.bundleHash = hash64(stableStringify(hashInput));

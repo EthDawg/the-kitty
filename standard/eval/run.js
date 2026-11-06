@@ -32,7 +32,7 @@ function run() {
   const t1 = process.hrtime.bigint();
   const decisions = mode === "returning" ? readJson(path.join(world, "decisions", "person.json"), []) : [];
   const rules = mode === "returning" ? readJson(path.join(world, "decisions", "rules.json"), []) : [];
-  const schema = { events: readJson(path.join(root, "schema", "events.json")) };
+  const schema = { events: readJson(path.join(root, "schema", "events.json")), metrics: readJson(path.join(root, "schema", "metrics.json")) };
   const reference = readJson(path.join(root, "reference", "au.json"), null);
   const L = rebuild({ setup, sources: intake.sources, observations: intake.observations, decisions, rules, schema, reference });
   const t2 = process.hrtime.bigint();
