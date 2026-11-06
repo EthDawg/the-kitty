@@ -1,0 +1,19 @@
+[
+ {
+  "activity_id": "ACT-RENTAL",
+  "kind": "rental",
+  "name": "The Sebastopol rental",
+  "asset_id": "AST-RENTAL",
+  "owner_party_id": "PTY-IM",
+  "valid_from": "2021-03-16",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ },
+ {
+  "activity_id": "ACT-AERIAL",
+  "kind": "sole_trader",
+  "name": "TW Aerial",
+  "owner_party_id": "PTY-TOM",
+  "valid_from": "2022-07-01",
+  "recorded_at": "2026-07-20T00:00:00Z"
+ }
+]

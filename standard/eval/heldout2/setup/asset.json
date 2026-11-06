@@ -1,0 +1,18 @@
+[
+ {
+  "asset_id": "AST-HOME",
+  "kind": "property",
+  "name": "9 Saltbush Court, Belmont",
+  "account_id": "ACC-HOME",
+  "location": "Belmont VIC",
+  "acquired_on": "2019-11-22"
+ },
+ {
+  "asset_id": "AST-RENTAL",
+  "kind": "property",
+  "name": "14 Wattlebird Lane, Sebastopol",
+  "account_id": "ACC-RENTAL",
+  "location": "Sebastopol VIC",
+  "acquired_on": "2021-03-16"
+ }
+]

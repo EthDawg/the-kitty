@@ -1,0 +1,154 @@
+[
+ {
+  "contract_id": "CON-IM-EMP",
+  "kind": "employment",
+  "name": "Imogen at Lumen Arc",
+  "counterparty_party_id": "PTY-LUMEN",
+  "holder_party_id": "PTY-IM",
+  "category_id": "SALARY",
+  "started_on": "2018-05-07"
+ },
+ {
+  "contract_id": "CON-TOM-EMP1",
+  "kind": "employment",
+  "name": "Tomasz at Brightwater",
+  "counterparty_party_id": "PTY-BRIGHTWATER",
+  "holder_party_id": "PTY-TOM",
+  "category_id": "SALARY",
+  "started_on": "2017-02-13",
+  "ended_on": "2025-11-07"
+ },
+ {
+  "contract_id": "CON-TOM-EMP2",
+  "kind": "employment",
+  "name": "Tomasz at Cobalt Rail",
+  "counterparty_party_id": "PTY-COBALT",
+  "holder_party_id": "PTY-TOM",
+  "category_id": "SALARY",
+  "started_on": "2026-02-02"
+ },
+ {
+  "contract_id": "CON-HOME-FIXED",
+  "kind": "loan",
+  "name": "Home loan, fixed split",
+  "counterparty_party_id": "PTY-WESTPAW",
+  "holder_party_id": "PTY-IM",
+  "account_id": "ACC-HOME-FIXED",
+  "asset_id": "AST-HOME",
+  "category_id": "MORTGAGE",
+  "started_on": "2019-11-22"
+ },
+ {
+  "contract_id": "CON-HOME-VAR",
+  "kind": "loan",
+  "name": "Home loan, variable split",
+  "counterparty_party_id": "PTY-WESTPAW",
+  "holder_party_id": "PTY-IM",
+  "account_id": "ACC-HOME-VAR",
+  "asset_id": "AST-HOME",
+  "category_id": "MORTGAGE",
+  "started_on": "2019-11-22"
+ },
+ {
+  "contract_id": "CON-INV-PING",
+  "kind": "loan",
+  "name": "Investment loan, PING",
+  "counterparty_party_id": "PTY-PING",
+  "holder_party_id": "PTY-IM",
+  "account_id": "ACC-INV-PING",
+  "asset_id": "AST-RENTAL",
+  "category_id": "RENT-INT",
+  "started_on": "2021-03-16",
+  "ended_on": "2025-02-14"
+ },
+ {
+  "contract_id": "CON-INV-NEW",
+  "kind": "loan",
+  "name": "Investment loan, Westpaw",
+  "counterparty_party_id": "PTY-WESTPAW",
+  "holder_party_id": "PTY-IM",
+  "account_id": "ACC-INV-NEW",
+  "asset_id": "AST-RENTAL",
+  "category_id": "RENT-INT",
+  "started_on": "2025-02-14"
+ },
+ {
+  "contract_id": "CON-SUPER-IM",
+  "kind": "super_fund",
+  "name": "Imogen's super",
+  "counterparty_party_id": "PTY-HESTABBY",
+  "holder_party_id": "PTY-IM",
+  "account_id": "ACC-SUPER-IM"
+ },
+ {
+  "contract_id": "CON-SUPER-TOM",
+  "kind": "super_fund",
+  "name": "Tomasz's super",
+  "counterparty_party_id": "PTY-PURRANNUATION",
+  "holder_party_id": "PTY-TOM",
+  "account_id": "ACC-SUPER-TOM"
+ },
+ {
+  "contract_id": "CON-ESS",
+  "kind": "ess_plan",
+  "name": "Lumen Arc share units",
+  "counterparty_party_id": "PTY-ETREAT",
+  "holder_party_id": "PTY-IM",
+  "account_id": "ACC-PLAN"
+ },
+ {
+  "contract_id": "CON-HOME-INS",
+  "kind": "insurance",
+  "name": "Home insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-IM",
+  "asset_id": "AST-HOME",
+  "category_id": "HOME-INS"
+ },
+ {
+  "contract_id": "CON-LANDLORD",
+  "kind": "insurance",
+  "name": "Landlord insurance",
+  "counterparty_party_id": "PTY-PURRSURE",
+  "holder_party_id": "PTY-IM",
+  "asset_id": "AST-RENTAL",
+  "category_id": "RENT-INS"
+ },
+ {
+  "contract_id": "CON-POWER",
+  "kind": "utility",
+  "name": "Electricity",
+  "counterparty_party_id": "PTY-COASTGLOW",
+  "holder_party_id": "PTY-IM",
+  "category_id": "UTILITIES"
+ },
+ {
+  "contract_id": "CON-KIDS",
+  "kind": "childcare",
+  "name": "Kittenhood",
+  "counterparty_party_id": "PTY-KITTEN",
+  "holder_party_id": "PTY-IM",
+  "category_id": "CHILDCARE"
+ },
+ {
+  "contract_id": "CON-AGENT1",
+  "kind": "lease",
+  "name": "The rental, PropertyMeow managing",
+  "counterparty_party_id": "PTY-MEOW",
+  "holder_party_id": "PTY-IM",
+  "asset_id": "AST-RENTAL",
+  "category_id": "RENT-INC",
+  "started_on": "2021-04-01",
+  "ended_on": "2024-09-30"
+ },
+ {
+  "contract_id": "CON-AGENT2",
+  "kind": "lease",
+  "name": "The rental, Goldfields managing",
+  "counterparty_party_id": "PTY-GOLD",
+  "holder_party_id": "PTY-IM",
+  "asset_id": "AST-RENTAL",
+  "category_id": "RENT-INC",
+  "started_on": "2024-10-14"
+ }
+]
