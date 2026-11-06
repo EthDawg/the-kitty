@@ -341,67 +341,78 @@ class Resolver {
     }
     return (loanContract && loanContract.category_id) || "HOME-INT";
   }
+  /* A loan's own lines, where held, are the detail and its statement is a control. Where only a statement is held, it recognises.
+     Lender-to-lender movements have no bank side. Bank lines clear repayments by the period's total: a lump sum and the
+     monthly payment arrive as two bank lines and may show on the lender's side as one. */
   recogniseLoans() {
-    const statements = this.collapseDocs("loan_statement");
-    const loanTokens = (acct) => {
-      const c = this.loanOf(acct);
-      const parts = ["LOAN"];
-      if (c) for (const a of this.aliasRows) if (a.subject_type === "account" && a.subject_id === acct) parts.push(normRef(a.value));
-      return parts;
-    };
-    for (const o of statements) {
-      const p = o.payload;
-      const loan = this.accountOf(o, p.account_ref, p.period_end);
-      if (!loan) { this.fault("unresolved_account", o, `No loan account for ${p.account_ref}.`); continue; }
+    const statements = groupBy(this.collapseDocs("loan_statement"), (o) => this.accountOf(o, o.payload.account_ref, o.payload.period_end));
+    const loanAccounts = new Set([...statements.keys(), ...(this.ctx.setup.account || []).filter((a) => a.type === "loan").map((a) => a.account_id)]);
+    for (const loan of [...loanAccounts].filter(Boolean).sort()) {
       const contract = this.loanOf(loan);
-      const on = p.period_end;
-      const baseKey = `${loan}|${p.period_start}|${p.period_end}`;
-      if (p.interest_cents) {
-        const purposes = contract ? activeOn(this.links.filter((k) => k.relation === "funds_purpose" && k.from_id === contract.contract_id), on) : [];
-        const parts = purposes.length ? this.split(p.interest_cents, purposes.map((k) => ({ key: k.to_id, weight: k.share_bps || 10000 }))) : [{ key: contract && contract.asset_id, cents: p.interest_cents }];
-        for (const part of parts) {
-          const category = this.interestCategory(contract, part.key, on);
-          this.event({ key: `loan_interest|${baseKey}|${part.key}`, kind: "loan_interest", occurred_on: on, description: `Interest, ${this.accountName(loan)}`, category_id: category, asset_id: part.key || null, contract_id: contract && contract.contract_id, amount_cents: part.cents, grade: "stated", rule: "loan_statement",
-            witnesses: this.docWitness(o), fields: { amount: part.cents }, refs: { loan, category } });
+      const docs = statements.get(loan) || [];
+      const lines = (this.linesByAccount.get(loan) || []).slice().sort((a, b) => cmp(a.date, b.date) || a.seq - b.seq);
+      const periods = new Map();
+      const period = (m) => { if (!periods.has(m)) periods.set(m, { m, doc: null, interest: [], fees: [], applied: [], redraws: [], payout: null }); return periods.get(m); };
+      for (const o of docs) period(monthOf(o.payload.period_end)).doc = o;
+      for (const l of lines) {
+        const q = period(monthOf(l.date));
+        this.claim(l, "loan_line");
+        const item = { date: l.date, cents: Math.abs(l.cents), witnesses: this.lineWitness(l), desc: l.desc };
+        if (/INTEREST/i.test(l.desc)) q.interest.push(item);
+        else if (/FEE/i.test(l.desc)) q.fees.push(item);
+        else if (l.cents > 0) q.applied.push(item);
+        else q.redraws.push(item);
+      }
+      for (const q of periods.values()) {
+        const o = q.doc, p = o ? o.payload : null;
+        if (o) {
+          const on = p.period_end, ctl = this.docWitness(o, q.interest.length || q.applied.length ? "control" : "recognises");
+          if (!q.interest.length && p.interest_cents) q.interest.push({ date: on, cents: p.interest_cents, witnesses: ctl });
+          else if (q.interest.length) q.interest[0].witnesses.push(...ctl);
+          if (!q.fees.length && p.fees_cents) q.fees.push({ date: on, cents: p.fees_cents, witnesses: ctl });
+          if (!q.applied.length && p.repayments_cents) q.applied.push({ date: on, cents: p.repayments_cents, witnesses: ctl });
+          else if (q.applied.length) q.applied[0].witnesses.push(...ctl);
+          if (!q.redraws.length && p.redraws_cents) q.redraws.push({ date: on, cents: p.redraws_cents, witnesses: ctl });
+          if (p.payout_cents) {
+            const to = this.accountOf({ source_id: null }, p.payout_to_ref, on);
+            if (!to) this.fault("refinance_target_unknown", o, `Payout of ${p.payout_cents / 100} names no known loan.`, "Add the new loan.", p.payout_cents);
+            else {
+              this.event({ key: `loan_payout|${loan}|${on}`, kind: "loan_payout", occurred_on: on, description: `Refinance out of ${this.accountName(loan)}`, contract_id: contract && contract.contract_id, amount_cents: p.payout_cents, grade: "stated", rule: "loan_statement",
+                witnesses: this.docWitness(o, "control"), fields: { amount: p.payout_cents, fee: nz(p.discharge_fee_cents) }, refs: { old_loan: loan, new_loan: to } });
+              this.capitalLoans = this.capitalLoans || new Map();
+              this.capitalLoans.set(to, (this.capitalLoans.get(to) || 0) + p.payout_cents + nz(p.discharge_fee_cents));
+            }
+          }
         }
-      }
-      if (p.fees_cents) {
-        this.event({ key: `loan_fee|${baseKey}`, kind: "loan_fee", occurred_on: on, description: `Fees, ${this.accountName(loan)}`, category_id: "FEES", contract_id: contract && contract.contract_id, amount_cents: p.fees_cents, grade: "stated", rule: "loan_statement",
-          witnesses: this.docWitness(o), fields: { amount: p.fees_cents }, refs: { loan, category: "FEES" } });
-      }
-      if (p.repayments_cents) {
-        this.event({ key: `loan_applied|${baseKey}`, kind: "loan_applied", occurred_on: on, description: `Repayments applied, ${this.accountName(loan)}`, contract_id: contract && contract.contract_id, amount_cents: p.repayments_cents, grade: "stated", rule: "loan_statement",
-          witnesses: this.docWitness(o), fields: { amount: p.repayments_cents }, refs: { loan } });
-        const tokens = loanTokens(loan);
-        const pool = this.lines.filter((l) => !l.claimed && l.cents < 0 && l.date >= p.period_start && l.date <= p.period_end && !this.loanFor(l, tokens, contract));
-        void pool;
-        const cands = this.lines.filter((l) => !l.claimed && l.cents < 0 && l.date >= p.period_start && l.date <= p.period_end && this.loanFor(l, tokens, contract));
-        const total = cands.reduce((s, l) => s - l.cents, 0);
-        if (total !== p.repayments_cents) this.fault("loan_repayment_gap", o, `Statement ${p.period_end} shows repayments of ${p.repayments_cents / 100}; bank lines add to ${total / 100}.`, "Check for a lump sum, a redraw, or a repayment from another account.", p.repayments_cents - total);
+        for (const it of q.interest) {
+          const purposes = contract ? activeOn(this.links.filter((k) => k.relation === "funds_purpose" && k.from_id === contract.contract_id), it.date) : [];
+          const parts = purposes.length ? this.split(it.cents, purposes.map((k) => ({ key: k.to_id, weight: k.share_bps || 10000 }))) : [{ key: contract && contract.asset_id, cents: it.cents }];
+          for (const part of parts) {
+            const category = this.interestCategory(contract, part.key, it.date);
+            this.event({ key: `loan_interest|${loan}|${it.date}|${part.key}`, kind: "loan_interest", occurred_on: it.date, description: `Interest, ${this.accountName(loan)}`, category_id: category, asset_id: part.key || null, contract_id: contract && contract.contract_id, amount_cents: part.cents, grade: "stated", rule: "lender",
+              witnesses: it.witnesses, fields: { amount: part.cents }, refs: { loan, category } });
+          }
+        }
+        for (const it of q.fees) this.event({ key: `loan_fee|${loan}|${it.date}|${it.cents}`, kind: "loan_fee", occurred_on: it.date, description: it.desc || `Fees, ${this.accountName(loan)}`, category_id: "FEES", contract_id: contract && contract.contract_id, amount_cents: it.cents, grade: "stated", rule: "lender", witnesses: it.witnesses, fields: { amount: it.cents }, refs: { loan, category: "FEES" } });
+        for (const it of q.applied) this.event({ key: `loan_applied|${loan}|${it.date}|${it.cents}`, kind: "loan_applied", occurred_on: it.date, description: `Repayment applied, ${this.accountName(loan)}`, contract_id: contract && contract.contract_id, amount_cents: it.cents, grade: "stated", rule: "lender", witnesses: it.witnesses, fields: { amount: it.cents }, refs: { loan } });
+        for (const it of q.redraws) {
+          const m = this.lines.find((x) => !x.claimed && x.cents === it.cents && monthOf(x.date) === q.m);
+          if (!m) { this.fault("loan_redraw_unmatched", loan, `Redraw of ${it.cents / 100} in ${q.m} has no matching bank line.`, "Is it a new drawing that went straight to a seller?", it.cents); continue; }
+          this.claim(m, "loan_redraw");
+          this.event({ key: `loan_redraw|${m.key}`, kind: "loan_redraw", occurred_on: m.date, description: m.desc, amount_cents: m.cents, grade: "corroborated", rule: "lender+bank", witnesses: [...it.witnesses, ...this.lineWitness(m, "clears")], fields: { amount: m.cents }, refs: { loan, account: m.account }, line: m });
+        }
+        const want = q.applied.reduce((s2, it) => s2 + it.cents, 0);
+        if (!want) continue;
+        const tokens = ["LOAN"]; for (const a of this.aliasRows) if (a.subject_type === "account" && a.subject_id === loan) tokens.push(normRef(a.value));
+        const cands = this.lines.filter((l) => !l.claimed && l.cents < 0 && monthOf(l.date) === q.m && this.loanFor(l, tokens, contract));
+        const total = cands.reduce((s2, l) => s2 - l.cents, 0);
+        if (total !== want) this.fault("loan_repayment_gap", loan, `${q.m}: the lender shows repayments of ${want / 100}; bank lines add to ${total / 100}.`, "Check for a lump sum, a redraw, or a repayment from another account.", want - total);
         for (const l of cands) {
           this.claim(l, "loan_payment");
-          const category = (contract && contract.category_id) || l.cls.category_id || "MORTGAGE";
-          this.event({ key: `loan_payment|${l.key}`, kind: "loan_payment", occurred_on: l.date, description: l.desc, merchant: l.cls.merchant, category_id: l.cls.category_id || category, contract_id: contract && contract.contract_id, asset_id: contract && contract.asset_id, amount_cents: -l.cents, grade: "corroborated", rule: "lender+bank",
+          const category = l.cls.category_id || (contract && contract.category_id) || "MORTGAGE";
+          this.event({ key: `loan_payment|${l.key}`, kind: "loan_payment", occurred_on: l.date, description: l.desc, merchant: l.cls.merchant, category_id: category, contract_id: contract && contract.contract_id, asset_id: contract && contract.asset_id, amount_cents: -l.cents, grade: "corroborated", rule: "lender+bank",
             witnesses: this.lineWitness(l, "clears"), fields: { amount: -l.cents }, refs: { loan, account: l.account }, line: l });
         }
-      }
-      if (p.payout_cents) {
-        // Lender to lender: no bank line sees it. The old loan's closing is the new loan's opening, plus the fee.
-        const to = this.accountOf({ source_id: null }, p.payout_to_ref, p.period_end);
-        if (!to) this.fault("refinance_target_unknown", o, `Payout of ${p.payout_cents / 100} names no known loan.`, "Add the new loan.", p.payout_cents);
-        else {
-          this.event({ key: `loan_payout|${baseKey}`, kind: "loan_payout", occurred_on: p.period_end, description: `Refinance out of ${this.accountName(loan)}`, contract_id: contract && contract.contract_id, amount_cents: p.payout_cents, grade: "stated", rule: "loan_statement",
-            witnesses: this.docWitness(o, "control"), fields: { amount: p.payout_cents, fee: nz(p.discharge_fee_cents) }, refs: { old_loan: loan, new_loan: to } });
-          this.capitalLoans = this.capitalLoans || new Map();
-          this.capitalLoans.set(to, (this.capitalLoans.get(to) || 0) + p.payout_cents + nz(p.discharge_fee_cents));
-        }
-      }
-      if (p.redraws_cents) {
-        const l = this.lines.find((x) => !x.claimed && x.cents === p.redraws_cents && x.date >= p.period_start && x.date <= p.period_end);
-        if (l) {
-          this.claim(l, "loan_redraw");
-          this.event({ key: `loan_redraw|${l.key}`, kind: "loan_redraw", occurred_on: l.date, description: l.desc, amount_cents: l.cents, grade: "corroborated", rule: "lender+bank", witnesses: this.lineWitness(l, "clears"), fields: { amount: l.cents }, refs: { loan, account: l.account }, line: l });
-        } else this.fault("loan_redraw_unmatched", o, `Redraw of ${p.redraws_cents / 100} has no matching bank line.`, "", p.redraws_cents);
       }
     }
   }

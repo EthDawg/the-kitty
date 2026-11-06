@@ -104,7 +104,10 @@ const laws = {
     for (const o of L.observations.filter((x) => x.kind === "income_statement" && x.status === "active")) {
       const p = o.payload;
       const { start, stop } = fyRange(p.fy);
-      const sum = [...unique.values()].filter((s) => s.payload.person_ref === p.person_ref && s.payload.employer_ref === p.employer_ref && s.payload.pay_date >= start && s.payload.pay_date < stop).reduce((a, s) => a + s.payload.gross_cents, 0);
+      const held = [...unique.values()].filter((s) => s.payload.person_ref === p.person_ref && s.payload.employer_ref === p.employer_ref && s.payload.pay_date >= start && s.payload.pay_date < stop);
+      const sum = held.reduce((a, s) => a + s.payload.gross_cents, 0);
+      const firstHeld = held.reduce((a, s) => (a && a < s.payload.pay_date ? a : s.payload.pay_date), null);
+      if (!firstHeld || daysBetween(start, firstHeld) > 21) { out.push(row("L5", `${p.person_ref} ${p.fy}`, "gap", { detail: `Payslips are held from ${firstHeld}; the year cannot be summed.` })); continue; }
       if (Math.abs(sum - p.gross_cents) > 100) out.push(row("L5", `${p.person_ref} ${p.fy}`, "fail", { expected: money(p.gross_cents), actual: money(sum), gap_cents: p.gross_cents - sum, detail: "Payslips do not sum to the income statement." }));
     }
     if (!bad && !out.length) out.push(row("L5", `${unique.size} payslips`, "pass"));

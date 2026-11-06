@@ -43,7 +43,7 @@ function score(L, worldRoot) {
     const cash = new Map(V.cashLens(L, { accounts: cashAccounts }).map((r) => [r.month, r]));
     const inc = [], sp = [], nt = [];
     for (const r of oracle.cashflow || []) {
-      const c = cash.get(r.month) || {};
+      const c = cash.get(String(r.month).slice(0, 7)) || {};
       inc.push([`income ${r.month}`, toCents(r.income), c.income]);
       sp.push([`spending ${r.month}`, toCents(r.spending), c.spending]);
       nt.push([`net ${r.month}`, toCents(r.net), c.net]);
