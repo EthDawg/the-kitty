@@ -106,6 +106,7 @@ function rebuild(input) {
   L.tax = Tax.derive({ L, R, reference, setup });
   L.returns = Tax.materialiseReturns(R);
   L.resolverObs = R.byKind;
+  L.obsKind = new Map(R.obs.map((o) => [o.obs_id, o.kind]));
 
   L.reservations = setup.reservation || [];
   L.checks = runLaws(L);

@@ -2,7 +2,7 @@
    and figures Google Sheets formulas computed independently (copied into truth/sheet_oracle.json, never recomputed). */
 "use strict";
 const fs = require("fs"), path = require("path");
-const { monthEnd, monthOf } = require("../engine/util");
+const { monthEnd, monthOf, fyOf } = require("../engine/util");
 const V = require("../engine/views");
 
 const readJson = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
@@ -79,6 +79,76 @@ function score(L, worldRoot) {
     const rows = Array.isArray(pays) ? pays : pays.rows || [];
     for (const r of rows) { const k = `${String(r.person_id || r.person).toUpperCase()}|${String(r.pay_date).slice(0, 7)}`; tot.set(k, (tot.get(k) || 0) + (r.gross_cents || 0)); }
     add(cmp("gross wages per person per month", [...tot].map(([k, v]) => [k, v, wage.get(k) || 0])));
+  }
+  const sup = T("super.json");
+  if (sup) {
+    const pairs = [];
+    for (const [account, rows] of Object.entries(sup.months)) for (const r of rows) pairs.push([`${account} ${r.month}`, r.closing_cents, L.dailyBalance(account)(monthEnd(r.month))]);
+    add(cmp("super: fund balance per month", pairs));
+    const byType = new Map();
+    for (const e of L.events) if (/^super_/.test(e.kind) && e.superType) {
+      const a = e.refs.account; const fy = fyOf(e.occurred_on);
+      const k = `${a}|${fy}|${e.superType}`;
+      byType.set(k, (byType.get(k) || 0) + e.amount_cents);
+    }
+    const contrib = T("super_contributions.json") || {};
+    const typed = [];
+    for (const [a, years] of Object.entries(contrib)) for (const [fy, types] of Object.entries(years)) for (const [t, v] of Object.entries(types)) typed.push([`${a} ${fy} ${t}`, v, byType.get(`${a}|${fy}|${t}`) || 0]);
+    add(cmp("super: contributions, earnings and costs by type by year", typed));
+  }
+  const holdings = T("holdings.json");
+  if (holdings) {
+    const pairs = [];
+    for (const [date, rows] of Object.entries(holdings)) for (const [code, r] of Object.entries(rows)) pairs.push([`${code} ${date}`, Math.round(Number(r.units) * 1e4), Math.round(Number(L.resolver.unitsOn(code, date)) / 1e4)]);
+    add(cmp("holdings: units per instrument per statement", pairs));
+  }
+  const lots = T("lots.json");
+  if (lots) {
+    const pairs = [];
+    for (const [code, rows] of Object.entries(lots.instruments)) {
+      const mine = L.lotRows.filter((l) => l.instrument_id === code).reduce((n, l) => n + (l.cost_price_cents || 0) + (l.cost_incidental_cents || 0), 0);
+      void mine;
+      pairs.push([`${code} parcels`, rows.length, L.lotRows.filter((l) => l.instrument_id === code).length]);
+    }
+    add(cmp("lots: parcels per instrument", pairs));
+  }
+  const cgt = T("cgt.json");
+  if (cgt && L.tax) {
+    const pairs = [];
+    const item = new Map(L.tax.items.map((i) => [`${i.party_id}|${i.fy}|${i.label}`, i.amount_cents]));
+    for (const [p, years] of Object.entries(cgt)) for (const [fy, r] of Object.entries(years)) pairs.push([`${p} ${fy}`, r.net_capital_gain_cents, item.get(`${p}|${fy}|18A`) || 0]);
+    add(cmp("capital gains: net gain per person per year", pairs, 100));
+  }
+  const notices = T("rate_notices.json");
+  if (notices) {
+    const pairs = [];
+    const { termAt } = require("../engine/temporal");
+    for (const n of notices) {
+      const final = notices.filter((x) => x.contract === n.contract && x.effective_on <= n.effective_on && x.notified_on <= "9999").sort((a, b) => (a.notified_on < b.notified_on ? -1 : a.notified_on > b.notified_on ? 1 : 0)).pop();
+      const hit = notices.find((x) => x.contract === n.contract && x.effective_on === n.effective_on && x.notified_on === n.notified_on);
+      pairs.push([`${n.contract} ${n.effective_on} as known ${n.notified_on}`, Math.round(Number(hit.value) * 100), Math.round(Number(termAt(L.termIdx, "contract", n.contract, "interest_rate", n.effective_on, n.notified_on)) * 100)]);
+      void final;
+    }
+    add(cmp("rates: the rate on each date, as known that day", pairs));
+  }
+  const vals = T("valuations.json");
+  if (vals) {
+    const pairs = [];
+    const acct = (subject) => { const a = L.assets.find((x) => x.asset_id === subject); return a ? a.account_id : subject; };
+    for (const v of vals) if (L.index.accounts.get(acct(v.subject))) pairs.push([`${v.subject} ${v.as_at}`, v.value_cents, L.dailyBalance(acct(v.subject))(v.as_at)]);
+    add(cmp("valuations: carried value on each dated value", pairs));
+  }
+  const assets = T("assets.json");
+  if (assets) {
+    const m = new Map();
+    for (const r of L.refresh) if (r.fy && r.replacement_cost_cents != null) m.set(r.fy, (m.get(r.fy) || 0) + r.replacement_cost_cents);
+    add(cmp("things: replacement cost falling due per year", Object.entries(assets.refresh_by_fy).map(([fy, r]) => [fy, r.cents, m.get(fy) || 0])));
+  }
+  const bills = T("bills.json");
+  if (bills) {
+    const attached = new Set();
+    for (const e of L.events) for (const w of e.witnesses || []) if (w.role === "corroborates" && L.obsKind && L.obsKind.get(w.obs_id) === "bill") attached.add(e.event_id);
+    add(cmp("bills: attached to their bank line", [["bills", bills.length, attached.size]]));
   }
   const tax = T("tax.json");
   if (tax && L.tax) {
