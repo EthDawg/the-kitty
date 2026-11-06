@@ -62,6 +62,42 @@ Taken on 7 November 2026 while building, without stopping to ask. Each is a defa
 
 **Next-step wording.** A transfer whose other side is an account we haven't met now says so, instead of "Two sides of the same money have not met: transfer". A payslip newer than the last bank line is a file still to come, not a question, and an unpaired transfer no longer stands in front of a close. Each would otherwise have stopped a first close.
 
+## After the first blind run
+
+Taken on 7 November 2026 from `pace-setter/lifecycle/runs/ch01-blind-1`, 62 rows of friction on a family the fixes were not shaped on. Each is a default that can be changed.
+
+**A public dictionary never decides money coming in, and the word SALARY is not a dictionary guess.** A bank line that says SALARY, PAYROLL or WAGES says what it is, so it stays income from the line alone, and that word now beats any shop word in the same line. `merchants.json` carries the patterns. Anything else the dictionary files under an expense goes to review, as R-012 proposes. A one-off credit with the word REFUND on it, or from someone the household paid at least that much in the year before, stays placed, because the evidence is the household's own. A payer who repeats is never a refund, whatever was paid to them.
+
+**The question about money that keeps coming in is on the first screen, under the step, not in place of it.** A missing account still comes first, because most other things wait on it. The question sits directly below and asks once for the payer.
+
+**An answer has no start date.** It used to run from the line it was given on, which is why one salary fixed left six wrong and an older file undid the work. It now covers every line like it, in every file, however late. This reverses one existing test assertion, in `src/household/test.js`, on the instruction that an answer applies to everything like it. A locked month is the exception, and each of its lines that would change gets a decision of its own first. A changed mind replaces the old answer, which stays in the Sheet.
+
+**One sentence says why a month can't close.** `closeBlock` in `status.js` is read by Records and by `close`, so they can't disagree. A month whose balances don't add up is no longer called ready. Records has the Close button, says what it locks, offers to take a missing balance, and reopens with a reason.
+
+**Every failed check is named, in the same words, on Home, in Records and under Where the numbers come from.**
+
+**Records with no file are the Standard's own shape.** A typed balance is an account of `fidelity: snapshot`, a stated `balance` with a person as its source, and a `scope` row. Typing again gives a newer value. A loan typed in by hand does not tick "a home loan" unless it is called one.
+
+**A HELP page makes a HELP debt,** owned by its person. `reporting_group` is `loans`, because the engine leaves `tax` out of net worth, and a household's debt belongs in it. The Davies world's own `tax` row is left as it is.
+
+**The headline is cash, and it is named.** Bank accounts less what is owed on a card. Net worth appears beneath it, with what it adds, only once there is something to add. The chart on Insights is cash too, from the first month every cash account has lines, so an account joining is not a rise.
+
+**Kept says it can't tell while money has gone somewhere we haven't met,** and how much. The month bars say the same.
+
+**A file's account comes from the file.** A column that names the account, the same on every row, becomes the recipe's account, so every later file from that bank lands by itself and a payslip's number finds it. Then a name of yours in the file's name. Otherwise the box is empty and the button says so. The first file in a blank Kitty still offers Everyday, because there is nothing to confuse it with.
+
+**A file that needs only its account's name has failed nothing.** It waits unread, Home asks one question, and bytes kept on this device mean it needn't be dropped again.
+
+**A household's Setup is short.** Who sees what, and privacy. How it is built is one link away.
+
+**While the door is up nothing is drawn behind it,** and `main` is hidden, so a reader or an agent reads the door.
+
+**Variant 7 holds these tests.** `KITTY_VARIANT` picks another, and every expected number comes from that family's `truth.json`. They also pass on variant 11, the family that found them, which proves only the repair.
+
+### Still open from that run
+
+Portal words about the Davies on another family's pages (F004, F005, F061) are `portals/`, out of bounds here. Not done, all severity 2 or below: Everything from this merchant (F015), chips reordering under a finger (F018), a line dated in the past under Today (F021), a merchant's monthly figure divided by 12 (F022), a partial flow (F024), accessible names at desktop width (F029), a card's coverage before its first file (F040), merchant names on card lines (F055), Enter in the filter (F057), a tax payment under Transfers (F058), and the citation on Worth it (F059). The `lands` field on the friction ledger is not filled in.
+
 ## Build
 
 **The runtime sits in the page as gzip in base64, inert, in a `text/plain` script.** "Start yours" inflates it with `DecompressionStream` and runs it as an inline script. One file to publish, no new host permission, and no parsing on the demo. If a host refuses, the page says so.
@@ -84,7 +120,6 @@ Activity, Insights, Goals and Records read exactly the same text before and afte
 - **Whether a host's content rules allow an injected inline script.** Inline scripts run in an artifact, so it should. The page says so plainly if not.
 - **Google's pacing.** A page refresh is about 40 reads, and a drop adds more.
 - **Whether a free Claude plan has connectors.** The page says it depends on the plan and points there.
-- **A HELP page is read, and no HELP account comes of it.** `materialise` makes bank, card, loan and super accounts. "Not asked yet" still lists it. A finding for the runtime.
 - **Split, merge and match** are hidden on a household's page. Their decisions exist, and the page has no proof of what the engine does with them.
 - **Ask** works on the same model and has not been read through for a household.
 - **The engine is experimental.** A fifth blind family was 14 of 63 silently wrong, and the page says so.

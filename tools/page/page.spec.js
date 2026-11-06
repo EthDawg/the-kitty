@@ -366,6 +366,171 @@ test("chapter 2: more files, some questions, and a first close", async ({ page }
   await shot(page, "ch02-1-first-close.png", { fullPage: true });
   expect(errors).toEqual([]);
 });
+// ---------- what the first blind actor found, on a family it never met. KITTY_VARIANT picks which. Every expected number comes from that family's own truth. ----------
+const V = path.join(OUT, process.env.KITTY_VARIANT || "variant-7");
+const vjson = (f) => JSON.parse(fs.readFileSync(path.join(V, f), "utf8"));
+const held = (stream, chapter) => vjson("manifest.json").files.filter((f) => f.stream === stream && f.held_from_chapter === chapter).map((f) => path.join(V, f.path));
+const person = () => Object.values(vjson("truth.json").people)[0].name.split(" ")[0];
+const dollars = (c) => `$${(Math.abs(c) / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+// One file, however the page wants it: a reading to accept, an account to name, or nothing at all. Returns what the sheet said.
+async function addFile(page, files, account) {
+  await page.click("nav.tabs [data-tab=setup]");
+  await page.setInputFiles("#hsetupfile", files);
+  await page.waitForFunction(() => document.querySelector("#drawer.on"));
+  await page.waitForTimeout(100);
+  let said = "";
+  for (let i = 0; i < 3; i++) {   // naming the account can lead to a reading to accept
+    said += await page.locator("#drawer").innerText();
+    const go = page.locator("#hacctgo, #hyes");
+    if (!(await go.count())) break;
+    await page.fill("#hacct", account); await go.first().click(); await page.waitForTimeout(150);
+  }
+  await page.click("#dclose");
+  return said;
+}
+async function firstFile(page) {
+  const who = person();
+  await onDevice(page, who);
+  await page.setInputFiles("#hfile", held("EVERY-A", 1).concat(held("EVERY-A", 0))[0]);
+  for (let i = 0; i < 3 && !(await page.locator("text=Got it.").count()); i++) {
+    await page.waitForSelector("#hyes, #hacctgo");
+    await expect(page.locator("#onb")).not.toContainText("failed its checks");
+    await page.locator("#hacctgo, #hyes").first().click();
+    await page.waitForTimeout(150);
+  }
+  await page.waitForSelector("text=Got it.");
+  await page.click("#hdone");
+  await expect(page.locator(".kh-next")).toBeVisible();
+  return who;
+}
+test("the first screen tells the truth: money in is found, money out has no minus sign, and a payer who repeats is asked about there", async ({ page }) => {
+  const errors = await open(page);
+  await firstFile(page);
+  const home = page.locator("#v-home"), words = await home.innerText();
+  expect(words).not.toMatch(/IN[^\n]*\n+\$0\b/i);
+  expect(words).not.toMatch(/[−-]\$\d/);
+  expect(words).toContain("in cash, across the 1 account we know about");
+  await expect(home).toContainText(/\$[\d,.]+ has come in \d+ times from .*BENEFITS/);
+  await expect(page.locator(".kh-next p.vs")).toContainText(/\$[\d,.]+ went out as TFR TO SAVER/);
+  await page.selectOption("#hinc", "SALARY-ALLOW");
+  await page.click("#hincgo");
+  await expect(home).not.toContainText("has come in");
+  await tab(page, "activity");
+  await expect(page.locator("#v-activity")).not.toContainText(/out\s*[−-]/);
+  await expect(page.locator("#reviewcard")).not.toContainText("BENEFITS");
+  await tab(page, "insights");
+  await expect(page.locator("#v-insights")).toContainText("We can't tell what you kept yet:");
+  await expect(page.locator("#v-insights")).not.toContainText(/\bKept\b/);
+  expect(errors).toEqual([]);
+});
+test("nothing of the demo sits behind the door: a reader of the page reads the door", async ({ page }) => {
+  await open(page);
+  await page.click("[data-door=yours]");
+  expect(await page.evaluate(() => document.querySelector("main.wrap").hidden)).toBe(true);
+  expect(await page.evaluate(() => document.body.innerText)).not.toMatch(/Jordan|Mia|Davies/);
+  expect(await page.evaluate(() => document.querySelector("#v-home").innerText)).toBe("");
+});
+test("no connector: there is no Set up my Sheet to press, and it says what a connector is", async ({ page }) => {
+  await open(page, { host: { mcp: false } });
+  await name(page);
+  await page.click("[data-where=sheet]");
+  await expect(page.locator("#hnext")).toHaveCount(0);
+  await expect(page.locator("#onb")).toContainText("A connector is the permission");
+});
+test("a question on a light card can be read: the field takes the card's ink, not the dark door's", async ({ page }) => {
+  await open(page);
+  await firstFile(page);
+  const ink = await page.locator(".kh-income select").first().evaluate((el) => { const c = getComputedStyle(el).color; return c; });
+  const page_ink = await page.locator(".kh-income .cardhead .q").evaluate((el) => getComputedStyle(el).color);
+  expect(ink).toBe(page_ink);
+});
+test("a stranger's second month: files land right, one answer sticks, the card ties to its statement, a month closes and reopens, and a debt goes in by hand", async ({ page }) => {
+  const errors = await open(page);
+  await firstFile(page);
+  await page.clock.setFixedTime(new Date("2027-02-14T10:00:00+11:00"));
+  await page.reload();
+  await expect(page.locator(".kh-next")).toBeVisible();
+  const truth = vjson("truth.json").chapters["2"].show, every = held("EVERY-A", 2), older = every.filter((f) => /2026-07-01/.test(f)), newer = every.filter((f) => !/2026-07-01/.test(f));
+
+  // A file that only needs its account's name has not failed anything, and nothing is prefilled to be misfiled.
+  for (const f of newer) expect(await addFile(page, [f], "Everyday")).not.toContain("failed its checks");
+  await expect(page.locator("#v-home")).not.toContainText("failed its checks");
+  await addFile(page, held("SAVE-A", 2), "Saver");
+  await page.click("nav.tabs [data-tab=home]");
+  await expect(page.locator(".kh-next")).not.toContainText("TFR TO SAVER");
+  await page.click("nav.tabs [data-tab=setup]");
+  await page.setInputFiles("#hsetupfile", held("CARD-A", 2).slice(-1));
+  await page.waitForFunction(() => document.querySelector("#drawer.on"));
+  await expect(page.locator("#drawer")).toContainText("Account ending");
+  await page.click("#dclose");
+  await addFile(page, held("CARD-A", 2).slice(-2, -1), "Card");
+  await addFile(page, held("CARD-A-STMT", 2).slice(-1), "Card");
+
+  // The older file comes in right, with no question and nothing undone.
+  await addFile(page, older, "Everyday");
+  const review = await tab(page, "activity");
+  expect(review).not.toMatch(/Medical, refund/);
+
+  // Super and HELP say what they read. A debt goes in by hand and is shown as stated.
+  const superSaid = await addFile(page, held("SUPER-A", 2).slice(-1), "Super"), help = await addFile(page, held("HELP-A", 2).slice(-1), "HELP");
+  expect(superSaid + help).not.toContain("Nothing in it became a line");
+  expect(help).toMatch(/Your HELP debt: \$[\d,.]+ at /);
+  await tab(page, "records");
+  await page.click("#v-records [data-kh2=stated]");
+  await page.selectOption("#hsk", "car_loan"); await page.fill("#hsc", "12,500.00"); await page.fill("#hsd", "2027-01-31"); await page.click("#hsgo");
+  await expect(page.locator("#v-records")).toContainText("$12,500.00 at 31 Jan 2027, as you stated it. No statement behind it.");
+  await expect(page.locator("#v-records")).not.toContainText("HAND-");
+  await expect(page.locator("#v-records .kh-lines").first()).not.toContainText(/\d{4}-\d{2}-\d{2}/);
+  await shot(page, "ch02-2-stated-balance.png", { fullPage: true });
+
+  // The card ties to the family's truth, and the headline is cash.
+  await tab(page, "home");
+  const home = await page.locator("#v-home").innerText();
+  expect(home).not.toMatch(/Not asked yet:[^\n]*(credit card|HELP)/);
+  expect(home).toMatch(/Net worth \$[\d,.]+, with /);
+  const cash = Object.entries(truth.balances).filter(([k]) => k.startsWith("ACC-")).reduce((n, [, b]) => n + b.cents, 0);
+  expect(home).toContain(dollars(cash));
+  expect(home).toContain("in cash, across the 3 accounts we know about");
+  await page.click("#v-home .big.num");
+  await expect(page.locator("#drawer")).toContainText(dollars(truth.balances["ACC-A-CARD"].cents));
+  await page.click("#dclose");
+
+  // A month that can close has a button that says what it locks. One that can't says why. Records and Home name the same failed check.
+  const records = await tab(page, "records");
+  expect(records).not.toContain("Home says which");
+  const failed = await page.locator(".kh-failed li").allInnerTexts();
+  await tab(page, "home");
+  for (const f of failed) await expect(page.locator("#v-home")).toContainText(f);
+  await tab(page, "records");
+  const closeBtn = page.locator('[data-close="2027-01"]');
+  await expect(closeBtn).toContainText("Close January");
+  await expect(page.locator("#v-records")).toContainText(/January 2027\s*Ready to close\. Closing (locks|keeps) January/);
+  await closeBtn.click();
+  await expect(page.locator("#v-records")).toContainText(/January 2027\s*(Closed|Locked)/);
+  await page.click('[data-reopen="2027-01"]');
+  await page.fill("#hreopen", "A line was wrong."); await page.click("#hreopengo");
+  await expect(page.locator('[data-close="2027-01"]')).toBeVisible();
+  await expect(page.locator("#v-records")).toContainText(/still|no stated balance|stops before|Ready to close/);
+
+  await page.click("nav.tabs [data-tab=setup]");
+  const setup = await page.locator("#v-setup").innerText();
+  expect(setup).not.toMatch(/engine\.js|Apps Script|You need a Claude account/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const t of ["home", "records", "setup", "insights"]) { await page.evaluate((x) => document.querySelector(`nav.tabs [data-tab=${x}]`).click(), t); expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), t).toBe(true); }
+  expect(errors).toEqual([]);
+});
+test("a chart with nothing to compare has no axis to misread", async ({ page }) => {
+  const csv = "Date,Details,Money In,Money Out,Balance\n01/10/2026,TFR TO SAVER,,100.00,900.00\n01/11/2026,TFR TO SAVER,,100.00,800.00\n";
+  await open(page);
+  await onDevice(page);
+  await page.setInputFiles("#hfile", { name: "Quiet.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+  await page.waitForSelector("#hyes");
+  await keep(page);
+  await page.click("#hdone");
+  await expect(page.locator(".kh-next")).toBeVisible();
+  const axis = await page.locator("#homebars svg text.axis").allInnerTexts().catch(() => []);
+  expect(axis.filter((t) => /\$/.test(t))).toEqual([]);
+});
 for (const scheme of ["light", "dark"]) test(`a phone, ${scheme}: chapter 1 fits, with nothing wider than the screen`, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: scheme });

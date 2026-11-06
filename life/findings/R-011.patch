@@ -1,0 +1,16 @@
+Proposed patch for finishOpenings, standard/engine/resolve-capital.js. Not applied: the data model session owns this file.
+An opening states where an account stood on its day, so lines dated before that day are already inside it.
+
+@@ P.finishOpenings
+     for (const [account, s] of firstStated) {
+       const before = (this.capitalLoans && this.capitalLoans.get(account)) ? -this.capitalLoans.get(account) : 0;
+-      const amount = s.cents - before;
++      // Lines from before the opening's day are already in the amount it states.
++      const earlier = (this.linesByAccount.get(account) || []).filter((l) => l.date < s.date);
++      const amount = s.cents - before - earlier.reduce((n, l) => n + l.cents, 0);
++      const on = earlier.length ? earlier.map((l) => l.date).sort()[0] : s.date;
+       if (!amount) continue;
+-      this.event({ key: `opening|${account}`, kind: "opening_balance", occurred_on: addDays(s.date, -1), description: `Opening, ${this.accountName(account)}`, amount_cents: amount, grade: "stated", rule: s.setup ? "setup" : "first_evidence",
++      this.event({ key: `opening|${account}`, kind: "opening_balance", occurred_on: addDays(on, -1), description: `Opening, ${this.accountName(account)}`, amount_cents: amount, grade: "stated", rule: s.setup ? "setup" : "first_evidence",
+         witnesses: s.o ? this.w(s.o, "corroborates") : [], fields: { amount }, refs: { account } });
+     }

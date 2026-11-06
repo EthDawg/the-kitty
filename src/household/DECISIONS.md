@@ -56,6 +56,10 @@ the adults until someone says otherwise, with a stream to expect the next month.
 
 **Assumed tax means a financial year that starts after the law was last read.** A year already under way when the law was read stays known. `au.json` says `verified_at: null`, so the date comes from `au-verified.json` through `defaults.json`. Finding R-003.
 
+## Two things done above the engine
+
+**A first rebuild can be followed by a second, in memory.** Findings R-011 and R-012 are the engine's to fix. Until then `rebuildAt` reads what they got wrong off a first rebuild and rebuilds once more with a rule and an opening held in memory. Nothing is stored, so a later file changes the answer by itself and the workaround goes away when the patches land. A household with neither, the Davies world among them, takes one rebuild and keeps its hash.
+
 ## Close and next
 
 **A month is whole when it has ended and each account's evidence reaches its end:** the last line, or the day a file was downloaded, whichever is later. A file taken after a month ends speaks for that month, and if it does not, the next

@@ -1,0 +1,6 @@
+Proposed patch for the last step of recognition, standard/engine/resolve.js. Not applied: the data model session owns this file.
+The comment above the line already says this. The condition stopped short of it.
+
+@@ const refund = l.cents > 0 && ...
+-      if (category && l.cents > 0 && c.via === "dictionary" && this.catKind(category) === "expense" && !refund && this.saysMoved(l)) category = null;
++      if (category && l.cents > 0 && c.via === "dictionary" && this.catKind(category) === "expense" && !refund) category = null;
