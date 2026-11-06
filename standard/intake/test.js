@@ -292,7 +292,7 @@ test("bills, gaps and rents clear real bank lines; nothing a document says is a 
   for (const c of readTruth("childcare")) assert.ok(has.has(c.line.join("|")), c.month);
   const ccs = obsOf("childcare_statement"); assert.strictEqual(ccs.length, readTruth("childcare").length);
   const own = obsOf("owner_statement").filter((o) => o.payload.property_ref === "GF-20931");
-  for (const o of own) { if (o.payload.period_end > "2027-02-28") continue; const paid = obsOf("txn_line").find((t) => accountOf(t.payload.account_ref) === "ACC-RN2" && t.payload.amount_cents === o.payload.disbursed_cents && /GOLDFIELDS/.test(t.payload.description)); assert.ok(paid, o.payload.period_end); }
+  for (const o of own) { if (o.payload.period_end > "2027-02-28") continue; const paid = obsOf("txn_line").find((t) => accountOf(t.payload.account_ref) === "ACC-RN2" && t.payload.amount_cents === o.payload.disbursed_cents && /GOLDPAWS/.test(t.payload.description)); assert.ok(paid, o.payload.period_end); }
   for (const a of readTruth("assets").assets) if (a.witness) assert.ok(has.has(a.witness.join("|")), a.asset_id);
   for (const s of readTruth("settlements")) for (const l of s.witnesses) assert.ok(has.has(l.join("|")), l.join());
 });

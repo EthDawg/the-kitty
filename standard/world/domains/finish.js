@@ -70,14 +70,14 @@ function run(w) {
   w.rules = w.sheet.rules.map((r) => ({ rule_id: r.rule_id, pattern: r.pattern, match: r.match, ...(r.merchant ? { merchant: r.merchant } : {}), ...(r.category_id ? { category_id: r.category_id } : {}), ...(r.person ? { person: r.person } : {}), provenance: r.source || "sheet", status: "accepted" }));
   // the new strings the household's own rules cover; the first two override the dictionary
   const rule = (rule_id, pattern, merchant, category_id, note) => w.rules.push({ rule_id, pattern, match: "contains", merchant, category_id, provenance: "household", status: "accepted", ...(note ? { note } : {}) });
-  rule("R-WORLD-01", "CENTRAL HIGHLANDS WATER", "Central Highland Paws Water", "RENT-RATES");
+  rule("R-WORLD-01", "HIGHLAND PAWS WATER", "Central Highland Paws Water", "RENT-RATES");
   rule("R-WORLD-02", "HARBOUR BANK INVESTMENT LOAN ESTABLISHMENT", "Harbour Bank", "FEES", "A borrowing cost, kept as a fee. Tax does not amortise it here.");
   rule("R-WORLD-03", "GOOD PAWS APPLIANCES", "Good Paws Appliances", "SHOPPING");
   rule("R-WORLD-04", "HARVEY WHISKERS", "Harvey Whiskers", "SHOPPING");
   rule("R-WORLD-05", "APPURR STORE", "Appurr Store", "SHOPPING", "The work share is the laptop's work_use_pct, not this line.");
-  rule("R-WORLD-06", "CITY OF BALLARAT RATES", "City of Ballapaw", "RENT-RATES");
+  rule("R-WORLD-06", "CITY OF BALLAPAW RATES", "City of Ballapaw", "RENT-RATES");
   rule("R-WORLD-07", "PURRSURE LANDLORD POLICY", "Purrsure", "RENT-INS");
-  rule("R-WORLD-08", "BALLARAT ROOFING", "Ballarat Roofing", "RENT-REPAIR");
+  rule("R-WORLD-08", "TABBY ROOFING", "Tabby Roofing", "RENT-REPAIR");
 }
 
 module.exports = { run };

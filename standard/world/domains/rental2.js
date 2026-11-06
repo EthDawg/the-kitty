@@ -11,7 +11,7 @@ const { stream } = require("./setup");
 const LOAN_NO = "813-770 21 0044 516", ADDRESS = "14 Lydiard Cottage Lane, Ballarat VIC 3350", OWNER_REF = "GF-20931";
 const SETTLE = { price: 39500000, duty: 1877000, legal: 148000, adjustments: 21240, loan: 18000000 };
 const FEE_BPS = 770;
-const BRAND = { name: "RentPurrfect", tagline: "Goldfields Realty owner services.", color: "#b45309" };
+const BRAND = { name: "RentPurrfect", tagline: "Goldpaws Realty owner services.", color: "#b45309" };
 const WATTLE = { name: "PING", tagline: "Wattle Credit Union online.", color: "#c2410c" };
 // rent a month, repairs netted by the agent
 const RENT = [["2024-03", 208000], ["2025-03", 216000], ["2026-03", 225000]];
@@ -58,7 +58,7 @@ function scheduleBook(w, asset, address, issued, rows, firm) {
 
 function run(w) {
   const S = w.setup;
-  S.party.push({ party_id: "GOLDFIELDS", kind: "organisation", name: "Goldfields Realty", note: "Reached through the parody portal RentPurrfect." }, { party_id: "BALLARATCONV", kind: "organisation", name: "Lydiard Street Conveyancing" }, { party_id: "QSFIRM", kind: "organisation", name: "Tabby and Tom Quantity Surveyors" });
+  S.party.push({ party_id: "GOLDPAWS", kind: "organisation", name: "Goldpaws Realty", note: "Reached through the parody portal RentPurrfect." }, { party_id: "BALLARATCONV", kind: "organisation", name: "Whisker Lane Conveyancing" }, { party_id: "QSFIRM", kind: "organisation", name: "Tabby and Tom Quantity Surveyors" });
   S.account.push({ account_id: "ACC-RN2", name: "Ballarat rental account", class: "asset", type: "transaction", reporting_group: "cash", currency: "AUD", institution_party_id: "WATTLE", opened_on: "2023-11-01", liquid: true, in_scope: false, fidelity: "ledger", opening_balance_cents: 0, opening_date: "2023-11-01" },
     { account_id: "RENTAL2", name: "Ballarat cottage", class: "asset", type: "property", reporting_group: "property", currency: "AUD", asset_id: "RENTAL2", opened_on: "2023-11-15", in_scope: false, fidelity: "ledger" },
     { account_id: "LN-INV2", name: "Ballarat investment loan", class: "liability", type: "loan", reporting_group: "loans", currency: "AUD", institution_party_id: "WATTLE", contract_id: "C-INV2", opened_on: "2023-11-15", in_scope: false, fidelity: "ledger" });
@@ -66,15 +66,15 @@ function run(w) {
   S.activity.push({ activity_id: "ACT-RENTAL2", kind: "rental", name: "Ballarat cottage", asset_id: "RENTAL2", owner_party_id: "MIA", valid_from: "2023-11-15" });
   for (const [type, id] of [["account", "ACC-RN2"], ["account", "RENTAL2"], ["account", "LN-INV2"], ["asset", "RENTAL2"]]) ["legal", "beneficial", "tax"].forEach((basis) => S.ownership.push({ subject_type: type, subject_id: id, party_id: "MIA", basis, share_bps: 10000, valid_from: "2023-11-01", recorded_at: "2023-11-01T00:00:00Z" }));
   S.contract.push({ contract_id: "C-INV2", kind: "loan", name: "Ballarat investment loan", counterparty_party_id: "WATTLE", holder_party_id: "MIA", account_id: "LN-INV2", asset_id: "RENTAL2", category_id: "RENT-INT", started_on: "2023-11-15" },
-    { contract_id: "C-LEASE2", kind: "lease", name: "Lease, Ballarat cottage", counterparty_party_id: "GOLDFIELDS", asset_id: "RENTAL2", category_id: "RENT-INC", started_on: "2024-02-16" },
+    { contract_id: "C-LEASE2", kind: "lease", name: "Lease, Ballarat cottage", counterparty_party_id: "GOLDPAWS", asset_id: "RENTAL2", category_id: "RENT-INC", started_on: "2024-03-01" },
     { contract_id: "POL-RENTAL2", kind: "insurance", name: "Landlord insurance, Ballarat", counterparty_party_id: "PURRSURE", asset_id: "RENTAL2", category_id: "RENT-INS", started_on: "2023-11-15" });
   w.linkRow("funds_purpose", "contract", "C-INV2", "asset", "RENTAL2", "2023-11-15", 10000); w.linkRow("secures", "contract", "C-INV2", "asset", "RENTAL2", "2023-11-15"); w.linkRow("serves", "account", "ACC-RN2", "asset", "RENTAL2", "2023-11-01"); w.linkRow("covers", "contract", "POL-RENTAL2", "asset", "RENTAL2", "2023-11-15");
   w.termRow("asset", "RENTAL2", "use", "rental", "enum", "2023-11-15"); w.termRow("contract", "C-INV2", "repayment_type", "interest_only", "enum", "2023-11-15"); w.termRow("contract", "C-INV2", "interest_rate", "6.39", "pct", "2023-11-15", { note: "The rate at settlement." });
-  w.alias("account", "ACC-RN2", "name", "ACC-RN2", "2023-11-01"); w.alias("account", "LN-INV2", "loan_number", LOAN_NO, "2023-11-15"); w.alias("contract", "C-INV2", "loan_number", LOAN_NO, "2023-11-15"); w.alias("asset", "RENTAL2", "owner_ref", OWNER_REF, "2024-02-16"); w.alias("asset", "RENTAL", "name", "RENTAL", "2021-08-20"); w.alias("asset", "RENTAL2", "name", "RENTAL2", "2023-11-15"); w.alias("asset", "RENTAL2", "name", ADDRESS, "2023-11-15");
+  w.alias("account", "ACC-RN2", "name", "ACC-RN2", "2023-11-01"); w.alias("account", "LN-INV2", "loan_number", LOAN_NO, "2023-11-15"); w.alias("contract", "C-INV2", "loan_number", LOAN_NO, "2023-11-15"); w.alias("asset", "RENTAL2", "owner_ref", OWNER_REF, "2024-03-01"); w.alias("asset", "RENTAL", "name", "RENTAL", "2021-08-20"); w.alias("asset", "RENTAL2", "name", "RENTAL2", "2023-11-15"); w.alias("asset", "RENTAL2", "name", ADDRESS, "2023-11-15");
   stream(w, "ACC-RN2", "Ballarat rental account", "transactions", "account", "ACC-RN2", "monthly", "2023-11-01", { issuer_party_id: "WATTLE", grace_days: 10 });
   stream(w, "LN-INV2", "Ballarat loan activity", "transactions", "account", "LN-INV2", "monthly", "2023-11-15", { issuer_party_id: "WATTLE", grace_days: 10 });
   stream(w, "LN-INV2-STMT", "Ballarat loan statement", "loan_statement", "account", "LN-INV2", "yearly", "2023-11-15", { issuer_party_id: "WATTLE", grace_days: 21 });
-  stream(w, "OWN-RENTAL2", "Ballarat owner statements", "owner_statement", "asset", "RENTAL2", "monthly", "2024-03-01", { issuer_party_id: "GOLDFIELDS", grace_days: 10 });
+  stream(w, "OWN-RENTAL2", "Ballarat owner statements", "owner_statement", "asset", "RENTAL2", "monthly", "2024-03-01", { issuer_party_id: "GOLDPAWS", grace_days: 10 });
   stream(w, "SETTLE-RENTAL2", "Settlement statement, Ballarat", "settlement", "asset", "RENTAL2", "event", "2023-11-15", { issuer_party_id: "BALLARATCONV" });
   stream(w, "QS-RENTAL", "Depreciation schedule, Geelong", "depreciation_schedule", "asset", "RENTAL", "event", "2021-10-11", { issuer_party_id: "QSFIRM" });
   stream(w, "QS-RENTAL2", "Depreciation schedule, Ballarat", "depreciation_schedule", "asset", "RENTAL2", "event", "2024-02-05", { issuer_party_id: "QSFIRM" });
@@ -83,10 +83,10 @@ function run(w) {
 
   // settlement, from the cash hub
   const cash = SETTLE.price - SETTLE.loan + SETTLE.duty + SETTLE.legal + SETTLE.adjustments;
-  w.line("ACC-BRK", "2023-11-14", "TRANSFER TO LYDIARD ST CONVEYANCING TRUST", -cash, { ref: "TFR" });
+  w.line("ACC-BRK", "2023-11-14", "TRANSFER TO WHISKER LANE CONVEYANCING TRUST", -cash, { ref: "TFR" });
   w.line("ACC-BRK", "2023-11-15", "TRANSFER TO WATTLE RENTAL ACCOUNT", -800000, { ref: "TFR" });
   w.line("ACC-RN2", "2023-11-15", "TRANSFER FROM CEDAR TRADE", 800000);
-  const s = { brand: { name: "Lydiard Street Conveyancing" }, address: ADDRESS, matter: "LSC-23-1142", purchaser: "Mia Davies", settled_on: "2023-11-15", asset_ref: "RENTAL2", price: SETTLE.price, duty: SETTLE.duty, legal: SETTLE.legal, adjustments: SETTLE.adjustments, loan: SETTLE.loan, cash, lender: "Wattle Credit Union", loan_number: LOAN_NO };
+  const s = { brand: { name: "Whisker Lane Conveyancing" }, address: ADDRESS, matter: "LSC-23-1142", purchaser: "Mia Davies", settled_on: "2023-11-15", asset_ref: "RENTAL2", price: SETTLE.price, duty: SETTLE.duty, legal: SETTLE.legal, adjustments: SETTLE.adjustments, loan: SETTLE.loan, cash, lender: "Wattle Credit Union", loan_number: LOAN_NO };
   w.file({ stream_id: "SETTLE-RENTAL2", download_date: "2023-11-22", name: "Settlement-Statement-Lydiard-Cottage.pdf", bytes: settlementDoc(w, s), family: "settlement-pdf", container: "pdf", expect: { settlement: 1 }, origin: "email", issued_on: "2023-11-15" });
   w.truth.settlements.push({ asset: "RENTAL2", settled_on: s.settled_on, price_cents: s.price, duty_cents: s.duty, legal_cents: s.legal, adjustments_cents: s.adjustments, loan_drawn_cents: s.loan, cash_paid_cents: cash, witnesses: [["ACC-BRK", "2023-11-14", -cash]] });
 
@@ -112,14 +112,14 @@ function run(w) {
   w.file({ stream_id: "RATE-LN-INV2", download_date: "2025-09-20", name: "PING-Rate-Change-LN-INV2-2025-09.pdf", bytes: rateNoticeDoc(w, { rate: "6.14", effective_on: "2025-09-15", notified_on: "2025-09-20" }), family: "ping-rate-notice-pdf", container: "pdf", expect: { rate_notice: 1 }, origin: "portal", issued_on: "2025-09-20" });
   w.truth.rate_notices.push({ contract: "C-INV2", value: "6.14", effective_on: "2025-09-15", notified_on: "2025-09-20" });
 
-  // rent, netted. Vacant from settlement until a tenant on 16 February 2024; the first statement is for March.
+  // rent, netted. Vacant from settlement until a tenant on 1 March 2024, a little over three months.
   const own = [];
   for (const ym of monthRange("2024-03", "2027-03")) {
     const rent = at(RENT, ym), fee = mulDiv(rent, FEE_BPS, 10000), rep = REPAIRS[ym] || null, repair = rep ? rep[1] : 0, net = rent - fee - repair, paid = `${nextMonth(ym)}-03`;
     const x = { ym, rent, fee, repair, repairName: rep ? rep[0] : "", net, paid };
     own.push(x);
     w.file({ stream_id: "OWN-RENTAL2", download_date: paid, name: `RentPurrfect-Owner-${ym}.pdf`, bytes: ownerDoc(w, x), family: "rentpurrfect-owner-pdf", container: "pdf", expect: { owner_statement: 1 }, origin: "portal", issued_on: monthEnd(ym) });
-    if (paid <= w.END) w.line("ACC-RN2", paid, `GOLDFIELDS REALTY DISB ${ym.slice(5)}${ym.slice(2, 4)}`, net);
+    if (paid <= w.END) w.line("ACC-RN2", paid, `GOLDPAWS REALTY DISB ${ym.slice(5)}${ym.slice(2, 4)}`, net);
   }
   w.truth.owner_statements.push(...own.map((x) => ({ property: "RENTAL2", month: x.ym, gross_rent_cents: x.rent, fees_cents: x.fee, repairs_cents: x.repair, disbursed_cents: x.net })));
   w.rental2 = { own, loanRows: rows };
@@ -129,10 +129,10 @@ function run(w) {
   const bills = [];
   for (const ym of monthRange("2024-02", "2027-03")) {
     const mo = Number(ym.slice(5));
-    if ([2, 5, 8, 11].includes(mo)) { const c = ym < "2025-07" ? 45500 : 47800; w.line("ACC-RN2", `${ym}-12`, "CITY OF BALLARAT RATES", -c); bills.push({ kind: "rates", date: `${ym}-12`, cents: c }); }
-    if ([1, 4, 7, 10].includes(mo)) { const c = 19000 + rng.int(-1800, 2600); w.line("ACC-RN2", `${ym}-19`, "CENTRAL HIGHLANDS WATER", -c); bills.push({ kind: "water", date: `${ym}-19`, cents: c }); }
+    if ([2, 5, 8, 11].includes(mo)) { const c = ym < "2025-07" ? 45500 : 47800; w.line("ACC-RN2", `${ym}-12`, "CITY OF BALLAPAW RATES", -c); bills.push({ kind: "rates", date: `${ym}-12`, cents: c }); }
+    if ([1, 4, 7, 10].includes(mo)) { const c = 19000 + rng.int(-1800, 2600); w.line("ACC-RN2", `${ym}-19`, "HIGHLAND PAWS WATER", -c); bills.push({ kind: "water", date: `${ym}-19`, cents: c }); }
   }
-  w.line("ACC-RN2", "2025-04-08", "BALLARAT ROOFING PTY LTD", -418000); bills.push({ kind: "repair", date: "2025-04-08", cents: 418000 });
+  w.line("ACC-RN2", "2025-04-08", "TABBY ROOFING PTY LTD", -418000); bills.push({ kind: "repair", date: "2025-04-08", cents: 418000 });
   w.rental2.bills = bills;
   const periods = [["2023-11-15", "2024-11-14", 96800], ["2024-11-15", "2025-11-14", 104400], ["2025-11-15", "2026-11-14", 109900], ["2026-11-15", "2027-11-14", 114200]].map(([from, to, c]) => ({ from, to, premium: c / 100, paid_on: from, paid_from: "ACC-RN2", description: "PURRSURE LANDLORD POLICY" }));
   for (const p of periods) w.line("ACC-RN2", p.from, "PURRSURE LANDLORD POLICY", -toCents(p.premium));

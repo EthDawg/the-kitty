@@ -1,5 +1,5 @@
 {
- "id": "littlepaws-statement-html",
+ "id": "kittenhood-statement-html",
  "match": [
   "^Statement of account$"
  ],
@@ -56,6 +56,6 @@
  ],
  "version": 1,
  "fingerprints": [
-  "fp1:e17b51a25e8797a239990b40"
+  "fp1:d389ba03fdf6933127d77b1a"
  ]
 }

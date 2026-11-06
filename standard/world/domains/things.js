@@ -86,9 +86,9 @@ function run(w) {
     w.file({ stream_id: "RECEIPTS", download_date: t.date, name: `Scan-${t.id}.png`, bytes, family: "receipt-scan", container: "image", recipe: null, tier: "agent", expect: {}, origin: "scan", issued_on: t.date, note: "An image with no text layer. An agent reads it; no recipe can." });
     agent.push({ path: `sources/RECEIPTS/${t.date}/Scan-${t.id}.png`, kind: "receipt", expected: { merchant_ref: t.merchant, date: t.date, total_cents: t.cents }, quote: lines.join(" | "), witness: t.line ? [t.line[0], t.date, t.line[1]] : null });
   }
-  const invoice = ["BALLARAT ROOFING PTY LTD", "TAX INVOICE 2204", "08/04/2025", "ROOF REPAIR AND RIDGE CAPS", "14 LYDIARD COTTAGE LANE", "TOTAL  $4,180.00", "PAID BY TRANSFER", "FICTIONAL INVOICE"];
-  w.file({ stream_id: "RECEIPTS", download_date: "2025-04-09", name: "Scan-Ballarat-Roof-Invoice.png", bytes: scan(invoice, "roof", w.deflate), family: "receipt-scan", container: "image", recipe: null, tier: "agent", expect: {}, origin: "scan", issued_on: "2025-04-08", note: "An image with no text layer. An agent reads it; no recipe can." });
-  agent.push({ path: "sources/RECEIPTS/2025-04-09/Scan-Ballarat-Roof-Invoice.png", kind: "receipt", expected: { merchant_ref: "Ballarat Roofing Pty Ltd", date: "2025-04-08", total_cents: 418000 }, quote: invoice.join(" | "), witness: ["ACC-RN2", "2025-04-08", -418000] });
+  const invoice = ["TABBY ROOFING PTY LTD", "TAX INVOICE 2204", "08/04/2025", "ROOF REPAIR AND RIDGE CAPS", "14 LYDIARD COTTAGE LANE", "TOTAL  $4,180.00", "PAID BY TRANSFER", "FICTIONAL INVOICE"];
+  w.file({ stream_id: "RECEIPTS", download_date: "2025-04-09", name: "Scan-Roof-Invoice.png", bytes: scan(invoice, "roof", w.deflate), family: "receipt-scan", container: "image", recipe: null, tier: "agent", expect: {}, origin: "scan", issued_on: "2025-04-08", note: "An image with no text layer. An agent reads it; no recipe can." });
+  agent.push({ path: "sources/RECEIPTS/2025-04-09/Scan-Roof-Invoice.png", kind: "receipt", expected: { merchant_ref: "Tabby Roofing Pty Ltd", date: "2025-04-08", total_cents: 418000 }, quote: invoice.join(" | "), witness: ["ACC-RN2", "2025-04-08", -418000] });
   const plan = {}; for (const a of assets) { (plan[a.refresh_fy] = plan[a.refresh_fy] || { cents: 0, assets: [] }); plan[a.refresh_fy].cents += a.replacement_cost_cents; plan[a.refresh_fy].assets.push(a.asset_id); }
   w.truth.assets = { assets, refresh_by_fy: plan };
   w.truth.agent_scans = agent;

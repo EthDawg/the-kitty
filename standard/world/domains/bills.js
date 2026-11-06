@@ -51,8 +51,8 @@ function regoDoc(w, x) {
   return d.finish();
 }
 function childcarePage(x) {
-  const body = `<h1>Statement of account</h1><p>Provider: Little Paws Early Learning</p><p>Child: Ava Davies</p><table>${row(["Item", "Amount"], "th")}${row(["Period start", fmtDate(`${x.ym}-01`)])}${row(["Period end", fmtDate(monthEnd(x.ym))])}${row(["Sessions", String(x.days)])}${row(["Daily fee", money(x.daily)])}${row(["Gross fee", money(x.gross)])}${row(["Child Care Subsidy", money(-x.subsidy)])}${row(["Gap you pay", money(x.gap)])}</table>`;
-  return page(`Little Paws statement ${fmtMonth(x.ym)}`, body);
+  const body = `<h1>Statement of account</h1><p>Provider: Kittenhood Early Learning</p><p>Child: Ava Davies</p><table>${row(["Item", "Amount"], "th")}${row(["Period start", fmtDate(`${x.ym}-01`)])}${row(["Period end", fmtDate(monthEnd(x.ym))])}${row(["Sessions", String(x.days)])}${row(["Daily fee", money(x.daily)])}${row(["Gross fee", money(x.gross)])}${row(["Child Care Subsidy", money(-x.subsidy)])}${row(["Gap you pay", money(x.gap)])}</table>`;
+  return page(`Kittenhood statement ${fmtMonth(x.ym)}`, body);
 }
 
 function run(w) {
@@ -97,15 +97,15 @@ function run(w) {
   }
 
   // childcare: the gap is the bank line; the fee and the subsidy come from three days a week at the day's rate
-  P("LITTLEPAWS", "Little Paws Early Learning");
-  S.contract.push({ contract_id: "C-CHILDCARE", kind: "childcare", name: "Little Paws Early Learning", counterparty_party_id: "LITTLEPAWS", holder_party_id: "AVA", category_id: "CHILDCARE", started_on: "2023-07-01" });
+  P("KITTENHOOD", "Kittenhood Early Learning");
+  S.contract.push({ contract_id: "C-CHILDCARE", kind: "childcare", name: "Kittenhood Early Learning", counterparty_party_id: "KITTENHOOD", holder_party_id: "AVA", category_id: "CHILDCARE", started_on: "2023-07-01" });
   w.alias("party", "AVA", "name", "Ava Davies");
-  stream(w, "CHILDCARE", "Childcare statements", "childcare_statement", "contract", "C-CHILDCARE", "monthly", "2023-07-01", { issuer_party_id: "LITTLEPAWS", grace_days: 7 });
+  stream(w, "CHILDCARE", "Childcare statements", "childcare_statement", "contract", "C-CHILDCARE", "monthly", "2023-07-01", { issuer_party_id: "KITTENHOOD", grace_days: 7 });
   const ccs = [];
   for (const l of lines(w, /^LITTLE OAKS EARLY LEARNING/)) {
     const ym = l.date.slice(0, 7), pct = ym < "2024-07" ? 0.46 : ym < "2025-07" ? 0.44 : 0.42, gross = Math.round(l.cents / (1 - pct)), subsidy = gross - l.cents, days = 13, daily = Math.round(gross / days);
     const x = { ym, days, daily, gross, subsidy, gap: l.cents };
-    w.file({ stream_id: "CHILDCARE", download_date: l.date, name: `LittlePaws-Statement-${ym}.html`, text: childcarePage(x), family: "littlepaws-statement-html", container: "html", expect: { childcare_statement: 1 }, origin: "portal", issued_on: l.date });
+    w.file({ stream_id: "CHILDCARE", download_date: l.date, name: `Kittenhood-Statement-${ym}.html`, text: childcarePage(x), family: "kittenhood-statement-html", container: "html", expect: { childcare_statement: 1 }, origin: "portal", issued_on: l.date });
     ccs.push({ month: ym, gross_fee_cents: gross, subsidy_cents: subsidy, gap_cents: l.cents, line: [l.acct, l.date, -l.cents] });
   }
 

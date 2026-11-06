@@ -14,21 +14,21 @@ const SHIFTS = { 2019: [["2019-04-11", 31200], ["2019-05-16", 28800], ["2019-06-
   2022: [["2021-08-12", 42000], ["2021-09-09", 40800], ["2021-10-14", 42000]],
   2023: [["2022-10-13", 46800], ["2022-11-10", 48000], ["2022-12-08", 46800], ["2023-01-12", 48000], ["2023-02-09", 46800], ["2023-03-09", 48000], ["2023-04-13", 46800], ["2023-05-11", 48000], ["2023-06-08", 46800]],
   2024: [["2023-07-13", 48000], ["2023-08-10", 46800], ["2023-09-14", 48000], ["2023-10-12", 46800], ["2023-11-09", 48000], ["2023-12-14", 46800], ["2024-01-11", 48000], ["2024-02-08", 46800], ["2024-03-14", 48000], ["2024-04-11", 46800], ["2024-05-09", 48000], ["2024-06-13", 46800]] };
-const EMPLOYER = "Nightingale Agency Nursing", PPL = "Services Pawstralia";
+const EMPLOYER = "Nightpaw Agency Nursing", PPL = "Services Pawstralia";
 // Government paid parental leave: 18 weeks at the minimum wage, fortnightly from Ava's birth
 const PPL_PAYS = [["2022-04-04", 154500], ["2022-04-18", 154500], ["2022-05-02", 154500], ["2022-05-16", 154500], ["2022-05-30", 154500], ["2022-06-13", 154500], ["2022-06-27", 154500], ["2022-07-11", 154500], ["2022-07-25", 154500]];
 
 function run(w) {
   const S = w.setup;
-  S.party.push({ party_id: "NIGHTINGALE", kind: "organisation", name: EMPLOYER, note: "Casual shifts for Mia." }, { party_id: "SERVICESP", kind: "government", name: PPL, note: "Pays parental leave." });
+  S.party.push({ party_id: "NIGHTPAW", kind: "organisation", name: EMPLOYER, note: "Casual shifts for Mia." }, { party_id: "SERVICESP", kind: "government", name: PPL, note: "Pays parental leave." });
   w.alias("party", "SERVICESP", "name", PPL);
   S.account.push({ account_id: "ACC-WAT", name: "Mia's old Wattle saver", class: "asset", type: "savings", reporting_group: "cash", currency: "AUD", institution_party_id: "WATTLE", opened_on: "2016-02-01", closed_on: "2021-12-20", liquid: true, in_scope: false, fidelity: "ledger", opening_balance_cents: OPENING, opening_date: "2019-03-01", note: "Not on the sheet. Closed into the broker's cash hub." });
   ["legal", "beneficial", "tax"].forEach((basis) => S.ownership.push({ subject_type: "account", subject_id: "ACC-WAT", party_id: "MIA", basis, share_bps: 10000, valid_from: "2016-02-01", valid_to: "2021-12-21", recorded_at: "2019-03-01T00:00:00Z" }));
-  w.alias("account", "ACC-WAT", "account_number", NUMBER.replace(/\s/g, ""), "2016-02-01"); w.alias("party", "NIGHTINGALE", "name", EMPLOYER);
-  S.contract.push({ contract_id: "C-EMP-M2", kind: "employment", name: EMPLOYER, counterparty_party_id: "NIGHTINGALE", holder_party_id: "MIA", category_id: "SALARY", started_on: "2019-04-01", ended_on: "2024-06-30" });
+  w.alias("account", "ACC-WAT", "account_number", NUMBER.replace(/\s/g, ""), "2016-02-01"); w.alias("party", "NIGHTPAW", "name", EMPLOYER);
+  S.contract.push({ contract_id: "C-EMP-M2", kind: "employment", name: EMPLOYER, counterparty_party_id: "NIGHTPAW", holder_party_id: "MIA", category_id: "SALARY", started_on: "2019-04-01", ended_on: "2024-06-30" });
   S.contract.push({ contract_id: "C-PPL", kind: "employment", name: "Paid parental leave", counterparty_party_id: "SERVICESP", holder_party_id: "MIA", category_id: "SALARY", started_on: "2022-03-21", ended_on: "2022-07-25" });
-  stream(w, "PAY-M2", "Mia's agency payslips", "payslip", "party", "MIA", "event", "2019-04-11", { issuer_party_id: "NIGHTINGALE", valid_to: "2024-07-01" });
-  stream(w, "IS-M2", "Mia's agency income statement", "income_statement", "party", "MIA", "yearly", "2018-07-01", { issuer_party_id: "NIGHTINGALE", valid_to: "2024-08-01" });
+  stream(w, "PAY-M2", "Mia's agency payslips", "payslip", "party", "MIA", "event", "2019-04-11", { issuer_party_id: "NIGHTPAW", valid_to: "2024-07-01" });
+  stream(w, "IS-M2", "Mia's agency income statement", "income_statement", "party", "MIA", "yearly", "2018-07-01", { issuer_party_id: "NIGHTPAW", valid_to: "2024-08-01" });
   stream(w, "PAY-M3", "Paid parental leave statements", "payslip", "party", "MIA", "event", "2022-04-04", { issuer_party_id: "SERVICESP", valid_to: "2022-08-01" });
   stream(w, "IS-M3", "Paid parental leave income statement", "income_statement", "party", "MIA", "yearly", "2022-07-01", { issuer_party_id: "SERVICESP", valid_to: "2023-08-01" });
   stream(w, "ACC-WAT", "Mia's old Wattle saver", "transactions", "account", "ACC-WAT", "monthly", "2019-03-01", { issuer_party_id: "WATTLE", valid_to: "2022-01-01", grace_days: 10 });
@@ -43,7 +43,7 @@ function run(w) {
       const saver = date < "2022-01-01", bytes = payslipDoc(w, p, { ...ytd }, saver ? "Wattle saver" : "Bark everyday", saver ? "6301" : "7731");
       w.file({ stream_id: "PAY-M2", download_date: date, name: `Pawroll-Payslip-Agency-${date}.pdf`, bytes, family: "pawroll-payslip-pdf", container: "pdf", expect: { payslip: 1 }, origin: "portal", issued_on: date });
       w.truth.payslips.push({ pay_date: date, person: "Mia", employer: EMPLOYER, gross_cents: gross, tax_cents: tax, super_cents: p.sup, net_cents: p.net, ytd_gross_cents: ytd.gross, ytd_tax_cents: ytd.tax, ytd_super_cents: ytd.sup, fy: Number(fy) });
-      w.line(saver ? "ACC-WAT" : "ACC-OLD", date, "NIGHTINGALE AGENCY PAY", p.net);
+      w.line(saver ? "ACC-WAT" : "ACC-OLD", date, "NIGHTPAW AGENCY PAY", p.net);
     }
     const y = Number(fy);
     w.file({ stream_id: "IS-M2", download_date: `${y}-07-14`, name: `Pawroll-IncomeStatement-Agency-FY${y}.pdf`, bytes: incomeStatementDoc(w, "Mia", EMPLOYER, rows, y), family: "pawroll-income-statement-pdf", container: "pdf", expect: { income_statement: 1 }, origin: "portal", issued_on: `${y}-07-14` });

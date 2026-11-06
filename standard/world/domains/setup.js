@@ -148,6 +148,14 @@ function run(w) {
 
   S.category.push(...CATEGORIES);
 
+  // what the household says it has, so nothing reads as zero by accident. A missing row means not asked.
+  const scope = (domain, state, valid_from, note) => S.scope.push({ subject_type: "household", subject_id: HOUSEHOLD, domain, state, by: "Mia", valid_from, ...(note ? { note } : {}) });
+  for (const [d, from] of [["banking", "2019-03-01"], ["home_loan", "2019-03-15"], ["payroll", "2019-03-01"], ["super", "2019-03-01"], ["private_health", "2019-03-01"], ["insurance", "2019-08-14"], ["vehicle", "2019-03-01"], ["things", "2019-04-06"], ["credit_card", "2020-06-01"], ["shares", "2020-06-22"], ["rental", "2021-08-20"], ["help_debt", "2021-08-31"], ["childcare", "2023-07-01"], ["employee_shares", "2023-01-15"], ["crypto", "2023-05-02"]]) scope(d, "has", from);
+  scope("business", "none", "2019-03-01", "No ABN, no BAS.");
+  scope("trust", "none", "2019-03-01", "ETF distributions are trust income; no family trust.");
+  scope("smsf", "none", "2019-03-01", "The sheet carries an SMSF beta fixture; this world does not build it.");
+  scope("foreign_accounts", "none", "2019-03-01");
+
   // periods from 2019-03: months, quarters, financial years
   for (const ym of monthRange("2019-03", "2027-03")) S.period.push({ period_id: ym, kind: "month", start_on: `${ym}-01`, end_on: monthEnd(ym), status: "open" });
   for (let fy = 2019; fy <= 2027; fy++) {

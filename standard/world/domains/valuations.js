@@ -9,7 +9,7 @@ const ANNUAL = { HOME: [["2019-03-15", 104500000], ["2019-06-30", 104800000], ["
   RENTAL: [["2021-08-20", 64000000], ["2022-06-30", 69000000], ["2023-06-30", 70500000], ["2024-06-30", 72200000]],
   RENTAL2: [["2023-11-15", 39500000], ["2024-06-30", 40200000], ["2025-06-30", 41100000], ["2026-06-30", 42600000]],
   CAR: [["2022-11-05", 3890000], ["2023-06-30", 3500000], ["2024-06-30", 3150000]] };
-const VALUER = { HOME: "Paws and Pillars Valuers", RENTAL: "Paws and Pillars Valuers", RENTAL2: "Goldfields Realty", CAR: "RedBook Purr" };
+const VALUER = { HOME: "Paws and Pillars Valuers", RENTAL: "Paws and Pillars Valuers", RENTAL2: "Goldpaws Realty", CAR: "RedBook Purr" };
 
 function appraisalDoc(w, subject, asAt, cents) {
   const d = new Doc({ brand: { name: VALUER[subject], tagline: "An opinion of value, with whiskers.", color: "#57534e" }, title: "Valuation", kicker: `As at ${fmtDate(asAt)}`, deflate: w.deflate });
