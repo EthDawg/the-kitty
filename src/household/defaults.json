@@ -1,0 +1,603 @@
+{
+ "_about": "Shared data a blank household reads through its own overrides: the default chart of categories, the tax map and the day the law was last read. Generated from the standard; src/household/test.js fails if it drifts. Holds no household.",
+ "reference_verified_at": "2026-11-07",
+ "categories": [
+  {
+   "category_id": "SALARY",
+   "name": "Salary and wages",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SALARY-ALLOW",
+   "name": "Allowances",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "REIMBURSE",
+   "name": "Employer reimbursements",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": false,
+   "note": "Comes back through payroll; never income for tax."
+  },
+  {
+   "category_id": "GOV-PAY",
+   "name": "Government payments",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true,
+   "note": "Parental leave pay, family payments, and child support collected through Services Australia."
+  },
+  {
+   "category_id": "SIDE-INC",
+   "name": "Side income",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true,
+   "note": "Held as evidence for now: sole-trader derivation is not modelled."
+  },
+  {
+   "category_id": "PASS-THROUGH",
+   "name": "Third-party money",
+   "kind": "pass_through",
+   "group": "Other",
+   "cash_lens": false,
+   "economic_lens": false,
+   "note": "Crosses the household's rails and is nobody's income or spending: a reimbursement by separate credit, a relative's spend on your card."
+  },
+  {
+   "category_id": "SUPER-EMPLOYER",
+   "name": "Employer super",
+   "kind": "income",
+   "group": "Super",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SUPER-SACRIFICE",
+   "name": "Salary sacrificed to super",
+   "kind": "income",
+   "group": "Super",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "PAYROLL-DED",
+   "name": "Post-tax payroll deductions",
+   "kind": "expense",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "INTEREST",
+   "name": "Interest earned",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "DIVIDEND",
+   "name": "Dividends and distributions",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "TRUST-DIST",
+   "name": "Trust distributions",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "ESS-INCOME",
+   "name": "Employee share scheme income",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "CRYPTO-INCOME",
+   "name": "Staking and crypto income",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SUPER-EARN",
+   "name": "Super fund earnings",
+   "kind": "income",
+   "group": "Super",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SUPER-FEES",
+   "name": "Super fund fees",
+   "kind": "expense",
+   "group": "Super",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SUPER-INS",
+   "name": "Insurance inside super",
+   "kind": "expense",
+   "group": "Super",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SUPER-TAX",
+   "name": "Contributions tax",
+   "kind": "expense",
+   "group": "Super",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "GIFT-IN",
+   "name": "Gifts and inheritances received",
+   "kind": "income",
+   "group": "Income",
+   "cash_lens": true,
+   "economic_lens": false,
+   "note": "Not income for tax. A receipt that moves net worth."
+  },
+  {
+   "category_id": "RENT-INC",
+   "name": "Rent received",
+   "kind": "income",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "RENT-PAID",
+   "name": "Rent paid",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true,
+   "note": "Rent the household pays as a tenant."
+  },
+  {
+   "category_id": "MORTGAGE",
+   "name": "Home loan repayments",
+   "kind": "expense",
+   "group": "Housing",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": false,
+   "note": "Cash lens only. The interest inside it is HOME-INT."
+  },
+  {
+   "category_id": "HOME-INT",
+   "name": "Home loan interest",
+   "kind": "expense",
+   "group": "Housing",
+   "essential": true,
+   "cash_lens": false,
+   "economic_lens": true,
+   "note": "Economic lens only."
+  },
+  {
+   "category_id": "RATES-HOME",
+   "name": "Council rates (home)",
+   "kind": "expense",
+   "group": "Housing",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true,
+   "property_twin_id": "RENT-RATES"
+  },
+  {
+   "category_id": "HOME-INS",
+   "name": "Home and contents insurance",
+   "kind": "expense",
+   "group": "Housing",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true,
+   "property_twin_id": "RENT-INS"
+  },
+  {
+   "category_id": "HOME-MAINT",
+   "name": "Home maintenance",
+   "kind": "expense",
+   "group": "Housing",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true,
+   "property_twin_id": "RENT-REPAIR"
+  },
+  {
+   "category_id": "GROCERIES",
+   "name": "Groceries",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "UTILITIES",
+   "name": "Energy and water",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true,
+   "property_twin_id": "RENT-RATES"
+  },
+  {
+   "category_id": "TELCO",
+   "name": "Internet and mobile",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "TRANSPORT",
+   "name": "Fuel and transport",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "CAR",
+   "name": "Car costs",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "HEALTH",
+   "name": "Health",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "CHILDCARE",
+   "name": "Childcare",
+   "kind": "expense",
+   "group": "Essentials",
+   "essential": true,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "DINING",
+   "name": "Dining and takeaway",
+   "kind": "expense",
+   "group": "Lifestyle",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SUBS",
+   "name": "Subscriptions",
+   "kind": "expense",
+   "group": "Lifestyle",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "SHOPPING",
+   "name": "Shopping",
+   "kind": "expense",
+   "group": "Lifestyle",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "KIDS-ACT",
+   "name": "Kids activities",
+   "kind": "expense",
+   "group": "Lifestyle",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "HOLIDAYS",
+   "name": "Holidays and travel",
+   "kind": "expense",
+   "group": "Lifestyle",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "GIFTS",
+   "name": "Gifts",
+   "kind": "expense",
+   "group": "Lifestyle",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "PERSONAL",
+   "name": "Personal care",
+   "kind": "expense",
+   "group": "Lifestyle",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "RENT-INT",
+   "name": "Investment loan interest",
+   "kind": "expense",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true,
+   "note": "Interest-only loans: the bank line and the interest are the same dollars."
+  },
+  {
+   "category_id": "RENT-MGMT",
+   "name": "Property management fees",
+   "kind": "expense",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "RENT-RATES",
+   "name": "Rental rates and water",
+   "kind": "expense",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "RENT-STRATA",
+   "name": "Strata levies",
+   "kind": "expense",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "RENT-INS",
+   "name": "Landlord insurance",
+   "kind": "expense",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "RENT-REPAIR",
+   "name": "Rental repairs",
+   "kind": "expense",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "RENT-OTHER",
+   "name": "Other rental costs",
+   "kind": "expense",
+   "group": "Property",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "WORK-EQUIP",
+   "name": "Work equipment",
+   "kind": "expense",
+   "group": "Work and giving",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "WORK-OTHER",
+   "name": "Work registrations and courses",
+   "kind": "expense",
+   "group": "Work and giving",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "DONATION",
+   "name": "Donations",
+   "kind": "expense",
+   "group": "Work and giving",
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "FEES",
+   "name": "Bank fees and card interest",
+   "kind": "expense",
+   "group": "Fees",
+   "essential": false,
+   "cash_lens": true,
+   "economic_lens": true
+  },
+  {
+   "category_id": "INCOME-TAX",
+   "name": "Income tax assessed",
+   "kind": "expense",
+   "group": "Tax",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "HELP-INDEX",
+   "name": "HELP indexation",
+   "kind": "expense",
+   "group": "Tax",
+   "cash_lens": false,
+   "economic_lens": true
+  },
+  {
+   "category_id": "TAX-REFUND",
+   "name": "Tax refunds and payments",
+   "kind": "transfer",
+   "group": "Tax",
+   "cash_lens": false,
+   "economic_lens": false,
+   "note": "Money between the household and its tax position."
+  },
+  {
+   "category_id": "TRANSFER",
+   "name": "Transfers between own accounts",
+   "kind": "transfer",
+   "group": "Transfers",
+   "cash_lens": false,
+   "economic_lens": false
+  },
+  {
+   "category_id": "CC-PAY",
+   "name": "Credit card payments",
+   "kind": "transfer",
+   "group": "Transfers",
+   "cash_lens": false,
+   "economic_lens": false
+  },
+  {
+   "category_id": "UNCAT",
+   "name": "Uncategorised",
+   "kind": "suspense",
+   "group": "Uncategorised",
+   "cash_lens": true,
+   "economic_lens": true
+  }
+ ],
+ "tax_map": [
+  {
+   "selector_type": "category",
+   "selector": "INTEREST",
+   "label": "10",
+   "treatment": "income",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-INC",
+   "label": "21P",
+   "treatment": "income",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-INT",
+   "label": "21Q",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-MGMT",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-RATES",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-STRATA",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-INS",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-REPAIR",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "RENT-OTHER",
+   "label": "21X",
+   "treatment": "deduction",
+   "basis": "ownership",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "WORK-EQUIP",
+   "label": "D5",
+   "treatment": "deduction",
+   "basis": "person",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "WORK-OTHER",
+   "label": "D5",
+   "treatment": "deduction",
+   "basis": "person",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "DONATION",
+   "label": "D9",
+   "treatment": "deduction",
+   "basis": "person",
+   "valid_from": "2018-07-01"
+  },
+  {
+   "selector_type": "category",
+   "selector": "CRYPTO-INCOME",
+   "label": "24",
+   "treatment": "income",
+   "basis": "person",
+   "valid_from": "2018-07-01"
+  }
+ ]
+}
