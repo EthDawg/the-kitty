@@ -288,6 +288,19 @@
             null
           ]
         },
+        "opening_balance_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "opening_date": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
         "note": {
           "bsonType": [
             "string",

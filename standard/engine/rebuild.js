@@ -101,6 +101,8 @@ function rebuild(input) {
   };
   L.excludedObs = new Set();
   L.tax = reference ? Tax.derive({ L, R, reference, setup }) : null;
+  L.returns = Tax.materialiseReturns(R);
+  L.resolverObs = R.byKind;
 
   L.checks = runLaws(L);
   L.review = rankReview(R.review);

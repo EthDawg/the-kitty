@@ -52,6 +52,8 @@ CREATE TABLE "account" (
   "liquid" INTEGER,
   "in_scope" INTEGER,
   "fidelity" TEXT CHECK ("fidelity" IN ('ledger', 'snapshot')),
+  "opening_balance_cents" INTEGER,
+  "opening_date" TEXT,
   "note" TEXT
 );
 

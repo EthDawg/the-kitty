@@ -70,6 +70,8 @@ Anything with a balance. A balance is never stored; it is the sum of postings, c
 | `liquid` | bool |  |
 | `in_scope` | bool |  |
 | `fidelity` | text | ledger, snapshot |
+| `opening_balance_cents` | cents |  |
+| `opening_date` | date |  |
 | `note` | text |  |
 
 ### `alias` (bitemporal)

@@ -179,3 +179,63 @@ test("an amended return posts only the change, and the ATO position returns to z
   assert.equal(L.accrual.find((m) => m.month === "2026-08").byCategory["INCOME-TAX"], -1900000);
   assert.equal(L.accrual.find((m) => m.month === "2026-11").byCategory["INCOME-TAX"], -40000, "only the change");
 });
+
+test("8 the tinkerer: tailors, types in a managed tab, takes an update, and keeps everything", () => {
+  const { planUpdate, managedTabCheck, checkTailoring, hashTable } = require("../../engine/upgrade");
+  const { sealOf } = require("../../engine/laws");
+  const h = household("tinkerer").person("sam").account("BANK", "transaction", "cash", [["sam", 10000]]);
+  h.rule("VET", "SHOPPING", { x_pet: "biscuit" }).rule("WOOLWORTHS", "GROCERIES");
+  h.line("BANK", "2026-05-02", "WOOLWORTHS 1", -5000).line("BANK", "2026-05-03", "LOCAL VET", -9000).line("BANK", "2026-06-02", "WOOLWORTHS 2", -6000).line("BANK", "2026-07-05", "NEW MERCHANT", -2000);
+  h.decisions.push({ decision_id: "d1", target_type: "line", target_ref: "BANK|2026-07-05|-2000", verb: "categorise", value: { category_id: "SHOPPING" }, by: "sam", at: "2026-07-06T00:00:00Z", status: "accepted" });
+  h.setup.x_pets = [{ name: "Biscuit", x_claim_limit_cents: 500000 }];
+  const tailoring = [{ tailoring_id: "t1", rung: "saved_question", name: "pet_costs", sentence: "What does the dog cost a year?", definition: { sum: "SHOPPING where VET" }, example: { result: { cents: 9000 } }, standard_version: "household-standard/1", status: "active" }];
+  const before = run(h);
+
+  const May = { period_id: "2026-05", status: "locked", start_on: "2026-05-01", end_on: "2026-05-31" };
+  May.seal_hash = sealOf(before, May);
+  const June = { period_id: "2026-06", status: "open", start_on: "2026-06-01", end_on: "2026-06-30" };
+
+  // The update: better shared data re-reads the vet as HOUSING. New logic reaches a locked month.
+  const originals = { before: { rule: JSON.parse(JSON.stringify(h.rules)), decision: JSON.parse(JSON.stringify(h.decisions)), x_pets: JSON.parse(JSON.stringify(h.setup.x_pets)), observation: JSON.parse(JSON.stringify(h.observations)) } };
+  const updated = { ...h, rules: h.rules.map((r) => (r.pattern === "VET" ? { ...r, category_id: "HOUSING" } : r)) };
+  const after = run(updated);
+  originals.after = { rule: originals.before.rule, decision: h.decisions, x_pets: h.setup.x_pets, observation: h.observations };
+  const plan = planUpdate({ before, after, originals, periods: [May, June] });
+
+  assert.deepEqual(plan.originals_touched, [], "originals and x_ are byte-identical");
+  assert.deepEqual(plan.unbound_decisions, [], "every decision is still bound");
+  assert.equal(plan.proposals.length, 1, "a locked month raises a reopen proposal instead of moving");
+  assert.equal(plan.proposals[0].period, "2026-05");
+  assert.ok(plan.summary.startsWith("Nothing you entered changes"));
+
+  // A person types in a managed tab: the next writer stops and proposes, and overwrites nothing.
+  const rows = [{ event_id: "a", amount_cents: 100 }];
+  const stored = hashTable(rows);
+  const edited = managedTabCheck({ table: "event", stored_hash: stored, rows: [{ event_id: "a", amount_cents: 105 }], key: "a" });
+  assert.equal(edited.ok, false);
+  assert.equal(edited.proposals[0].status, "proposed");
+  assert.equal(managedTabCheck({ table: "event", stored_hash: stored, rows }).ok, true);
+
+  // Tailoring carries the person's sentence and an example, so it survives or gets rewritten from the sentence.
+  const pass = checkTailoring(tailoring, () => ({ cents: 9000 }));
+  assert.equal(pass[0].status, "pass");
+  const rewrite = checkTailoring(tailoring, () => ({ cents: 0 }));
+  assert.equal(rewrite[0].status, "rewrite");
+  assert.equal(rewrite[0].sentence, "What does the dog cost a year?");
+});
+
+test("2 shape change: a lodged business year reads by composition, and BAS net sales tie in both GST cases", () => {
+  const { composition } = require("../../engine/tax");
+  const h = household("sole").person("sam").account("BANK", "transaction", "cash", [["sam", 10000]]);
+  h.obs("tax_assessment", { person_ref: "sam", fy: "FY2025", assessed_on: "2025-09-01", version: 1, taxable_income_cents: 9000000, gross_tax_cents: 1800000, payg_credits_cents: 1800000, result_cents: 0,
+    labels: [{ line_id: "a", label: "1", section: "salary", role: "leaf", amount_cents: 3000000 }, { line_id: "b", label: "P8", section: "business", role: "leaf", amount_cents: 6000000 }, { line_id: "c", label: "15", section: "business", role: "memo", amount_cents: 6000000 }, { line_id: "d", label: null, section: "total", role: "subtotal", amount_cents: 9000000 }, { line_id: "e", label: "A", section: "spouse", role: "memo", amount_cents: 4200000 }] });
+  h.obs("activity_statement", { person_ref: "sam", period_start: "2024-07-01", period_end: "2024-09-30", g1_cents: 3300000, g1_includes_gst: true, gst_collected_cents: 300000 });
+  h.obs("activity_statement", { person_ref: "sam", period_start: "2024-10-01", period_end: "2024-12-31", g1_cents: 3000000, g1_includes_gst: false });
+  h.obs("activity_statement", { person_ref: "sam", period_start: "2025-01-01", period_end: "2025-03-31", instalment_cents: 50000 });
+  h.line("BANK", "2024-08-01", "OPENING", 100);
+  const L = run(h);
+  const c = composition(L, "sam", "FY2025");
+  assert.equal(c.grade, "lodged");
+  assert.deepEqual(c.parts, [{ section: "salary", amount_cents: 3000000 }, { section: "business", amount_cents: 6000000 }], "leaves only: the repeated net and the spouse memo do not count");
+  assert.equal(L.checks.find((x) => x.law === "L19").status, "pass", "G1 less 1A where it includes GST, plain G1 where it does not, and a PAYG-only statement is skipped");
+});

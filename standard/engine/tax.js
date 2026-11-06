@@ -234,4 +234,35 @@ function derive({ L, R, reference, setup }) {
   return out;
 }
 
-module.exports = { derive, scaleTax, seriesAt };
+// Lodged returns are history. Labels repeat and some lines have no label, so each line has an identity and a role.
+function materialiseReturns(R) {
+  const returns = [], lines = [];
+  for (const o of R.collapseDocs("tax_assessment")) {
+    const p = o.payload;
+    const party_id = R.partyOf(p.person_ref, p.assessed_on);
+    const return_id = `ret_${party_id}_${p.fy}_v${p.version}`;
+    returns.push({ return_id, party_id, fy: p.fy, version: p.version, status: p.version > 1 ? "amended" : "assessed", lodged_on: p.lodged_on || null, assessed_on: p.assessed_on, taxable_income_cents: p.taxable_income_cents, tax_cents: p.gross_tax_cents, credits_cents: p.payg_credits_cents, result_cents: p.result_cents, source_id: o.source_id, supersedes_return_id: p.version > 1 ? `ret_${party_id}_${p.fy}_v${p.version - 1}` : null });
+    const rows = Array.isArray(p.labels) ? p.labels : Object.entries(p.labels || {}).map(([label, amount_cents]) => ({ label, amount_cents, role: "leaf" }));
+    rows.forEach((r, i) => lines.push({ line_id: r.line_id || `${return_id}_${i + 1}`, return_id, label: r.label ?? null, section: r.section ?? null, role: r.role || "leaf", rolls_up_to: r.rolls_up_to ?? null, amount_cents: r.amount_cents, note: r.note ?? null }));
+  }
+  return { returns, lines };
+}
+
+/* A year's composition. Lodged-first: a lodged year reads the return's leaf lines by section, so a business year or a parental-leave
+   year is not one low bar. An open year reads derived items by activity. The grade says which. */
+function composition(L, person, fy) {
+  const R = L.returns || { returns: [], lines: [] };
+  const latest = R.returns.filter((r) => r.party_id === person && r.fy === fy).sort((a, b) => b.version - a.version)[0];
+  if (latest) {
+    const parts = new Map();
+    for (const l of R.lines.filter((x) => x.return_id === latest.return_id && x.role === "leaf")) {
+      const k = l.section || l.label || "other";
+      parts.set(k, (parts.get(k) || 0) + l.amount_cents);
+    }
+    return { fy, person, grade: "lodged", parts: [...parts].map(([section, amount_cents]) => ({ section, amount_cents })) };
+  }
+  const items = (L.tax ? L.tax.items : []).filter((i) => i.party_id === person && i.fy === fy && /^(1|2|10|11|12|13|18A|20|21P)/.test(i.label));
+  return { fy, person, grade: "derived", parts: items.map((i) => ({ section: i.label, amount_cents: i.amount_cents })) };
+}
+
+module.exports = { derive, scaleTax, seriesAt, materialiseReturns, composition };

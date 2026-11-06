@@ -289,9 +289,22 @@ const laws = {
     return out.length ? out : [row("L20", "valuations", "pass")];
   },
 
+  // Net sales on the year's activity statements against business income on the return. A question, not conservation.
   L19(L) {
-    const hasBusiness = (L.activities || []).some((a) => a.kind === "sole_trader");
-    return [row("L19", "bas", hasBusiness ? "open" : "skip", { detail: hasBusiness ? "Business activity present; BAS tie is experimental." : "No business activity." })];
+    const stmts = (L.resolverObs && L.resolverObs.get("activity_statement")) || [];
+    const withSales = stmts.filter((o) => o.payload.g1_cents != null);
+    if (!withSales.length) return [row("L19", "bas", "skip", { detail: "No activity statement states sales." })];
+    const out = [];
+    for (const [k, rows] of groupBy(withSales, (o) => { const p = o.payload; return `${p.person_ref}|${fyOf(p.period_end)}`; })) {
+      const [person, fy] = k.split("|");
+      const net = rows.reduce((s, o) => s + o.payload.g1_cents - (o.payload.g1_includes_gst ? o.payload.gst_collected_cents || 0 : 0), 0);
+      const ret = (L.returns ? L.returns.returns : []).filter((r) => r.fy === fy).sort((a, b) => b.version - a.version).find((r) => String(r.party_id).toLowerCase() === String(person).toLowerCase());
+      const line = ret && L.returns.lines.find((l) => l.return_id === ret.return_id && (l.section === "business" || l.label === "P8"));
+      if (!line) { out.push(row("L19", `${person} ${fy}`, "skip", { detail: "No lodged business income to compare with." })); continue; }
+      const gap = net - line.amount_cents;
+      out.push(row("L19", `${person} ${fy}`, Math.abs(gap) <= 10000 ? "pass" : "open", { expected: money(line.amount_cents), actual: money(net), gap_cents: gap, detail: Math.abs(gap) <= 10000 ? "Net sales tie." : "Net sales differ from business income. A return can hold non-sales income." }));
+    }
+    return out;
   },
 };
 

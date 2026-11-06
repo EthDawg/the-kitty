@@ -74,6 +74,8 @@
         "liquid:bool",
         "in_scope:bool",
         "fidelity:text:enum=ledger|snapshot",
+        "opening_balance_cents:cents",
+        "opening_date:date",
         "note:text"
       ]
     },

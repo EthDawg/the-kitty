@@ -76,6 +76,8 @@
         "liquid",
         "in_scope",
         "fidelity",
+        "opening_balance_cents",
+        "opening_date",
         "note"
       ]
     },
