@@ -46,10 +46,11 @@ function lito(cents, p) {
 function derive({ L, R, reference, setup }) {
   const people = (setup.party || []).filter((p) => p.kind === "person" && (setup.membership || []).some((m) => m.party_id === p.party_id && m.role === "adult"));
   const items = new Map();
-  const add = (person, fy, label, cents, method, evidence = "held", ref) => {
+  const add = (person, fy, label, cents, method, evidence = "held", ref, activity) => {
     if (!cents) return;
     const k = `${person}|${fy}|${label}`;
-    const r = items.get(k) || { party_id: person, fy, label, amount_cents: 0, method, evidence, refs: [] };
+    const r = items.get(k) || { party_id: person, fy, label, amount_cents: 0, method, evidence, refs: [], by_activity: {} };
+    if (activity) r.by_activity[activity] = (r.by_activity[activity] || 0) + cents;
     r.amount_cents += cents;
     if (ref && r.refs.length < 40) r.refs.push(ref);
     if (evidence === "missing" || (evidence === "at_risk" && r.evidence === "held")) r.evidence = evidence;
@@ -59,7 +60,7 @@ function derive({ L, R, reference, setup }) {
   const mapFor = (type, sel, on) => activeOn(tmap.filter((m) => m.selector_type === type && m.selector === sel && (m.entity_kind == null || m.entity_kind === "person")), on);
   const taxOwners = (e, on) => {
     const asset = e.asset_id;
-    const account = (e.refs && e.refs.account) || (e.line && e.line.account);
+    const account = e.ownerAccount || (e.refs && e.refs.account) || (e.line && e.line.account);
     const subject = asset ? ["asset", asset] : account ? ["account", account] : null;
     if (!subject) return null;
     const rows = R.ownersOf(subject[0], subject[1], on, "tax");
@@ -73,10 +74,11 @@ function derive({ L, R, reference, setup }) {
     if (owners) {
       const humans = owners.filter((o) => !wrapper(o.party_id));
       if (!humans.length) return;
-      for (const s of allocate(cents, humans.map((o) => ({ key: o.party_id, weight: o.share_bps })))) add(s.key, fy, label, s.cents, method, evidence, e.event_id);
-    } else if (e.person) add(e.person, fy, label, cents, method, evidence, e.event_id);
+      for (const s of allocate(cents, humans.map((o) => ({ key: o.party_id, weight: o.share_bps })))) add(s.key, fy, label, s.cents, method, evidence, e.event_id, e.activity_id || e.asset_id);
+    } else if (e.person) add(e.person, fy, label, cents, method, evidence, e.event_id, e.activity_id || e.asset_id);
   };
 
+  const byEmployerYear = new Map();
   // ---------- wages ----------
   for (const e of L.events) {
     if (e.kind === "wage") {
@@ -96,6 +98,20 @@ function derive({ L, R, reference, setup }) {
     if (e.kind === "vest") add(e.person, fyOf(e.occurred_on), "12", e.amount_cents, "plan statement", "held", e.event_id);
   }
 
+  // An employer's income statement outranks a sum of payslips, and holds the pays from before the history starts.
+  for (const o of R.collapseDocs("income_statement")) {
+    const p = o.payload;
+    const person = R.partyOf(p.person_ref, p.period_end);
+    (byEmployerYear.get(`${person}|${p.fy}`) || byEmployerYear.set(`${person}|${p.fy}`, []).get(`${person}|${p.fy}`)).push(p);
+  }
+  for (const [k, rows] of byEmployerYear) {
+    const [person, fy] = k.split("|");
+    const gross = rows.reduce((s, r) => s + r.gross_cents, 0), tax = rows.reduce((s, r) => s + r.tax_cents, 0);
+    const label1 = items.get(`${person}|${fy}|1`), payg = items.get(`${person}|${fy}|PAYG`);
+    if (label1) { label1.amount_cents = gross - (items.get(`${person}|${fy}|2`) || { amount_cents: 0 }).amount_cents; label1.method = "income statement"; } else add(person, fy, "1", gross, "income statement");
+    if (payg) { payg.amount_cents = tax; payg.method = "income statement"; } else add(person, fy, "PAYG", tax, "income statement");
+  }
+
   // ---------- anything the map names, by category or event kind, on the event's date ----------
   const postingsByEvent = groupBy(L.postings.filter((p) => p.category_id), (p) => p.event_id);
   for (const e of L.events) {
@@ -104,7 +120,7 @@ function derive({ L, R, reference, setup }) {
       if (["wage", "dividend", "drp", "vest"].includes(e.kind)) continue;
       for (const m of mapFor("category", p.category_id, e.occurred_on)) {
         const cents = m.treatment === "income" ? -p.amount_cents : p.amount_cents;
-        if (m.basis === "person" && e.person) add(e.person, fyOf(e.occurred_on), m.label, cents, `category ${p.category_id}`, "held", e.event_id);
+        if (m.basis === "person" && (e.claimant || e.person) && !["household"].includes(e.person)) add(e.claimant || e.person, fyOf(e.occurred_on), m.label, cents, `category ${p.category_id}`, "held", e.event_id);
         else spread(e, e.occurred_on, m.label, cents, `category ${p.category_id}`);
       }
     }
@@ -130,11 +146,13 @@ function derive({ L, R, reference, setup }) {
   const allFys = [...new Set([...fys, ...[...items.values()].map((i) => i.fy)])].sort();
   for (const fy of allFys) {
     for (const person of people.map((p) => p.party_id)) {
-      const rows = L.lotMatches.filter((m) => m.fy === fy && (m.party_id === person));
+      const rows = shareMatches(L.lotMatches, R, wrapper).filter((m) => m.fy === fy && m.party_id === person);
       const unknown = rows.filter((m) => m.gain_cents == null).length;
       if (unknown) add(person, fy, "18A", 0, "sales with unknown cost base", "missing");
       let lossPool = carry.get(person) || 0;
       let disc = 0, other = 0;
+      const fromTrusts = (items.get(`${person}|${fy}|18H-DIST`) || { amount_cents: 0 }).amount_cents;
+      disc += fromTrusts;
       for (const m of rows) {
         if (m.gain_cents == null) continue;
         if (m.gain_cents < 0) lossPool -= m.gain_cents;
@@ -144,7 +162,7 @@ function derive({ L, R, reference, setup }) {
       const useOther = Math.min(lossPool, other); other -= useOther; lossPool -= useOther;
       const useDisc = Math.min(lossPool, disc); disc -= useDisc; lossPool -= useDisc;
       carry.set(person, lossPool);
-      add(person, fy, "18H", total, "lot matches");
+      add(person, fy, "18H", total + 0, "lot matches and trust gains");
       add(person, fy, "18A", Math.floor(disc / 2) + other, "lot matches, losses first, then the discount");
       if (lossPool) add(person, fy, "18V", lossPool, "losses carried forward");
     }
@@ -155,11 +173,42 @@ function derive({ L, R, reference, setup }) {
     const p = o.payload;
     const person = R.partyOf(p.person_ref, p.period_end);
     const fy = p.fy;
+    if (p.log_kind === "expense" && p.label) add(person, fy, p.label, p.amount_cents, "a person's worksheet");
     if (p.log_kind === "wfh" && p.hours != null) {
-      const rate = seriesAt(reference, "wfh_fixed_rate", p.period_end);
-      const r = typeof rate === "object" && rate ? rate.rate ?? rate.value ?? rate.cents_per_hour / 100 : rate;
+      const rate = reference ? seriesAt(reference, "wfh_fixed_rate", p.period_end) : null;
+      const r = rate && typeof rate === "object" ? rate.rate ?? rate.value ?? rate.cents_per_hour / 100 : rate;
       if (r != null) add(person, fy, "D5", Math.round(p.hours * Number(r > 5 ? r / 100 : r) * 100), `work from home: ${p.hours} hours at the rate for that year`);
     }
+  }
+
+  // The plan's annual statement outranks a sum of vests.
+  for (const o of R.collapseDocs("ess_statement")) {
+    const p = o.payload; const person = R.partyOf(p.person_ref, p.period_end);
+    const it = items.get(`${person}|${p.fy}|12`);
+    if (it) { it.amount_cents = p.discount_cents; it.method = "plan statement"; } else add(person, p.fy, "12", p.discount_cents, "plan statement");
+  }
+  // Borrowing costs spread over years and follow the loan's purpose. What is left falls due when the loan is refinanced.
+  for (const o of R.byKind.get("amortisation_schedule") || []) {
+    const p = o.payload;
+    const contract = R.alias("contract", p.contract_ref, p.issued_on) || (R.contracts.has(p.contract_ref) ? p.contract_ref : null);
+    if (!contract) continue;
+    const c = R.contracts.get(contract);
+    const payout = L.events.find((e) => e.kind === "loan_payout" && e.contract_id === contract);
+    const purposes = (setup.link || []).filter((k) => k.relation === "funds_purpose" && k.from_id === contract);
+    for (const it of p.items || []) for (const [fy, cents] of Object.entries(it.by_fy || {})) {
+      const payoutFy = payout ? fyOf(payout.occurred_on) : null;
+      const year = payoutFy && fy > payoutFy ? payoutFy : fy;
+      for (const k of purposes.length ? purposes : [{ to_id: c.asset_id, share_bps: 10000 }]) {
+        const share = Math.round(cents * (k.share_bps || 10000) / 10000);
+        if (R.term("asset", k.to_id, "use", fyRange(year).end) !== "rental") continue;
+        spread({ asset_id: k.to_id, event_id: `amort|${contract}|${it.name}`, refs: {} }, fyRange(year).end, "21X", share, `borrowing cost: ${it.name}`);
+      }
+    }
+  }
+  // Private health: days covered and the rebate are memo facts on the return. They decide the surcharge; they are not income.
+  for (const o of R.byKind.get("health_statement") || []) {
+    const p = o.payload; const person = R.partyOf(p.person_ref, p.period_end);
+    add(person, p.fy, "M2-DAYS", p.days_covered, "insurer's statement"); add(person, p.fy, "PHI-REBATE", p.rebate_cents, "insurer's statement");
   }
 
   // ---------- decline in value and capital works: schedules, not transactions ----------
@@ -178,7 +227,7 @@ function derive({ L, R, reference, setup }) {
 
   // ---------- estimate: taxable income, the scale, offsets, levies, credits ----------
   const byPersonFy = groupBy(list, (r) => `${r.party_id}|${r.fy}`);
-  const incomeLabels = new Set(["1", "2", "10", "11S", "11T", "11U", "12", "13U", "13C", "13Q", "18A", "20M", "21P"]);
+  const incomeLabels = new Set(["1", "2", "7", "10", "11S", "11T", "11U", "12", "13U", "13C", "13Q", "18A", "20M", "21P", "24"]);
   const notDeductions = new Set(["21P", "21Q", "21F", "21X"]);
   for (const [key, rows] of byPersonFy) {
     const [person, fy] = key.split("|");
@@ -193,8 +242,8 @@ function derive({ L, R, reference, setup }) {
     void notDeductions;
     const taxable = Math.max(income - deductions, 0);
     const { end } = fyRange(fy);
-    const brackets = seriesAt(reference, "resident_tax_brackets", end);
-    if (!brackets) continue;
+    const brackets = reference ? seriesAt(reference, "resident_tax_brackets", end) : null;
+    if (!brackets) { out.estimates.push({ person, fy, taxable_income_cents: taxable, gross_tax_cents: null, offsets_cents: null, levy_cents: null, payg_cents: get("PAYG"), franking_cents: get("11U") + get("13Q"), result_cents: null }); continue; }
     const gross = scaleTax(taxable, brackets);
     const litoParams = seriesAt(reference, "lito", end);
     const offsets = lito(taxable, litoParams);
@@ -217,6 +266,33 @@ function derive({ L, R, reference, setup }) {
     out.ties.push({ person, fy, status: Math.abs(gap) <= 100 ? "pass" : "fail", lodged: p.taxable_income_cents, derived: est.taxable_income_cents, gap, lodged_result: p.result_cents, derived_result: est.result_cents, result_gap: est.result_cents - p.result_cents, detail: Math.abs(gap) <= 100 ? "Taxable income ties." : "Derived taxable income differs from the assessment." });
   }
 
+  // Label by label: an offsetting pair of errors passes on the total and fails here. A lodged year's lines are the record.
+  const labelLines = new Map();
+  for (const l of (materialiseReturns(R)).lines) if (l.role === "leaf" && l.label) labelLines.set(`${l.return_id}|${l.label}`, l);
+  out.labelTies = [];
+  for (const [k, p] of lodged) {
+    const [person, fy] = k.split("|");
+    const rid = `ret_${person}_${fy}_v${p.version}`;
+    const lines = (Array.isArray(p.labels) ? p.labels : []).filter((l) => l.role === "leaf" && l.label);
+    let bad = 0, worst = null;
+    for (const l of lines) {
+      const got = (items.get(`${person}|${fy}|${l.label}`) || { amount_cents: 0 }).amount_cents;
+      const gap = Math.trunc(got / 100) * 100 - Math.trunc(l.amount_cents / 100) * 100;
+      if (Math.abs(gap) > 100) { bad += 1; if (!worst || Math.abs(gap) > Math.abs(worst.gap)) worst = { label: l.label, gap }; }
+    }
+    if (lines.length) out.labelTies.push({ person, fy, labels: lines.length, bad, worst, rid });
+  }
+  // Pre-fill is the tax office's own view of the year. A difference is a question to answer before lodging, either way.
+  out.prefill = [];
+  for (const o of R.collapseDocs("prefill")) {
+    const p = o.payload; const person = R.partyOf(p.person_ref, p.period_end);
+    for (const it of p.items || []) {
+      const label = it.label, want = it.amount_cents;
+      const got = (items.get(`${person}|${p.fy}|${label}`) || { amount_cents: 0 }).amount_cents;
+      if (label && Math.abs(got - want) > 100) out.prefill.push({ person, fy: p.fy, label, want, got });
+    }
+  }
+
   // ---------- caps ----------
   const conc = new Map();
   for (const e of L.events) if (e.kind === "super_contribution" || e.kind === "super_personal") {
@@ -227,9 +303,26 @@ function derive({ L, R, reference, setup }) {
   }
   for (const [k, used] of conc) {
     const [person, fy] = k.split("|");
-    const cap = seriesAt(reference, "concessional_cap", fyRange(fy).end);
+    const cap = reference ? seriesAt(reference, "concessional_cap", fyRange(fy).end) : null;
     const limit = cap == null ? null : Math.round(Number(typeof cap === "object" ? cap.amount ?? cap.value : cap) * 100);
     if (limit != null) out.caps.push({ person, fy, cap: "concessional", used, limit });
+  }
+  return out;
+}
+
+// A joint holding's gain splits by tax ownership on the day of sale, conserving cents.
+function shareMatches(matches, R, wrapper) {
+  const out = [];
+  for (const m of matches) {
+    if (m.party_id) { out.push(m); continue; }
+    const lot = R.lots && R.lots.lots.find((l) => l.lot_id === m.lot_id);
+    const propertyLot = R.propertyLots && R.propertyLots.lots.find((l) => l.lot_id === m.lot_id);
+    const subject = propertyLot ? ["asset", propertyLot.asset_id] : lot ? ["account", lot.account_id] : null;
+    const owners = subject ? R.ownersOf(subject[0], subject[1], m.disposed_on, "tax").filter((o) => !wrapper(o.party_id)) : [];
+    if (!owners.length) { out.push(m); continue; }
+    if (m.gain_cents == null) { for (const o of owners) out.push({ ...m, party_id: o.party_id }); continue; }
+    const shares = allocate(m.gain_cents, owners.map((o) => ({ key: o.party_id, weight: o.share_bps })));
+    for (const x of shares) out.push({ ...m, party_id: x.key, gain_cents: x.cents });
   }
   return out;
 }

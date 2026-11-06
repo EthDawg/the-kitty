@@ -168,8 +168,12 @@
           "+tax"
         ],
         [
+          "clearing:ess:{plan}",
+          "+plan_contribution"
+        ],
+        [
           "clearing:payroll:{employer}",
-          "+gross+allowance+reimbursement-post_tax-tax-sacrifice"
+          "+gross+allowance+reimbursement-post_tax-tax-sacrifice-plan_contribution"
         ],
         [
           "clearing:super:{fund}",
@@ -534,13 +538,18 @@
       "legs": [
         [
           "{holding}",
-          "+amount"
+          "+amount+cost_paid"
         ],
         [
           "cat:ESS-INCOME",
           "-amount"
+        ],
+        [
+          "clearing:ess:{plan}",
+          "-cost_paid"
         ]
-      ]
+      ],
+      "note": "An RSU has no cost_paid; an ESPP purchase has both: the discount is income, the rest is what contributions paid. The lot's cost is the market value at purchase."
     },
     "crypto_buy": {
       "family": "trade",
@@ -918,6 +927,46 @@
       ],
       "legs": [],
       "note": "Moves share between owners; nothing moves at household level. It is what makes the by-owner roll-forward hold."
+    },
+    "crypto_transfer": {
+      "family": "trade",
+      "authority": [
+        "crypto_txn"
+      ],
+      "legs": [],
+      "note": "Moving a coin between one's own wallets is nothing happening. It has an event so its witnesses have a home."
+    },
+    "div293_assessed": {
+      "family": "tax",
+      "authority": [
+        "super_tax_notice"
+      ],
+      "legs": [
+        [
+          "cat:SUPER-TAX",
+          "+amount"
+        ],
+        [
+          "ato:{person}",
+          "-amount"
+        ]
+      ]
+    },
+    "super_release": {
+      "family": "super",
+      "authority": [
+        "super_line"
+      ],
+      "legs": [
+        [
+          "ato:{person}",
+          "+amount"
+        ],
+        [
+          "{account}",
+          "-amount"
+        ]
+      ]
     }
   },
   "extension": "A kind prefixed x_ is accepted when its legs pass the same proof as these. An agent adds one line of data, never a code path."

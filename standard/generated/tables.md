@@ -140,6 +140,7 @@ The chart of income and expense. Tax relevance lives in tax_map, by date.
 | `essential` | bool |  |
 | `cash_lens` | bool | required |
 | `economic_lens` | bool | required |
+| `property_twin_id` | id | → category |
 | `note` | text |  |
 
 ### `instrument` (static)
@@ -192,12 +193,12 @@ An income-producing activity with a start, an end and an owner. A rental and an 
 
 ### `contract` (static)
 
-A standing agreement. Everything that can change lives in term.
+A standing agreement, or an accepted one-off commitment. Everything that can change lives in term.
 
 | Column | Type | Notes |
 |---|---|---|
 | `contract_id` | id | key |
-| `kind` | text | required; loan, insurance, employment, lease, subscription, utility, childcare, membership, super_fund, ess_plan |
+| `kind` | text | required; loan, insurance, employment, lease, subscription, utility, childcare, membership, super_fund, ess_plan, commitment |
 | `name` | text | required |
 | `counterparty_party_id` | id | → party |
 | `holder_party_id` | id | → party |
@@ -339,6 +340,7 @@ One claim one source made, with a locator back to the place. Records what was sa
 | `recipe_id` | id |  |
 | `confidence` | rate | required |
 | `quote` | text |  |
+| `supersedes_obs_id` | id |  |
 | `status` | text | required; active, rejected, superseded |
 
 ### `tax_return` (append)
@@ -369,11 +371,14 @@ One line on a lodged return or assessment. Labels repeat within a return and som
 |---|---|---|
 | `line_id` | id | key |
 | `return_id` | id | required; → tax_return |
+| `activity_id` | id | → activity |
 | `label` | text |  |
 | `section` | text |  |
 | `role` | text | required; leaf, subtotal, memo, carry |
 | `rolls_up_to` | id |  |
 | `amount_cents` | cents | required |
+| `gross_cents` | cents |  |
+| `obs_id` | id |  |
 | `note` | text |  |
 
 ## Judgement
@@ -399,7 +404,7 @@ One thing a person chose, with the reason and what would reopen it. Survives eve
 
 ### `rule` (bitemporal)
 
-The household's accumulated taste: what a descriptor means.
+The household's accumulated taste: what a descriptor means. Priority beats length; a rule can be scoped to one account; a rule can name the property a line belongs to.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -410,6 +415,10 @@ The household's accumulated taste: what a descriptor means.
 | `category_id` | id | → category |
 | `person` | text |  |
 | `event_kind` | text |  |
+| `priority` | int |  |
+| `account_id` | id | → account |
+| `activity_id` | id | → activity |
+| `asset_id` | id | → asset |
 | `contract_id` | id | → contract |
 | `valid_from` | date |  |
 | `valid_to` | date |  |
@@ -614,6 +623,7 @@ One parcel meeting one disposal. Each row is one CGT event line.
 | `proceeds_cents` | cents | required |
 | `cost_base_cents` | cents |  |
 | `gain_cents` | cents |  |
+| `exempt_cents` | cents |  |
 | `discount_eligible` | bool | required |
 | `method` | text | required; fifo, lifo, specific, hifo |
 
@@ -635,13 +645,14 @@ What is owed. Derived.
 
 ### `tax_item` (derived)
 
-A derived per-person, per-year, per-label amount, with its method and evidence state. A draft, never advice.
+A derived per-person, per-year, per-label amount, by activity where one applies, so a schedule can be produced per property. A draft, never advice.
 
 | Column | Type | Notes |
 |---|---|---|
 | `party_id` | id | required; → party |
 | `fy` | text | required |
 | `label` | text | required |
+| `activity_id` | id | → activity |
 | `amount_cents` | cents | required |
 | `method` | text | required |
 | `evidence` | text | required; held, missing, at_risk |

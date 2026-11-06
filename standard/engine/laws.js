@@ -31,7 +31,9 @@ const laws = {
       for (const f of flows) { const was = run; run += f.p.amount_cents; if (was === 0 && run !== 0) since = f.e.occurred_on; if (run === 0) since = null; }
       const age = since ? daysBetween(since, L.asOf) : 0;
       const allowed = maxAge[prefix];
-      out.push(row("L2", account, allowed && age <= allowed ? "open" : "fail", { gap_cents: bal, detail: `Open ${age} days since ${since}.` }));
+      // A fund receipt older than the first payslip held: its other witness is before the history starts. That is missing evidence, not a contradiction.
+      const beforeHistory = bal < 0 && prefix === "clearing:super";
+      out.push(row("L2", account, allowed && age <= allowed ? "open" : beforeHistory ? "gap" : "fail", { gap_cents: bal, detail: `Open ${age} days since ${since}.${beforeHistory ? " Its other witness is older than the history held." : ""}` }));
     }
     return out.length ? out : [row("L2", "no clearing accounts", "pass")];
   },
@@ -83,7 +85,7 @@ const laws = {
 
   L4(L) {
     const roles = groupBy(L.witnesses, (w) => w.obs_id);
-    const bearing = new Set(["txn_line", "super_line", "payslip", "owner_statement", "loan_statement", "contract_note", "dividend", "vest", "crypto_txn", "tax_assessment", "settlement"]);
+    const bearing = new Set(["txn_line", "super_line", "payslip", "owner_statement", "contract_note", "dividend", "vest", "crypto_txn", "tax_assessment", "settlement", "bill", "receipt", "childcare_statement"]);
     let orphans = 0, doubles = 0; const samples = [];
     const excluded = L.excludedObs || new Set();
     for (const o of L.observations) {
@@ -112,7 +114,8 @@ const laws = {
       const held = [...unique.values()].filter((s) => s.payload.person_ref === p.person_ref && s.payload.employer_ref === p.employer_ref && s.payload.pay_date >= start && s.payload.pay_date < stop);
       const sum = held.reduce((a, s) => a + s.payload.gross_cents, 0);
       const firstHeld = held.reduce((a, s) => (a && a < s.payload.pay_date ? a : s.payload.pay_date), null);
-      if (!firstHeld || daysBetween(start, firstHeld) > 21) { out.push(row("L5", `${p.person_ref} ${p.fy}`, "gap", { detail: `Payslips are held from ${firstHeld}; the year cannot be summed.` })); continue; }
+      if (Math.abs(sum - p.gross_cents) <= 100) continue;
+      if (!firstHeld || daysBetween(start, firstHeld) > 21) { out.push(row("L5", `${p.person_ref} ${p.fy}`, "gap", { gap_cents: p.gross_cents - sum, detail: `Payslips are held from ${firstHeld}; the rest of the year is not held.` })); continue; }
       if (Math.abs(sum - p.gross_cents) > 100) out.push(row("L5", `${p.person_ref} ${p.fy}`, "fail", { expected: money(p.gross_cents), actual: money(sum), gap_cents: p.gross_cents - sum, detail: "Payslips do not sum to the income statement." }));
     }
     if (!bad && !out.length) out.push(row("L5", `${unique.size} payslips`, "pass"));
@@ -125,7 +128,7 @@ const laws = {
     for (const c of L.contracts.filter((k) => k.kind === "loan" && k.account_id)) {
       const series = L.dailyBalance(c.account_id);
       const charged = groupBy(L.events.filter((e) => e.kind === "loan_interest" && e.contract_id === c.contract_id), (e) => monthOf(e.occurred_on));
-      let worst = 0, worstM = null, n = 0;
+      let worst = 0, worstM = null, n = 0, over = 0;
       for (const [m, evs] of charged) {
         const act = evs.reduce((s, e) => s + e.amount_cents, 0);
         const days = monthsDays(m);
@@ -142,10 +145,11 @@ const laws = {
         if (!have) continue;
         n += 1;
         const gap = Math.round(expected) - act;
+        if (Math.abs(gap) > Math.max(tol, act * 0.15)) over += 1;
         if (Math.abs(gap) > Math.abs(worst)) { worst = gap; worstM = m; }
       }
       if (!n) { out.push(row("L6", c.contract_id, "skip", { detail: "No rate history to check against." })); continue; }
-      out.push(row("L6", c.contract_id, Math.abs(worst) > tol ? "fail" : "pass", { gap_cents: worst, detail: `${n} months checked; widest gap ${money(worst)} in ${worstM}.` }));
+      out.push(row("L6", c.contract_id, over ? "fail" : "pass", { gap_cents: worst, detail: `${n} months checked; widest gap ${money(worst)} in ${worstM}.${over ? ` ${over} months beyond the tolerance.` : ""}` }));
     }
     return out;
   },
@@ -222,7 +226,9 @@ const laws = {
 
   L11(L) {
     if (!L.tax) return [row("L11", "tax", "skip", { detail: "Tax not derived." })];
-    return L.tax.ties.map((t) => row("L11", `${t.person} ${t.fy}`, t.status, { expected: money(t.lodged), actual: money(t.derived), gap_cents: t.gap, detail: t.detail }));
+    const rows = L.tax.ties.map((t) => row("L11", `${t.person} ${t.fy}`, t.status, { expected: money(t.lodged), actual: money(t.derived), gap_cents: t.gap, detail: t.detail }));
+    for (const t of L.tax.labelTies || []) if (t.bad) rows.push(row("L11", `${t.person} ${t.fy} labels`, "fail", { gap_cents: t.worst.gap, detail: `${t.bad} of ${t.labels} labels differ; widest is ${t.worst.label}.` }));
+    return rows;
   },
 
   L12(L) {

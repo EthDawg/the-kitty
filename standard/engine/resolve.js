@@ -10,6 +10,8 @@ const dollarsToCents = (v) => Math.round(Number(v) * 100);
 const nz = (v) => (v == null ? 0 : v);
 const normRef = (s) => String(s == null ? "" : s).toUpperCase().replace(/[\s\-_.]/g, "");
 
+const planOf = (R, person) => { const c = (R.ctx.setup.contract || []).find((k) => k.kind === "ess_plan" && k.holder_party_id === person); return c ? c.contract_id : "plan"; };
+
 class Resolver {
   constructor(ctx) {
     this.ctx = ctx;
@@ -30,6 +32,8 @@ class Resolver {
     this.aliasRows = ctx.setup.alias || [];
     const active = new Set((ctx.sources || []).filter((s) => s.status === "active").map((s) => s.source_id));
     this.obs = (ctx.observations || []).filter((o) => o.status === "active" && (!ctx.sources || active.has(o.source_id)));
+    const replaced = new Set(this.obs.map((o) => o.supersedes_obs_id).filter(Boolean));
+    this.obs = this.obs.filter((o) => !replaced.has(o.obs_id));
     this.byKind = groupBy(this.obs, (o) => o.kind);
     this.decisions = (ctx.decisions || []).filter((d) => d.status === "accepted");
     this.rules = (ctx.rules || ctx.setup.rule || []).map((r) => ({ ...r, cat: r.category_id }));
@@ -235,9 +239,14 @@ class Resolver {
         if (d.verb === "categorise") { cls.category_id = v.category_id; cls.via = "decision"; if (v.merchant) cls.merchant = v.merchant; }
         if (d.verb === "set_event_kind") { cls.event_kind = v.event_kind; cls.via = "decision"; Object.assign(cls, v); }
         if (d.verb === "assign_person") cls.person = v.person;
+        if (d.verb === "assign_claimant") cls.claimant = v.person;
         if (d.verb === "exclude") line.excluded = d.decision_id;
+        if (d.verb === "include") line.excluded = null;
+        if (d.verb === "link") { if (v.asset_id) cls.asset_id = v.asset_id; if (v.activity_id) cls.activity_id = v.activity_id; if (v.contract_id) cls.contract_id = v.contract_id; }
+        if (d.verb === "unlink") line.noPair = true;
+        if (d.verb === "split") line.split = v.parts;
       }
-      let m = Engine.merchant(line.desc, this.merchantModel);
+      let m = this.ruleFor(line) || Engine.merchant(line.desc, this.scopedModel(line.account));
       // A rule learned later does not rewrite history: outside its dates it does not apply, and the line reads as if it were not there.
       const hit = m.source === "rule" && m.rule && m.rule._r;
       if (hit && ((hit.valid_from && line.date < hit.valid_from) || (hit.valid_to && line.date >= hit.valid_to))) m = Engine.merchant(line.desc, { rules: [], merMemo: new Map() });
@@ -247,15 +256,37 @@ class Resolver {
         const r = (m.rule && m.rule._r) || {};
         if (r.event_kind) cls.event_kind = r.event_kind;
         if (r.contract_id) cls.contract_id = r.contract_id;
+        if (r.asset_id) cls.asset_id = r.asset_id;
+        if (r.activity_id) cls.activity_id = r.activity_id;
       }
       if (!cls.category_id && m.source === "dictionary" && m.cat && this.categories.has(m.cat)) { cls.category_id = m.cat; cls.via = "dictionary"; }
+      if (!cls.category_id && line.cents > 0 && /\bINTEREST\b/i.test(line.desc) && this.categories.has("INTEREST")) { cls.category_id = "INTEREST"; cls.via = "keyword"; }
       cls.dictKind = m.kind;
-      if (!cls.person && m.person) cls.person = m.person;
+      if (!cls.person && m.person && !/^joint$/i.test(m.person)) cls.person = this.partyOf(m.person, line.date);
       if (!cls.person && line.cardMember) cls.person = this.partyOf(line.cardMember, line.date);
       if (!cls.person) cls.person = this.personOfAccount(line.account, line.date);
       cls.norm = m.norm;
       line.cls = cls;
       if (cls.category_id && cls.via === "decision") dict.set(m.norm, cls);
+    }
+    // A premium on a policy we hold names its line: the amount, near the date, whatever the bank calls it.
+    for (const o of this.collapseDocs("policy")) {
+      const p = o.payload;
+      const c = this.alias("contract", p.contract_ref, p.period_start) || (this.contracts.has(p.contract_ref) ? p.contract_ref : null);
+      const k = c && this.contracts.get(c);
+      if (!k) continue;
+      const on = p.paid_on || p.period_start;
+      const l = this.lines.find((x) => x.cents === -p.premium_cents && !x.cls.contract_id && Math.abs(daysBetween(on, x.date)) <= 14 && (!x.cls.category_id || x.cls.via !== "decision"));
+      if (!l) continue;
+      l.cls.contract_id = c; l.policyWitness = o;
+      if (k.category_id) { l.cls.category_id = k.category_id; l.cls.via = "contract"; }
+    }
+    // On an account that serves a rental, the same plumber is a rental repair. The category says what it becomes.
+    for (const line of this.lines) {
+      const c = line.cls.category_id && this.categories.get(line.cls.category_id);
+      if (!c || !c.property_twin_id || line.cls.via === "decision") continue;
+      const asset = this.assetOfAccount(line.account, line.date);
+      if (asset && this.term("asset", asset, "use", line.date) === "rental") { line.cls.category_id = c.property_twin_id; line.cls.via = "account"; }
     }
     // History: what this household decided about the same merchant elsewhere.
     for (const line of this.lines) {
@@ -263,6 +294,21 @@ class Resolver {
     }
   }
   catKind(id) { const c = this.categories.get(id); return c ? c.kind : null; }
+  // Rules scoped to another account do not apply here. A rule with a priority is tried first, highest first, and beats any length.
+  scopedModel(account) {
+    this.scoped = this.scoped || new Map();
+    if (!this.scoped.has(account)) this.scoped.set(account, { rules: this.merchantModel.rules.filter((r) => !r._r.account_id || r._r.account_id === account), merMemo: new Map() });
+    return this.scoped.get(account);
+  }
+  ruleFor(line) {
+    this.prioritised = this.prioritised || this.merchantModel.rules.filter((r) => r._r.priority != null).sort((a, b) => b._r.priority - a._r.priority);
+    for (const r of this.prioritised) {
+      if (r._r.account_id && r._r.account_id !== line.account) continue;
+      const m = Engine.merchant(line.desc, { rules: [r], merMemo: new Map() });
+      if (m.source === "rule") return m;
+    }
+    return null;
+  }
 
   // ---------- step: payroll ----------
   recognisePayroll() {
@@ -279,8 +325,8 @@ class Resolver {
       const key = `wage|${person}|${employer}|${p.pay_date}|${p.net_cents}`;
       const ev = this.event({ key, kind: "wage", occurred_on: p.pay_date, description: `Pay, ${this.name(employer)}`, category_id: "SALARY", person, contract_id: contract && contract.contract_id, amount_cents: p.gross_cents,
         grade: "stated", rule: "payslip", witnesses: this.docWitness(o),
-        fields: { gross: p.gross_cents, tax: p.tax_cents, super: nz(p.super_cents), sacrifice: nz(p.salary_sacrifice_cents), allowance: nz(p.allowance_cents), reimbursement: nz(p.reimbursement_cents), post_tax: nz(p.post_tax_deductions_cents) },
-        refs: { person, employer, fund: fund || this.defaultFund(person) } });
+        fields: { gross: p.gross_cents, tax: p.tax_cents, super: nz(p.super_cents), plan_contribution: nz(p.plan_contribution_cents), sacrifice: nz(p.salary_sacrifice_cents), allowance: nz(p.allowance_cents), reimbursement: nz(p.reimbursement_cents), post_tax: nz(p.post_tax_deductions_cents) },
+        refs: { person, employer, fund: fund || this.defaultFund(person), plan: planOf(this, person) } });
       const cand = (byAmount.get(p.net_cents) || []).filter((l) => !l.claimed && Math.abs(daysBetween(p.pay_date, l.date)) <= 5)
         .sort((a, b) => Math.abs(daysBetween(p.pay_date, a.date)) - Math.abs(daysBetween(p.pay_date, b.date)) || similarity(b.desc, this.name(employer)) - similarity(a.desc, this.name(employer)) || cmp(a.key, b.key));
       if (cand.length) {
@@ -310,11 +356,12 @@ class Resolver {
       const serving = activeOn(this.links.filter((k) => k.relation === "serves" && k.to_id === assetId), p.period_end).map((k) => k.from_id);
       const account = serving[0] || (this.assets.get(assetId) || {}).account_id;
       const repairs = nz(p.repairs_cents);
-      const other = nz(p.other_expenses_cents) - repairs;
+      const other = nz(p.other_expenses_cents);
       const key = `rent_statement|${assetId}|${p.period_start}|${p.period_end}`;
       this.event({ key, kind: "rent_statement", occurred_on: p.period_end, description: `Owner statement, ${this.assetName(assetId)}`, category_id: "RENT-INC", asset_id: assetId, amount_cents: p.gross_rent_cents, grade: "stated", rule: "owner_statement",
         witnesses: this.docWitness(o), fields: { rent: p.gross_rent_cents, fees: p.fees_cents, repairs, other }, refs: { property: assetId } });
-      const net = p.gross_rent_cents - p.fees_cents - nz(p.other_expenses_cents);
+      const net = p.disbursed_cents ?? p.gross_rent_cents - p.fees_cents - repairs - other;
+      if (net !== p.gross_rent_cents - p.fees_cents - repairs - other) this.fault("owner_statement_arithmetic", o, `Owner statement ${p.period_end} does not add up.`, "", net);
       if (!net && !p.gross_rent_cents) continue;
       const lo = p.period_start, hi = addDays(p.period_end, 10);
       const candidates = (this.linesByAccount.get(account) || []).filter((l) => !l.claimed && l.date >= lo && l.date <= hi && (/RENT|PROPERTY|AGENT|OWNER|MGMT|REALTY|REAL ESTATE/i.test(l.desc) || this.agentHint(l, p)));
@@ -364,8 +411,8 @@ class Resolver {
         const q = period(monthOf(l.date));
         this.claim(l, "loan_line");
         const item = { date: l.date, cents: Math.abs(l.cents), witnesses: this.lineWitness(l), desc: l.desc };
-        if (/INTEREST/i.test(l.desc)) q.interest.push(item);
-        else if (/FEE/i.test(l.desc)) q.fees.push(item);
+        if (l.cents < 0 && /INTEREST/i.test(l.desc)) q.interest.push(item);
+        else if (l.cents < 0 && /FEE/i.test(l.desc)) q.fees.push(item);
         else if (l.cents > 0) q.applied.push(item);
         else q.redraws.push(item);
       }
@@ -410,7 +457,13 @@ class Resolver {
         const want = q.applied.reduce((s2, it) => s2 + it.cents, 0);
         if (!want) continue;
         const tokens = ["LOAN"]; for (const a of this.aliasRows) if (a.subject_type === "account" && a.subject_id === loan) tokens.push(normRef(a.value));
-        const cands = this.lines.filter((l) => !l.claimed && l.cents < 0 && monthOf(l.date) === q.m && this.loanFor(l, tokens, contract));
+        let cands = this.lines.filter((l) => !l.claimed && l.cents < 0 && monthOf(l.date) === q.m && this.loanFor(l, tokens, contract));
+        if (cands.reduce((s2, l) => s2 - l.cents, 0) !== want) {
+          // Several loans can pay out of one month. The amounts say which lines belong to this one.
+          const pool = this.lines.filter((l) => !l.claimed && l.cents < 0 && monthOf(l.date) === q.m && /LOAN|REPAYMENT|MORTGAGE/i.test(l.desc)).sort((a, b) => a.cents - b.cents || cmp(a.key, b.key));
+          const hit = subsetSum(pool, want);
+          if (hit) cands = hit;
+        }
         const total = cands.reduce((s2, l) => s2 - l.cents, 0);
         if (total !== want) this.fault("loan_repayment_gap", loan, `${q.m}: the lender shows repayments of ${want / 100}; bank lines add to ${total / 100}.`, "Check for a lump sum, a redraw, or a repayment from another account.", want - total);
         for (const l of cands) {
@@ -440,6 +493,7 @@ class Resolver {
 
   // ---------- step: own transfers, once everything with a better explanation has claimed its lines ----------
   isTransferLine(l) {
+    if (l.noPair) return false;
     const c = l.cls.category_id;
     if (c && this.catKind(c) === "transfer") return true;
     if (!c && l.cls.dictKind === "transfer") return true;
@@ -447,14 +501,17 @@ class Resolver {
   }
   pairTransfers() {
     const WINDOW = 5;
-    const credits = this.lines.filter((l) => !l.claimed && l.cents > 0 && this.isTransferLine(l));
-    const debits = this.lines.filter((l) => !l.claimed && l.cents < 0 && this.isTransferLine(l)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key));
-    const byCents = groupBy(credits, (l) => l.cents);
-    for (const d of debits) {
-      const mates = (byCents.get(-d.cents) || []).filter((c) => !c.claimed && c.account !== d.account && Math.abs(daysBetween(d.date, c.date)) <= WINDOW)
-        .sort((a, b) => Math.abs(daysBetween(d.date, a.date)) - Math.abs(daysBetween(d.date, b.date)) || this.transferHint(b, d) - this.transferHint(a, d) || cmp(a.key, b.key));
+    // One side reading as a transfer is enough: the other side may be a broker's plain "DEPOSIT". An exact opposite amount on another
+    // of the household's own accounts within days is a mate. Everything else stays a question.
+    const open = this.lines.filter((l) => !l.claimed);
+    const byCents = groupBy(open, (l) => l.cents);
+    const legs = open.filter((l) => this.isTransferLine(l)).sort((a, b) => cmp(a.date, b.date) || cmp(a.key, b.key));
+    for (const leg of legs) {
+      if (leg.claimed) continue;
+      const mates = (byCents.get(-leg.cents) || []).filter((c) => !c.claimed && c.account !== leg.account && Math.abs(daysBetween(leg.date, c.date)) <= WINDOW)
+        .sort((a, b) => Number(this.isTransferLine(b)) - Number(this.isTransferLine(a)) || Math.abs(daysBetween(leg.date, a.date)) - Math.abs(daysBetween(leg.date, b.date)) || this.transferHint(b, leg) - this.transferHint(a, leg) || cmp(a.key, b.key));
       if (!mates.length) continue;
-      const c = mates[0];
+      const d = leg.cents < 0 ? leg : mates[0], c = leg.cents < 0 ? mates[0] : leg;
       this.claim(d, "transfer"); this.claim(c, "transfer");
       const category = d.cls.category_id || c.cls.category_id || "TRANSFER";
       this.event({ key: `transfer|${d.key}|${c.key}`, kind: "transfer", occurred_on: d.date, settled_on: c.date, description: d.desc, category_id: category, amount_cents: c.cents, grade: "corroborated", rule: "pair",
@@ -492,6 +549,19 @@ class Resolver {
         this.event({ key: `${kind}|${l.key}`, kind, occurred_on: l.date, description: l.desc, merchant: c.merchant, category_id: category, person: c.person, amount_cents: Math.abs(l.cents), grade: this.lineGrade(l), rule: "x_ decision", witnesses: this.lineWitness(l), fields: { amount: Math.abs(l.cents) }, refs: { account: l.account, category }, line: l });
         continue;
       }
+      if (l.split) {
+        const total = l.split.reduce((s2, x) => s2 + x.amount_cents, 0);
+        if (total === l.cents) {
+          this.claim(l, "split");
+          l.split.forEach((part, i) => {
+            const pk = this.catKind(part.category_id) === "income" ? "income" : part.amount_cents < 0 ? "purchase" : "refund";
+            this.event({ key: `${pk}|${l.key}|${i}`, kind: pk, occurred_on: l.date, description: part.note || l.desc, merchant: c.merchant, category_id: part.category_id, person: part.person || c.person, asset_id: part.asset_id || c.asset_id || this.assetOfAccount(l.account, l.date), amount_cents: part.amount_cents, grade: this.lineGrade(l), rule: "split", claimant: part.claimant,
+              witnesses: i === 0 ? this.lineWitness(l) : this.lineWitness(l, "corroborates"), fields: pk === "purchase" ? { cost: -part.amount_cents } : { amount: part.amount_cents }, refs: { account: l.account, category: part.category_id }, line: i === 0 ? l : undefined });
+          });
+          continue;
+        }
+        this.fault("split_does_not_add", l.key, `The split of ${l.desc} adds to ${total / 100}, not ${l.cents / 100}.`, "Fix the parts. The line stays whole until they add up.", l.cents - total);
+      }
       if (!category) {
         category = "UNCAT";
         this.review.push({ kind: "uncategorised", ref: l.key, amount_cents: l.cents, what: `What is ${l.desc}?`, do: "Pick a category. The answer is kept across rebuilds." });
@@ -501,8 +571,8 @@ class Resolver {
       const ev = isIncome ? "income" : l.cents < 0 ? "purchase" : "refund";
       this.claim(l, ev);
       const fields = ev === "purchase" ? { cost: -l.cents } : { amount: l.cents };
-      this.event({ key: `${ev}|${l.key}`, kind: ev, occurred_on: l.date, settled_on: l.valueDate, description: l.desc, merchant: c.merchant, category_id: category, person: c.person, asset_id: this.assetOfAccount(l.account, l.date), amount_cents: l.cents, status: category === "UNCAT" || l.provisional ? "provisional" : "recognised", grade: this.lineGrade(l), rule: c.via || "none",
-        witnesses: this.lineWitness(l), fields, refs: { account: l.account, category }, line: l });
+      this.event({ key: `${ev}|${l.key}`, kind: ev, occurred_on: l.date, settled_on: l.valueDate, description: l.desc, merchant: c.merchant, category_id: category, person: c.person, claimant: c.claimant, asset_id: c.asset_id || this.assetOfAccount(l.account, l.date), activity_id: c.activity_id, contract_id: c.contract_id, amount_cents: l.cents, status: category === "UNCAT" || l.provisional ? "provisional" : "recognised", grade: this.lineGrade(l), rule: c.via || "none",
+        witnesses: [...this.lineWitness(l), ...(l.docs || []).map((o) => ({ obs_id: o.obs_id, role: "corroborates", amount_cents: l.cents })), ...(l.policyWitness ? [{ obs_id: l.policyWitness.obs_id, role: "corroborates", amount_cents: l.cents }] : [])], fields, refs: { account: l.account, category }, line: l });
     }
   }
   assetOfAccount(account, on) {
@@ -511,6 +581,31 @@ class Resolver {
   }
   lineGrade(l) { return l.balanceAfter != null ? "reconciled" : l.witnesses.length > 1 ? "corroborated" : "stated"; }
 
+  // A person can book what no document says. It carries its decision as evidence.
+  recogniseAdjustments() {
+    for (const d of this.decisions.filter((x) => x.verb === "adjust")) {
+      const v = d.value || {};
+      this.event({ key: `adjustment|${d.decision_id}`, kind: "adjustment", occurred_on: v.date, description: d.reason || "Adjustment", category_id: v.category_id, amount_cents: v.amount_cents, grade: "estimated", rule: "setup", fields: { amount: v.amount_cents }, refs: { account: v.account_id, category: v.category_id } });
+    }
+  }
+  // Bills, receipts and childcare statements add detail to a line and change no amount. A bill can say which property a line belongs to.
+  corroborate() {
+    const attach = (o, cents, on, window, apply) => {
+      const l = this.lines.find((x) => x.cents === -cents && !x.claimed && Math.abs(daysBetween(on, x.date)) <= window && !(x.docs || []).some((q) => q.kind === o.kind));
+      if (!l) return false;
+      (l.docs = l.docs || []).push(o);
+      if (apply) apply(l);
+      return true;
+    };
+    for (const o of this.byKind.get("bill") || []) {
+      const p = o.payload;
+      const asset = p.subject_ref ? (this.assets.has(p.subject_ref) ? p.subject_ref : this.alias("asset", p.subject_ref, p.bill_date)) : null;
+      attach(o, p.amount_cents, p.due_on || p.bill_date, 35, (l) => { if (asset && !l.cls.asset_id) l.cls.asset_id = asset; });
+    }
+    for (const o of this.byKind.get("receipt") || []) attach(o, o.payload.total_cents, o.payload.date, 5);
+    for (const o of this.byKind.get("childcare_statement") || []) attach(o, o.payload.gap_cents, o.payload.period_end, 20);
+  }
+
   decisionBound(d) {
     if (d.target_type !== "line") return true;
     return this.lines.some((l) => { const [a, b, c] = l.key.split("|"); return l.key === d.target_ref || `${a}|${b}|${c}` === d.target_ref; });
@@ -518,7 +613,8 @@ class Resolver {
   unitsOn(ref, date, accountRef) {
     const instrument = this.instrumentOf(ref, date);
     let units = 0n;
-    for (const t of this.tradeLog || []) {
+    const order = { action: 0, buy: 1, adjust: 2, move: 3, sell: 4 };
+    for (const t of [...(this.tradeLog || [])].sort((a, b) => cmp(a.date, b.date) || order[a.kind] - order[b.kind] || cmp(a.ref, b.ref))) {
       if (t.instrument !== instrument || t.date > date) continue;
       if (t.kind === "buy") units += t.units;
       if (t.kind === "sell") units -= t.units;
@@ -534,6 +630,8 @@ class Resolver {
     this.materialiseTerms();
     this.collapseLines();
     this.classify();
+    this.corroborate();
+    this.recogniseAdjustments();
     this.recogniseCapital();
     this.recognisePayroll();
     this.recogniseRental();
@@ -548,6 +646,16 @@ class Resolver {
     this.revalue();
     return this;
   }
+}
+
+function subsetSum(lines, target) {
+  const items = lines.slice(0, 14);
+  for (let mask = 1; mask < 1 << items.length; mask++) {
+    let s = 0;
+    for (let i = 0; i < items.length; i++) if (mask & (1 << i)) s -= items[i].cents;
+    if (s === target) return items.filter((_, i) => mask & (1 << i));
+  }
+  return null;
 }
 
 require("./resolve-capital")(Resolver);

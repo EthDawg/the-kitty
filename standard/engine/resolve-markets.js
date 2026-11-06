@@ -81,11 +81,11 @@ module.exports = (Resolver) => {
       const gross = nz(p.franked_cents) + nz(p.unfranked_cents);
       if (p.drp_units) {
         this.event({ key: `drp|${key}`, kind: "drp", occurred_on: p.pay_date, description: `Reinvested dividend, ${p.instrument_ref}`, category_id: "DIVIDEND", person, amount_cents: gross, grade: "stated", rule: "dividend", witnesses: this.docWitness(o),
-          fields: { amount: gross }, refs: { holding }, holding, units: String(p.drp_units), instrument_id: instrument, tax: { franked: nz(p.franked_cents), unfranked: nz(p.unfranked_cents), franking: nz(p.franking_credit_cents) } });
+          fields: { amount: gross }, refs: { holding }, ownerAccount: holding, holding, units: String(p.drp_units), instrument_id: instrument, tax: p.attributed_later ? {} : { franked: nz(p.franked_cents), unfranked: nz(p.unfranked_cents), franking: nz(p.franking_credit_cents) } });
         log({ kind: "buy", date: p.pay_date, instrument, holding, person, units: parseUnits(p.drp_units), cost: gross, incidental: 0, ref: `drp|${key}`, o });
       } else {
         this.event({ key: `dividend|${key}`, kind: "dividend", occurred_on: p.pay_date, description: `Dividend, ${p.instrument_ref}`, category_id: "DIVIDEND", person, amount_cents: gross, grade: "stated", rule: "dividend", witnesses: this.docWitness(o),
-          fields: { gross_cash: gross, withholding: nz(p.withholding_cents), net: p.net_cents }, refs: { person: person || "household", cash_account: cash }, tax: { franked: nz(p.franked_cents), unfranked: nz(p.unfranked_cents), franking: nz(p.franking_credit_cents) } });
+          fields: { gross_cash: gross, withholding: nz(p.withholding_cents), net: p.net_cents }, refs: { person: person || "household", cash_account: cash }, ownerAccount: holding, tax: p.attributed_later ? {} : { franked: nz(p.franked_cents), unfranked: nz(p.unfranked_cents), franking: nz(p.franking_credit_cents) } });
         const line = settleMatch(cash, p.net_cents, p.pay_date, "", key, "dividend_receipt");
         if (line) this.event({ key: `dividend_receipt|${line.key}`, kind: "dividend_receipt", occurred_on: line.date, description: line.desc, category_id: "DIVIDEND", amount_cents: line.cents, grade: "corroborated", rule: "registry+cash", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: cash }, line });
         else this.fault("dividend_unpaid", o, `Dividend of ${p.pay_date} has no cash line in ${cash}.`, "", p.net_cents);
@@ -125,6 +125,7 @@ module.exports = (Resolver) => {
 
     for (const o of this.collapseDocs("vest")) {
       const p = o.payload;
+      if (p.status === "scheduled" || p.status === "cancelled") continue;           // a future tranche makes no income; it feeds the forecast only
       if (p.status === "provisional" || p.status === "unconfirmed") { this.fault("unconfirmed_vest", o, `Vest of ${p.vest_date} is not confirmed; an unconfirmed award is unknown, not zero.`); continue; }
       const instrument = this.instrumentOf(p.instrument_ref, p.vest_date);
       const account = p.account_ref ? this.accountOf(o, p.account_ref, p.vest_date) : null;
@@ -135,10 +136,15 @@ module.exports = (Resolver) => {
       const released = p.released_units != null ? p.released_units : p.units;
       const key = `${p.plan_ref}|${instrument}|${p.vest_date}`;
       this.event({ key: `vest|${key}`, kind: "vest", occurred_on: p.vest_date, description: `Vest ${p.units} ${p.instrument_ref}`, category_id: "ESS-INCOME", person, amount_cents: p.taxable_value_cents, grade: "stated", rule: "vest", witnesses: this.docWitness(o),
-        fields: { amount: p.taxable_value_cents }, refs: { holding }, holding, units: String(released), instrument_id: instrument });
-      log({ kind: "buy", date: p.vest_date, instrument, holding, person, units: parseUnits(released), cost: p.taxable_value_cents, incidental: 0, ref: `vest|${key}`, o, ess: true });
+        fields: { amount: p.taxable_value_cents, cost_paid: nz(p.cost_paid_cents) }, refs: { holding, plan: contract || "plan" }, holding, units: String(released), instrument_id: instrument });
+      log({ kind: "buy", date: p.vest_date, instrument, holding, person, units: parseUnits(released), cost: p.cost_base_cents ?? p.taxable_value_cents + nz(p.cost_paid_cents), incidental: 0, ref: `vest|${key}`, o, ess: true });
     }
 
+    const settleCrypto = (cash, cents, on, key) => {
+      const line = settleMatch(cash, cents, on, "", key);
+      if (line) this.event({ key: `settle_cash|${line.key}`, kind: "settle_cash", occurred_on: line.date, description: line.desc, category_id: "TRANSFER", amount_cents: line.cents, grade: "corroborated", rule: "exchange+bank", witnesses: this.lineWitness(line, "clears"), fields: { amount: line.cents }, refs: { account: cash }, line });
+      else this.fault("trade_unsettled", key, `Crypto trade on ${on} has no line in ${cash}.`, "", cents);
+    };
     for (const o of this.collapseDocs("crypto_txn")) {
       const p = o.payload;
       const on = String(p.time).slice(0, 10);
@@ -153,10 +159,12 @@ module.exports = (Resolver) => {
         case "buy":
           this.event({ key: `crypto_buy|${key}`, kind: "crypto_buy", occurred_on: on, description: `Buy ${p.units} ${p.asset}`, person, amount_cents: value, grade: "stated", rule: "crypto", witnesses: this.docWitness(o), fields: { cost: value }, refs: { wallet, cash_account: cash }, holding: wallet, units: String(p.units), instrument_id: instrument });
           log({ kind: "buy", date: on, instrument, holding: wallet, person, units: parseUnits(p.units), cost: value, incidental: 0, ref: key, o });
+          settleCrypto(cash, -value, on, key);
           break;
         case "sell":
           this.event({ key: `crypto_sell|${key}`, kind: "crypto_sell", occurred_on: on, description: `Sell ${p.units} ${p.asset}`, person, amount_cents: value, grade: "stated", rule: "crypto", witnesses: this.docWitness(o), fields: { proceeds: value }, refs: { wallet, cash_account: cash }, holding: wallet, units: `-${p.units}`, instrument_id: instrument });
           log({ kind: "sell", date: on, instrument, holding: wallet, person, units: parseUnits(p.units), proceeds: value, ref: key, o });
+          settleCrypto(cash, value, on, key);
           break;
         case "swap": {
           const to = this.instrumentOf(p.quote_asset, on);
@@ -180,10 +188,12 @@ module.exports = (Resolver) => {
     for (const [txid, group] of groupBy(this.cryptoMoves || [], (m) => m.p.txid || m.key)) {
       const out = group.find((m) => m.p.type === "transfer_out"), inn = group.find((m) => m.p.type === "transfer_in");
       if (out && inn) {
-        const sent = parseUnits(out.p.units), landed = parseUnits(inn.p.units), fee = sent > landed ? sent - landed : 0n;
+        const sent = parseUnits(out.p.units), landed = parseUnits(inn.p.units), stated = parseUnits(out.p.fee_units);
+        const fee = sent > landed ? sent - landed : stated;
         // The network fee is a small disposal; the rest is nothing happening.
         if (fee > 0n) log({ kind: "sell", date: out.on, instrument: out.instrument, holding: out.wallet, person: this.personOfAccount(out.wallet, out.on), units: fee, proceeds: nz(out.p.fee_aud_cents), ref: `fee|${txid}`, o: out.o });
         log({ kind: "move", date: out.on, instrument: out.instrument, from: out.wallet, to: inn.wallet, units: landed, ref: txid, o: out.o });
+        this.event({ key: `crypto_transfer|${txid}`, kind: "crypto_transfer", occurred_on: out.on, description: `Moved ${out.p.units} ${out.p.asset} between own wallets`, amount_cents: 0, grade: "corroborated", rule: "crypto", witnesses: [...this.docWitness(out.o), ...this.docWitness(inn.o, "clears")], fields: {}, refs: {} });
       }
       else this.fault("crypto_move_unpaired", (out || inn).o, `Crypto move ${txid} has one side only. Is it an external send?`);
     }
@@ -281,7 +291,13 @@ function buildLots(log, R) {
       }
     } else if (t.kind === "sell") {
       let left = t.units, proceedsLeft = t.proceeds;
+      const choice = (R.decisions || []).find((d) => d.verb === "choose_lot" && d.target_ref === t.ref);
+      const method = choice ? choice.value.method : "fifo";
+      const costOf = (l) => (l.cost_price_cents || 0) / Number(l.units_bought || 1n);
       const parcels = open(t.instrument, t.holding);
+      if (method === "lifo") parcels.reverse();
+      if (method === "hifo") parcels.sort((a, b) => costOf(b) - costOf(a));
+      if (method === "specific") { const order = choice.value.lots || []; parcels.sort((a, b) => order.indexOf(a.acquired_on) - order.indexOf(b.acquired_on)); }
       const available = parcels.reduce((s, l) => s + l.units_open, 0n);
       if (available < t.units) faults.push({ kind: "oversold", ref: t.ref, what: `Sold ${fmtUnits(t.units)} of ${t.instrument} with ${fmtUnits(available)} held.` });
       for (const l of parcels) {
@@ -292,7 +308,7 @@ function buildLots(log, R) {
         const proceeds = take === left ? proceedsLeft : Math.round(t.proceeds * Number(take) / Number(t.units));
         proceedsLeft -= proceeds;
         const eligible = addMonths(l.acquired_on, CGT_MONTHS) < t.date;
-        matches.push({ event_ref: t.ref, lot_id: l.lot_id, instrument_id: t.instrument, party_id: t.person || l.party_id, disposed_on: t.date, units: fmtUnits(take), proceeds_cents: proceeds, cost_base_cents: cost, gain_cents: cost == null ? null : proceeds - cost, discount_eligible: eligible, method: "fifo", fy: fyOf(t.date) });
+        matches.push({ event_ref: t.ref, lot_id: l.lot_id, instrument_id: t.instrument, party_id: t.person || l.party_id, disposed_on: t.date, units: fmtUnits(take), proceeds_cents: proceeds, cost_base_cents: cost, gain_cents: cost == null ? null : proceeds - cost, discount_eligible: eligible, method, fy: fyOf(t.date) });
         if (l.cost_known) {
           const ratio = Number(take) / Number(l.units_open);
           for (const f of ["cost_price_cents", "cost_incidental_cents", "cost_ownership_cents", "cost_capital_cents", "cost_adjustment_cents"]) l[f] -= Math.round(l[f] * ratio);

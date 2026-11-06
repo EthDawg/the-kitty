@@ -78,6 +78,18 @@ function score(L, worldRoot) {
     for (const r of rows) { const k = `${String(r.person_id || r.person).toUpperCase()}|${String(r.pay_date).slice(0, 7)}`; tot.set(k, (tot.get(k) || 0) + (r.gross_cents || 0)); }
     add(cmp("gross wages per person per month", [...tot].map(([k, v]) => [k, v, wage.get(k) || 0])));
   }
+  const tax = T("tax.json");
+  if (tax && L.tax) {
+    const taxable = [], labels = [];
+    const est = new Map(L.tax.estimates.map((e) => [`${e.person}|${e.fy}`, e]));
+    const items = new Map(L.tax.items.map((i) => [`${i.party_id}|${i.fy}|${i.label}`, i.amount_cents]));
+    for (const [person, years] of Object.entries(tax)) for (const [fy, row] of Object.entries(years)) {
+      taxable.push([`${person} ${fy}`, row.taxable_income_cents, (est.get(`${person}|${fy}`) || {}).taxable_income_cents]);
+      for (const [label, cents] of Object.entries(row)) if (/^(\d|D\d)/.test(label) && Number.isInteger(cents)) labels.push([`${person} ${fy} ${label}`, Math.trunc(cents / 100) * 100, Math.trunc((items.get(`${person}|${fy}|${label}`) || 0) / 100) * 100]);
+    }
+    add(cmp("tax: taxable income per person per year", taxable, 100));
+    add(cmp("tax: every return label per person per year", labels, 100));
+  }
   // Base truth: the category the world gave every bank line. Conservation cannot catch a wrong category, so this is where it is caught.
   const months = tryJson(path.join(worldRoot, "..", "..", "..", "portals", "data", "months.json"));
   if (months) {

@@ -144,6 +144,7 @@
         "essential:bool",
         "cash_lens:bool:req",
         "economic_lens:bool:req",
+        "property_twin_id:id:fk=category.category_id",
         "note:text"
       ]
     },
@@ -198,10 +199,10 @@
     "contract": {
       "plane": "setup",
       "temporal": "static",
-      "doc": "A standing agreement. Everything that can change lives in term.",
+      "doc": "A standing agreement, or an accepted one-off commitment. Everything that can change lives in term.",
       "columns": [
         "contract_id:id:pk",
-        "kind:text:req:enum=loan|insurance|employment|lease|subscription|utility|childcare|membership|super_fund|ess_plan",
+        "kind:text:req:enum=loan|insurance|employment|lease|subscription|utility|childcare|membership|super_fund|ess_plan|commitment",
         "name:text:req",
         "counterparty_party_id:id:fk=party.party_id",
         "holder_party_id:id:fk=party.party_id",
@@ -339,6 +340,7 @@
         "recipe_id:id",
         "confidence:rate:req",
         "quote:text",
+        "supersedes_obs_id:id",
         "status:text:req:enum=active|rejected|superseded"
       ]
     },
@@ -369,11 +371,14 @@
       "columns": [
         "line_id:id:pk",
         "return_id:id:req:fk=tax_return.return_id",
+        "activity_id:id:fk=activity.activity_id",
         "label:text",
         "section:text",
         "role:text:req:enum=leaf|subtotal|memo|carry",
         "rolls_up_to:id",
         "amount_cents:cents:req",
+        "gross_cents:cents",
+        "obs_id:id",
         "note:text"
       ]
     },
@@ -397,7 +402,7 @@
     "rule": {
       "plane": "judgement",
       "temporal": "bitemporal",
-      "doc": "The household's accumulated taste: what a descriptor means.",
+      "doc": "The household's accumulated taste: what a descriptor means. Priority beats length; a rule can be scoped to one account; a rule can name the property a line belongs to.",
       "columns": [
         "rule_id:id:pk",
         "pattern:text:req",
@@ -406,6 +411,10 @@
         "category_id:id:fk=category.category_id",
         "person:text",
         "event_kind:text",
+        "priority:int",
+        "account_id:id:fk=account.account_id",
+        "activity_id:id:fk=activity.activity_id",
+        "asset_id:id:fk=asset.asset_id",
         "contract_id:id:fk=contract.contract_id",
         "valid_from:date",
         "valid_to:date",
@@ -602,6 +611,7 @@
         "proceeds_cents:cents:req",
         "cost_base_cents:cents",
         "gain_cents:cents",
+        "exempt_cents:cents",
         "discount_eligible:bool:req",
         "method:text:req:enum=fifo|lifo|specific|hifo"
       ]
@@ -621,11 +631,12 @@
     "tax_item": {
       "plane": "tax",
       "temporal": "derived",
-      "doc": "A derived per-person, per-year, per-label amount, with its method and evidence state. A draft, never advice.",
+      "doc": "A derived per-person, per-year, per-label amount, by activity where one applies, so a schedule can be produced per property. A draft, never advice.",
       "columns": [
         "party_id:id:req:fk=party.party_id",
         "fy:text:req",
         "label:text:req",
+        "activity_id:id:fk=activity.activity_id",
         "amount_cents:cents:req",
         "method:text:req",
         "evidence:text:req:enum=held|missing|at_risk",

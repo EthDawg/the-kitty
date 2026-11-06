@@ -595,6 +595,12 @@
         "economic_lens": {
           "bsonType": "bool"
         },
+        "property_twin_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
         "note": {
           "bsonType": [
             "string",
@@ -822,7 +828,8 @@
             "childcare",
             "membership",
             "super_fund",
-            "ess_plan"
+            "ess_plan",
+            "commitment"
           ]
         },
         "name": {
@@ -877,7 +884,7 @@
           ]
         }
       },
-      "description": "A standing agreement. Everything that can change lives in term."
+      "description": "A standing agreement, or an accepted one-off commitment. Everything that can change lives in term."
     }
   },
   "term": {
@@ -1415,6 +1422,12 @@
             "null"
           ]
         },
+        "supersedes_obs_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
         "status": {
           "bsonType": "string",
           "enum": [
@@ -1533,6 +1546,12 @@
         "return_id": {
           "bsonType": "string"
         },
+        "activity_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
         "label": {
           "bsonType": [
             "string",
@@ -1564,6 +1583,19 @@
           "bsonType": [
             "long",
             "int"
+          ]
+        },
+        "gross_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "obs_id": {
+          "bsonType": [
+            "string",
+            "null"
           ]
         },
         "note": {
@@ -1720,6 +1752,31 @@
             "null"
           ]
         },
+        "priority": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
+        "account_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "activity_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
         "contract_id": {
           "bsonType": [
             "string",
@@ -1767,7 +1824,7 @@
           ]
         }
       },
-      "description": "The household's accumulated taste: what a descriptor means."
+      "description": "The household's accumulated taste: what a descriptor means. Priority beats length; a rule can be scoped to one account; a rule can name the property a line belongs to."
     }
   },
   "recipe": {
@@ -2490,6 +2547,13 @@
             "null"
           ]
         },
+        "exempt_cents": {
+          "bsonType": [
+            "long",
+            "int",
+            "null"
+          ]
+        },
         "discount_eligible": {
           "bsonType": "bool"
         },
@@ -2562,6 +2626,12 @@
         "label": {
           "bsonType": "string"
         },
+        "activity_id": {
+          "bsonType": [
+            "string",
+            "null"
+          ]
+        },
         "amount_cents": {
           "bsonType": [
             "long",
@@ -2587,7 +2657,7 @@
           ]
         }
       },
-      "description": "A derived per-person, per-year, per-label amount, with its method and evidence state. A draft, never advice."
+      "description": "A derived per-person, per-year, per-label amount, by activity where one applies, so a schedule can be produced per property. A draft, never advice."
     }
   },
   "check_result": {

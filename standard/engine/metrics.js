@@ -29,7 +29,7 @@ const REGISTRY = {
   "position.net_worth_by_owner": (L) => Object.entries(V.netWorthByOwner(L, lastMonth(L))).map(([p, v]) => ({ grain: `${lastMonth(L)}|${p}`, value: v })),
   "position.free_cash": (L) => {
     const reservations = L.reservations || [];
-    return L.netWorth.map((r) => { const on = monthEnd(r.month); const held = activeOn(reservations, on).reduce((s, x) => s + (x.applied_cents ?? x.requested_cents), 0); return { grain: r.month, value: (r.groups.cash || 0) - held }; });
+    return L.netWorth.map((r) => { const on = monthEnd(r.month); const held = activeOn(reservations, on).reduce((s, x) => s + (x.applied_cents ?? x.requested_cents), 0); const owed = V.commitments(L, on).reduce((s, c) => s + c.unpaid_cents, 0); return { grain: r.month, value: (r.groups.cash || 0) - held - owed }; });
   },
   "loan.interest": (L) => L.events.filter((e) => e.kind === "loan_interest").map((e) => ({ grain: `${monthOf(e.occurred_on)}|${e.contract_id}`, value: e.amount_cents })),
   "loan.principal_paid": (L) => { const out = []; for (const c of L.contracts.filter((k) => k.kind === "loan" && k.account_id)) { let prev = null; for (const m of L.balances.months) { const b = L.balances.at(c.account_id, m); if (prev != null && b !== prev) out.push({ grain: `${m}|${c.contract_id}`, value: b - prev }); prev = b; } } return out; },

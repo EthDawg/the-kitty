@@ -110,6 +110,7 @@ CREATE TABLE "category" (
   "essential" INTEGER,
   "cash_lens" INTEGER NOT NULL,
   "economic_lens" INTEGER NOT NULL,
+  "property_twin_id" TEXT,
   "note" TEXT
 );
 
@@ -152,10 +153,10 @@ CREATE TABLE "activity" (
   "superseded_at" TEXT
 );
 
--- setup, static. A standing agreement. Everything that can change lives in term.
+-- setup, static. A standing agreement, or an accepted one-off commitment. Everything that can change lives in term.
 CREATE TABLE "contract" (
   "contract_id" TEXT PRIMARY KEY,
-  "kind" TEXT NOT NULL CHECK ("kind" IN ('loan', 'insurance', 'employment', 'lease', 'subscription', 'utility', 'childcare', 'membership', 'super_fund', 'ess_plan')),
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('loan', 'insurance', 'employment', 'lease', 'subscription', 'utility', 'childcare', 'membership', 'super_fund', 'ess_plan', 'commitment')),
   "name" TEXT NOT NULL,
   "counterparty_party_id" TEXT,
   "holder_party_id" TEXT,
@@ -272,6 +273,7 @@ CREATE TABLE "observation" (
   "recipe_id" TEXT,
   "confidence" TEXT NOT NULL,
   "quote" TEXT,
+  "supersedes_obs_id" TEXT,
   "status" TEXT NOT NULL CHECK ("status" IN ('active', 'rejected', 'superseded'))
 );
 
@@ -296,11 +298,14 @@ CREATE TABLE "tax_return" (
 CREATE TABLE "tax_line" (
   "line_id" TEXT PRIMARY KEY,
   "return_id" TEXT NOT NULL,
+  "activity_id" TEXT,
   "label" TEXT,
   "section" TEXT,
   "role" TEXT NOT NULL CHECK ("role" IN ('leaf', 'subtotal', 'memo', 'carry')),
   "rolls_up_to" TEXT,
   "amount_cents" INTEGER NOT NULL,
+  "gross_cents" INTEGER,
+  "obs_id" TEXT,
   "note" TEXT
 );
 
@@ -318,7 +323,7 @@ CREATE TABLE "decision" (
   "reopen_if" TEXT
 );
 
--- judgement, bitemporal. The household's accumulated taste: what a descriptor means.
+-- judgement, bitemporal. The household's accumulated taste: what a descriptor means. Priority beats length; a rule can be scoped to one account; a rule can name the property a line belongs to.
 CREATE TABLE "rule" (
   "rule_id" TEXT PRIMARY KEY,
   "pattern" TEXT NOT NULL,
@@ -327,6 +332,10 @@ CREATE TABLE "rule" (
   "category_id" TEXT,
   "person" TEXT,
   "event_kind" TEXT,
+  "priority" INTEGER,
+  "account_id" TEXT,
+  "activity_id" TEXT,
+  "asset_id" TEXT,
   "contract_id" TEXT,
   "valid_from" TEXT,
   "valid_to" TEXT,
@@ -487,6 +496,7 @@ CREATE TABLE "lot_match" (
   "proceeds_cents" INTEGER NOT NULL,
   "cost_base_cents" INTEGER,
   "gain_cents" INTEGER,
+  "exempt_cents" INTEGER,
   "discount_eligible" INTEGER NOT NULL,
   "method" TEXT NOT NULL CHECK ("method" IN ('fifo', 'lifo', 'specific', 'hifo'))
 );
@@ -500,11 +510,12 @@ CREATE TABLE "balance" (
   "grade" TEXT NOT NULL
 );
 
--- tax, derived. A derived per-person, per-year, per-label amount, with its method and evidence state. A draft, never advice.
+-- tax, derived. A derived per-person, per-year, per-label amount, by activity where one applies, so a schedule can be produced per property. A draft, never advice.
 CREATE TABLE "tax_item" (
   "party_id" TEXT NOT NULL,
   "fy" TEXT NOT NULL,
   "label" TEXT NOT NULL,
+  "activity_id" TEXT,
   "amount_cents" INTEGER NOT NULL,
   "method" TEXT NOT NULL,
   "evidence" TEXT NOT NULL CHECK ("evidence" IN ('held', 'missing', 'at_risk')),

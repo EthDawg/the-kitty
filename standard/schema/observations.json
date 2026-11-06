@@ -36,7 +36,10 @@
         "debits_cents",
         "interest_cents",
         "fees_cents",
-        "rate_pct"
+        "rate_pct",
+        "due_on",
+        "amount_due_cents",
+        "minimum_due_cents"
       ]
     },
     "balance": {
@@ -46,7 +49,10 @@
       "fields": [
         "account_ref*",
         "as_at*",
-        "balance_cents*"
+        "balance_cents*",
+        "balance_kind",
+        "available_cents",
+        "sequence"
       ]
     },
     "payslip": {
@@ -70,7 +76,8 @@
         "ytd_gross_cents",
         "ytd_tax_cents",
         "ytd_super_cents",
-        "account_ref"
+        "account_ref",
+        "plan_contribution_cents"
       ]
     },
     "income_statement": {
@@ -179,7 +186,10 @@
         "as_at*",
         "units*",
         "price",
-        "value_cents"
+        "value_cents",
+        "acquired_on",
+        "sellable_units",
+        "currency"
       ]
     },
     "dividend": {
@@ -242,7 +252,9 @@
         "withheld_units",
         "released_units",
         "status",
-        "taxing_point_date"
+        "taxing_point_date",
+        "cost_paid_cents",
+        "cost_base_cents"
       ]
     },
     "crypto_txn": {
@@ -517,7 +529,8 @@
         "description*",
         "amount_cents*",
         "balance_after_cents",
-        "reference"
+        "reference",
+        "release_ref"
       ]
     },
     "ato_line": {
@@ -532,7 +545,10 @@
         "amount_cents*",
         "balance_after_cents",
         "fy",
-        "reference"
+        "reference",
+        "ato_account",
+        "role",
+        "parent_ref"
       ]
     },
     "activity_statement": {
@@ -578,6 +594,28 @@
         "fy*",
         "period_end*",
         "discount_cents*"
+      ]
+    },
+    "amortisation_schedule": {
+      "family": "tax",
+      "occurred": "issued_on",
+      "fields": [
+        "contract_ref*",
+        "issued_on*",
+        "items*"
+      ]
+    },
+    "super_tax_notice": {
+      "family": "tax",
+      "occurred": "assessed_on",
+      "amount": "amount_cents",
+      "fields": [
+        "person_ref*",
+        "fy*",
+        "assessed_on*",
+        "amount_cents*",
+        "due_on",
+        "election"
       ]
     }
   },
@@ -630,7 +668,24 @@
       "insurance",
       "contributions_tax",
       "pension",
-      "withdrawal"
+      "withdrawal",
+      "release"
+    ],
+    "vest.status": [
+      "scheduled",
+      "unconfirmed",
+      "provisional",
+      "vested",
+      "cancelled"
+    ],
+    "balance.balance_kind": [
+      "ledger",
+      "available",
+      "pending"
+    ],
+    "ato_line.role": [
+      "posting",
+      "component"
     ]
   }
 }

@@ -74,7 +74,7 @@ function rebuild(input) {
     if (o.kind === "statement") { const a = R.accountOf(o, p.account_ref, p.period_end); if (a) L.stated.push({ account: a, date: p.period_end, cents: p.closing_cents }); }
     if (o.kind === "loan_statement") { const a = R.accountOf(o, p.account_ref, p.period_end); if (a) L.stated.push({ account: a, date: p.period_end, cents: -p.closing_cents }); }
     if (o.kind === "super_statement") { const a = R.accountOf(o, p.account_ref, p.period_end); if (a) L.stated.push({ account: a, date: p.period_end, cents: p.closing_cents }); }
-    if (o.kind === "balance") { const a = R.accountOf(o, p.account_ref, p.as_at); if (a) L.stated.push({ account: a, date: p.as_at, cents: p.balance_cents }); }
+    if (o.kind === "balance" && (!p.balance_kind || p.balance_kind === "ledger")) { const a = R.accountOf(o, p.account_ref, p.as_at); if (a) L.stated.push({ account: a, date: p.as_at, cents: p.balance_cents }); }
   }
   const dailyCache = new Map();
   L.dailyBalance = (account) => {
@@ -102,12 +102,16 @@ function rebuild(input) {
     return (R.accounts.get(R.holdingOf(instrument, account)) || {}).fidelity === "snapshot";
   };
   L.excludedObs = new Set();
-  L.tax = reference ? Tax.derive({ L, R, reference, setup }) : null;
+  L.tax = Tax.derive({ L, R, reference, setup });
   L.returns = Tax.materialiseReturns(R);
   L.resolverObs = R.byKind;
 
   L.reservations = setup.reservation || [];
   L.checks = runLaws(L);
+  // A person can accept a result, with a reason and what would reopen it. An old lodged year does not stay red for ever.
+  for (const d of decisions) if (d.verb === "accept" && d.target_type === "check" && d.status === "accepted") {
+    for (const c of L.checks) if (`${c.law}|${c.scope}` === d.target_ref && c.status !== "pass") { c.status = "accepted"; c.accepted_by = d.decision_id; c.detail = `${d.reason || ""} Was: ${c.detail || ""}`.trim(); }
+  }
   L.review = rankReview(R.review);
   if (schema.metrics) L.metrics = allMetrics(L, schema.metrics);
 
@@ -128,12 +132,13 @@ function withExtensions(events, extensions) {
   return { ...events, kinds: { ...events.kinds, ...kinds } };
 }
 function latestDate(R) {
-  let last = R.events.length ? R.events[R.events.length - 1].occurred_on : null;
+  // The last day anything actually happened. A policy's end date or a renewal is the future, not evidence of today.
+  let last = null;
   for (const o of R.obs) {
     const p = o.payload;
-    for (const d of [p.as_at, p.posting_date, p.period_end]) if (d && (!last || d > last)) last = d;
+    for (const d of [p.as_at, p.posting_date, p.pay_date]) if (d && (!last || d > last)) last = d;
   }
-  return last;
+  return last || (R.events.length ? R.events[R.events.length - 1].occurred_on : null);
 }
 function rankReview(items) {
   const seen = new Set(); const out = [];

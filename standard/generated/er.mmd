@@ -26,6 +26,7 @@ erDiagram
   CATEGORY {
     id category_id PK
     id parent_id FK
+    id property_twin_id FK
   }
   INSTRUMENT {
     id instrument_id PK
@@ -80,6 +81,7 @@ erDiagram
   TAX_LINE {
     id line_id PK
     id return_id FK
+    id activity_id FK
   }
   DECISION {
     id decision_id PK
@@ -87,6 +89,9 @@ erDiagram
   RULE {
     id rule_id PK
     id category_id FK
+    id account_id FK
+    id activity_id FK
+    id asset_id FK
     id contract_id FK
   }
   RECIPE {
@@ -147,6 +152,7 @@ erDiagram
   }
   TAX_ITEM {
     id party_id FK
+    id activity_id FK
   }
   CHECK_RESULT {
   }
@@ -178,7 +184,11 @@ erDiagram
   PARTY ||--o{ TAX_RETURN : "party_id"
   SOURCE ||--o{ TAX_RETURN : "source_id"
   TAX_RETURN ||--o{ TAX_LINE : "return_id"
+  ACTIVITY ||--o{ TAX_LINE : "activity_id"
   CATEGORY ||--o{ RULE : "category_id"
+  ACCOUNT ||--o{ RULE : "account_id"
+  ACTIVITY ||--o{ RULE : "activity_id"
+  ASSET ||--o{ RULE : "asset_id"
   CONTRACT ||--o{ RULE : "contract_id"
   CATEGORY ||--o{ BUDGET : "category_id"
   ACCOUNT ||--o{ GOAL : "account_id"
@@ -204,3 +214,4 @@ erDiagram
   LOT ||--o{ LOT_MATCH : "lot_id"
   ACCOUNT ||--o{ BALANCE : "account_id"
   PARTY ||--o{ TAX_ITEM : "party_id"
+  ACTIVITY ||--o{ TAX_ITEM : "activity_id"

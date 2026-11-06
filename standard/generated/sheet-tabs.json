@@ -158,6 +158,7 @@
         "essential",
         "cash_lens",
         "economic_lens",
+        "property_twin_id",
         "note"
       ]
     },
@@ -386,6 +387,7 @@
         "recipe_id",
         "confidence",
         "quote",
+        "supersedes_obs_id",
         "status"
       ]
     },
@@ -422,11 +424,14 @@
       "headers": [
         "line_id",
         "return_id",
+        "activity_id",
         "label",
         "section",
         "role",
         "rolls_up_to",
         "amount_cents",
+        "gross_cents",
+        "obs_id",
         "note"
       ]
     },
@@ -465,6 +470,10 @@
         "category_id",
         "person",
         "event_kind",
+        "priority",
+        "account_id",
+        "activity_id",
+        "asset_id",
         "contract_id",
         "valid_from",
         "valid_to",
@@ -697,6 +706,7 @@
         "proceeds_cents",
         "cost_base_cents",
         "gain_cents",
+        "exempt_cents",
         "discount_eligible",
         "method"
       ]
@@ -727,6 +737,7 @@
         "party_id",
         "fy",
         "label",
+        "activity_id",
         "amount_cents",
         "method",
         "evidence",

@@ -24,7 +24,14 @@ function collapse(items) {
   const faults = [];
 
   // A bank's stable reference is identity. A same-reference pair with different amounts is a restatement, not two lines.
-  const withRef = groupBy(posted.filter((x) => x.ref), (x) => `${x.account}|${x.ref}`);
+  // A reference that repeats inside one file is a label ("DIV", "INT"), not an identity.
+  const repeats = new Set();
+  for (const [k, g] of groupBy(posted.filter((x) => x.ref), (x) => `${x.sourceId}|${x.account}|${x.ref}`)) if (g.length > 1) repeats.add(k.split("|").slice(1).join("|"));
+  for (const [k, g] of groupBy(posted.filter((x) => x.ref), (x) => `${x.account}|${x.ref}`)) {
+    const dates = g.map((x) => x.date).sort();
+    if (daysBetween(dates[0], dates[dates.length - 1]) > 10) repeats.add(k);
+  }
+  const withRef = groupBy(posted.filter((x) => x.ref && !repeats.has(`${x.account}|${x.ref}`)), (x) => `${x.account}|${x.ref}`);
   const taken = new Set();
   for (const [, group] of withRef) {
     const amounts = new Set(group.map((x) => x.cents));

@@ -43,6 +43,10 @@
       "deductible_pct": {
         "unit": "pct",
         "shape": "step"
+      },
+      "borrowing_cost_end": {
+        "unit": "date",
+        "shape": "step"
       }
     },
     "contract.insurance": {
@@ -375,6 +379,17 @@
     "party.person": {
       "tax_resident": {
         "unit": "bool",
+        "shape": "step"
+      }
+    },
+    "contract.commitment": {
+      "total_cents": {
+        "unit": "cents",
+        "shape": "step",
+        "required": true
+      },
+      "due_on": {
+        "unit": "date",
         "shape": "step"
       }
     }

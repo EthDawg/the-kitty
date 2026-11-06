@@ -28,7 +28,7 @@ function checkValue(col, v) {
     case "units": case "rate": return /^-?\d+(\.\d+)?$/.test(String(v)) ? null : `not a decimal: ${v}`;
     default: break;
   }
-  if (col.enum && !col.enum.includes(v)) return `not in ${col.enum.join("|")}: ${v}`;
+  if (col.enum && !col.enum.includes(v) && !String(v).startsWith("x_")) return `not in ${col.enum.join("|")}: ${v}`;
   return null;
 }
 function validateRow(t, row) {

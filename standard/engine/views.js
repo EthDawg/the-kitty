@@ -70,7 +70,8 @@ function balances(L) {
     for (const m of months) { run += f.get(m) || 0; series.set(m, run); rows.push({ month_end: monthEnd(m), account_id: account, balance_cents: run }); }
     table.set(account, series);
   }
-  return { months, rows, table, at: (account, month) => (table.get(account) ? table.get(account).get(month) ?? 0 : 0) };
+  const lastMonth = months[months.length - 1];
+  return { months, rows, table, at: (account, month) => (table.get(account) ? table.get(account).get(month > lastMonth ? lastMonth : month) ?? 0 : 0) };
 }
 function netWorthGroups(L) { return new Set(["cash", "property", "super", "shares", "crypto", "vehicle", "device", "loans"]); }
 function netWorth(L, opts = {}) {
@@ -184,6 +185,18 @@ function billsCommitted(L, month) {
   return { month, total_cents: total, rows };
 }
 
+// ---------- commitments: an accepted quote, part paid ----------
+function commitments(L, on) {
+  const rows = [];
+  for (const c of L.contracts.filter((k) => k.kind === "commitment")) {
+    const total = termAt(L.termIdx, "contract", c.contract_id, "total_cents", on);
+    if (total == null || (c.started_on && c.started_on > on)) continue;
+    const paid = L.events.filter((e) => e.contract_id === c.contract_id && e.occurred_on <= on).reduce((s, e) => s + Math.abs(e.amount_cents), 0);
+    rows.push({ contract_id: c.contract_id, name: c.name, total_cents: Number(total), paid_cents: paid, unpaid_cents: Math.max(Number(total) - paid, 0) });
+  }
+  return rows;
+}
+
 // ---------- budgets: judged against the budget valid that month ----------
 function budgetVariance(L, month) {
   const on = monthEnd(month);
@@ -231,4 +244,4 @@ function explain(L, eventId) {
   }) };
 }
 
-module.exports = { ledgerIndex, cashLens, accrualLens, balances, netWorth, netWorthByOwner, activityNet, loanTable, refreshPlan, billsCommitted, budgetVariance, coverage, explain, wrappedAccounts };
+module.exports = { commitments, ledgerIndex, cashLens, accrualLens, balances, netWorth, netWorthByOwner, activityNet, loanTable, refreshPlan, billsCommitted, budgetVariance, coverage, explain, wrappedAccounts };

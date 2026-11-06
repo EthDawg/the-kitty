@@ -26,8 +26,8 @@ module.exports = (Resolver) => {
         witnesses: this.docWitness(o), fields: { cost, loan_drawn: loanDrawn }, refs: { asset_account: asset.account_id, loan: loan || "clearing:asset:unknown", asset: assetId } });
       const want = p.cash_paid_cents;
       if (!want) continue;
-      const pool = this.lines.filter((l) => !l.claimed && l.cents < 0 && Math.abs(daysBetween(p.settled_on, l.date)) <= 5 && (l.cls.category_id == null || l.cls.category_id === "UNCAT" || this.catKind(l.cls.category_id) === "capital"))
-        .sort((a, b) => cmp(a.key, b.key));
+      const pool = this.lines.filter((l) => !l.claimed && l.cents < 0 && Math.abs(daysBetween(p.settled_on, l.date)) <= 5)
+        .sort((a, b) => a.cents - b.cents || cmp(a.key, b.key));
       const hit = subsetSum(pool, want);
       if (!hit) { this.fault("settlement_unmatched", o, `Settlement of ${p.settled_on} paid ${want / 100} in cash and no bank lines add to it.`, "Mark which lines paid for this.", want); continue; }
       for (const l of hit) {
@@ -45,8 +45,13 @@ module.exports = (Resolver) => {
         const asset = this.assets.get(assetId);
         if (!asset) { this.fault("unresolved_asset", l.key, `Decision on ${l.desc} names no known asset.`); continue; }
         this.claim(l, k);
-        if (k === "asset_disposal") this.disposals = (this.disposals || []).concat([{ line: l, asset }]);
-        else this.event({ key: `asset_purchase|${asset.asset_id}|${l.key}`, kind: "asset_purchase", occurred_on: l.date, description: l.desc, asset_id: asset.asset_id, category_id: "CAPITAL", amount_cents: -l.cents, grade: "stated", rule: "decision",
+        if (k === "asset_disposal") {
+          (this.sales = this.sales || []).push({ asset: asset.account_id, date: l.date, price: l.cents, o: l.witnesses[0] });
+          this.event({ key: `asset_disposal|${asset.asset_id}|${l.key}`, kind: "asset_disposal", occurred_on: l.date, description: l.desc, asset_id: asset.asset_id, category_id: "CAPITAL", amount_cents: l.cents, grade: "stated", rule: "decision",
+            witnesses: this.lineWitness(l), fields: { proceeds: l.cents, selling: 0, loan_payout: 0 }, refs: { asset_account: asset.account_id, loan: "clearing:asset:unknown", asset: asset.asset_id } });
+          this.event({ key: `asset_payment|${l.key}`, kind: "asset_payment", occurred_on: l.date, description: l.desc, asset_id: asset.asset_id, category_id: "CAPITAL", amount_cents: l.cents, grade: "stated", rule: "decision",
+            witnesses: this.lineWitness(l, "clears"), fields: { amount: -l.cents }, refs: { account: l.account, asset: asset.asset_id }, line: l });
+        } else this.event({ key: `asset_purchase|${asset.asset_id}|${l.key}`, kind: "asset_purchase", occurred_on: l.date, description: l.desc, asset_id: asset.asset_id, category_id: "CAPITAL", amount_cents: -l.cents, grade: "stated", rule: "decision",
           witnesses: this.lineWitness(l), fields: { cost: -l.cents, loan_drawn: 0 }, refs: { asset_account: asset.account_id, loan: "clearing:asset:unknown", asset: asset.asset_id }, line: l, alsoPayment: true });
       }
     }
@@ -58,7 +63,7 @@ module.exports = (Resolver) => {
     const p = o.payload;
     const loan = p.loan_ref ? this.accountOf(o, p.loan_ref, p.settled_on) : null;
     const selling = nz(p.selling_costs_cents), payout = nz(p.loan_payout_cents);
-    (this.sales = this.sales || []).push({ asset: asset.account_id, date: p.settled_on, price: p.price_cents });
+    (this.sales = this.sales || []).push({ asset: asset.account_id, date: p.settled_on, price: p.price_cents, o });
     (this.propertyLog = this.propertyLog || []).push({ kind: "sell", date: p.settled_on, asset: assetId, account: asset.account_id, proceeds: p.price_cents, selling, o });
     this.event({ key: `asset_disposal|${assetId}|${p.settled_on}`, kind: "asset_disposal", occurred_on: p.settled_on, description: `Sale, ${asset.name}`, asset_id: assetId, category_id: "CAPITAL", amount_cents: p.price_cents, grade: "stated", rule: "settlement",
       witnesses: this.docWitness(o), fields: { proceeds: p.price_cents, selling, loan_payout: payout }, refs: { asset_account: asset.account_id, loan: loan || "clearing:asset:unknown", asset: assetId } });
@@ -84,38 +89,71 @@ module.exports = (Resolver) => {
       const lot = lots.find((l) => l.asset_id === t.asset);
       if (!lot) { this.fault("sale_without_purchase", t.o, `Sale of ${t.asset} with no purchase held; cost base is unknown.`, "Add the purchase settlement."); matches.push({ event_ref: `asset_disposal|${t.asset}|${t.date}`, lot_id: `plot_${t.asset}`, asset_id: t.asset, disposed_on: t.date, units: "1", proceeds_cents: t.proceeds - t.selling, cost_base_cents: null, gain_cents: null, discount_eligible: true, method: "specific", fy: require("./util").fyOf(t.date) }); continue; }
       const uses = useChanges(t.asset);
+      const fy = require("./util").fyOf(t.date);
+      const proceeds = t.proceeds - t.selling;
       let base = lot.cost_price_cents + lot.cost_incidental_cents + lot.cost_capital_cents + lot.cost_adjustment_cents;
-      let acquired = lot.acquired_on;
+      let acquired = lot.acquired_on, reset = false;
       const firstRental = uses.find((u) => u.value === "rental");
       const homeBefore = uses.find((u) => u.value === "owner_occupied" && firstRental && u.valid_from < firstRental.valid_from);
+      const base_match = { event_ref: `asset_disposal|${t.asset}|${t.date}`, lot_id: lot.lot_id, asset_id: t.asset, party_id: null, disposed_on: t.date, units: "1", proceeds_cents: proceeds, method: "specific", fy };
       if (firstRental && homeBefore) {
-        const atChange = (this.byKind.get("valuation") || []).filter((o) => this.resolveValueSubject(o.payload.subject_ref, o.payload.as_at, o) === lot.account_id && o.payload.as_at === firstRental.valid_from)[0];
         const absent = this.term("asset", t.asset, "six_year_absence_from", t.date);
-        const sixYears = absent && daysBetween(absent, t.date) <= 2191;
-        if (sixYears) { matches.push({ event_ref: `asset_disposal|${t.asset}|${t.date}`, lot_id: lot.lot_id, asset_id: t.asset, disposed_on: t.date, units: "1", proceeds_cents: t.proceeds - t.selling, cost_base_cents: base, gain_cents: 0, discount_eligible: false, method: "specific", fy: require("./util").fyOf(t.date), exempt: "main_residence_six_year" }); lot.units_open = 0n; continue; }
-        if (atChange) { base = atChange.payload.value_cents; acquired = firstRental.valid_from; lot.reset = { on: acquired, value: base }; }
+        if (absent && daysBetween(absent, t.date) <= 2191) { matches.push({ ...base_match, cost_base_cents: base, gain_cents: 0, exempt_cents: proceeds - base, discount_eligible: false, exempt: "main_residence_six_year" }); lot.units_open = 0n; continue; }
+        const atChange = (this.byKind.get("valuation") || []).filter((o) => this.resolveValueSubject(o.payload.subject_ref, o.payload.as_at, o) === lot.account_id && o.payload.as_at === firstRental.valid_from)[0];
+        if (atChange) { base = atChange.payload.value_cents; acquired = firstRental.valid_from; reset = true; lot.reset = { on: acquired, value: base }; }
         else this.fault("market_value_reset_missing", t.o, `${t.asset} became a rental on ${firstRental.valid_from}; a valuation dated that day is needed for its cost base.`, "Add the valuation.");
       }
-      const proceeds = t.proceeds - t.selling;
+      // Claimed capital works come off the base. A market-value reset starts that count again.
+      const claimed = this.claimedWorks(t.asset, reset ? acquired : lot.acquired_on, t.date);
+      base -= claimed;
+      // Days as a home are exempt, by days. A dated use with a hole cannot give a share, so the gain is unknown, never a guess.
+      const span = daysBetween(acquired, t.date);
+      let homeDays = 0, covered = 0;
+      for (const u of uses) {
+        const from = u.valid_from > acquired ? u.valid_from : acquired, to = u.valid_to && u.valid_to < t.date ? u.valid_to : t.date;
+        if (to <= from) continue;
+        const n = daysBetween(from, to);
+        covered += n;
+        if (u.value === "owner_occupied") homeDays += n;
+      }
+      const raw = proceeds - base;
+      if (homeDays && !reset && covered < span) {
+        this.fault("use_timeline_gap", t.o, `${t.asset}'s use is not dated for its whole ownership; the exempt share of the gain cannot be worked out.`, "Date its use.", raw);
+        matches.push({ ...base_match, cost_base_cents: base, gain_cents: null, exempt_cents: null, discount_eligible: true });
+        lot.units_open = 0n; continue;
+      }
+      const exempt = !reset && homeDays && span ? Math.round(raw * homeDays / span) : 0;
       const y = +acquired.slice(0, 4) + 1;
-      matches.push({ event_ref: `asset_disposal|${t.asset}|${t.date}`, lot_id: lot.lot_id, asset_id: t.asset, party_id: null, disposed_on: t.date, units: "1", proceeds_cents: proceeds, cost_base_cents: base, gain_cents: proceeds - base, discount_eligible: `${y}${acquired.slice(4)}` < t.date, method: "specific", fy: require("./util").fyOf(t.date) });
+      matches.push({ ...base_match, cost_base_cents: base, gain_cents: raw - exempt, exempt_cents: exempt, claimed_works_cents: claimed, discount_eligible: `${y}${acquired.slice(4)}` < t.date });
       lot.units_open = 0n;
     }
     return { lots, matches };
+  };
+
+  P.claimedWorks = function (assetId, from, to) {
+    let total = 0;
+    const startFy = require("./util").fyOf(from), endFy = require("./util").fyOf(to);
+    for (const o of this.byKind.get("depreciation_schedule") || []) {
+      const p = o.payload;
+      const a = this.assets.has(p.asset_ref) ? p.asset_ref : this.alias("asset", p.asset_ref, p.issued_on);
+      if (a !== assetId) continue;
+      for (const it of p.items || []) if (String(it.division) === "43") for (const [fy, cents] of Object.entries(it.by_fy || {})) if (fy >= startFy && fy < endFy) total += cents;
+    }
+    return total;
   };
 
   P.recogniseSuper = function () {
     const lineMap = {
       employer: "super_contribution", salary_sacrifice: "super_contribution", personal_deductible: "super_personal", personal_after_tax: "super_personal", spouse: "super_personal",
       rollover_in: "super_rollover", rollover_out: "super_rollover", earnings: "super_earnings", fee: "super_cost", insurance: "super_cost", contributions_tax: "super_cost",
-      pension: "super_withdrawal", withdrawal: "super_withdrawal",
+      pension: "super_withdrawal", withdrawal: "super_withdrawal", release: "super_release",
     };
     const costCat = { fee: "SUPER-FEES", insurance: "SUPER-INS", contributions_tax: "SUPER-TAX" };
     for (const l of this.superLines || []) {
       const kind = lineMap[l.lineType];
       if (!kind) { this.fault("unknown_super_line", l.key, `Super line type ${l.lineType} is not in the vocabulary.`); continue; }
-      const amount = kind === "super_cost" ? -l.cents : l.cents;
-      const refs = { account: l.account, category: costCat[l.lineType] };
+      const amount = kind === "super_cost" || kind === "super_release" ? -l.cents : l.cents;
+      const refs = { account: l.account, category: costCat[l.lineType], person: this.personOfAccount(l.account, l.date) };
       const cat = costCat[l.lineType] || (kind === "super_earnings" ? "SUPER-EARN" : null);
       const ev = this.event({ key: `${kind}|${l.key}`, kind, occurred_on: l.date, description: l.desc, category_id: cat, person: this.personOfAccount(l.account, l.date), amount_cents: l.cents, grade: l.balanceAfter != null ? "reconciled" : "stated", rule: "super_line",
         witnesses: this.lineWitness(l), fields: { amount }, refs, superType: l.lineType });
@@ -197,11 +235,30 @@ module.exports = (Resolver) => {
       if (!want) continue;
       const m = this.lines.filter((l) => !l.claimed && l.cents === want && l.date >= addDays(p.assessed_on, -10) && l.date <= addDays(p.assessed_on, 60))
         .sort((a, b) => Math.abs(daysBetween(p.assessed_on, a.date)) - Math.abs(daysBetween(p.assessed_on, b.date)) || cmp(a.key, b.key))[0];
-      if (!m) { this.fault("tax_result_unmatched", o, `${p.fy} assessment for ${this.name(person)} shows ${want / 100} and no bank line matches.`, "Find the refund, or the payment. It may have gone to an old account.", want); continue; }
+      if (!m) { (this.unmatchedTax = this.unmatchedTax || []).push({ person, cents: want, o }); this.fault("tax_result_unmatched", o, `${p.fy} assessment for ${this.name(person)} shows ${want / 100} and no bank line matches.`, "Find the refund, or the payment. It may have gone to an old account.", want); continue; }
       const kind = want > 0 ? "tax_refund" : "tax_payment";
       this.claim(m, kind);
       this.event({ key: `${kind}|${m.key}`, kind, occurred_on: m.date, description: m.desc, category_id: "TAX-REFUND", person, amount_cents: Math.abs(want), grade: "corroborated", rule: "assessment+bank",
         witnesses: this.lineWitness(m, "clears"), fields: { amount: Math.abs(want) }, refs: { account: m.account, person }, line: m });
+    }
+    for (const o of this.collapseDocs("super_tax_notice")) {
+      const p = o.payload; const person = this.partyOf(p.person_ref, p.assessed_on);
+      this.event({ key: `div293_assessed|${person}|${p.fy}`, kind: "div293_assessed", occurred_on: p.assessed_on, description: `Division 293 assessment, ${p.fy}`, category_id: "SUPER-TAX", person, amount_cents: p.amount_cents, grade: "stated", rule: "super_tax_notice", witnesses: this.docWitness(o), fields: { amount: p.amount_cents }, refs: { person } });
+      if (p.election === "release") continue;
+      const m = this.lines.find((l) => !l.claimed && l.cents === -p.amount_cents && l.date >= p.assessed_on && l.date <= addDays(p.due_on || p.assessed_on, 60));
+      if (m) { this.claim(m, "tax_payment"); this.event({ key: `tax_payment|${m.key}`, kind: "tax_payment", occurred_on: m.date, description: m.desc, category_id: "TAX-REFUND", person, amount_cents: p.amount_cents, grade: "corroborated", rule: "notice+bank", witnesses: this.lineWitness(m, "clears"), fields: { amount: p.amount_cents }, refs: { account: m.account, person }, line: m }); }
+      else this.fault("tax_result_unmatched", o, `Division 293 of ${p.amount_cents / 100} for ${p.fy} has no payment.`, "It may be released from super instead.", p.amount_cents);
+    }
+    // One credit can settle two assessments. Look for a bank line equal to what is still unmatched for that person.
+    for (const [person, rows] of groupBy(this.unmatchedTax || [], (x) => x.person)) {
+      const want = rows.reduce((s, x) => s + x.cents, 0);
+      if (rows.length < 2) continue;
+      const m = this.lines.find((l) => !l.claimed && l.cents === want && /ATO|TAX/i.test(l.desc));
+      if (!m) continue;
+      const kind = want > 0 ? "tax_refund" : "tax_payment";
+      this.claim(m, kind);
+      this.review = this.review.filter((r) => !(r.kind === "tax_result_unmatched" && rows.some((x) => x.o.obs_id === r.ref)));
+      this.event({ key: `${kind}|${m.key}`, kind, occurred_on: m.date, description: m.desc, category_id: "TAX-REFUND", person, amount_cents: Math.abs(want), grade: "corroborated", rule: "assessments+bank", witnesses: this.lineWitness(m, "clears"), fields: { amount: Math.abs(want) }, refs: { account: m.account, person }, line: m });
     }
     // HELP indexation lands on the debt, not on any bank line.
     for (const o of this.byKind.get("help_balance") || []) {
@@ -293,19 +350,7 @@ module.exports = (Resolver) => {
     // A sale sets the value on the day. Anything left in the book moves through revaluation first.
     for (const s of this.sales || []) {
       if (!valued.has(s.asset)) valued.set(s.asset, new Map());
-      valued.get(s.asset).set(s.date, { cents: s.price, o: null, saleDay: true });
-    }
-    // A disposal carries the book value on the day it left.
-    for (const d of this.disposals || []) {
-      const a = d.asset.account_id;
-      const book = [...(deltas.get(a) || [])].filter((x) => x.date <= d.line.date).reduce((s, x) => s + x.cents, 0);
-      const stated = this.lastValueBefore(valued.get(a), d.line.date);
-      const value = stated != null ? stated : book;
-      const e = this.event({ key: `asset_disposal|${d.asset.asset_id}|${d.line.key}`, kind: "asset_disposal", occurred_on: d.line.date, description: d.line.desc, asset_id: d.asset.asset_id, category_id: "CAPITAL", amount_cents: d.line.cents, grade: "stated", rule: "decision",
-        witnesses: this.lineWitness(d.line), fields: { proceeds: d.line.cents, book: value }, refs: { account: d.line.account, asset_account: a }, line: d.line });
-      e.postings = post(e, schema);
-      if (valued.has(a)) valued.get(a).set(d.line.date, { cents: 0, o: d.line.witnesses[0], after: true });
-      void book;
+      valued.get(s.asset).set(s.date, { cents: s.price, o: s.o, saleDay: true });
     }
     for (const [account, rows] of valued) {
       const flows = (deltas.get(account) || []).sort((a, b) => cmp(a.date, b.date));
