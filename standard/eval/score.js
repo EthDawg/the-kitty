@@ -78,19 +78,25 @@ function score(L, worldRoot) {
     for (const r of rows) { const k = `${String(r.person_id || r.person).toUpperCase()}|${String(r.pay_date).slice(0, 7)}`; tot.set(k, (tot.get(k) || 0) + (r.gross_cents || 0)); }
     add(cmp("gross wages per person per month", [...tot].map(([k, v]) => [k, v, wage.get(k) || 0])));
   }
-  const cats = T("categories.json");
-  if (cats) {
+  // Base truth: the category the world gave every bank line. Conservation cannot catch a wrong category, so this is where it is caught.
+  const months = tryJson(path.join(worldRoot, "..", "..", "..", "portals", "data", "months.json"));
+  if (months) {
+    const want = new Map();
+    for (const [date, account, desc, amount, category] of months.transactions) { const k = `${account}|${date}|${Math.round(amount * 100)}`; if (!want.has(k)) want.set(k, []); want.get(k).push({ desc, category }); }
+    const byLine = new Map();
+    for (const e of L.events) { if (e.line) byLine.set(e.line.key, e); for (const l of e.lines || []) byLine.set(l.key, e); }
     let right = 0, total = 0; const wrong = [];
-    const byKey = new Map(L.lines.map((l) => [`${l.account}|${l.date}|${l.cents}|${l.key.split("|")[3]}`, l]));
-    for (const t of cats) {
-      const l = byKey.get(`${t.account}|${t.date}|${t.cents}|${t.n || 1}`);
-      if (!l) continue;
+    for (const l of L.lines) {
+      const list = want.get(`${l.account}|${l.date}|${l.cents}`);
+      const e = byLine.get(l.key);
+      if (!list || !list.length || !e) continue;
+      const i = Math.max(list.findIndex((x) => x.desc === l.desc), 0);
+      const t = list.splice(i, 1)[0];
+      if (t.category === "UNCAT") continue;                 // the world's own UNCAT lines have no true category to score
       total += 1;
-      const ev = L.lineEvent ? L.lineEvent(l) : null;
-      const got = ev ? ev.category_id : l.cls.category_id;
-      if (got === t.category_id) right += 1; else if (wrong.length < 8) wrong.push({ key: l.key, want: t.category_id, got, desc: l.desc });
+      if (e.category_id === t.category) right += 1; else if (wrong.length < 8) wrong.push({ key: l.key, want: t.category, got: e.category_id, gap: 0, desc: l.desc });
     }
-    out.sections.push({ name: "category of each line", checked: total, exact: right, pct: total ? Math.round((right / total) * 10000) / 100 : null, worst: wrong, absGap: 0 });
+    out.sections.push({ name: "category of each bank line", checked: total, exact: right, pct: total ? Math.round((right / total) * 10000) / 100 : null, worst: wrong, absGap: 0 });
   }
   const laws = {};
   for (const c of L.checks) { laws[c.law] = laws[c.law] || { pass: 0, fail: 0, gap: 0, open: 0, skip: 0, accepted: 0 }; laws[c.law][c.status] += 1; }

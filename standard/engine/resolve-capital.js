@@ -219,6 +219,7 @@ module.exports = (Resolver) => {
   P.finishOpenings = function () {
     const firstStated = new Map();
     const note = (account, date, cents, o) => {
+      if (!date || !Number.isInteger(cents)) return;
       const cur = firstStated.get(account);
       if (!cur || date < cur.date) firstStated.set(account, { date, cents, o });
     };

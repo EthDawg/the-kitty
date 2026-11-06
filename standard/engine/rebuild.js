@@ -62,10 +62,11 @@ function rebuild(input) {
 
   // Stated balances: every claim a source makes about where an account stood.
   const stated = [];
-  for (const l of R.lines) if (l.balanceAfter != null) stated.push({ account: l.account, date: l.date, cents: l.balanceAfter, seq: l.seq, intraday: true });
-  const lastPerDay = new Map();
-  for (const s of stated) { const k = `${s.account}|${s.date}`; const cur = lastPerDay.get(k); if (!cur || s.seq > cur.seq) lastPerDay.set(k, s); }
-  L.stated = [...lastPerDay.values()].filter((s) => !isIntradayAmbiguous(R, s));
+  // A file may run newest first, so which line closes a day is not known from order. The day's close is one of its stated balances.
+  for (const [, rows] of groupBy(R.lines.filter((l) => l.balanceAfter != null), (l) => `${l.account}|${l.date}`)) {
+    stated.push({ account: rows[0].account, date: rows[0].date, cents: rows[rows.length - 1].balanceAfter, any: rows.map((r) => r.balanceAfter) });
+  }
+  L.stated = stated;
   for (const o of R.obs) {
     const p = o.payload;
     if (o.kind === "statement") { const a = R.accountOf(o, p.account_ref, p.period_end); if (a) L.stated.push({ account: a, date: p.period_end, cents: p.closing_cents }); }
@@ -118,7 +119,6 @@ function latestDate(R) {
   }
   return last;
 }
-function isIntradayAmbiguous() { return false; }
 function rankReview(items) {
   const seen = new Set(); const out = [];
   for (const r of items) { const k = `${r.kind}|${r.ref}`; if (seen.has(k)) continue; seen.add(k); out.push({ item_id: `rv_${hash64(k)}`, ...r }); }

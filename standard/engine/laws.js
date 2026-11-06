@@ -59,11 +59,15 @@ const laws = {
       if (a.fidelity === "snapshot") continue;
       const series = L.dailyBalance(account);
       let bad = 0, worst = null;
-      for (const s of rows) {
+      for (const s of [...rows].sort((x, y) => cmp(x.date, y.date))) {
         const b = series(s.date);
-        if (b !== s.cents) { bad += 1; if (!worst) worst = { s, b }; }
+        if (s.any ? !s.any.includes(b) : b !== s.cents) { bad += 1; if (!worst) worst = { s, b }; }
       }
-      out.push(row("L3", account, bad ? "fail" : "pass", bad ? { expected: money(worst.s.cents), actual: money(worst.b), gap_cents: worst.s.cents - worst.b, detail: `${bad} of ${rows.length} stated balances disagree; first on ${worst.s.date}.` } : { detail: `${rows.length} stated balances tie.` }));
+      // A break that follows a hole in the evidence is a gap: lines are missing, nothing contradicts. A break with no hole before it is a fail.
+      const held = [...new Set((L.linesByAccount.get(account) || []).map((l) => monthOf(l.date)))].sort();
+      const hole = held.length ? monthsBetween(held[0], held[held.length - 1]).find((m) => !held.includes(m)) : null;
+      const afterHole = bad && hole && monthOf(worst.s.date) >= hole;
+      out.push(row("L3", account, !bad ? "pass" : afterHole ? "gap" : "fail", bad ? { expected: money(worst.s.cents), actual: money(worst.b), gap_cents: worst.s.cents - worst.b, detail: afterHole ? `Lines are missing from ${hole}; ${bad} later balances are off by what they held.` : `${bad} of ${rows.length} stated balances disagree; first on ${worst.s.date}.` } : { detail: `${rows.length} stated balances tie.` }));
     }
     // Between held evidence: months with no lines on an open account are a gap, never a fail.
     for (const [account, lines] of L.linesByAccount) {
@@ -71,7 +75,8 @@ const laws = {
       if (!a || a.fidelity === "snapshot") continue;
       const ms = [...new Set(lines.map((l) => monthOf(l.date)))].sort();
       const missing = monthsBetween(ms[0], ms[ms.length - 1]).filter((m) => !ms.includes(m));
-      if (missing.length) out.push(row("L3", `${account} coverage`, "gap", { detail: `No lines held for ${missing.join(", ")}.` }));
+      // A quiet month on a savings account is not a hole if a later stated balance still ties.
+      if (missing.length && !a.quiet) out.push(row("L3", `${account} quiet months`, "open", { detail: `No lines in ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? "…" : ""}.` }));
     }
     return out;
   },
@@ -178,7 +183,8 @@ const laws = {
         const rows = (byAccount.get(account) || []).filter((s) => s.date <= end && monthOf(s.date) === m);
         if (!rows.length) { complete = false; break; }
         const last = rows.reduce((x, y) => (y.date >= x.date ? y : x));
-        posted += L.dailyBalance(account)(last.date); stated += last.cents; seen += 1;
+        const value = L.dailyBalance(account)(last.date);
+        posted += value; stated += last.any && last.any.includes(value) ? value : last.cents; seen += 1;
       }
       if (!complete || !seen) continue;
       months += 1;

@@ -184,6 +184,7 @@ class Resolver {
     const take = (o, seq) => {
       const p = o.payload;
       const date = p.posting_date;
+      if (!date || !Number.isInteger(p.amount_cents)) { this.fault("unreadable_line", o, `A line in ${o.locator} has no readable date or amount.`, "The file's format may have changed. It stays out of the ledger until it is read."); return; }
       const account = this.accountOf(o, p.account_ref, date);
       if (!account) { this.fault("unresolved_account", o, `No account for ${p.account_ref} on ${date}.`, "Add an alias for this account."); return; }
       const src = this.sources.get(o.source_id);
