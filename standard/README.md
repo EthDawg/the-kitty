@@ -122,7 +122,7 @@ Each family was built to be harder than the last, so these are not four runs of 
 
 ## Compared with
 
-| | Keeps source evidence | Double counts structurally impossible | Bitemporal | Tax as law by date | Model-writable importers | Benchmark |
+| | Keeps source evidence | Double counts stopped by structure | Bitemporal | Tax as law by date | Model-writable importers | Benchmark |
 |---|---|---|---|---|---|---|
 | Plaid, CDR, Open Banking schemas | no | no | no | no | n/a | no |
 | Beancount, Ledger | partly | within what you enter | no | no | no | no |
