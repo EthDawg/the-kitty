@@ -39,6 +39,7 @@ class Law {
     return Math.round(dollars * r * 100);
   }
   sg(on) { return this.read(ENGINE, "sg_rate", on).rate; }
+  cgtDiscount(on) { return this.read(ENGINE, "cgt_discount_individual", on).rate; }
   helpIndex(on) { return this.read(VERIFIED, "help_indexation_rates", on).rate; }
   phiPct(on, tier) { return this.read(VERIFIED, "phi_rebate_percent", on).under_65[tier]; }
   phiTier(on, familyDollars, children) {

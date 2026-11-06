@@ -1,0 +1,16 @@
+{
+ "id": "F-008",
+ "title": "A return for a year before the first evidence reads as a failed law, not a gap",
+ "chapter": 6,
+ "trap": "T4-AMENDMENT",
+ "kind": "engine",
+ "found": "FY2026 was lodged before any file the household holds. Daisy's reads as a gap in chapter 4 and as a fail by chapter 6, once a stray FY2026 item exists; Danny's fails as soon as his held parcels appear.",
+ "shape": {
+  "fy": "FY2026",
+  "derived_cents": 231000,
+  "lodged_cents": 12571200
+ },
+ "want": "A year the household holds no income evidence for is a gap, however small the stray evidence. L11 fails only when coverage says the year is whole.",
+ "landing": "one small base change",
+ "owner": "data model session: tax.js ties"
+}

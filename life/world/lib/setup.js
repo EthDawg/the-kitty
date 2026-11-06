@@ -15,7 +15,8 @@ function buildSetup(sim, script) {
   const org = (ch, party_id, name, kind = "organisation") => { if (!S.party.some((p) => p.party_id === party_id)) { push("party", ch, { party_id, kind, name }); push("alias", ch, { subject_type: "party", subject_id: party_id, scheme: "name", value: name, valid_from: "2000-01-01" }); } };
   const al = (ch, subject_type, subject_id, scheme, value, valid_from = "2000-01-01") => push("alias", ch, { subject_type, subject_id, scheme, value, valid_from });
   const own = (ch, subject_type, subject_id, shares, from, to) => { for (const [party, bps, bases] of shares) for (const basis of bases || ["legal", "beneficial", "tax"]) push("ownership", ch, { subject_type, subject_id, party_id: party, basis, share_bps: bps, valid_from: from, ...(to ? { valid_to: to } : {}) }); };
-  const term = (ch, subject_type, subject_id, t, value, unit, valid_from) => push("term", ch, { term_id: `TERM-${String(S.term.length + 1).padStart(4, "0")}`, subject_type, subject_id, term: t, value: String(value), unit, valid_from });
+  // a term is told when it starts: chapter 5 spans years, and a rate told in 2030 would read as newer than every notice since 2028
+  const term = (ch, subject_type, subject_id, t, value, unit, valid_from) => S.term.push({ term_id: `TERM-${String(S.term.length + 1).padStart(4, "0")}`, subject_type, subject_id, term: t, value: String(value), unit, valid_from, recorded_at: ch >= 5 ? `${valid_from}T00:00:00Z` : at(ch) });
   const acct = (ch, a) => push("account", ch, { currency: "AUD", in_scope: true, fidelity: "ledger", ...a });
   const bank = (ch, id_, name, type, inst, extra) => acct(ch, { account_id: id_, name, class: "asset", type, reporting_group: "cash", institution_party_id: inst, liquid: true, ...extra });
   const stream = (ch, stream_id, name, doc_kind, subject_type, subject_id, cadence, valid_from, extra) => push("stream", ch, { stream_id, name, doc_kind, subject_type, subject_id, cadence, valid_from, ...extra });
@@ -108,7 +109,7 @@ function buildSetup(sim, script) {
     push("membership", ch, { party_id: pid, role: "dependant", valid_from: k.born });
   }
   if (home) {
-    org(5, "HARBOURBANK", "Harbour Bank"); org(5, "CONVEY", `${C.surname.split(/[- ]/)[0]} Conveyancing Pty Ltd`); org(5, "PURRSURE", "Purrsure"); org(5, "PAWPRICE", "PawPrice Estimates"); org(5, "COUNCIL", "Merri-Purr City Council"); org(5, "WATER", "Greater Whisker Water"); org(5, "POWER", "RedPaw Energy"); org(5, "GAS", "Origpurr Gas"); org(5, "VICPAWS", "VicPaws"); org(5, "KITTENHOOD", "Kittenhood Early Learning"); org(5, "SERVICESP", "Services Pawstralia", "government");
+    org(5, "HARBOURBANK", "Harbour Bank"); org(5, "CONVEY", `${C.surname.split(/[- ]/)[0]} Conveyancing Pty Ltd`); org(5, "PURRSURE", "Purrsure"); org(5, "PAWPRICE", "PawPrice Estimates"); org(5, "COUNCIL", C.utilities.council); org(5, "WATER", C.utilities.water); org(5, "POWER", "RedPaw Energy"); org(5, "GAS", "Origpurr Gas"); org(5, "VICPAWS", "VicPaws"); org(5, "KITTENHOOD", "Kittenhood Early Learning"); org(5, "SERVICESP", "Services Pawstralia", "government");
     push("asset", 5, { asset_id: "HOME", kind: "property", name: "Family home", account_id: "HOME", location: home.address, acquired_on: home.on });
     push("asset", 5, { asset_id: "CAR", kind: "vehicle", name: "Family car", account_id: "CAR", acquired_on: "2021-02-01" });
     acct(5, { account_id: "HOME", name: "Family home", class: "asset", type: "property", reporting_group: "property", asset_id: "HOME", opened_on: home.on }); own(5, "account", "HOME", [[PA, 5000], [PB, 5000]], home.on); own(5, "asset", "HOME", [[PA, 5000], [PB, 5000]], home.on);
@@ -117,14 +118,17 @@ function buildSetup(sim, script) {
     bank(5, "ACC-OFFSET", "Offset", "offset", "HARBOURBANK", { opened_on: home.on }); own(5, "account", "ACC-OFFSET", [[PA, 5000], [PB, 5000]], home.on);
     al(5, "account", "ACC-OFFSET", "account_number", N.offset); al(5, "account", "ACC-OFFSET", "name", "OFFSET");
     al(5, "account", "LN-HOME", "loan_number", L.number, home.on); al(5, "account", "LN-HOME", "account_number", L.number, home.on); al(5, "contract", "C-HOME", "loan_number", L.number, home.on);
-    al(5, "asset", "HOME", "name", home.address, home.on); al(5, "asset", "HOME", "name", "HOME", home.on); al(5, "asset", "HOME", "name", "RA-220419"); al(5, "asset", "HOME", "name", "WA-6601842"); al(5, "asset", "HOME", "name", "EL-5507712"); al(5, "asset", "HOME", "name", "GS-8841207");
-    al(5, "asset", "CAR", "name", "Family car"); al(5, "asset", "CAR", "name", "XYZ482");
+    al(5, "asset", "HOME", "name", home.address, home.on); al(5, "asset", "HOME", "name", "HOME", home.on); for (const k of ["rates_ref", "water_ref", "power_ref", "gas_ref"]) al(5, "asset", "HOME", "name", C.utilities[k]);
+    al(5, "asset", "CAR", "name", "Family car"); al(5, "asset", "CAR", "name", C.utilities.rego);
     push("contract", 5, { contract_id: "C-HOME", kind: "loan", name: "Home loan", counterparty_party_id: "HARBOURBANK", account_id: "LN-HOME", asset_id: "HOME", category_id: "MORTGAGE", started_on: home.on });
     link(5, "funds_purpose", "contract", "C-HOME", "asset", "HOME", home.on, 10000); link(5, "secures", "contract", "C-HOME", "asset", "HOME", home.on); link(5, "offsets", "account", "ACC-OFFSET", "contract", "C-HOME", home.on);
     term(5, "contract", "C-HOME", "interest_rate", sim.rate.history[0].rate.toFixed(2), "pct", home.on); term(5, "contract", "C-HOME", "repayment_type", "principal_and_interest", "enum", home.on); term(5, "contract", "C-HOME", "term_end", `${Number(home.on.slice(0, 4)) + 30}${home.on.slice(4)}`, "date", home.on);
     term(5, "asset", "HOME", "use", "owner_occupied", "enum", home.on); term(5, "asset", "HOME", "main_residence", "true", "bool", home.on);
     for (const [sid, name, dk, st, sub, cad, from, extra] of [["OFFSET", "Offset download", "txn_csv", "account", "ACC-OFFSET", "monthly", home.on, { issuer_party_id: "HARBOURBANK", grace_days: 14 }], ["LOAN", "Loan ledger", "txn_csv", "account", "LN-HOME", "monthly", home.on, { issuer_party_id: "HARBOURBANK", grace_days: 14 }], ["LOAN-STMT", "Loan statements", "loan_statement", "account", "LN-HOME", "yearly", home.on, { issuer_party_id: "HARBOURBANK", grace_days: 30 }], ["RATE-LOAN", "Rate notices", "rate_notice", "contract", "C-HOME", "event", home.on, { issuer_party_id: "HARBOURBANK" }], ["SETTLEMENT", "Settlement statement", "settlement", "asset", "HOME", "event", home.on, { issuer_party_id: "CONVEY" }], ["VALUE", "PawPrice estimates", "valuation", "asset", "HOME", "monthly", home.on, { issuer_party_id: "PAWPRICE", grace_days: 7 }], ["POLICY", "Policies", "policy", "asset", "HOME", "yearly", home.on, { issuer_party_id: "PURRSURE", grace_days: 21 }], ["BILL-RATES", "Rates", "bill", "asset", "HOME", "quarterly", home.on, { issuer_party_id: "COUNCIL", grace_days: 21 }], ["BILL-WATER", "Water", "bill", "asset", "HOME", "quarterly", home.on, { issuer_party_id: "WATER", grace_days: 21 }], ["BILL-POWER", "Electricity", "bill", "asset", "HOME", "quarterly", home.on, { issuer_party_id: "POWER", grace_days: 21 }], ["BILL-GAS", "Gas", "bill", "asset", "HOME", "quarterly", home.on, { issuer_party_id: "GAS", grace_days: 21 }], ["CHILDCARE", "Childcare statements", "childcare_statement", "party", PA, "monthly", sim.care.length ? "2029-02-05" : "2029-02-05", { issuer_party_id: "KITTENHOOD", grace_days: 14 }], ["RECEIPTS", "Receipts", "receipt", "party", PA, "event", home.on, {}], ["REGO", "Registration", "bill", "asset", "CAR", "yearly", "2026-11-01", { issuer_party_id: "VICPAWS", grace_days: 14 }], ["PPL", "Paid parental leave", "payslip", "party", PA, "event", "2028-06-12", { issuer_party_id: "SERVICESP" }]]) stream(5, sid, name, dk, st, sub, cad, from, extra);
     push("contract", 5, { contract_id: "C-PPL", kind: "employment", name: "Paid parental leave", counterparty_party_id: "SERVICESP", holder_party_id: PA, category_id: "GOV-PAY", started_on: "2028-06-12" });
+    push("tax_map", 5, { selector_type: "category", selector: "GOV-PAY", label: "1", treatment: "income", basis: "person", valid_from: "2018-07-01", note: "Parental leave pay, at the same label as a wage." });
+    for (const [cid, name, asset, cat] of [["POL-HOME", "Home and contents", "HOME", "HOME-INS"], ["POL-CAR", "Comprehensive car", "CAR", "CAR"]]) { push("contract", 5, { contract_id: cid, kind: "insurance", name, counterparty_party_id: "PURRSURE", asset_id: asset, category_id: cat, started_on: home.on }); link(5, "covers", "contract", cid, "asset", asset, home.on); }
+    for (const p of sim.policies) al(5, "contract", p.id, "policy_number", p.number, p.from);
     for (const [d, st, note] of [["home_loan", "has", null], ["vehicle", "has", null], ["things", "has", null], ["childcare", "has", null]]) scope(5, d, st, A.first, home.on, note);
   }
   if (sim.childSaver) {
@@ -133,6 +137,20 @@ function buildSetup(sim, script) {
     own(5, "account", "ACC-C1-SAVE", [[PA, 10000, ["legal"]], [pid, 10000, ["beneficial", "tax"]]], sim.childSaver);
     al(5, "account", "ACC-C1-SAVE", "account_number", N.child_save); al(5, "account", "ACC-C1-SAVE", "name", "SAVE-C1");
     stream(5, "SAVE-C1", "Child's saver download", "txn_csv", "account", "ACC-C1-SAVE", "monthly", sim.childSaver, { issuer_party_id: instId("A_save"), grace_days: 14 });
+  }
+  // chapters 7 and 9: their own small households
+  const biz = sim.biz, kid = sim.kids[0];
+  if (biz) {
+    bank(7, "ACC-BIZ", "Practice account", "transaction", "HARBOURBANK", { opened_on: C.later.biz.from }); own(7, "account", "ACC-BIZ", [[PA, 10000]], C.later.biz.from); al(7, "account", "ACC-BIZ", "account_number", "732-998 120 447"); al(7, "account", "ACC-BIZ", "name", "BIZ-A");
+    stream(7, "BIZ-A", "Practice account", "txn_csv", "account", "ACC-BIZ", "monthly", C.later.biz.from, { issuer_party_id: "HARBOURBANK", grace_days: 14 });
+    stream(7, "BAS-A", "Business activity statements", "activity_statement", "party", PA, "quarterly", C.later.biz.from, { issuer_party_id: "ATO", grace_days: 28 });
+    S.scope.push({ subject_type: "household", subject_id: HH, domain: "business", state: "has", by: A.first, valid_from: C.later.biz.from, recorded_at: at(7) });
+  }
+  if (sim.job) {
+    bank(9, "ACC-C1-EVERY", `${kid.first}'s everyday`, "transaction", instId("A_save"), { opened_on: C.later.teen.job_from }); own(9, "account", "ACC-C1-EVERY", [[id(kid), 10000]], C.later.teen.job_from); al(9, "account", "ACC-C1-EVERY", "name", "EVERY-C1"); al(9, "account", "ACC-C1-EVERY", "account_number", N.child_every);
+    org(9, "EMP-C1", C.later.teen.employer); push("contract", 9, { contract_id: "C-EMP-C1", kind: "employment", name: C.later.teen.employer, counterparty_party_id: "EMP-C1", holder_party_id: id(kid), category_id: "SALARY", started_on: C.later.teen.job_from });
+    stream(9, "EVERY-C1", "Everyday download", "txn_csv", "account", "ACC-C1-EVERY", "monthly", C.later.teen.job_from, { issuer_party_id: instId("A_save"), grace_days: 14 });
+    stream(9, "PAY-C1", "Payslips", "payslip", "party", id(kid), "event", C.later.teen.job_from, {});
   }
   // periods, for every month the script reaches
   for (const ym of monthRange("2026-07", "2036-06")) push("period", 0, { period_id: ym, kind: "month", start_on: `${ym}-01`, end_on: monthEnd(ym), status: "open" });

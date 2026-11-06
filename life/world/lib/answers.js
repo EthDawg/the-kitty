@@ -13,7 +13,7 @@ function answerKey(cast, files) {
     const spec = inst.spec;
     if (!spec || spec.family || spec.special) continue;
     const f = files.find((x) => x.shape === role); if (!f) continue;
-    const fp = fingerprint(decode(f.bytes, { inflate })), id = `answer-${inst.brand}-${inst.shape}${spec.key ? "-2026" : ""}`;
+    const fp = fingerprint(decode(f.bytes, { inflate })), id = spec.key || `answer-${inst.brand}-${inst.shape}`;
     if (seen.has(id)) continue;
     seen.add(id); out.push(recipeFor(id, spec, fp));
   }

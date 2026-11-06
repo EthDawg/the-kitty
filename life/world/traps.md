@@ -5,7 +5,9 @@ of every trap for the family it was built for (`traps[id]`: dates, cents, accoun
 meaning and `truth.json` for the numbers. A variant family carries the same traps with its own numbers.
 
 A trap is something a correct household gets right and a careless one gets silently wrong. Anything added after the first
-soundness run is marked **added after**, with the reason. Nothing here is removed because it scored badly.
+soundness run is marked **added after**, with the reason. Nothing here is removed because it scored badly. The page was
+committed before the first run (`c6385df`). One wording changed afterwards: T2-MISFILED said "a super statement", and a
+family whose fund issues no half-yearly PDF has a different statement to misfile. The trap is the same.
 
 Australian rules come from `pace-setter/lifecycle/research.md` Part A and `standard/reference/au-verified.json`. Where the
 research says "unconfirmed" this page says so too. Fictional family, not tax advice.
@@ -41,7 +43,7 @@ research says "unconfirmed" this page says so too. Fictional family, not tax adv
 | T2-DRIVE-MISSING-MONTH | The family's Drive holds every month but one. | Coverage names the month. The portal still has it. |
 | T2-BYTE-DUPLICATE | `Statement (1).csv` is the same bytes as its original. | One source. |
 | T2-SCAN | `scan0003.pdf` and a phone screenshot of a receipt have no text layer. | Agent tier, a model reads the image. No recipe may claim them. |
-| T2-MISFILED | A super statement sits in a folder called Car. | Identity comes from the content, never the folder. |
+| T2-MISFILED | A statement sits in a folder called Car. | Identity comes from the content, never the folder. |
 
 ## Chapter 3: they join
 

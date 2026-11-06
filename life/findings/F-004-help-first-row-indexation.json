@@ -1,0 +1,20 @@
+{
+ "id": "F-004",
+ "title": "A HELP history that opens on an indexation line counts it twice",
+ "chapter": 2,
+ "trap": "T2-HELP-NO-BANK-LINE",
+ "kind": "engine",
+ "found": "finishOpenings takes the first stated balance as the opening, then help_indexation posts the same row again. The generator avoids it by printing a 'Balance brought forward' row, the shape a government page shows, so the world ties; the defect remains for any file that starts on 1 June.",
+ "shape": {
+  "observation": {
+   "kind": "help_balance",
+   "person_ref": "P",
+   "as_at": "2026-06-01",
+   "balance_cents": 1028000,
+   "indexation_cents": 28000
+  }
+ },
+ "want": "The balance at 2026-06 is -10,280.00. Today it is -10,560.00.",
+ "landing": "one small base change",
+ "owner": "data model session: resolve-capital.js finishOpenings"
+}

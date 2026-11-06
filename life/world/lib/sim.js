@@ -100,10 +100,10 @@ class Sim {
       switch (e.do) {
         case "couple_transfer": { const [a, b] = this.xfer(B.every, e.on, `OSKO ${A.first.toUpperCase()} HALF BOND`, A.every, e.on, `OSKO FROM ${B.first.toUpperCase()} HALF BOND`, e.cents, { couple: true }); this.note("T3-COUPLE-TRANSFER", { out: { account: a.acct, date: a.date, cents: a.cents }, in: { account: b.acct, date: b.date, cents: b.cents } }); break; }
         case "open_account": this.openAccount(e.account, e.on); this.joined = true; break;
-        case "fund_joint": this.xfer(A.every, e.on, "TFR TO JOINT", "ACC-JOINT", e.on, `TFR FROM ${A.first.toUpperCase()}`, e.cents); break;
+        case "fund_joint": this.xfer(A.save, e.on, "TFR TO JOINT", "ACC-JOINT", e.on, `TFR FROM ${A.first.toUpperCase()}`, e.cents); break;
         case "pay_change": this.people[e.person].annual.push({ from: e.on, cents: e.annual_cents }); break;
         case "bond_paid": { const r = this.line("ACC-JOINT", e.on, "BPAY RESIDENTIAL TENANCIES BOND", -e.cents, { bond: true }); this.bondOut = r; this.note("T3-BOND", { account: r.acct, date: r.date, cents: r.cents }); break; }
-        case "move_in": this.rent = { from: e.on, cents: e.rent_month_cents }; break;
+        case "move_in": this.rent = { from: e.on, cents: e.rent_month_cents }; this.together = e.on; break;
         case "shared_saver": this.shared[e.account] = e.on; this.note("T4-OWNER-NOT-NAME", { account: e.account, from: e.on, legal: "A", beneficial: { A: 5000, B: 5000 } }); break;
         case "cgt_value_day": this.cgtValue(e); break;
         case "amend_return": this.amendReturn(e); break;
@@ -126,6 +126,7 @@ class Sim {
         case "school_start": this.care = this.care.filter((c) => c.child !== e.child); break;
         case "rate_backdated": this.rateBackdated = e.on; break;
         case "pocket_money_intent": this.pocketMoney = e.on; break;
+        case "note": break;
         default: throw new Error(`unknown life event ${e.do}`);
       }
     }
@@ -136,12 +137,11 @@ class Sim {
   everyday(ym) {
     const r = this.spendRng, M = this.cast.merchants, days = monthRange(ym, ym).length && lastDay(Number(ym.slice(0, 4)), Number(ym.slice(5)));
     const bought = (acct, d, cat, lo, hi, who, card) => { const m = r.pick(M[cat]), c = cents(r, lo, hi); const desc = card ? m : `EFTPOS ${m}`; this.spend(acct, d, desc, c, cat, who); };
-    const joint = this.joined && `${ym}-01` >= "2027-04-01";
-    const kidsAt = this.kids.filter((k) => k.born <= `${ym}-01`).length;
+        const kidsAt = this.kids.filter((k) => k.born <= `${ym}-01`).length;
     for (let i = 1; i <= days; i++) {
       const d = `${ym}-${pad(i)}`;
       if (d < this.start) continue;
-      const wd = weekday(d);
+      const wd = weekday(d), joint = this.together && this.together <= d;
       if (r.next() < 0.33) bought("ACC-A-CARD", d, "DINING", 6, 36, "A", true);
       if (r.next() < 0.14) bought("ACC-A-CARD", d, "SHOPPING", 18, 160, "A", true);
       if (r.next() < 0.1) bought("ACC-A-CARD", d, "PERSONAL", 22, 95, "A", true);
@@ -158,7 +158,7 @@ class Sim {
     this.spend("ACC-A-EVERY", biz(`${ym}-03`), "DIRECT DEBIT KOALATEL MOBILE 5501", 4900, "TELCO", "A");
     this.spend("ACC-B-EVERY", biz(`${ym}-03`), "DIRECT DEBIT KOALATEL MOBILE 7702", 5500, "TELCO", "B");
     // the trap days
-    if (ym === "2026-12") { const a = this.spend("ACC-A-EVERY", "2026-12-20", "EFTPOS THE GREY TABBY CAFE", 650, "DINING", "A", { twin: true }), b = this.spend("ACC-A-EVERY", "2026-12-20", "EFTPOS THE GREY TABBY CAFE", 650, "DINING", "A", { twin: true }); this.note("T2-SAME-DAY-TWINS", { account: "ACC-A-EVERY", date: a.date, cents: a.cents, count: 2 }); void b; }
+    if (ym === "2026-12") { const twin = `EFTPOS ${M.DINING[0]}`, a = this.spend("ACC-A-EVERY", "2026-12-20", twin, 650, "DINING", "A", { twin: true }), b = this.spend("ACC-A-EVERY", "2026-12-20", twin, 650, "DINING", "A", { twin: true }); this.note("T2-SAME-DAY-TWINS", { account: "ACC-A-EVERY", date: a.date, cents: a.cents, count: 2 }); void b; }
     if (ym === "2029-03") { const a = this.spend("ACC-A-CARD", "2029-03-29", "GOOD PAWS APPLIANCES", 18900, "SHOPPING", "A"), b = this.line("ACC-A-CARD", "2029-04-02", "GOOD PAWS APPLIANCES REFUND", 18900, { lens: "spending", cat: "SHOPPING", who: "A" }); this.note("T5-REFUND-ACROSS-MONTH", { purchase: { account: a.acct, date: a.date, cents: a.cents }, refund: { account: b.acct, date: b.date, cents: b.cents } }); }
   }
   /* Rent, power and phone before the home. */
@@ -173,17 +173,26 @@ class Sim {
   }
   powerBill(acct, ym, who, r) {
     const c = cents(r, 180, 420), bill = biz(`${ym}-06`), paid = addDays(bill, 14), from = `${prevMonth(prevMonth(prevMonth(ym)))}-01`, to = monthEnd(prevMonth(ym));
-    this.spend(acct, paid, "BPAY REDPAW ENERGY 5507712", c, "UTILITIES", who);
-    this.bills.push({ kind: "power", issuer: "RedPaw Energy", account: "EL-5507712", bill_date: bill, due_on: addDays(bill, 21), from, to, cents: c, stream: "BILL-POWER", who });
+    const U = this.cast.utilities; this.spend(acct, paid, `BPAY REDPAW ENERGY ${U.power_ref.replace(/\D/g, "")}`, c, "UTILITIES", who);
+    this.bills.push({ kind: "power", issuer: "RedPaw Energy", account: U.power_ref, bill_date: bill, due_on: addDays(bill, 21), from, to, cents: c, stream: "BILL-POWER", who });
   }
   health(ym) {
     // single cover each until they join, then a family policy. Rates reset each 1 April, inside the year: the only line the bank shows is the net premium.
     const d = biz(`${ym}-07`), on = `${ym}-01`, y = Number(ym.slice(0, 4)), steps = y - 2026 + (ym.slice(5) >= "04" ? 1 : 0), lift = (c) => Math.round(c * (1.03 ** steps));
     const tier = this.phiTierNow(on), pct = this.law.phiPct(on, tier);
     const pay = (acct, base, who, policy) => { const gross = lift(base), rebate = Math.round(gross * pct / 100), net = gross - rebate; this.spend(acct, d, `BUPAW HEALTH ${policy}`, net, "HEALTH", who); this.phi.push({ month: ym, who, acct, gross, rebate, net, pct, tier, policy }); };
-    if (on >= "2027-04-01") pay("ACC-JOINT", 42600, "joint", "BW-7701342");
-    else { pay("ACC-A-EVERY", 19800, "A", "BW-6620018"); pay("ACC-B-EVERY", 20400, "B", "BW-6620244"); }
-    if (ym.slice(5) === "04" && (ym === "2027-04" || ym === "2028-04")) this.note("T4-PHI-1-APRIL", { month: ym, tier, new_pct: pct, old_pct: this.law.phiPct(`${prevMonth(ym)}-01`, tier) });
+    const U = this.cast.utilities;
+    if (on >= "2027-04-01") pay("ACC-JOINT", 42600, "joint", U.phi_family);
+    else { pay("ACC-A-EVERY", 19800, "A", U.phi_single_A); pay("ACC-B-EVERY", 20400, "B", U.phi_single_B); }
+
+  }
+  /* The year before the story starts, stated so its April reset is on the record: the last reset the reference knows, inside FY2026. */
+  phiHistory() {
+    for (const ym of monthRange("2025-07", "2026-06")) {
+      const on = `${ym}-01`, y = Number(ym.slice(0, 4)), steps = y - 2026 + (ym.slice(5) >= "04" ? 1 : 0), tier = "tier1", pct = this.law.phiPct(on, tier);
+      for (const [who, base, policy] of [["A", 19800, this.cast.utilities.phi_single_A], ["B", 20400, this.cast.utilities.phi_single_B]]) { const gross = Math.round(base * (1.03 ** steps)), rebate = Math.round(gross * pct / 100); this.phi.push({ month: ym, who, acct: null, gross, rebate, net: gross - rebate, pct, tier, policy, before_story: true }); }
+    }
+    this.note("T4-PHI-1-APRIL", { fy: 2026, month: "2026-04", tier: "tier1", old_pct: this.law.phiPct("2026-03-01", "tier1"), new_pct: this.law.phiPct("2026-04-01", "tier1"), from_reference: true, note: "The last reset the reference holds. Later years use the last known rate, marked assumed, and the premium still moves each 1 April." });
   }
   phiTierNow(on) { const fy = fyOf(on) - 1; const t = this.tax[fy]; const inc = t ? Math.round(((t.A ? t.A.res.taxable_income_cents : 0) + (t.B ? t.B.res.taxable_income_cents : 0)) / 100) : 190000; return this.law.phiTier(on, inc, this.kids.filter((k) => k.born <= on).length); }
 
@@ -204,7 +213,7 @@ class Sim {
     add("ACC-B-SAVE", 385, "B");
     add("ACC-C1-SAVE", 390, "C1");
     const j = this.opened["ACC-JOINT"] && this.opened["ACC-JOINT"] <= end ? add("ACC-JOINT", 60, "shared") : null;
-    if (j && ym.endsWith("-06") && !this.traps["T4-JOINT-INTEREST-SHARE"]) this.note("T4-JOINT-INTEREST-SHARE", { account: "ACC-JOINT", date: j.date, cents: j.cents, shares_bps: { A: 5000, B: 5000 } });
+    if (j && !this.traps["T4-JOINT-INTEREST-SHARE"]) this.note("T4-JOINT-INTEREST-SHARE", { account: "ACC-JOINT", date: j.date, cents: j.cents, shares_bps: { A: 5000, B: 5000 } });
   }
   sweeps(ym) {
     const end = monthEnd(ym), A = this.people.A, B = this.people.B, d = addDays(end, -1);

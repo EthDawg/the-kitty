@@ -7,13 +7,13 @@ const ymOf = (d) => d.slice(0, 7);
 
 function accountsTruth(sim) {
   const months = monthRange(sim.start.slice(0, 7), sim.end.slice(0, 7)), out = {};
-  const ids = [...new Set([...Object.keys(sim.open), ...sim.lines.map((l) => l.acct)])].filter((id) => !["ACC-BIZ", "ACC-C1-EVERY"].includes(id));
+  const ids = [...new Set([...Object.keys(sim.open), ...sim.lines.map((l) => l.acct)])];
   const byAcct = {}; for (const l of sim.lines) (byAcct[l.acct] = byAcct[l.acct] || []).push(l);
   for (const id of ids) {
-    let bal = sim.open[id] || 0; const flows = {}, m = {};
-    for (const l of byAcct[id] || []) flows[ymOf(l.date)] = (flows[ymOf(l.date)] || 0) + l.cents;
-    const first = ymOf(sim.opened[id] || sim.start);
-    for (const ym of months) { bal += flows[ym] || 0; if (ym >= first) m[ym] = bal; }
+    let bal = sim.open[id] || 0; const flows = {}, m = {}, list = byAcct[id] || [], first = ymOf(sim.opened[id] || sim.start);
+    for (const l of list) flows[ymOf(l.date)] = (flows[ymOf(l.date)] || 0) + l.cents;
+    const lastM = list.length ? list.map((l) => ymOf(l.date)).sort().pop() : months[months.length - 1], last = lastM > months[months.length - 1] ? lastM : months[months.length - 1];
+    for (const ym of monthRange(first < months[0] ? first : months[0], last)) { bal += flows[ym] || 0; if (ym >= first) m[ym] = bal; }
     out[id] = { months: m };
   }
   for (const key of ["A", "B"]) { const f = sim.super[key], m = {}; let bal = f.open; for (const ym of months) { for (const l of f.rows.filter((x) => ymOf(x.date) === ym)) bal = l.bal; m[ym] = bal; } out[`SUPER-${key}`] = { months: m }; }
@@ -76,7 +76,7 @@ function chapterTruth(script, sim, accts, income, spending, nw, files, setup, la
     const held = files.filter((f) => f.held_from != null && f.held_from <= c.chapter);
     const streams = [...new Set(held.map((f) => f.stream))].sort();
     const accounts = [...new Set(held.map((f) => f.account).filter(Boolean))].sort();
-    const row = { chapter: c.chapter, title: c.title, today: c.today, status: c.status, who: c.who, household: c.household.map(id).filter(Boolean), last_whole_month: lastMonth, streams, files_held: held.length, files_read_expected: held.filter((f) => f.family && !/^life-/.test(f.family)).length, simplified: c.simplified || null };
+    const row = { chapter: c.chapter, title: c.title, today: c.today, status: c.status, who: c.who, household: c.household.map(id).filter(Boolean), last_whole_month: lastMonth, streams, files_held: held.length, files_a_public_recipe_reads: held.filter((f) => f.family && !/^life-/.test(f.family)).length, simplified: c.simplified || null };
     if (c.status === "full") {
       row.show = { balances: Object.fromEntries(accounts.filter((a) => accts[a] && accts[a].months[lastMonth] != null).map((a) => [a, accts[a].months[lastMonth]])), income: income[lastMonth] || null, spending: spending[lastMonth] || null, net_worth: nw[lastMonth] || null, net_worth_note: "Truth across everything the family has, whether or not this chapter's household holds it yet. A correct household shows only what it holds, and says what it does not." };
     }
@@ -93,8 +93,29 @@ function memoTruth(script, sim) {
   return out;
 }
 
+/* The traps that are a way of behaving rather than a dated line: where each one falls for this family. */
+function behaviourTraps(script, sim, files) {
+  const C = sim.cast, first = files.find((f) => f.held_from === 0), card = sim.lines.filter((l) => l.card_pay && l.acct === "ACC-A-EVERY" && l.date <= "2026-12-31").sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  const bytes = new TextDecoder().decode(first.bytes), low = bytes.split("\n").slice(1, 40).length;
+  sim.note("T0-DATE-ORDER", { file: first.path, rows_seen: low, proved_by: "a day above 12, or the running balance" });
+  sim.note("T1-OPENING-FROM-FILE", { account: "ACC-A-EVERY", window_from: "2026-10-01", opening_cents: files.length && sim.lines.filter((l) => l.acct === "ACC-A-EVERY" && l.date < "2026-10-01").reduce((t, l) => t + l.cents, sim.open["ACC-A-EVERY"]) });
+  if (card) sim.note("T1-CARD-PAYMENT-NO-CARD", { account: card.acct, date: card.date, cents: card.cents });
+  const pay = sim.lines.find((l) => l.pay && l.acct === "ACC-A-EVERY" && l.date >= "2026-10-01"), toSave = sim.lines.find((l) => l.xfer && l.acct === "ACC-A-EVERY" && l.cents < 0 && !l.card_pay && l.date >= "2026-10-01");
+  if (pay) sim.note("T1-SALARY-NO-PAYSLIP", { account: pay.acct, date: pay.date, cents: pay.cents });
+  if (toSave) sim.note("T1-TRANSFER-TO-SAVER", { account: toSave.acct, date: toSave.date, cents: toSave.cents });
+  const st = sim.statements.find((s) => s.to === "2027-01-14"), p = sim.lines.find((l) => l.card_pay && l.acct === "ACC-A-CARD");
+  if (st) { sim.note("T2-STATEMENT-AND-ACTIVITY", { statement_to: st.to, lines: st.rows.length }); sim.note("T2-CARD-CYCLE", { statement_from: st.from, statement_to: st.to, closing_cents: st.closing }); }
+  if (p) sim.note("T2-PAYMENT-TWO-SIDES", { date: p.date, cents: p.cents });
+  sim.note("T3-PRIVATE-HISTORY", { solo_streams: { [C.A.id]: ["EVERY-A", "SAVE-A", "CARD-A", "PAY-A", "SUPER-A"], [C.B.id]: ["EVERY-B", "SAVE-B", "PAY-B", "SUPER-B", "RSU-SALE"] }, joined_on: sim.opened["ACC-JOINT"] });
+  sim.note("T3-TWO-NAMES-ONE-ACCOUNT", { account: "ACC-JOINT", number: C.numbers.joint, [C.A.id]: "Joint", [C.B.id]: "Household" });
+  sim.note("T6-TEN-YEARS-OF-LAW", { assumed_series: sim.law.list().map((a) => a.series) });
+  const salt = sim.lines.find((l) => l.acct === "ACC-C1-EVERY");
+  if (salt) sim.note("T9-MEMO-TO-REAL", { first_deposit: { account: salt.acct, date: salt.date, cents: salt.cents }, memo: "the pocket money balance held since chapter 6" });
+}
+
 function buildTruth(script, sim, files, setup) {
   const accounts = accountsTruth(sim), { income, spending, economic } = flows(sim), net_worth = netWorth(sim, accounts);
+  behaviourTraps(script, sim, files);
   sim.note("T6-CHILD-INTEREST-OWNER", { by_fy: childInterest(sim) });
   sim.note("T6-PREFILL-WRONG-PERSON", { account: "ACC-C1-SAVE", prefill_person: sim.cast.A.id, owner: sim.kids[0].id });
   sim.note("T6-MEMO", memoTruth(script, sim));

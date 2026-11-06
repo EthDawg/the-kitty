@@ -1,141 +1,729 @@
 {
-  "schema": "life-script/1",
-  "about": "The Davies' life as data. The generator in life/world reads this and nothing else about them. Fiction: every person, employer and address is invented, every institution a parody. Amounts are integer cents. 'A' is the person who starts, 'B' the person who joins, 'C1' to 'C3' the children, so a variant family plays the same script with its own cast.",
-  "start": "2026-07-01",
-  "end": "2036-04-30",
-  "cast": {
-    "provenance": "Born years and names are canon from pace-setter/lifecycle/GOAL.md. Days, employers and pay are invented, ours to change. life/davies/profile.json, owned by life/estate, is the single source once it lands; see life/DECISIONS.md D2.",
-    "surname": "Davies",
-    "household": "The Davies household (fictional)",
-    "shared_mail": "the.davies@mail.example",
-    "state": "VIC",
-    "A": { "id": "daisy", "first": "Daisy", "born": "1995-02-03", "work": "Hospital physiotherapist", "employer": "Bayview Health", "payroll_portal": "Pawroll", "super": "hestabby", "member": "HB-2210-7744" },
-    "B": { "id": "danny", "first": "Danny", "born": "1993-06-12", "work": "Financial adviser, commerce degree, started as a bank graduate", "employer": "Northwind Logistics", "payroll_portal": "Pawroll", "super": "purrannuation", "member": "PN-884213",
-      "plan": { "parent": "Northwind Global Inc", "code": "NWGL", "account": "ET-55120-RSU" } },
-    "children": [
-      { "role": "C1", "id": "salt", "first": "Salt", "born": "2028-03-20" },
-      { "role": "C2", "id": "george", "first": "George", "born": "2030-05-11" },
-      { "role": "C3", "id": "evie", "first": "Evie", "born": "2033-10-03" }
-    ],
-    "addresses": {
-      "A_flat": "3/88 Nicholson Street, Coburg VIC 3058",
-      "B_share": "17 Union Street, Northcote VIC 3070",
-      "rental": "9 Lygon Walk, Brunswick East VIC 3057",
-      "home": "12 Wren Street, Thornbury VIC 3071"
-    },
-    "numbers": { "A_every": "0061 2204 8813", "A_save": "0061 2204 9127", "A_card": "37004", "B_every": "4471 0093 2281", "B_save": "0094 7718 2206", "joint": "732-114 508 221", "offset": "732-114 508 239", "loan": "503 884 120", "child_save": "0061 2271 4402", "last4_A": "8813", "last4_B": "2281" }
+ "schema": "life-script/1",
+ "about": "The Davies' life as data. The generator in life/world reads this and nothing else about them. Fiction: every person, employer and address is invented, every institution a parody. Amounts are integer cents. 'A' is the person who starts, 'B' the person who joins, 'C1' to 'C3' the children, so a variant family plays the same script with its own cast. In chapter text {C1} is the first child's name, so a variant reads as its own family.",
+ "start": "2026-07-01",
+ "end": "2036-04-30",
+ "cast": {
+  "provenance": "Born years and names are canon from pace-setter/lifecycle/GOAL.md. Days, employers and pay are invented, ours to change. life/davies/profile.json, owned by life/estate, is the single source once it lands; see life/DECISIONS.md D2.",
+  "surname": "Davies",
+  "household": "The Davies household (fictional)",
+  "shared_mail": "the.davies@mail.example",
+  "state": "VIC",
+  "A": {
+   "id": "daisy",
+   "first": "Daisy",
+   "born": "1995-02-03",
+   "work": "Hospital physiotherapist",
+   "employer": "Bayview Health",
+   "payroll_portal": "Pawroll",
+   "super": "hestabby",
+   "member": "HB-2210-7744"
   },
-  "institutions": {
-    "provenance": "The Davies' mix. A variant draws its own. Each role names a parody portal in portals/public and a file shape.",
-    "A_every": { "brand": "ping", "shape": "ping2026" },
-    "A_save": { "brand": "ping", "shape": "ping2026" },
-    "A_card": { "brand": "amewx", "shape": "amewx" },
-    "B_every": { "brand": "commbark", "shape": "bark" },
-    "B_save": { "brand": "ping", "shape": "ofx" },
-    "joint": { "brand": "westpaw", "shape": "westpaw" },
-    "loan": { "brand": "westpaw", "shape": "westpaw" }
+  "B": {
+   "id": "danny",
+   "first": "Danny",
+   "born": "1993-06-12",
+   "work": "Financial adviser, commerce degree, started as a bank graduate",
+   "employer": "Northwind Logistics",
+   "payroll_portal": "Pawroll",
+   "super": "purrannuation",
+   "member": "PN-884213",
+   "plan": {
+    "parent": "Northwind Global Inc",
+    "code": "NWGL",
+    "account": "ET-55120-RSU"
+   }
   },
-  "opening": {
-    "provenance": "Where each account stood on 1 July 2026, when the simulation begins. Invented.",
-    "ACC-A-EVERY": 624018, "ACC-A-SAVE": 4130562, "ACC-A-CARD": -118044, "ACC-B-EVERY": 881290, "ACC-B-SAVE": 5842000,
-    "SUPER-A": 9641233, "SUPER-B": 13100781, "HELP-A": -2794015, "held_units": 120, "held_cost_cents": 462000
-  },
-  "pay": {
-    "provenance": "Invented, ours to change. Every raise is an event below. Fortnightly, dated from the anchor.",
-    "ppl_fortnight_cents": 196000,
-    "A": { "annual_cents": 9600000, "anchor": "2026-07-02", "packaging_fortnight_cents": 34654 },
-    "B": { "annual_cents": 12800000, "anchor": "2026-07-08" }
-  },
-  "chapters": [
-    { "chapter": 0, "title": "Hears about it", "today": "2027-01-09", "who": ["A"], "status": "full",
-      "happens": "A opens the public link, starts on her own Sheet, and her Claude writes the first recipe through the gate.",
-      "proves": "Front door, trust, cost, one grant",
-      "streams_begin": ["EVERY-A"], "household": ["A"] },
-    { "chapter": 1, "title": "Blank Kitty", "today": "2027-01-16", "who": ["A", "agent"], "status": "full",
-      "happens": "Blank Kitty, one account, three months, a dropped file.",
-      "proves": "init, blank states, first value",
-      "streams_begin": [], "household": ["A"] },
-    { "chapter": 2, "title": "First close", "today": "2027-02-14", "who": ["A"], "status": "full",
-      "happens": "First close of January. Adds a card, super and HELP. Payslips from the portal. The Drive is half there.",
-      "proves": "scope, coverage, gaps, review load",
-      "streams_begin": ["SAVE-A", "CARD-A", "CARD-A-STMT", "PAY-A", "SUPER-A", "SUPER-A-STMT", "HELP-A", "TAX-A"], "household": ["A"] },
-    { "chapter": 3, "title": "They join", "today": "2027-03-31", "who": ["B", "A"], "status": "full",
-      "happens": "B starts his own Kitty, they move in together, they join. Both imported the joint account.",
-      "proves": "merge, double import, private history",
-      "streams_begin": ["EVERY-B", "SAVE-B", "PAY-B", "SUPER-B", "RSU-HIST", "RSU-SALE", "JOINT", "TAX-B"], "household": ["A", "B"] },
-    { "chapter": 4, "title": "First joint tax time", "today": "2027-10-31", "who": ["A", "B"], "status": "full",
-      "happens": "First joint tax time, one accountant who takes a zip, a prior-year amendment, returns back in.",
-      "proves": "pack, lodged returns",
-      "streams_begin": ["IS-A", "IS-B", "PREFILL-A", "PREFILL-B", "PHI-A", "PHI-B", "DED-A", "DED-B", "RSU-ESS", "RSU-HOLD", "SUPER-B-STMT"], "household": ["A", "B"] },
-    { "chapter": 5, "title": "Home, Salt, the estate", "today": "2030-06-30", "who": ["A", "B"], "status": "full",
-      "happens": "Buy a home, Salt arrives, parental leave, the estate: insurance, wills, warranties.",
-      "proves": "Evidence depth, a pace-setter",
-      "streams_begin": ["OFFSET", "LOAN", "LOAN-STMT", "RATE-LOAN", "SETTLEMENT", "VALUE", "POLICY", "BILL-RATES", "BILL-WATER", "BILL-POWER", "BILL-GAS", "CHILDCARE", "RECEIPTS", "REGO", "PPL", "SAVE-C1"], "household": ["A", "B", "C1", "C2"] },
-    { "chapter": 6, "title": "Pocket money", "today": "2036-03-31", "who": ["family"], "status": "full",
-      "happens": "Salt is 8. Pocket money, not a bank account. DIY first, then the project ships it.",
-      "proves": "Tailoring on a store, memo accounts",
-      "streams_begin": [], "household": ["A", "B", "C1", "C2", "C3"],
-      "family_intent": [
-        { "person": "C1", "from": "2036-03-20", "said": "Five dollars a week on Saturdays, and two more if the bins go out. It stays in the book until they want it.", "weekly_cents": 500, "chore_cents": 200, "chore_every_weeks": 2 }
-      ] },
-    { "chapter": 7, "title": "Goes out alone", "today": "2037-09-30", "who": ["A"], "status": "simplified",
-      "happens": "A goes out alone: ABN, private clients, BAS.",
-      "proves": "Activity shape, composition",
-      "simplified": "Only the new business account and quarterly BAS are generated. The family's other streams stop at chapter 6.",
-      "streams_begin": ["BIZ-A", "BAS-A"], "household": ["A"] },
-    { "chapter": 8, "title": "Move from Google to Microsoft", "today": "2038-03-31", "who": ["A", "B"], "status": "no_new_evidence",
-      "happens": "They move the household from Google to Microsoft.",
-      "proves": "transfer move, Store",
-      "simplified": "A move creates no financial evidence. The chapter replays whatever is already held.",
-      "streams_begin": [], "household": ["A", "B"] },
-    { "chapter": 9, "title": "Salt's first job", "today": "2046-03-31", "who": ["C1"], "status": "simplified",
-      "happens": "First job, TFN, super. At 18, a Kitty of their own.",
-      "proves": "transfer spawn, memo to real",
-      "simplified": "Salt's own account, casual payslips and super only.",
-      "streams_begin": ["EVERY-C1", "PAY-C1", "SUPER-C1"], "household": ["C1"] },
-    { "chapter": 10, "title": "A branch: they separate", "today": "2040-06-30", "who": ["A", "B"], "status": "not_generated",
-      "happens": "A branch forks the simulated life from a snapshot.", "proves": "transfer, shared child link",
-      "simplified": "Not generated. A branch needs chapter 6 onward at full depth, and that is not honest yet.", "streams_begin": [], "household": ["A", "B"] },
-    { "chapter": 11, "title": "Retire", "today": "2058-06-30", "who": ["A", "B"], "status": "not_generated",
-      "happens": "Downsize, retire, pension phase, no wage.", "proves": "Retiree truth",
-      "simplified": "Not generated. The third held-out family already covers retiree shapes.", "streams_begin": [], "household": ["A", "B"] },
-    { "chapter": 12, "title": "Salt as executor", "today": "2070-06-30", "who": ["C1"], "status": "not_generated",
-      "happens": "Handles a parent's estate.", "proves": "transfer handover, pack",
-      "simplified": "Not generated.", "streams_begin": [], "household": ["C1"] }
+  "children": [
+   {
+    "role": "C1",
+    "id": "salt",
+    "first": "Salt",
+    "born": "2028-03-20"
+   },
+   {
+    "role": "C2",
+    "id": "george",
+    "first": "George",
+    "born": "2030-05-11"
+   },
+   {
+    "role": "C3",
+    "id": "evie",
+    "first": "Evie",
+    "born": "2033-10-03"
+   }
   ],
-  "events": [
-    { "on": "2027-03-05", "do": "couple_transfer", "cents": 360000, "why": "half the bond, before any joint account" },
-    { "on": "2027-03-08", "do": "open_account", "account": "ACC-JOINT" },
-    { "on": "2027-03-10", "do": "fund_joint", "cents": 750000 },
-    { "on": "2027-03-15", "do": "pay_change", "person": "B", "annual_cents": 14200000, "why": "promotion, part way through a fortnight" },
-    { "on": "2027-03-16", "do": "bond_paid", "cents": 720000 },
-    { "on": "2027-03-20", "do": "move_in", "rent_month_cents": 312000 },
-    { "on": "2027-03-20", "do": "shared_saver", "account": "ACC-A-SAVE", "why": "The saver stays in A's name and holds both their money from here. T4-OWNER-NOT-NAME." },
-    { "on": "2027-06-30", "do": "cgt_value_day", "why": "Market value of CGT assets held, per Act 49 of 2026 as read by the research: unconfirmed.", "status": "unconfirmed" },
-    { "on": "2027-09-14", "do": "amend_return", "person": "B", "fy": 2026, "why": "Saver interest was left off the FY2026 return." },
-    { "on": "2027-11-12", "do": "pay_deposit", "cents": 8800000 },
-    { "on": "2027-11-22", "do": "sell_held_units", "units": 120, "why": "Towards the home. Spans two CGT regimes: unconfirmed.", "status": "unconfirmed" },
-    { "on": "2027-12-10", "do": "gift", "cents": 6000000, "from": "family" },
-    { "on": "2028-01-28", "do": "buy_home", "price_cents": 88000000, "duty_cents": 4700000, "legal_cents": 220000, "adjustments_cents": 41260, "loan_cents": 72000000, "margin_pct": 1.69, "deposit_paid_cents": 8800000 },
-    { "on": "2028-02-14", "do": "bond_back", "cents": 720000, "charge_cents": 18500 },
-    { "on": "2028-03-06", "do": "leave", "person": "A", "paid_weeks": 14, "ppl_weeks": 22, "back_on": "2029-02-05", "fte_bps": 6000, "for": "C1" },
-    { "on": "2028-03-20", "do": "birth", "child": "C1" },
-    { "on": "2028-04-03", "do": "open_child_saver", "child": "C1", "gift_cents": 150000 },
-    { "on": "2028-05-22", "do": "wills", "why": "Both sign wills after Salt. The scans are in Drive." },
-    { "on": "2029-02-05", "do": "childcare_start", "child": "C1", "days_per_week": 3, "daily_cents": 16800 },
-    { "on": "2029-09-17", "do": "rate_backdated", "why": "The lender moves a cut back eleven days, twelve days after the first notice." },
-    { "on": "2030-04-27", "do": "leave", "person": "A", "paid_weeks": 14, "ppl_weeks": 22, "back_on": "2031-02-03", "fte_bps": 6000, "for": "C2" },
-    { "on": "2030-05-11", "do": "birth", "child": "C2" },
-    { "on": "2031-02-03", "do": "childcare_start", "child": "C2", "days_per_week": 3, "daily_cents": 18400 },
-    { "on": "2033-09-19", "do": "leave", "person": "A", "paid_weeks": 14, "ppl_weeks": 22, "back_on": "2034-08-07", "fte_bps": 6000, "for": "C3" },
-    { "on": "2033-10-03", "do": "birth", "child": "C3" },
-    { "on": "2034-01-30", "do": "school_start", "child": "C1" },
-    { "on": "2034-08-07", "do": "childcare_start", "child": "C3", "days_per_week": 3, "daily_cents": 20600 },
-    { "on": "2036-03-20", "do": "pocket_money_intent", "child": "C1" }
-  ],
-  "later": {
-    "provenance": "Simplified streams for chapters 7 and 9. They do not continue the family's other accounts.",
-    "biz": { "from": "2037-01-05", "to": "2037-09-30", "consult_cents": 11500, "per_week": 22, "room_month_cents": 145000, "gst_free_bps": 9400 },
-    "teen": { "job_from": "2043-04-05", "to": "2046-03-31", "hourly_cents": 2150, "employer": "Lakeside Cinema Bar" }
+  "addresses": {
+   "A_flat": "3/88 Nicholson Street, Coburg VIC 3058",
+   "B_share": "17 Union Street, Northcote VIC 3070",
+   "rental": "9 Lygon Walk, Brunswick East VIC 3057",
+   "home": "12 Wren Street, Thornbury VIC 3071"
+  },
+  "numbers": {
+   "A_every": "0061 2204 8813",
+   "A_save": "0061 2204 9127",
+   "A_card": "37004",
+   "B_every": "4471 0093 2281",
+   "B_save": "0094 7718 2206",
+   "joint": "732-114 508 221",
+   "offset": "732-114 508 239",
+   "loan": "503 884 120",
+   "child_save": "0061 2271 4402",
+   "last4_A": "8813",
+   "last4_B": "2281",
+   "child_every": "0061 2298 3350"
+  },
+  "utilities": {
+   "council": "Merri-Purr City Council",
+   "water": "Greater Whisker Water",
+   "rates_ref": "RA-220419",
+   "water_ref": "WA-6601842",
+   "power_ref": "EL-5507712",
+   "gas_ref": "GS-8841207",
+   "rego": "XYZ482",
+   "phi_single_A": "BW-6620018",
+   "phi_single_B": "BW-6620244",
+   "phi_family": "BW-7701342"
   }
+ },
+ "institutions": {
+  "provenance": "The Davies' mix. A variant draws its own. Each role names a parody portal in portals/public and a file shape.",
+  "A_every": {
+   "brand": "ping",
+   "shape": "ping2026"
+  },
+  "A_save": {
+   "brand": "ping",
+   "shape": "ping2026"
+  },
+  "A_card": {
+   "brand": "amewx",
+   "shape": "amewx"
+  },
+  "B_every": {
+   "brand": "commbark",
+   "shape": "bark"
+  },
+  "B_save": {
+   "brand": "ping",
+   "shape": "ofx"
+  },
+  "joint": {
+   "brand": "westpaw",
+   "shape": "westpaw"
+  },
+  "loan": {
+   "brand": "westpaw",
+   "shape": "westpaw"
+  }
+ },
+ "opening": {
+  "provenance": "Where each account stood on 1 July 2026, when the simulation begins. Invented.",
+  "ACC-A-EVERY": 624018,
+  "ACC-A-SAVE": 4130562,
+  "ACC-A-CARD": -118044,
+  "ACC-B-EVERY": 881290,
+  "ACC-B-SAVE": 5842000,
+  "SUPER-A": 9641233,
+  "SUPER-B": 13100781,
+  "HELP-A": -2794015,
+  "held_units": 120,
+  "held_cost_cents": 462000
+ },
+ "pay": {
+  "provenance": "Invented, ours to change. Every raise is an event below. Fortnightly, dated from the anchor.",
+  "ppl_fortnight_cents": 196000,
+  "A": {
+   "annual_cents": 9600000,
+   "anchor": "2026-07-02",
+   "packaging_fortnight_cents": 34654
+  },
+  "B": {
+   "annual_cents": 12800000,
+   "anchor": "2026-07-08"
+  }
+ },
+ "chapters": [
+  {
+   "chapter": 0,
+   "title": "Hears about it",
+   "today": "2027-01-09",
+   "who": [
+    "A"
+   ],
+   "status": "full",
+   "happens": "A opens the public link, starts on her own Sheet, and her Claude writes the first recipe through the gate.",
+   "proves": "Front door, trust, cost, one grant",
+   "streams_begin": [
+    "EVERY-A"
+   ],
+   "household": [
+    "A"
+   ],
+   "streams_end": [],
+   "traps": [
+    "T0-NO-RECIPE",
+    "T0-SECOND-ACCOUNT-FREE",
+    "T0-DATE-ORDER"
+   ]
+  },
+  {
+   "chapter": 1,
+   "title": "Blank Kitty",
+   "today": "2027-01-16",
+   "who": [
+    "A",
+    "agent"
+   ],
+   "status": "full",
+   "happens": "Blank Kitty, one account, three months, a dropped file.",
+   "proves": "init, blank states, first value",
+   "streams_begin": [],
+   "household": [
+    "A"
+   ],
+   "streams_end": [],
+   "traps": [
+    "T1-OPENING-FROM-FILE",
+    "T1-CARD-PAYMENT-NO-CARD",
+    "T1-SALARY-NO-PAYSLIP",
+    "T1-TRANSFER-TO-SAVER"
+   ]
+  },
+  {
+   "chapter": 2,
+   "title": "First close",
+   "today": "2027-02-14",
+   "who": [
+    "A"
+   ],
+   "status": "full",
+   "happens": "First close of January. Adds a card, super and HELP. Payslips from the portal. The Drive is half there.",
+   "proves": "scope, coverage, gaps, review load",
+   "streams_begin": [
+    "SAVE-A",
+    "CARD-A",
+    "CARD-A-STMT",
+    "PAY-A",
+    "SUPER-A",
+    "SUPER-A-STMT",
+    "HELP-A",
+    "TAX-A"
+   ],
+   "household": [
+    "A"
+   ],
+   "streams_end": [],
+   "traps": [
+    "T2-OVERLAP-WINDOW",
+    "T2-SAME-DAY-TWINS",
+    "T2-STATEMENT-AND-ACTIVITY",
+    "T2-CARD-CYCLE",
+    "T2-PAYMENT-TWO-SIDES",
+    "T2-HELP-NO-BANK-LINE",
+    "T2-SALARY-PACKAGING",
+    "T2-DRIVE-MISSING-MONTH",
+    "T2-BYTE-DUPLICATE",
+    "T2-SCAN",
+    "T2-MISFILED"
+   ]
+  },
+  {
+   "chapter": 3,
+   "title": "They join",
+   "today": "2027-03-31",
+   "who": [
+    "B",
+    "A"
+   ],
+   "status": "full",
+   "happens": "B starts his own Kitty, they move in together, they join. Both imported the joint account.",
+   "proves": "merge, double import, private history",
+   "streams_begin": [
+    "EVERY-B",
+    "SAVE-B",
+    "PAY-B",
+    "SUPER-B",
+    "RSU-HIST",
+    "RSU-SALE",
+    "JOINT",
+    "TAX-B"
+   ],
+   "household": [
+    "A",
+    "B"
+   ],
+   "streams_end": [],
+   "traps": [
+    "T3-JOINT-TWICE",
+    "T3-JOINT-SAME-FILE",
+    "T3-PRIVATE-HISTORY",
+    "T3-SALARY-CHANGE-MID-MONTH",
+    "T3-COUPLE-TRANSFER",
+    "T3-BOND",
+    "T3-TWO-NAMES-ONE-ACCOUNT"
+   ]
+  },
+  {
+   "chapter": 4,
+   "title": "First joint tax time",
+   "today": "2027-10-31",
+   "who": [
+    "A",
+    "B"
+   ],
+   "status": "full",
+   "happens": "First joint tax time, one accountant who takes a zip, a prior-year amendment, returns back in.",
+   "proves": "pack, lodged returns",
+   "streams_begin": [
+    "IS-A",
+    "IS-B",
+    "PREFILL-A",
+    "PREFILL-B",
+    "PHI-A",
+    "PHI-B",
+    "DED-A",
+    "DED-B",
+    "RSU-ESS",
+    "RSU-HOLD",
+    "SUPER-B-STMT"
+   ],
+   "household": [
+    "A",
+    "B"
+   ],
+   "streams_end": [],
+   "traps": [
+    "T4-AMENDMENT",
+    "T4-HELP-IN-ASSESSMENT",
+    "T4-JOINT-INTEREST-SHARE",
+    "T4-PHI-1-APRIL",
+    "T4-CGT-VALUE-30-JUNE",
+    "T4-OWNER-NOT-NAME",
+    "T4-REFUND-OLD-ACCOUNT",
+    "T4-ACCOUNTANT-ZIP"
+   ]
+  },
+  {
+   "chapter": 5,
+   "title": "Home, {C1}, the estate",
+   "today": "2030-06-30",
+   "who": [
+    "A",
+    "B"
+   ],
+   "status": "full",
+   "happens": "Buy a home, {C1} arrives, parental leave, the estate: insurance, wills, warranties.",
+   "proves": "Evidence depth, a pace-setter",
+   "streams_begin": [
+    "OFFSET",
+    "LOAN",
+    "LOAN-STMT",
+    "RATE-LOAN",
+    "SETTLEMENT",
+    "VALUE",
+    "POLICY",
+    "BILL-RATES",
+    "BILL-WATER",
+    "BILL-POWER",
+    "BILL-GAS",
+    "CHILDCARE",
+    "RECEIPTS",
+    "REGO",
+    "PPL",
+    "SAVE-C1",
+    "WILLS"
+   ],
+   "household": [
+    "A",
+    "B",
+    "C1",
+    "C2"
+   ],
+   "streams_end": [],
+   "traps": [
+    "T5-SETTLEMENT",
+    "T5-CGT-TWO-REGIMES",
+    "T5-OFFSET-INTEREST",
+    "T5-RATE-BACKDATED",
+    "T5-MORTGAGE-SPLIT",
+    "T5-PARENTAL-LEAVE-MONTH",
+    "T5-BOND-BACK",
+    "T5-REFUND-ACROSS-MONTH",
+    "T5-GIFT-DEPOSIT",
+    "T5-WARRANTY",
+    "T5-WILL-NO-KIND",
+    "T5-CCS",
+    "T5-NEW-DEPENDANT"
+   ]
+  },
+  {
+   "chapter": 6,
+   "title": "Pocket money",
+   "today": "2036-03-31",
+   "who": [
+    "family"
+   ],
+   "status": "full",
+   "happens": "{C1} is 8. Pocket money, not a bank account. DIY first, then the project ships it.",
+   "proves": "Tailoring on a store, memo accounts",
+   "streams_begin": [],
+   "household": [
+    "A",
+    "B",
+    "C1",
+    "C2",
+    "C3"
+   ],
+   "family_intent": [
+    {
+     "person": "C1",
+     "from": "2036-03-20",
+     "said": "Five dollars a week on Saturdays, and two more if the bins go out. It stays in the book until they want it.",
+     "weekly_cents": 500,
+     "chore_cents": 200,
+     "chore_every_weeks": 2
+    }
+   ],
+   "streams_end": [],
+   "traps": [
+    "T6-MEMO",
+    "T6-CHILD-INTEREST-OWNER",
+    "T6-PREFILL-WRONG-PERSON",
+    "T6-TEN-YEARS-OF-LAW"
+   ]
+  },
+  {
+   "chapter": 7,
+   "title": "Goes out alone",
+   "today": "2037-09-30",
+   "who": [
+    "A"
+   ],
+   "status": "simplified",
+   "happens": "A goes out alone: ABN, private clients, BAS.",
+   "proves": "Activity shape, composition",
+   "simplified": "Only the new business account and quarterly BAS are generated. The family's other streams stop at chapter 6.",
+   "streams_begin": [
+    "BIZ-A",
+    "BAS-A"
+   ],
+   "household": [
+    "A"
+   ],
+   "streams_end": [
+    "PAY-A"
+   ],
+   "traps": [
+    "T7-GST-FREE"
+   ]
+  },
+  {
+   "chapter": 8,
+   "title": "Move from Google to Microsoft",
+   "today": "2038-03-31",
+   "who": [
+    "A",
+    "B"
+   ],
+   "status": "no_new_evidence",
+   "happens": "They move the household from Google to Microsoft.",
+   "proves": "transfer move, Store",
+   "simplified": "A move creates no financial evidence. The chapter replays whatever is already held.",
+   "streams_begin": [],
+   "household": [
+    "A",
+    "B"
+   ],
+   "streams_end": [],
+   "traps": []
+  },
+  {
+   "chapter": 9,
+   "title": "{C1}'s first job",
+   "today": "2046-03-31",
+   "who": [
+    "C1"
+   ],
+   "status": "simplified",
+   "happens": "First job, TFN, super. At 18, a Kitty of their own.",
+   "proves": "transfer spawn, memo to real",
+   "simplified": "{C1}'s own account and weekly payslips. Super is on the payslips and in truth, with no fund file.",
+   "streams_begin": [
+    "EVERY-C1",
+    "PAY-C1"
+   ],
+   "household": [
+    "C1"
+   ],
+   "streams_end": [],
+   "traps": [
+    "T9-UNDER-18-SUPER",
+    "T9-MEMO-TO-REAL"
+   ]
+  },
+  {
+   "chapter": 10,
+   "title": "A branch: they separate",
+   "today": "2040-06-30",
+   "who": [
+    "A",
+    "B"
+   ],
+   "status": "not_generated",
+   "happens": "A branch forks the simulated life from a snapshot.",
+   "proves": "transfer, shared child link",
+   "simplified": "Not generated. A branch needs chapter 6 onward at full depth, and that is not honest yet.",
+   "streams_begin": [],
+   "household": [
+    "A",
+    "B"
+   ],
+   "streams_end": [],
+   "traps": []
+  },
+  {
+   "chapter": 11,
+   "title": "Retire",
+   "today": "2058-06-30",
+   "who": [
+    "A",
+    "B"
+   ],
+   "status": "not_generated",
+   "happens": "Downsize, retire, pension phase, no wage.",
+   "proves": "Retiree truth",
+   "simplified": "Not generated. The third held-out family already covers retiree shapes.",
+   "streams_begin": [],
+   "household": [
+    "A",
+    "B"
+   ],
+   "streams_end": [],
+   "traps": []
+  },
+  {
+   "chapter": 12,
+   "title": "{C1} as executor",
+   "today": "2070-06-30",
+   "who": [
+    "C1"
+   ],
+   "status": "not_generated",
+   "happens": "Handles a parent's estate.",
+   "proves": "transfer handover, pack",
+   "simplified": "Not generated.",
+   "streams_begin": [],
+   "household": [
+    "C1"
+   ],
+   "streams_end": [],
+   "traps": []
+  }
+ ],
+ "events": [
+  {
+   "on": "2027-03-05",
+   "do": "couple_transfer",
+   "cents": 360000,
+   "why": "half the bond, before any joint account"
+  },
+  {
+   "on": "2027-03-08",
+   "do": "open_account",
+   "account": "ACC-JOINT"
+  },
+  {
+   "on": "2027-03-10",
+   "do": "fund_joint",
+   "cents": 950000
+  },
+  {
+   "on": "2027-03-15",
+   "do": "pay_change",
+   "person": "B",
+   "annual_cents": 14200000,
+   "why": "promotion, part way through a fortnight"
+  },
+  {
+   "on": "2027-03-16",
+   "do": "bond_paid",
+   "cents": 720000
+  },
+  {
+   "on": "2027-03-20",
+   "do": "move_in",
+   "rent_month_cents": 312000
+  },
+  {
+   "on": "2027-03-20",
+   "do": "shared_saver",
+   "account": "ACC-A-SAVE",
+   "why": "The saver stays in A's name and holds both their money from here. T4-OWNER-NOT-NAME."
+  },
+  {
+   "on": "2027-06-30",
+   "do": "cgt_value_day",
+   "why": "Market value of CGT assets held, per Act 49 of 2026 as read by the research: unconfirmed.",
+   "status": "unconfirmed"
+  },
+  {
+   "on": "2027-09-14",
+   "do": "amend_return",
+   "person": "B",
+   "fy": 2026,
+   "why": "Saver interest was left off the FY2026 return."
+  },
+  {
+   "on": "2027-11-12",
+   "do": "pay_deposit",
+   "cents": 8800000
+  },
+  {
+   "on": "2027-11-22",
+   "do": "sell_held_units",
+   "units": 120,
+   "why": "Towards the home. Spans two CGT regimes: unconfirmed.",
+   "status": "unconfirmed"
+  },
+  {
+   "on": "2027-12-10",
+   "do": "gift",
+   "cents": 6000000,
+   "from": "family"
+  },
+  {
+   "on": "2028-01-28",
+   "do": "buy_home",
+   "price_cents": 88000000,
+   "duty_cents": 4700000,
+   "legal_cents": 220000,
+   "adjustments_cents": 41260,
+   "loan_cents": 72000000,
+   "margin_pct": 1.69,
+   "deposit_paid_cents": 8800000
+  },
+  {
+   "on": "2028-02-14",
+   "do": "bond_back",
+   "cents": 720000,
+   "charge_cents": 18500
+  },
+  {
+   "on": "2028-03-06",
+   "do": "leave",
+   "person": "A",
+   "paid_weeks": 14,
+   "ppl_weeks": 22,
+   "back_on": "2029-02-05",
+   "fte_bps": 6000,
+   "for": "C1"
+  },
+  {
+   "on": "2028-03-20",
+   "do": "birth",
+   "child": "C1"
+  },
+  {
+   "on": "2028-04-01",
+   "do": "note",
+   "why": "Health rebate rates reset each 1 April, inside the financial year. The last reset in the reference is 1 April 2026, inside FY2026: T4-PHI-1-APRIL. Later years keep that rate, marked assumed, and the premium still moves."
+  },
+  {
+   "on": "2028-04-03",
+   "do": "open_child_saver",
+   "child": "C1",
+   "gift_cents": 150000
+  },
+  {
+   "on": "2028-05-22",
+   "do": "wills",
+   "why": "Both sign wills after {C1}. The scans are in Drive."
+  },
+  {
+   "on": "2029-02-05",
+   "do": "childcare_start",
+   "child": "C1",
+   "days_per_week": 3,
+   "daily_cents": 16800
+  },
+  {
+   "on": "2029-09-17",
+   "do": "rate_backdated",
+   "why": "The lender moves a cut back eleven days, twelve days after the first notice."
+  },
+  {
+   "on": "2030-04-27",
+   "do": "leave",
+   "person": "A",
+   "paid_weeks": 14,
+   "ppl_weeks": 22,
+   "back_on": "2031-02-03",
+   "fte_bps": 6000,
+   "for": "C2"
+  },
+  {
+   "on": "2030-05-11",
+   "do": "birth",
+   "child": "C2"
+  },
+  {
+   "on": "2031-02-03",
+   "do": "childcare_start",
+   "child": "C2",
+   "days_per_week": 3,
+   "daily_cents": 18400
+  },
+  {
+   "on": "2033-09-19",
+   "do": "leave",
+   "person": "A",
+   "paid_weeks": 14,
+   "ppl_weeks": 22,
+   "back_on": "2034-08-07",
+   "fte_bps": 6000,
+   "for": "C3"
+  },
+  {
+   "on": "2033-10-03",
+   "do": "birth",
+   "child": "C3"
+  },
+  {
+   "on": "2034-01-30",
+   "do": "school_start",
+   "child": "C1"
+  },
+  {
+   "on": "2034-08-07",
+   "do": "childcare_start",
+   "child": "C3",
+   "days_per_week": 3,
+   "daily_cents": 20600
+  },
+  {
+   "on": "2036-03-20",
+   "do": "pocket_money_intent",
+   "child": "C1"
+  }
+ ],
+ "later": {
+  "provenance": "Simplified streams for chapters 7 and 9. They do not continue the family's other accounts.",
+  "biz": {
+   "from": "2037-01-05",
+   "to": "2037-09-30",
+   "consult_cents": 11500,
+   "per_week": 22,
+   "room_month_cents": 145000,
+   "gst_free_bps": 9400
+  },
+  "teen": {
+   "job_from": "2043-04-05",
+   "to": "2046-03-31",
+   "hourly_cents": 2150,
+   "employer": "Lakeside Cinema Bar",
+   "super_rule": "Under 18, super is owed only in weeks over 30 actual hours for this employer, with no averaging: T9-UNDER-18-SUPER."
+  }
+ }
 }

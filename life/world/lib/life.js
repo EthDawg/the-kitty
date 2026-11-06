@@ -44,7 +44,7 @@ class Life extends Sim {
     let interest = 0;
     for (const i of this.interest[fy] || []) { if (i.who === key) interest += i.cents; else if (i.who === "shared") interest += key === "A" ? Math.ceil(i.cents / 2) : Math.floor(i.cents / 2); }
     if (interest) L["10"] = interest;
-    if (key === "B") { const v = this.rsu.vests.filter((x) => x.fy === fy).reduce((t, x) => t + x.cents, 0); if (v) L["12"] = v; const g = this.rsu.gain; if (g && g.fy === fy) { const net = Math.floor(g.gain_to_30_june_cents / 2) + g.gain_after_cents; L["18A"] = Math.max(0, net); L["18H"] = g.gain_to_30_june_cents + g.gain_after_cents; } }
+    if (key === "B") { const v = this.rsu.vests.filter((x) => x.fy === fy).reduce((t, x) => t + x.cents, 0); if (v) L["12"] = v; const g = this.rsu.gain; if (g && g.fy === fy) { const net = Math.floor(g.gain_to_30_june_cents * (1 - this.law.cgtDiscount(g.date))) + g.gain_after_cents; L["18A"] = Math.max(0, net); L["18H"] = g.gain_to_30_june_cents + g.gain_after_cents; } }
     L.D5 = key === "A" ? 214000 + (fy - 2027) * 2000 : 41000 + (fy - 2027) * 1500;
     if (fy >= 2028) L.D10 = 19800;
     return { L, payg };
@@ -58,7 +58,7 @@ class Life extends Sim {
     const p = this.people[rec.person], paid = addDays(rec.assessed_on, 9), c = rec.res.result_cents;
     if (c >= 0) this.line(p.every, paid, desc || "ATO TAX REFUND", c, { tax: true }); else this.line(p.every, paid, desc || "ATO TAX PAYMENT", c, { tax: true });
     rec.paid_on = paid;
-    if (rec.fy === 2027 && c >= 0) this.note("T4-REFUND-OLD-ACCOUNT", { person: rec.person, account: p.every, date: paid, cents: c });
+    if (c > 0 && rec.fy >= 2027 && !this.traps["T4-REFUND-OLD-ACCOUNT"]) this.note("T4-REFUND-OLD-ACCOUNT", { person: rec.person, fy: rec.fy, account: p.every, date: paid, cents: c });
     if (rec.res.help_cents) { this.help.bal -= rec.res.help_cents; this.help.ledger.push({ date: rec.assessed_on, kind: "repay", desc: "Compulsory repayment on assessment", cents: -rec.res.help_cents, balance: this.help.bal, fy: rec.fy }); this.note("T4-HELP-IN-ASSESSMENT", { fy: rec.fy, assessed_on: rec.assessed_on, repayment_cents: rec.res.help_cents, refund_cents: c }); }
   }
   taxMonth(ym) {
@@ -100,11 +100,15 @@ class Life extends Sim {
   // ---------- the home ----------
   cashMoves() {
     if (this.moves) return this.moves;
-    const r = this.rng("cash"), out = []; let d = "2028-03-01", level = this.law.cashRate("2028-01-01");
+    // the cash rate past the reference is the story's, not the law: seeded, and marked assumed in truth. One cut is forced for the lender to backdate.
+    const r = this.rng("cash"), out = [], firstWed = (on) => { let x = on; while (weekday(x) !== 3) x = addDays(x, 1); return x; };
+    const back = this.events.find((e) => e.do === "rate_backdated"), cut = back ? firstWed(`${ymOf(back.on)}-01`) : null;
+    let d = "2028-03-01", level = this.law.cashRate("2028-01-01"), done = !cut;
     while (d < "2037-01-01") {
-      const wed = (() => { let x = d; while (weekday(x) !== 3) x = addDays(x, 1); return x; })();
+      const wed = firstWed(d);
+      if (!done && wed >= addDays(cut, -120)) { level = Math.round((level - 0.25) * 100) / 100; out.push({ on: cut, cash: level }); done = true; d = addDays(cut, r.int(150, 290)); continue; }
       const step = level >= 5.1 ? -0.25 : level <= 3.35 ? 0.25 : r.next() < 0.55 ? -0.25 : 0.25;
-      if (!(wed > "2029-03-01" && wed < "2029-10-01")) { level = Math.round((level + step) * 100) / 100; out.push({ on: wed, cash: level }); }
+      level = Math.round((level + step) * 100) / 100; out.push({ on: wed, cash: level });
       d = addDays(wed, r.int(150, 290));
     }
     this.moves = out;
@@ -136,7 +140,7 @@ class Life extends Sim {
   loanPay(ym) {
     if (!this.loan || ym === ymOf(this.loan.opened)) return;
     const L = this.loan, paid = Math.min(L.repay, L.bal); L.due = paid;
-    this.line("ACC-JOINT", `${ym}-01`, `LOAN REPAYMENT ${L.number.replace(/\s/g, "")}`, -paid, { loan: true, xfer: true });
+    this.spend("ACC-JOINT", `${ym}-01`, `LOAN REPAYMENT ${L.number.replace(/\s/g, "")}`, paid, "MORTGAGE", "joint", { loan: true });
   }
   loanMonth(ym) {
     if (!this.loan) return;
@@ -163,18 +167,18 @@ class Life extends Sim {
     const L = this.loan, was = this.rateOn(addDays(m.on, -1)), rate = this.rateOn(m.on);
     this.rate.notices.push({ number: L.number, old: was, rate, effective_on: m.on, notified_on: addDays(m.on, 2), name: "Home loan" });
     if (this.rateBackdated && ymOf(this.rateBackdated) === ymOf(m.on) && rate < was) {
-      const back = addDays(m.on, -11);
-      this.rate.notices.push({ number: L.number, old: was, rate, effective_on: back, notified_on: this.rateBackdated, correction: addDays(m.on, 2), name: "Home loan" });
-      this.note("T5-RATE-BACKDATED", { first_effective_on: m.on, corrected_effective_on: back, notified_on: this.rateBackdated, rate_pct: rate, old_pct: was });
+      const back = addDays(m.on, -11), notified = addDays(m.on, 14);
+      this.rate.notices.push({ number: L.number, old: was, rate, effective_on: back, notified_on: notified, correction: addDays(m.on, 2), name: "Home loan" });
+      this.note("T5-RATE-BACKDATED", { first_effective_on: m.on, corrected_effective_on: back, notified_on: notified, rate_pct: rate, old_pct: was });
     }
   }
   homeMonth(ym) {
     if (!this.home) return;
-    const r = this.billRng, m = Number(ym.slice(5)), H = this.home, addr = H.address, q = m % 3 === 1;
-    if (m % 3 === 2) { const c = cents(r, 470, 560), bill = `${ym}-01`, due = `${ym}-28`, paid = addDays(due, -3), from = `${ym}-01`, to = monthEnd(nextMonth(nextMonth(ym))); this.spend("ACC-JOINT", paid, "BPAY MERRI-PURR CITY COUNCIL 220419", c, "RATES-HOME", "joint"); this.bills.push({ kind: "rates", issuer: "Merri-Purr City Council", account: "RA-220419", bill_date: bill, due_on: due, from, to, cents: c, stream: "BILL-RATES", ref: `RN-${ym.replace("-", "")}` }); }
+    const r = this.billRng, m = Number(ym.slice(5)), H = this.home, addr = H.address, q = m % 3 === 1, U = this.cast.utilities, up = (s) => s.toUpperCase(), digit = (x) => x.replace(/\D/g, "");
+    if (m % 3 === 2) { const c = cents(r, 470, 560), bill = `${ym}-01`, due = `${ym}-28`, paid = addDays(due, -3), from = `${ym}-01`, to = monthEnd(nextMonth(nextMonth(ym))); this.spend("ACC-JOINT", paid, `BPAY ${up(U.council)} ${digit(U.rates_ref)}`, c, "RATES-HOME", "joint"); this.bills.push({ kind: "rates", issuer: U.council, account: U.rates_ref, bill_date: bill, due_on: due, from, to, cents: c, stream: "BILL-RATES", ref: `RN-${ym.replace("-", "")}` }); }
     if (q) { this.powerBill("ACC-JOINT", ym, "joint", r);
-      { const c = cents(r, 210, 340), bill = biz(`${ym}-11`), due = addDays(bill, 21), paid = addDays(bill, 16); this.spend("ACC-JOINT", paid, "BPAY GREATER WHISKER WATER 6601842", c, "UTILITIES", "joint"); this.bills.push({ kind: "water", issuer: "Greater Whisker Water", account: "WA-6601842", bill_date: bill, due_on: due, from: addDays(bill, -92), to: addDays(bill, -2), cents: c, stream: "BILL-WATER" }); }
-      { const c = cents(r, 120, 380), bill = biz(`${ym}-19`), due = addDays(bill, 21), paid = addDays(bill, 12); this.spend("ACC-JOINT", paid, "BPAY ORIGPURR GAS 8841207", c, "UTILITIES", "joint"); this.bills.push({ kind: "gas", issuer: "Origpurr Gas", account: "GS-8841207", bill_date: bill, due_on: due, from: `${prevMonth(prevMonth(prevMonth(ym)))}-01`, to: monthEnd(prevMonth(ym)), cents: c, stream: "BILL-GAS" }); }
+      { const c = cents(r, 210, 340), bill = biz(`${ym}-11`), due = addDays(bill, 21), paid = addDays(bill, 16); this.spend("ACC-JOINT", paid, `BPAY ${up(U.water)} ${digit(U.water_ref)}`, c, "UTILITIES", "joint"); this.bills.push({ kind: "water", issuer: U.water, account: U.water_ref, bill_date: bill, due_on: due, from: addDays(bill, -92), to: addDays(bill, -2), cents: c, stream: "BILL-WATER" }); }
+      { const c = cents(r, 120, 380), bill = biz(`${ym}-19`), due = addDays(bill, 21), paid = addDays(bill, 12); this.spend("ACC-JOINT", paid, `BPAY ORIGPURR GAS ${digit(U.gas_ref)}`, c, "UTILITIES", "joint"); this.bills.push({ kind: "gas", issuer: "Origpurr Gas", account: U.gas_ref, bill_date: bill, due_on: due, from: `${prevMonth(prevMonth(prevMonth(ym)))}-01`, to: monthEnd(prevMonth(ym)), cents: c, stream: "BILL-GAS" }); }
     }
     if (ym === ymOf(H.on) || (ym.slice(5) === H.on.slice(5, 7) && ym > ymOf(H.on))) {
       const y = Number(ym.slice(0, 4)), from = `${y}${H.on.slice(4)}`, c = Math.round((194000 + (y - 2028) * 12000) * this.rng(`prem:${y}`).range(0.97, 1.03)), paid = addDays(from, -3 < 0 ? 0 : 0);
@@ -185,7 +189,7 @@ class Life extends Sim {
   /* The car's rego and cover run the whole life. */
   carMonth(ym) {
     const r = this.billRng, acct = this.home || (this.joined && `${ym}-01` >= "2027-04-01") ? "ACC-JOINT" : "ACC-A-EVERY", who = acct === "ACC-JOINT" ? "joint" : "A", y = Number(ym.slice(0, 4));
-    if (ym.slice(5) === "11") { const c = 87300 + (y - 2026) * 2100, bill = `${ym}-02`, due = `${ym}-22`; this.spend(acct, addDays(due, -5), "BPAY VICPAWS REGO XYZ482", c, "CAR", who); this.bills.push({ kind: "rego", issuer: "VicPaws", account: "XYZ482", bill_date: bill, due_on: due, until: `${y + 1}-11-22`, cents: c, stream: "REGO", ref: `RG-${y}`, vehicle: "Hatchback, 2021", operator: this.people.A.name }); }
+    if (ym.slice(5) === "11") { const c = 87300 + (y - 2026) * 2100, bill = `${ym}-02`, due = `${ym}-22`; this.spend(acct, addDays(due, -5), `BPAY VICPAWS REGO ${this.cast.utilities.rego}`, c, "CAR", who); this.bills.push({ kind: "rego", issuer: "VicPaws", account: this.cast.utilities.rego, bill_date: bill, due_on: due, until: `${y + 1}-11-22`, cents: c, stream: "REGO", ref: `RG-${y}`, vehicle: "Hatchback, 2021", operator: this.people.A.name }); }
     if (ym.slice(5) === "08") { const from = `${y}-08-14`, c = Math.round((113000 + (y - 2026) * 4100) * r.range(0.97, 1.03)); this.spend(acct, from, `PURRSURE CAR PC-${y}`, c, "CAR", who); this.policies.push({ id: "POL-CAR", kind: "Comprehensive car", number: `PC-${y}-4471`, from, to: `${y + 1}-08-13`, premium: c, paid_on: from, situation: "Hatchback, 2021", sum: 2200000, excess: 80000 }); }
   }
   childcareMonth(ym) {
@@ -241,11 +245,11 @@ class Life extends Sim {
     }
     this.job.super_balance = sbal;
     const weeks = this.job.pays.filter((p) => !p.adult), over = weeks.filter((p) => p.owes);
-    this.note("T9-UNDER-18-SUPER", { weeks_under_18: weeks.length, weeks_over_30_hours: over.length, super_cents: over.reduce((s, p) => s + p.sup, 0), wrong_if_12_percent_cents: Math.round(weeks.reduce((s, p) => s + p.gross, 0) * 0.12) });
+    this.note("T9-UNDER-18-SUPER", { weeks_under_18: weeks.length, weeks_over_30_hours: over.length, super_cents: over.reduce((s, p) => s + p.sup, 0), wrong_if_12_percent_cents: Math.round(weeks.reduce((s, p) => s + p.gross, 0) * this.law.sg(t.job_from)) });
   }
 
   run() {
-    this.ym = null;
+    this.ym = null; this.phiHistory();
     for (const ym of monthRange(this.start.slice(0, 7), this.end.slice(0, 7))) {
       this.ym = ym;
       this.prices(ym); this.events_(ym); this.payroll(ym); this.housing(ym); this.health(ym); this.everyday(ym); this.rsuMonth(ym); this.homeMonth(ym); this.carMonth(ym); this.childcareMonth(ym); this.thingsMonth(ym); this.taxMonth(ym); this.helpMonth(ym); this.card(ym); this.superMonth(ym); this.loanPay(ym); this.interestMonth(ym); this.sweeps(ym); this.loanMonth(ym); this.valueMonth(ym);

@@ -2,10 +2,12 @@
    A file carries who holds it and when it exists; which chapter a household first holds it comes from the script. */
 "use strict";
 const crypto = require("crypto");
-const path = require("path");
-const { STD, fix, money, aud, addDays, fmtDate, fmtMonth, fyOf, fyStart, fyEnd, csvLines, monthRange, monthEnd, nextMonth, prevMonth, dmy, pad, Doc, MUTED, M, period, eml, page, row, htmlEsc, workbook } = require("./std");
-const { bankFile, BASE } = require("./shapes");
-const { settlementDoc } = require(path.join(STD, "world", "domains", "property"));
+const { fix, money, aud, addDays, fmtDate, fmtMonth, fyOf, fyStart, fyEnd, csvLines, monthRange, monthEnd, nextMonth, prevMonth, dmy, pad, Doc: StandardDoc, MUTED, M, period, eml, page, row, htmlEsc, workbook } = require("./std");
+const { bankFile } = require("./shapes");
+
+/* The shared PDF writer signs every page as the Davies' world. A variant family must not, so a variant says only that it is a test household. */
+let FOOT = null;
+class Doc extends StandardDoc { constructor(o) { super({ ...o, ...(FOOT ? { footer: FOOT(o.brand.name) } : {}) }); } }
 
 const PAWROLL = { name: "Pawroll", tagline: "Every pay, every paw, on time.", color: "#3b6fb5" };
 const WESTPAW = { name: "Westpaw", tagline: "Banking with a wag.", color: "#b5243a" };
@@ -20,7 +22,7 @@ const ymOf = (d) => d.slice(0, 7);
 class Files {
   constructor(sim) { this.sim = sim; this.cast = sim.cast; this.list = []; this.seen = new Set(); this.deflate = (b) => new Uint8Array(require("zlib").deflateSync(b, { level: 6 })); this.deflateRaw = (b) => new Uint8Array(require("zlib").deflateRawSync(b, { level: 6 })); }
   add(f) {
-    if (f.text != null) f.bytes = new TextEncoder().encode(f.text);
+    if (f.text != null) f.bytes = new TextEncoder().encode(this.cast.variant ? f.text.replace(/The Kitty's Davies world/g, "a Kitty test household") : f.text);
     if (!(f.bytes instanceof Uint8Array)) f.bytes = new Uint8Array(f.bytes);
     delete f.text;
     f.path = `sources/${f.stream}/${f.delivered_on}/${f.name}`;
@@ -85,6 +87,8 @@ function payroll(fs) {
       fs.add({ stream, brand: x.ppl ? "myguv" : "pawroll", person: p.id, visible_to: [p.id], delivered_on: x.date, name: `${x.ppl ? "Paid-Parental-Leave" : "Pawroll-Payslip"}-${x.date}.pdf`, bytes: payslipDoc(fs, x, p.name, y, last4), family: "pawroll-payslip-pdf", container: "pdf", origin: "portal", issued_on: x.date });
     }
     for (let fy = 2027; fyEnd(fy) < end; fy++) {
+      const ppl = all.filter((x) => x.fy === fy && x.ppl), on2 = `${fy}-07-14`;
+      if (ppl.length) fs.add({ stream: "PPL", brand: "myguv", person: p.id, visible_to: [p.id], delivered_on: on2, name: `Paid-Parental-Leave-IncomeStatement-FY${fy}.pdf`, bytes: incomeStatementDoc(fs, p.name, "Services Pawstralia", ppl, fy, 0), family: "pawroll-income-statement-pdf", container: "pdf", origin: "portal", issued_on: on2 });
       const rows = all.filter((x) => x.fy === fy && !x.ppl); if (!rows.length) continue;
       const packaged = rows.reduce((t, r) => t + r.packaging, 0), on = `${fy}-07-14`;
       fs.add({ stream: `IS-${key}`, brand: "pawroll", person: p.id, visible_to: [p.id], delivered_on: on, name: `Pawroll-IncomeStatement-FY${fy}.pdf`, bytes: incomeStatementDoc(fs, p.name, p.employer, rows, fy, packaged), family: "pawroll-income-statement-pdf", container: "pdf", origin: "portal", issued_on: on });
@@ -275,7 +279,7 @@ function tax(fs) {
     void law;
   }
   // private health: a statement a person a year, the year's two rates folded into one total
-  for (let fy = 2027; fyEnd(fy) < s.end; fy++) {
+  for (let fy = 2026; fyEnd(fy) < s.end; fy++) {
     const months = monthRange(`${fy - 1}-07`, `${fy}-06`), rows = s.phi.filter((x) => months.includes(x.month)), days = fy % 4 === 0 ? 366 : 365;
     const part = (key) => rows.reduce((t, x) => { const f = x.who === key ? 1 : x.who === "joint" ? 0.5 : 0; return { premium: t.premium + Math.round(x.net * f), rebate: t.rebate + Math.round(x.rebate * f), gross: t.gross + Math.round(x.gross * f) }; }, { premium: 0, rebate: 0, gross: 0 });
     for (const key of ["A", "B"]) {
@@ -305,11 +309,14 @@ function rsu(fs) {
     d.para(`Net proceeds were sent to your nominated bank account ending ${C.numbers.last4_B}. Fictional confirmation.`, { size: 8.5, color: MUTED });
     fs.add({ stream: "RSU-SALE", brand: "etreat", person: p.id, visible_to: vis, delivered_on: x.settle, name: `ETreat-Sale-${x.ref}.pdf`, bytes: d.finish(), family: "etreat-sale-pdf", container: "pdf", origin: "portal", issued_on: x.date });
   }
-  for (let fy = 2027; fy <= fyOf(s.end); fy++) {
-    const vs = s.rsu.vests.filter((v) => v.fy === fy), on = fy === 2027 ? "2027-03-03" : `${fy}-07-10`; if (!vs.length) continue;
-    const rows = [["Participant", "Plan Account", "Security", "Vest Date", "Qty Vested", "Vest FMV (USD)", "AUD per USD", "Taxable Value (AUD)", "Taxing Point", "Status"], ...vs.filter((v) => v.date <= on).map((v) => [p.name, plan.account, plan.code, dmy(v.date), String(v.units), v.price, v.fx, fix(v.cents), dmy(v.date), "Sold"])];
-    if (rows.length > 1) fs.add({ stream: "RSU-HIST", brand: "etreat", person: p.id, visible_to: vis, delivered_on: on, name: `ETreat-BenefitHistory-FY${fy}.csv`, text: csvLines(rows), family: "etreat-benefit-csv", container: "csv", origin: "portal", issued_on: on });
-  }
+  const HEAD = ["Participant", "Plan Account", "Security", "Vest Date", "Qty Vested", "Vest FMV (USD)", "AUD per USD", "Taxable Value (AUD)", "Taxing Point", "Status"];
+  const history = (name, list, on, held_from) => { if (list.length) fs.add({ stream: "RSU-HIST", brand: "etreat", person: p.id, visible_to: vis, delivered_on: on, name, text: csvLines([HEAD, ...list.map((v) => [p.name, plan.account, plan.code, dmy(v.date), String(v.units), v.price, v.fx, fix(v.cents), dmy(v.date), v.status || "Sold"])]), family: "etreat-benefit-csv", container: "csv", origin: "portal", issued_on: on, held_from }); };
+  // what he already held when the story starts: four parcels, taxed when they vested
+  const held = s.cast.opening.held_units, cost = s.cast.opening.held_cost_cents, part = Math.floor(held / 4), early = ["2025-01-15", "2025-04-15", "2025-07-15", "2025-10-15"].map((date, i) => { const units = i === 3 ? held - part * 3 : part, cents = i === 3 ? cost - Math.round(cost * part / held) * 3 : Math.round(cost * part / held), fx = (15500 + i * 40) / 10000; return { date, units, cents, fx: fx.toFixed(4), price: (cents / 100 / units / fx).toFixed(3), status: "Held" }; });
+  history("ETreat-BenefitHistory-held-parcels.csv", early, "2027-03-03", 3);
+  history("ETreat-BenefitHistory-FY2027-to-date.csv", s.rsu.vests.filter((v) => v.fy === 2027 && v.date <= "2027-03-03"), "2027-03-03", 3);
+  for (let fy = 2027; fyEnd(fy) < s.end; fy++) history(`ETreat-BenefitHistory-FY${fy}.csv`, s.rsu.vests.filter((v) => v.fy === fy), `${fy}-07-10`);
+  history(`ETreat-BenefitHistory-FY${fyOf(s.end)}-to-date.csv`, s.rsu.vests.filter((v) => v.fy === fyOf(s.end) && v.date <= "2036-03-01"), "2036-03-02");
   const hold = (date, units, on, held_from, note) => { const ym = date.slice(0, 7), px = (s.rsu.px[ym] / 1000).toFixed(4), fx = (s.rsu.fx[ym] / 10000).toFixed(4); fs.add({ stream: "RSU-HOLD", brand: "etreat", person: p.id, visible_to: vis, delivered_on: on, name: `ETreat-Holdings-${date}.csv`, text: csvLines([["Plan", "Security", "Units", "Price (USD)", "AUD per USD", "Value (AUD)", "As At"], [plan.account, plan.code, String(units), px, fx, fix(s.value(units, ym)), dmy(date)]]), family: "etreat-holdings-csv", container: "csv", origin: "portal", issued_on: on, held_from, note }); };
   hold("2027-01-31", s.cast.opening.held_units, "2027-02-01", 3, "What he holds when he joins.");
   // the value on the day the law changes. Portal only: nobody downloads it until they know they need it.
@@ -319,8 +326,13 @@ function rsu(fs) {
 // ---------- the home ----------
 function home(fs) {
   const s = fs.sim, C = fs.cast, H = s.home, L = s.loan, N = C.numbers, both = [C.A.id, C.B.id], A = C.A.id, names = `${C.A.first} and ${C.B.first} ${C.surname}`; if (!H) return;
-  const b = { name: `${C.surname.split(/[- ]/)[0]} Conveyancing Pty Ltd` };
-  fs.add({ stream: "SETTLEMENT", brand: "conveyancer", person: A, visible_to: both, delivered_on: addDays(H.on, 6), name: "Settlement-Statement.pdf", bytes: settlementDoc({ deflate: fs.deflate }, { brand: b, address: H.address, matter: "TC-28-0128", purchaser: names, settled_on: H.on, asset_ref: "HOME", price: H.price, duty: H.duty, legal: H.legal, adjustments: H.adjustments, loan: H.loan, cash: H.cash, lender: "Harbour Bank", loan_number: L.number }), family: "settlement-pdf", container: "pdf", origin: "email", where: "email", issued_on: H.on });
+  const conveyancer = `${C.surname.split(/[- ]/)[0]} Conveyancing Pty Ltd`, sd = new Doc({ brand: { name: conveyancer }, title: "Settlement statement", deflate: fs.deflate, style: "plain" });
+  sd.h1(`Settlement statement, ${H.address}`);
+  sd.kv([["Matter", "TC-28-0128"], ["Purchaser", names], ["Settlement date", fmtDate(H.on)], ["Property reference", "HOME"]], 2);
+  sd.h2("Statement of adjustments");
+  sd.table([{ label: "Item", w: 340 }, { label: "Amount", w: 100, align: "right" }], [["Purchase price", money(H.price)], ["Land transfer duty", money(H.duty)], ["Legal and conveyancing", money(H.legal)], ["Adjustments, council and water", money(H.adjustments)], ["Loan funds drawn at settlement", money(-H.loan)], ["Cash paid by purchaser", money(H.cash)]]);
+  sd.para(`Loan drawn from Harbour Bank, loan number ${L.number}. Prepared for the purchaser's records; a fictional document.`, { size: 8.5, color: MUTED });
+  fs.add({ stream: "SETTLEMENT", brand: "conveyancer", person: A, visible_to: both, delivered_on: addDays(H.on, 6), name: "Settlement-Statement.pdf", bytes: sd.finish(), family: "settlement-pdf", container: "pdf", origin: "email", where: "email", issued_on: H.on });
   for (const y of L.rows) {
     const rows = L.lines.filter((l) => ymOf(l.date) === y.ym); if (!rows.length) continue;
     const made = bankFile(C.institutions.loan.spec, { number: L.number, rows: rows.map((r) => ({ ...r })), opening: -y.opening, from: `${y.ym}-01`, to: monthEnd(y.ym) });
@@ -430,7 +442,7 @@ function later(fs) {
   for (const ym of monthRange(biz.lines[0].date.slice(0, 7), "2037-09")) {
     const rows = fs.rows("ACC-BIZ", `${ym}-01`, monthEnd(ym)); if (!rows.length) continue;
     const opening = fs.openingOn("ACC-BIZ", `${ym}-01`), made = bankFile(spec, { number: "732-998 120 447", rows, opening, from: `${ym}-01`, to: monthEnd(ym), closing: 0 });
-    fs.add({ stream: "BIZ-A", brand: "westpaw", person: A.id, visible_to: [A.id], delivered_on: `${nextMonth(ym)}-02`, name: `Business-${ym}.csv`, text: made.text, family: spec.family || "life-variant-csv", container: "csv", origin: "portal", issued_on: monthEnd(ym), account: "ACC-BIZ", simplified: true });
+    fs.add({ stream: "BIZ-A", brand: "westpaw", person: A.id, visible_to: [A.id], delivered_on: `${nextMonth(ym)}-02`, name: `Business-${ym}.csv`, text: made.text, family: spec.family || "life-variant-csv", container: "csv", origin: "portal", issued_on: monthEnd(ym), account: "ACC-BIZ", window: { from: `${ym}-01`, to: monthEnd(ym) }, shape: "loan", simplified: true });
   }
   for (const q of biz.bas.filter(Boolean)) {
     const d = new Doc({ brand: GOV, title: "Business activity statement", kicker: period(q.from, q.to), deflate: fs.deflate });
@@ -447,8 +459,8 @@ function later(fs) {
   }
   for (const ym of monthRange(job.pays[0].date.slice(0, 7), C.later.teen.to.slice(0, 7))) {
     const rows = fs.rows("ACC-C1-EVERY", `${ym}-01`, monthEnd(ym)); if (!rows.length) continue;
-    const opening = fs.openingOn("ACC-C1-EVERY", `${ym}-01`), inst = C.institutions.A_save, made = bankFile(inst.spec, { number: C.numbers.child_save, rows, opening, from: `${ym}-01`, to: monthEnd(ym), closing: 0 });
-    fs.add({ stream: "EVERY-C1", brand: inst.brand, person: k.id, visible_to: [k.id], delivered_on: `${nextMonth(ym)}-02`, name: `Transactions-${ym}.csv`, text: made.text, family: inst.spec.family || inst.spec.key || "life-variant-csv", container: "csv", origin: "portal", issued_on: monthEnd(ym), account: "ACC-C1-EVERY", simplified: true });
+    const opening = fs.openingOn("ACC-C1-EVERY", `${ym}-01`), inst = C.institutions.A_save, made = bankFile(inst.spec, { number: C.numbers.child_every, rows, opening, from: `${ym}-01`, to: monthEnd(ym), closing: 0 });
+    fs.add({ stream: "EVERY-C1", brand: inst.brand, person: k.id, visible_to: [k.id], delivered_on: `${nextMonth(ym)}-02`, name: `Transactions-${ym}.csv`, text: made.text, family: inst.spec.family || inst.spec.key || "life-variant-csv", container: "csv", origin: "portal", issued_on: monthEnd(ym), account: "ACC-C1-EVERY", window: { from: `${ym}-01`, to: monthEnd(ym) }, shape: "A_save", simplified: true });
   }
 }
 
@@ -464,10 +476,11 @@ function wills(fs) {
 }
 
 function renderAll(sim) {
+  FOOT = sim.cast.variant ? (name) => `Fictional document from a Kitty test household. ${name} is a parody; not a real institution. Nothing here is advice.` : null;
   const fs = new Files(sim);
   superFiles(fs); payroll(fs); banks(fs); tax(fs); rsu(fs); home(fs); bills(fs); wills(fs); later(fs);
   fs.list.sort((a, b) => (a.path < b.path ? -1 : 1));
   return fs;
 }
 
-module.exports = { renderAll, BASE };
+module.exports = { renderAll };

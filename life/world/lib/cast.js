@@ -12,11 +12,11 @@ const HEALTH = ["Riverbend Health", "Tallowood Public Hospital", "Southgate Comm
 const WORK_A = ["Hospital speech pathologist", "Hospital occupational therapist", "Hospital dietitian", "Hospital radiographer", "Hospital pharmacist"];
 const WORK_B = ["Treasury analyst", "Product accountant", "Business analyst", "Risk analyst", "Finance business partner"];
 const CORPS = [["Harrowgate Systems", "Harrowgate Corp", "HGTE"], ["Bluegum Freight", "Bluegum Global Inc", "BGMG"], ["Ironwood Retail", "Ironwood Inc", "IRNW"], ["Marlin Logistics", "Marlin Global Inc", "MRLN"], ["Quarry Hill Software", "Quarry Hill Inc", "QHIL"]];
+// Victoria only: the rego notice comes from the parody road authority, and it is Victorian
 const PLACES = [
-  { state: "VIC", areas: [["Footscray", 3011], ["Preston", 3072], ["Essendon", 3040], ["Hawthorn", 3122]] },
-  { state: "NSW", areas: [["Marrickville", 2204], ["Parramatta", 2150], ["Newtown", 2042], ["Ryde", 2112]] },
-  { state: "QLD", areas: [["Paddington", 4064], ["Woolloongabba", 4102], ["Nundah", 4012], ["Toowong", 4066]] },
-  { state: "SA", areas: [["Norwood", 5067], ["Prospect", 5082], ["Unley", 5061], ["Glenelg", 5045]] },
+  { state: "VIC", council: "City of Greater Geelclaw", water: "Barwon Purr Water", areas: [["Newtown", 3220], ["Belmont", 3216], ["Highton", 3216], ["Geelong West", 3218]] },
+  { state: "VIC", council: "City of Ballapaw", water: "Central Highland Paws Water", areas: [["Sebastopol", 3356], ["Wendouree", 3355], ["Alfredton", 3350], ["Mount Clear", 3350]] },
+  { state: "VIC", council: "Merri-Purr City Council", water: "Greater Whisker Water", areas: [["Footscray", 3011], ["Preston", 3072], ["Essendon", 3040], ["Hawthorn", 3122]] },
 ];
 const STREETS = ["Tamarind", "Ashgrove", "Kestrel", "Bellbird", "Quince", "Marlin", "Sorrel", "Juniper", "Corella", "Heron"];
 const WORDS = ["Copper", "Juniper", "Harbourlight", "Little Fig", "Tin Roof", "Sunday", "Lantern", "Ferngully", "Red Door", "Northside", "Old Mill", "Pepper"];
@@ -41,7 +41,7 @@ function davies(script, seed) {
     children: c.children.map((k) => ({ ...k, name: `${k.first} ${c.surname}` })), addresses: c.addresses, numbers: c.numbers,
     institutions: Object.fromEntries(Object.entries(script.institutions).filter(([k]) => k !== "provenance").map(([k, v]) => [k, { ...v, spec: BASE[v.shape] }])),
     opening: { ...script.opening }, pay: script.pay, events: script.events.map((e) => ({ ...e })), merchants: MERCHANTS_DAVIES, scale: 1,
-    agency: { accountant: "Tabby Tax", prior_agent: "Paws and Claws Tax Agents" }, later: script.later, shifts: {},
+    agency: { accountant: "Tabby Tax", prior_agent: "Paws and Claws Tax Agents" }, later: script.later, shifts: {}, utilities: c.utilities,
   };
 }
 
@@ -66,9 +66,10 @@ function variant(script, seed) {
     B: { id: firstB.toLowerCase(), role: "B", first: firstB, name: `${firstB} ${surname}`, born: shiftBorn(script.cast.B.born, -900, 900), work: names.pick(WORK_B), employer: corp[0], payroll_portal: "Pawroll", super: superB, member: memberOf(superB), plan: { parent: corp[1], code: corp[2], account: `ET-${digits(nums, 5)}-RSU` } },
     children: kids,
     addresses: { A_flat: `${place.int(1, 9)}/${street()}, ${area[0]} ${pl.state} ${area[1]}`, B_share: `${street()}, ${area2[0]} ${pl.state} ${area2[1]}`, rental: `${street()}, ${area[0]} ${pl.state} ${area[1]}`, home: `${street()}, ${area2[0]} ${pl.state} ${area2[1]}` },
-    numbers: { A_every: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, A_save: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, A_card: digits(nums, 5), B_every: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, B_save: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, joint: `${digits(nums, 3)}-${digits(nums, 3)} ${digits(nums, 3)} ${digits(nums, 3)}`, offset: `${digits(nums, 3)}-${digits(nums, 3)} ${digits(nums, 3)} ${digits(nums, 3)}`, loan: `${digits(nums, 3)} ${digits(nums, 3)} ${digits(nums, 3)}`, child_save: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}` },
+    numbers: { A_every: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, A_save: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, A_card: digits(nums, 5), B_every: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, B_save: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, joint: `${digits(nums, 3)}-${digits(nums, 3)} ${digits(nums, 3)} ${digits(nums, 3)}`, offset: `${digits(nums, 3)}-${digits(nums, 3)} ${digits(nums, 3)} ${digits(nums, 3)}`, loan: `${digits(nums, 3)} ${digits(nums, 3)} ${digits(nums, 3)}`, child_save: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}`, child_every: `${digits(nums, 4)} ${digits(nums, 4)} ${digits(nums, 4)}` },
     merchants: merchants(r("merchants"), area[0]), agency: { accountant: `${surname.split(/[- ]/)[0]} and Co Tax`, prior_agent: "Paws and Claws Tax Agents" }, later: script.later,
   };
+  cast.utilities = { council: pl.council, water: pl.water, rates_ref: `RA-${digits(nums, 6)}`, water_ref: `WA-${digits(nums, 7)}`, power_ref: `EL-${digits(nums, 7)}`, gas_ref: `GS-${digits(nums, 7)}`, rego: `${names.pick(["ABC", "KLM", "RST", "TUV"])}${digits(nums, 3)}`, phi_single_A: `BW-${digits(nums, 7)}`, phi_single_B: `BW-${digits(nums, 7)}`, phi_family: `BW-${digits(nums, 7)}` };
   cast.numbers.last4_A = cast.numbers.A_every.replace(/\D/g, "").slice(-4); cast.numbers.last4_B = cast.numbers.B_every.replace(/\D/g, "").slice(-4);
 
   // the bank mix. The first account always has a layout no public recipe reads: chapter 0 needs it.
