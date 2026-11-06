@@ -114,6 +114,25 @@ class WorkflowsGoThroughCheck(unittest.TestCase):
             self.assertIn(f"check.py --ci {job}", ran)
 
 
+class DocsStayTrue(unittest.TestCase):
+    """The pages a newcomer reads first: their links resolve, and the map leaves nothing out."""
+    PAGES = ["README.md", "AGENTS.md", "CONTRIBUTING.md", "MAINTAINERS.md", "ARCHITECTURE.md", "period-close/README.md",
+             *(str(page.relative_to(ROOT)) for page in (ROOT / "docs").glob("*.md")),
+             *(str(page.relative_to(ROOT)) for page in (ROOT / "docs/decisions").glob("*.md"))]
+
+    def test_relative_links_resolve(self):
+        for page in self.PAGES:
+            for target in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", (ROOT / page).read_text()):
+                if "://" not in target:
+                    self.assertTrue((ROOT / page).parent.joinpath(target).exists(), f"{page} links to {target}")
+
+    def test_the_map_names_every_top_level_folder(self):
+        text = (ROOT / "docs/MAP.md").read_text()
+        folders = subprocess.run(["git", "-C", str(ROOT), "ls-files"], check=True, capture_output=True, text=True).stdout
+        for folder in {line.split("/")[0] for line in folders.splitlines() if "/" in line}:
+            self.assertIn(f"`{folder}/`", text)
+
+
 class PublicCheck(unittest.TestCase):
     def setUp(self):
         spec = importlib.util.spec_from_file_location("check_public", ROOT / "tools/check_public.py")

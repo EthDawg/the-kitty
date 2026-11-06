@@ -43,7 +43,7 @@ updates. Use it to try the idea with your own numbers, knowing you may have to m
 2. Add the Google Sheets connector in claude.ai, with the account that owns the copy.
 3. Open the page, go to Setup, then Make it yours, and paste your sheet ID. It reads live from then on.
 4. Export the last three months from each account (Setup, Getting your data in, or [the agent skill](skills/bank-export/SKILL.md)). Close the month as [`period-close/README.md`](period-close/README.md) describes.
-5. For real money, build with `python3 build.py --no-snapshot` and publish it privately. That page is a pin: the same build, unedited, rebuilt to update.
+5. For real money, build with `python3 build.py --v2 --no-snapshot` and publish `dist/kitty-v2.html` privately. That page is a pin: the same build, unedited, rebuilt to update.
 
 Your data stays in your own Google account. See [`SECURITY.md`](SECURITY.md).
 
