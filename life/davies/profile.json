@@ -1,0 +1,206 @@
+{
+  "schema": "davies-profile/1",
+  "about": "The Digital Davies: a fictional Australian family used to test The Kitty and for future builds and demos. Every person, employer and address here is invented. This file is the single source for who they are.",
+  "provenance": {
+    "canon": "Set by Ethan. Do not change without him.",
+    "world": "Already stated by standard/world. portals/test/profile.spec.js holds these to the world, so a change there fails here.",
+    "invented": "Written here to fill the gaps. Ours to change."
+  },
+  "household": {
+    "name": "The Davies household (fictional)",
+    "jurisdiction": "AU",
+    "timezone": "Australia/Melbourne",
+    "shared_mail": "the.davies@mail.example",
+    "provenance": "world",
+    "home": {
+      "address": "22 Albion Crescent, Brunswick VIC 3056",
+      "settled": "2019-03-15",
+      "ownership": "50/50, Danny and Daisy",
+      "loan": "Harbour Bank home loan with an offset account",
+      "provenance": "world"
+    }
+  },
+  "people": [
+    {
+      "id": "danny",
+      "first_name": "Danny",
+      "family_name": "Davies",
+      "world": { "party_id": "JORDAN", "first_name": "Jordan" },
+      "role": "adult",
+      "born": "1985-06-12",
+      "born_provenance": "canon year, world date",
+      "summary": "Dad. Business and commerce, by way of financial services. Moved from advice into corporate finance in 2017 and later goes out alone.",
+      "provenance": "canon",
+      "sign_in": { "names": ["danny", "danny davies", "jordan", "jordan davies"] },
+      "study": [
+        { "what": "Bachelor of Commerce, finance and accounting", "where": "Merri Creek University", "from": "2003-03-03", "to": "2006-11-24", "provenance": "invented" }
+      ],
+      "help": [
+        { "what": "HECS-HELP for the commerce degree", "borrowed": 19400, "repaid_by": "2014-06-30", "note": "Gone before the world opens in 2019, which is why the world holds no HELP account for Danny.", "provenance": "invented" }
+      ],
+      "jobs": [
+        { "employer": "Bluetongue Bank", "title": "Graduate, then business banking analyst", "from": "2007-02-05", "to": "2009-12-18", "provenance": "invented" },
+        { "employer": "Copperleaf Wealth", "title": "Financial adviser", "from": "2010-01-18", "to": "2017-01-27", "provenance": "invented" },
+        { "employer": "Northwind Logistics", "title": "Finance manager, treasury", "from": "2017-02-06", "to": "2035-06-29", "provenance": "world for the employer and start date, invented for the title and end date", "cadence": "fortnightly", "party_id": "NORTHWIND", "contract_id": "C-EMP-J" }
+      ],
+      "pay": [
+        { "from": "2019-03-07", "employer": "Northwind Logistics", "annual_gross": 108000, "provenance": "world" },
+        { "from": "2019-07-11", "employer": "Northwind Logistics", "annual_gross": 111000, "provenance": "world" },
+        { "from": "2020-07-09", "employer": "Northwind Logistics", "annual_gross": 113000, "provenance": "world" },
+        { "from": "2021-07-08", "employer": "Northwind Logistics", "annual_gross": 116500, "provenance": "world" },
+        { "from": "2022-07-07", "employer": "Northwind Logistics", "annual_gross": 120000, "provenance": "world" },
+        { "from": "2023-03-02", "employer": "Northwind Logistics", "annual_gross": 126000, "note": "Promotion to finance manager, treasury.", "provenance": "world for the figure, invented for the reason" },
+        { "from": "2024-07-04", "employer": "Northwind Logistics", "annual_gross": 129000, "provenance": "world" },
+        { "from": "2025-07-03", "employer": "Northwind Logistics", "annual_gross": 132000, "provenance": "world" },
+        { "from": "2026-09-10", "employer": "Northwind Logistics", "annual_gross": 136620, "provenance": "world" }
+      ],
+      "bonuses": [
+        { "paid": "2021-09-02", "gross": 6000, "provenance": "world" },
+        { "paid": "2023-09-14", "gross": 6000, "provenance": "world" },
+        { "paid": "2024-09-12", "gross": 6000, "provenance": "world" },
+        { "paid": "2025-09-11", "gross": 6000, "provenance": "world" }
+      ],
+      "leave": [
+        { "what": "Two weeks' partner leave for Salt, on normal pay", "from": "2022-03-21", "to": "2022-04-01", "provenance": "invented" },
+        { "what": "Two weeks' partner leave for George", "from": "2028-05-15", "to": "2028-05-26", "provenance": "invented" },
+        { "what": "Four weeks' partner leave for Evie, the first two on normal pay", "from": "2030-10-07", "to": "2030-11-01", "provenance": "invented" }
+      ],
+      "super": { "fund": "Purrannuation", "member": "PN-884213", "account_id": "SUPER-J", "provenance": "world" },
+      "shares": { "plan": "Northwind RSU plan, held at E*Treat", "plan_account": "ET-55120-RSU", "issuer": "Northwind Global Inc", "code": "NWGL", "currency": "USD", "first_vest": "2023-01-15", "units_per_quarter": 25, "provenance": "world" },
+      "business": {
+        "name": "Bright Whisker Advisory Pty Ltd",
+        "what": "Part-time finance chief for small businesses. Fixed monthly fees, no product commissions.",
+        "from": "2035-07-02",
+        "structure": "A company, Danny the sole director and shareholder, paying a director's salary through its own payroll.",
+        "gst": "Registered from the first day. Services are taxable, so 10% goes on every invoice.",
+        "bas": "Quarterly, with PAYG withholding for the director's salary.",
+        "provenance": "invented"
+      }
+    },
+    {
+      "id": "daisy",
+      "first_name": "Daisy",
+      "family_name": "Davies",
+      "world": { "party_id": "MIA", "first_name": "Mia" },
+      "role": "adult",
+      "born": "1987-02-03",
+      "born_provenance": "canon year, world date",
+      "summary": "Mum. The sciences, by way of allied health. A hospital physiotherapist who later opens a private practice.",
+      "provenance": "canon",
+      "sign_in": { "names": ["daisy", "daisy davies", "mia", "mia davies"] },
+      "study": [
+        { "what": "Bachelor of Science, anatomy and physiology", "where": "Merri Creek University", "from": "2005-02-28", "to": "2007-11-23", "provenance": "invented" },
+        { "what": "Master of Physiotherapy, graduate entry", "where": "Merri Creek University", "from": "2008-02-25", "to": "2009-11-20", "provenance": "invented" },
+        { "what": "Master of Musculoskeletal Physiotherapy, part time", "where": "Merri Creek University", "from": "2021-08-02", "to": "2023-11-24", "note": "The dates follow the HELP debts the world charges, the last on 31 August 2023.", "provenance": "invented, dated to fit the world" }
+      ],
+      "help": [
+        { "what": "HECS-HELP for the first two degrees", "borrowed": 38600, "repaid_by": "2019-06-30", "note": "Gone before the world's HELP account opens.", "provenance": "invented" },
+        { "what": "HELP for the part-time master's", "account_id": "HELP-M", "opened": "2021-08-31", "balance_at": "2026-09-06", "balance": 1730.27, "provenance": "world" }
+      ],
+      "jobs": [
+        { "employer": "Wattle Bend Community Health", "title": "Physiotherapist, rotating", "from": "2010-01-18", "to": "2014-12-19", "provenance": "invented" },
+        { "employer": "Bayview Health", "title": "Physiotherapist, then senior physiotherapist", "from": "2015-01-19", "to": "2033-06-30", "provenance": "world for the employer and start date, invented for the title and end date", "cadence": "fortnightly", "party_id": "BAYVIEW", "contract_id": "C-EMP-M" },
+        { "employer": "Nightpaw Agency Nursing", "title": "Casual weekend shifts", "from": "2019-04-01", "to": "2024-06-30", "note": "The agency places allied health staff as well as nurses, whatever the name says.", "provenance": "world for the employer and dates", "party_id": "NIGHTPAW", "contract_id": "C-EMP-M2" }
+      ],
+      "pay": [
+        { "from": "2019-03-14", "employer": "Bayview Health", "annual_gross": 64000, "provenance": "world" },
+        { "from": "2019-07-04", "employer": "Bayview Health", "annual_gross": 66000, "provenance": "world" },
+        { "from": "2020-07-02", "employer": "Bayview Health", "annual_gross": 67500, "provenance": "world" },
+        { "from": "2021-07-01", "employer": "Bayview Health", "annual_gross": 69000, "provenance": "world" },
+        { "from": "2022-03-10", "employer": "Bayview Health", "annual_gross": 34500, "note": "Half pay while on parental leave, to 5 May 2022.", "provenance": "world for the figure, invented for the reason" },
+        { "from": "2022-07-14", "employer": "Bayview Health", "annual_gross": 41400, "note": "Back three days a week.", "provenance": "world for the figure, invented for the reason" },
+        { "from": "2023-01-12", "employer": "Bayview Health", "annual_gross": 72000, "note": "Back full time, a senior.", "provenance": "world for the figure, invented for the reason" },
+        { "from": "2024-07-11", "employer": "Bayview Health", "annual_gross": 75000, "provenance": "world" },
+        { "from": "2025-07-10", "employer": "Bayview Health", "annual_gross": 78000, "provenance": "world" },
+        { "from": "2026-07-09", "employer": "Bayview Health", "annual_gross": 80340, "provenance": "world" }
+      ],
+      "leave": [
+        { "what": "Parental leave for Salt: half pay to 5 May 2022, unpaid to 13 July, with 18 weeks of government pay from 21 March to 25 July", "from": "2022-03-10", "to": "2022-07-13", "provenance": "world for the pays, invented for the reading" },
+        { "what": "Parental leave for George", "from": "2028-04-20", "to": "2029-02-02", "provenance": "invented" },
+        { "what": "Parental leave for Evie", "from": "2030-09-12", "to": "2031-08-29", "provenance": "invented" }
+      ],
+      "super": { "fund": "HESTAbby", "member": "HB-2210-7744", "account_id": "SUPER-M", "provenance": "world" },
+      "salary_packaging": { "state": "Offered by Bayview Health and not used in the world's payslips.", "provenance": "invented", "note": "The programme brief imagines salary packaging. A chapter that wants it needs new payslips, so it is recorded as a gap rather than assumed." },
+      "business": {
+        "name": "Long Stretch Physio",
+        "what": "A private physiotherapy practice in rented rooms in Brunswick.",
+        "from": "2032-02-02",
+        "structure": "A sole trader with an ABN. Daisy drops to two days at Bayview Health, then leaves on 30 June 2033.",
+        "gst": "Allied health services are often GST-free. A physiotherapy consultation that is necessary treatment carries no GST, but GST-free sales still count towards the $75,000 registration threshold, so the practice registers and lodges anyway. Braces and bands sold at the desk, and ergonomic assessments for employers, are taxable.",
+        "bas": "Quarterly, most of the income at the GST-free label.",
+        "provenance": "invented",
+        "caution": "A sketch for a chapter, not tax advice. Check the rule when chapter 7 is built."
+      }
+    },
+    {
+      "id": "salt",
+      "first_name": "Salt",
+      "family_name": "Davies",
+      "world": { "party_id": "AVA", "first_name": "Ava" },
+      "role": "dependant",
+      "born": "2022-03-20",
+      "born_provenance": "world",
+      "summary": "The eldest. The child already in the world: childcare now, then pocket money, a first job and a Kitty of their own.",
+      "provenance": "canon",
+      "childcare": { "provider": "Kittenhood Early Learning", "from": "2023-07-01", "provenance": "world" },
+      "milestones": [
+        { "what": "Starts primary school", "date": "2028-01-31", "provenance": "invented" },
+        { "what": "Pocket money begins", "date": "2031-03-20", "note": "Chapter 6.", "provenance": "invented" },
+        { "what": "First job, TFN and super", "date": "2039-11-27", "note": "Chapter 9.", "provenance": "invented" },
+        { "what": "Turns 18, a Kitty of their own", "date": "2040-03-20", "note": "Chapter 9.", "provenance": "world for the birth date" }
+      ]
+    },
+    {
+      "id": "george",
+      "first_name": "George",
+      "family_name": "Davies",
+      "world": null,
+      "role": "dependant",
+      "born": "2028-05-11",
+      "born_provenance": "invented, after 2027 as the canon says",
+      "summary": "The middle child, born in a later chapter.",
+      "provenance": "canon"
+    },
+    {
+      "id": "evie",
+      "first_name": "Evie",
+      "family_name": "Davies",
+      "world": null,
+      "role": "dependant",
+      "born": "2030-10-03",
+      "born_provenance": "invented, after 2027 as the canon says",
+      "summary": "The youngest, born in a later chapter.",
+      "provenance": "canon"
+    }
+  ],
+  "things_held": {
+    "provenance": "world",
+    "properties": [
+      { "asset_id": "HOME", "name": "Family home", "address": "22 Albion Crescent, Brunswick VIC 3056", "settled": "2019-03-15", "owners": ["danny", "daisy"], "use": "owner occupied" },
+      { "asset_id": "RENTAL", "name": "Investment townhouse", "address": "7/41 Moorabool Lane, Geelong VIC 3220", "settled": "2021-08-20", "price": 640000, "owners": ["danny", "daisy"], "use": "rental, managed through PropertyMeow" },
+      { "asset_id": "RENTAL2", "name": "Ballarat cottage", "address": "14 Lydiard Cottage Lane, Ballarat VIC 3350", "settled": "2023-11-15", "price": 395000, "owners": ["daisy"], "use": "rental, managed through RentPurrfect" }
+    ],
+    "vehicles": [
+      { "asset_id": "MAZDA", "name": "Mazda 3, 2012", "acquired": "2015-05-02", "disposed": "2022-11-05" },
+      { "asset_id": "CAR", "name": "Subaru Forester", "acquired": "2022-11-05" }
+    ],
+    "accounts": [
+      { "id": "ACC-EVD", "name": "Everyday joint", "at": "Westpaw", "holders": ["danny", "daisy"], "from": "2019-03-01" },
+      { "id": "ACC-OFF", "name": "Home loan offset", "at": "Westpaw", "holders": ["danny", "daisy"], "from": "2019-03-15" },
+      { "id": "ACC-RNT", "name": "Rental property account", "at": "Westpaw", "holders": ["danny", "daisy"], "from": "2021-08-20" },
+      { "id": "ACC-SAV", "name": "Emergency saver", "at": "PING", "holders": ["danny", "daisy"], "from": "2022-02-14", "note": "Daisy's alone from 1 July 2024." },
+      { "id": "ACC-HOL", "name": "Japan 2027 saver", "at": "PING", "holders": ["danny", "daisy"], "from": "2025-05-01" },
+      { "id": "ACC-CC", "name": "Rewards credit card", "at": "Amewx", "holders": ["danny", "daisy"], "from": "2020-06-01", "note": "The household splits the cost 50/50, but Danny is the only card member, so only Danny can sign in to it." },
+      { "id": "ACC-OLD", "name": "Danny's old everyday", "at": "CommBark", "holders": ["danny"], "from": "2012-09-03" },
+      { "id": "ACC-WAT", "name": "Daisy's old Wattle saver", "at": "PING", "holders": ["daisy"], "from": "2016-02-01", "to": "2021-12-20" },
+      { "id": "ACC-RN2", "name": "Ballarat rental account", "at": "PING", "holders": ["daisy"], "from": "2023-11-01" },
+      { "id": "ACC-BRK", "name": "Cedar Trade cash hub", "at": "Cedar Trade", "holders": ["danny", "daisy"], "from": "2020-06-15", "note": "Funded by an inheritance of $290,000 from Danny's aunt, paid straight to it on 22 June 2020." },
+      { "id": "CRYPTO", "name": "Crypto", "at": "Coinpurr and a self-custody wallet", "holders": ["danny"], "from": "2023-05-02" }
+    ]
+  },
+  "advisers": [
+    { "name": "Paws and Claws Tax Agents", "role": "Tax agent for every return from FY2019 to FY2026", "to": "2027-06-30", "provenance": "world for the returns, invented for the end date" },
+    { "name": "Tabby Tax", "role": "The new accountant from chapter 4. Takes emailed PDFs and a zip, no cloud links.", "from": "2027-07-01", "provenance": "invented" }
+  ],
+  "voice": "Plain Australian English. The institutions are cat puns. The household is ordinary, busy and slightly disorganised, never a joke."
+}
