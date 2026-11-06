@@ -415,7 +415,7 @@ function bills() {
   for (const ym of MONTHS) {
     if (ym.slice(5) === "01") continue;
     const hols = ["04", "07", "09", "10"].includes(ym.slice(5)), days = hols ? kr.int(12, 16) : kr.int(5, 9), gross = days * (hols ? 7200 : 3650), subsidy = Math.round(gross * 0.6), gap = gross - subsidy;
-    KIDS.statements.push({ ym, child: ANAYA, days, gross, subsidy, gap }); gaps.push(spend(JT, nextBiz(`${nextMonth(ym)}-09`), "KITTENHOOD OSHC TARNEIT 5512", gap, "CHILDCARE")); count("childcare_gap");
+    KIDS.statements.push({ ym, child: ANAYA, days, gross, subsidy, gap }); if (ym < "2026-06") { gaps.push(spend(JT, nextBiz(`${nextMonth(ym)}-09`), "KITTENHOOD OSHC TARNEIT 5512", gap, "CHILDCARE")); count("childcare_gap"); }
   }
   trap("T7-REG-CHILDCARE", "After-school care: the gap moves with the school term", `${JT}: ${gaps.length} monthly gaps, ${money(Math.min(...gaps.map((x) => -x.cents)))} to ${money(Math.max(...gaps.map((x) => -x.cents)))}; each statement shows the gross and the subsidy, which no account sees`, "Spending is the gap, once, under CHILDCARE, with no question. The subsidy is neither income nor a cash line.",
     { kind: "lines", lines: reg(gaps, "spending", "CHILDCARE") }, { regular: true });
@@ -508,7 +508,7 @@ function fileTraps() {
   trap("T7-OFX-OVERLAP", "Two overlapping OFX downloads whose FITIDs are renumbered in each file", `${SM}: the file from 2024-08-12 overlaps the September quarter by ${over.length} lines, the same line under a different FITID in each`, "One line each, and the account follows.",
     { kind: "lines", lines: uniq.slice(0, 6).map((x) => plain(x, x.lens || "neither", { n: 1 })), balances: [{ account: SM, months: ["2024-09", "2024-10"] }] });
   const hole = B.lines.filter((x) => x.acct === JT && x.date >= TRUNC_FROM && x.date <= TRUNC_TO);
-  trap("T7-TRUNCATED", "A download cut short, on an account with a running balance", `${JT}: the December quarter's file stops at 2025-10-13. ${hole.length} lines worth ${money(hole.reduce((t, x) => t + x.cents, 0))} are in no file, and the next file's first running balance is honest`, "The engine cannot know the lines. It must say the balance does not chain, for that account and that month.",
+  trap("T7-TRUNCATED", "A download cut short, on an account with a running balance", `${JT}: the December quarter's file stops at 2025-10-13 and the next starts on 2025-11-01. ${hole.length} lines worth ${money(hole.reduce((t, x) => t + x.cents, 0))} are in no file, and the next file's first running balance is honest`, "The engine cannot know the lines. It must say the balance does not chain, for that account and that month.",
     { kind: "hole", account: JT, month: "2025-10", net_cents: hole.reduce((t, x) => t + x.cents, 0), line_count: hole.length, match: /2025-1[01]|2026-01/.source });
   const lagged = B.lines.filter((x) => x.acct === CC && x.cents < 0 && x.posted && x.posted !== x.date), lagDays = {};
   for (const x of lagged) { const d = dayDiff(x.date, x.posted); lagDays[d] = (lagDays[d] || 0) + 1; }
@@ -795,8 +795,8 @@ function render() {
   const bf5 = (from, bal) => [dmy(from), "BALANCE BROUGHT FORWARD", "0.00", "", fix(bal)];
   const hbHead = ["Bank Account", "Date", "Narrative", "Debit Amount", "Credit Amount", "Balance", "Categories", "Serial"];
   const hbRow = (acct) => (x) => [acct, dmy(x.date), x.desc, x.cents < 0 ? fix(-x.cents) : "", x.cents > 0 ? fix(x.cents) : "", fix(x.balance), x.cents > 0 ? "DEP" : "PAYMENT", ""];
-  // the everyday account: Bark's headerless CSV, newest first, quarterly, one file stopping short
-  for (const [from, to] of quarters("2023-07", "2026-06")) { const end = from === "2025-10-01" ? addDays(TRUNC_FROM, -1) : to; put(JT, addDays(to, 2), `bark_${from}.csv`, csvLines(view(JT, from, end).reverse().map(bark))); }
+  // the everyday account: Bark's headerless CSV, newest first, quarterly, one file stopping short, and November and December downloaded on their own
+  for (const [from, to] of quarters("2023-07", "2026-06")) { const end = from === "2025-10-01" ? addDays(TRUNC_FROM, -1) : to; put(JT, addDays(to, 2), `bark_${from}.csv`, csvLines(view(JT, from, end).reverse().map(bark))); if (from === "2025-10-01") put(JT, addDays(to, 3), "bark_2025-11-01.csv", csvLines(view(JT, addDays(TRUNC_TO, 1), to).reverse().map(bark))); }
   // Simran's account: Wattle's OFX, with one overlap, FITIDs numbered within each file
   for (const [from, to] of SM_WINDOWS) put(SM, addDays(to, 2), `Wattle_${from}.ofx`, ofx({ account: NUM.sim, bankId: "633000", from, to, rows: view(SM, from, to).map((x) => ({ date: x.date, cents: x.cents, desc: x.desc })), closing: before(SM, addDays(to, 1)), asOf: to }));
   // the saver: Harbour's CSV, and his brother's file in its folder under the same name with a browser's (1)
