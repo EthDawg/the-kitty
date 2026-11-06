@@ -54,7 +54,7 @@
       <div class="rec-lhead"><span class="t">Lodged${isNum(l.version) && l.version > 1 ? `, version ${esc(l.version)}` : ""}</span>${t.status ? statTag(t.status) : ""}</div>
       ${l.assessed_on ? `<p class="sub">Assessed ${esc(day(l.assessed_on))}</p>` : ""}
       <table class="t rec-tie"><thead><tr><th scope="col"><span class="sr">Figure</span></th><th class="n" scope="col">The record</th><th class="n" scope="col">Derived</th><th class="n" scope="col">Gap</th></tr></thead>
-        <tbody><tr><th scope="row">Taxable income</th><td class="n"><b>${orNot(money(l.taxable_income_cents))}</b></td><td class="n">${orNot(money(d.taxable_income_cents))}</td><td class="n">${money(t.gap, { plus: true })}</td></tr>
+        <tbody><tr><th scope="row">Taxable income</th><td class="n"><b>${orNot(money(l.taxable_income_cents))}</b></td><td class="n">${orNot(money(d.taxable_income_cents))}</td><td class="n">${t.gap === 0 ? "None" : money(t.gap, { plus: true })}</td></tr>
         <tr><th scope="row">Result</th><td class="n"><b>${orNot(result(l.result_cents))}</b></td><td class="n">${orNot(result(d.result_cents))}</td><td class="n"></td></tr></tbody></table>
       ${t.detail ? `<p class="sub">${esc(t.detail)}</p>` : ""}
       <p class="sub">The lodged figure is the record. The derived figure is a check on it.</p>

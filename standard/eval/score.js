@@ -161,6 +161,14 @@ function score(L, worldRoot) {
     }
     add(cmp("tax: taxable income per person per year", taxable, 100));
     add(cmp("tax: every return label per person per year", labels, 100));
+    const results = [];
+    for (const [person, years] of Object.entries(tax)) for (const [fy, row] of Object.entries(years)) {
+      const e = est.get(`${person}|${fy}`) || {};
+      if (e.gross_tax_cents == null) continue;
+      results.push([`gross tax ${person} ${fy}`, row.gross_tax_cents, e.gross_tax_cents]);
+      results.push([`refund or payable ${person} ${fy}`, row.result_cents, e.result_cents]);
+    }
+    add(cmp("tax: gross tax and the result, against the assessment", results, 200));
   }
   // Base truth: the category the world gave every bank line. Conservation cannot catch a wrong category, so this is where it is caught.
   const months = tryJson(path.join(worldRoot, "..", "..", "..", "portals", "data", "months.json"));

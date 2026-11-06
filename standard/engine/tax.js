@@ -43,6 +43,26 @@ function lito(cents, p) {
   return Math.round(max * 100);
 }
 
+function lmito(cents, p) {
+  if (!p) return 0;
+  const inc = Math.floor(cents / 100);
+  let v;
+  if (inc <= 37000) v = p.base;
+  else if (inc <= 48000) v = p.base + (inc - 37000) * p.up;
+  else if (inc <= 90000) v = p.top;
+  else v = Math.max(0, p.top - (inc - 90000) * p.down);
+  return Math.round((v + (p.lift || 0)) * 100);
+}
+function helpOwed(cents, p, owes) {
+  if (!p || !owes) return 0;
+  const inc = Math.floor(cents / 100);
+  if (p.marginal) { const m = p.marginal; if (inc <= m.from) return 0; return Math.round((inc <= m.second_from ? (inc - m.from) * m.rate : m.second_base + (inc - m.second_from) * m.second_rate) * 100); }
+  let r = 0;
+  for (const [from, rate] of p.bands) if (inc >= from) r = rate;
+  return Math.round(inc * r * 100);
+}
+const hasHelp = (setup, person, R, on) => (setup.account || []).some((a) => a.type === "help_debt" && R.ownersOf("account", a.account_id, on).some((x) => x.party_id === person));
+
 function derive({ L, R, reference, setup }) {
   const people = (setup.party || []).filter((p) => p.kind === "person" && (setup.membership || []).some((m) => m.party_id === p.party_id && m.role === "adult"));
   const items = new Map();
@@ -245,14 +265,18 @@ function derive({ L, R, reference, setup }) {
     const brackets = reference ? seriesAt(reference, "resident_tax_brackets", end) : null;
     if (!brackets) { out.estimates.push({ person, fy, taxable_income_cents: taxable, gross_tax_cents: null, offsets_cents: null, levy_cents: null, payg_cents: get("PAYG"), franking_cents: get("11U") + get("13Q"), result_cents: null }); continue; }
     const gross = scaleTax(taxable, brackets);
-    const litoParams = seriesAt(reference, "lito", end);
-    const offsets = lito(taxable, litoParams);
+    const foreign = get("20O");
+    const offsets = Math.min(gross, lito(taxable, seriesAt(reference, "lito", end)) + lmito(taxable, seriesAt(reference, "lmito", end)) + foreign);
     const levyRate = seriesAt(reference, "medicare_levy_rate", end);
-    const levy = levyRate == null ? 0 : Math.round(taxable * (Number(typeof levyRate === "object" ? levyRate.rate : levyRate) > 1 ? 0.02 : Number(typeof levyRate === "object" ? levyRate.rate : levyRate)));
+    const levy = levyRate == null ? 0 : Math.round(taxable * Number(levyRate.rate ?? levyRate));
+    // Repayment income adds back a net rental loss, so negative gearing does not shrink a HELP repayment.
+    const help = helpOwed(taxable + Math.max(0, -rentNet), seriesAt(reference, "help_repayment", end), hasHelp(setup, person, R, end));
     const payg = get("PAYG");
     const franking = get("11U") + get("13Q");
-    const result = payg + franking - Math.max(gross - offsets, 0) - levy;
-    out.estimates.push({ person, fy, taxable_income_cents: taxable, gross_tax_cents: gross, offsets_cents: offsets, levy_cents: levy, payg_cents: payg, franking_cents: franking, result_cents: result });
+    // Offsets cannot take income tax below zero, and they do not touch the levy or a HELP repayment.
+    const taxAfter = gross - offsets;
+    const result = payg + franking - taxAfter - levy - help;
+    out.estimates.push({ person, fy, taxable_income_cents: taxable, gross_tax_cents: gross, offsets_cents: offsets, levy_cents: levy, help_cents: help, payg_cents: payg, franking_cents: franking, foreign_cents: foreign, result_cents: result });
   }
 
   // ---------- L11: the draft against what was lodged. A lodged year is history; the gap is the finding ----------
@@ -263,7 +287,7 @@ function derive({ L, R, reference, setup }) {
     const est = out.estimates.find((x) => x.person === person && x.fy === fy);
     if (!est) { out.ties.push({ person, fy, status: "gap", lodged: p.taxable_income_cents, derived: null, gap: null, result_gap: null, detail: "No derived draft for this year." }); continue; }
     const gap = est.taxable_income_cents - p.taxable_income_cents;
-    out.ties.push({ person, fy, status: Math.abs(gap) <= 100 ? "pass" : "fail", lodged: p.taxable_income_cents, derived: est.taxable_income_cents, gap, lodged_result: p.result_cents, derived_result: est.result_cents, result_gap: est.result_cents - p.result_cents, detail: Math.abs(gap) <= 100 ? "Taxable income ties." : "Derived taxable income differs from the assessment." });
+    out.ties.push({ person, fy, status: Math.abs(gap) <= 100 ? "pass" : "fail", gross_tax: p.gross_tax_cents, derived_tax: est.gross_tax_cents, lodged: p.taxable_income_cents, derived: est.taxable_income_cents, gap, lodged_result: p.result_cents, derived_result: est.result_cents, result_gap: est.result_cents - p.result_cents, detail: Math.abs(gap) <= 100 ? "Taxable income ties." : "Derived taxable income differs from the assessment." });
   }
 
   // Label by label: an offsetting pair of errors passes on the total and fails here. A lodged year's lines are the record.

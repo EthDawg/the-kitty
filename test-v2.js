@@ -376,7 +376,7 @@ const fullView = () => ({
     { id: "reconcile", title: "Reconciliation", button: "Run reconciliation", status: "Baseline", today: "Every law.", open: [] },
   ],
 });
-const clean = (html) => { assert.ok(!/undefined|NaN|\bnull\b|\[object |\$0(\.00)?\b|—/.test(text(html)), text(html)); };
+const clean = (html) => { assert.ok(!/undefined|NaN|\bnull\b|\[object |\$0(\.00)?(?![\d.,])|—/.test(text(html)), text(html)); };
 
 test("Records: a full view says what it is, and names the preview and its limit", () => {
   const out = text(Records.Records(fullView()));

@@ -59,7 +59,7 @@ function build() {
     const tie = L.tax ? (L.tax.ties || []).find((x) => x.person === p.party_id && x.fy === fy) : null;
     const assess = (R.collapseDocs("tax_assessment") || []).filter((o) => R.partyOf(o.payload.person_ref, o.payload.assessed_on) === p.party_id && o.payload.fy === fy).sort((a, b) => b.payload.version - a.payload.version)[0];
     return { person: p.party_id, name: p.name.split(" ")[0], status: assess ? "lodged" : "open", readiness: readiness(L, R, fy, p.party_id), lodged: assess ? { version: assess.payload.version, taxable_income_cents: assess.payload.taxable_income_cents, result_cents: assess.payload.result_cents, assessed_on: assess.payload.assessed_on } : null, derived: est || null, tie: tie || null,
-      items: L.tax ? (L.tax.items || []).filter((i) => i.party_id === p.party_id && i.fy === fy).map((i) => ({ label: i.label, amount_cents: i.amount_cents, method: i.method, evidence: i.evidence })) : [] };
+      items: L.tax ? (L.tax.items || []).filter((i) => i.party_id === p.party_id && i.fy === fy && !["M2-DAYS", "18H-DIST"].includes(i.label)).map((i) => ({ label: i.label, amount_cents: i.amount_cents, method: i.method, evidence: i.evidence })) : [] };
   }) }));
 
   const targetName = (p) => {

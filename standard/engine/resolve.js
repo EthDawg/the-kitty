@@ -248,7 +248,7 @@ class Resolver {
       const cls = { category_id: null, merchant: null, person: null, event_kind: null, contract_id: null, via: null, asset_id: null, party: null };
       for (const d of ds) {
         const v = d.value || {};
-        if (d.verb === "categorise") { cls.category_id = v.category_id; cls.via = "decision"; if (v.merchant) cls.merchant = v.merchant; }
+        if (d.verb === "categorise") { cls.category_id = v.category_id; cls.via = "decision"; if (v.merchant) cls.merchant = v.merchant; if (v.person) cls.person = this.partyOf(v.person, line.date); if (v.event_kind) cls.event_kind = v.event_kind; }
         if (d.verb === "set_event_kind") { cls.event_kind = v.event_kind; cls.via = "decision"; Object.assign(cls, v); }
         if (d.verb === "assign_person") cls.person = v.person;
         if (d.verb === "assign_claimant") cls.claimant = v.person;
@@ -384,6 +384,9 @@ class Resolver {
         const inMonth = candidates.filter((l) => monthOf(l.date) === monthOf(p.period_end));
         if (inMonth.reduce((s, l) => s + l.cents, 0) === net) chosen = inMonth;
       }
+      // The last statement's disbursement can land after the files stop: an open item, not a question.
+      const lastHeld = this.lines.reduce((m, l) => (l.date > m ? l.date : m), "");
+      if (!chosen && addDays(p.period_end, 10) > lastHeld) continue;
       if (!chosen) { this.fault("owner_statement_unmatched", o, `Owner statement ${p.period_end} disburses ${net / 100} and the bank lines do not add to it.`, "Check the account the agent pays into.", net); continue; }
       for (const l of chosen) {
         this.claim(l, "rent_receipt");
