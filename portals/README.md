@@ -153,8 +153,8 @@ production domain is public, unique deployment URLs ask for a Vercel sign-in.
 The estate changes what a deploy needs:
 
 - **Build it first.** From the repo root, where the `.vercel` link lives, never from inside `portals/`:
-  `node standard/world/build.js && node portals/build-vault.js && vercel --prod`. Build without `--fixture`. A new checkout or worktree has no link;
-  copy `.vercel/` from a linked one or run `vercel link`.
+  `node standard/world/build.js && node portals/build-vault.js && vercel deploy --prod --archive=tgz`. Build without `--fixture`. The archive is needed: thousands of
+  separate uploads abort. A new checkout or worktree has no link; copy `.vercel/` from a linked one or run `vercel link`.
 - **The gitignored files still go up.** The CLI reads `.vercelignore` and not `.gitignore` (checked in CLI 59.26's source),
   and `.vercelignore` lists neither `estate/` nor `public/vault/`. Keep it that way. `buildCommand` skips when `estate/families.json` arrived with
   the upload and otherwise builds it from the repo, which a Git deploy would need; that path has not been run on Vercel.
