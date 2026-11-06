@@ -105,8 +105,11 @@ observations.
 | **Households** | Does the model tell the truth about a renter, a retiree, a trust, a separation, an SMSF, a mid-life start? |
 | **Keep and update** | Tailor it, type in the sheet, take an update. Are originals byte-identical and every decision still bound? |
 | **Cold start** | How many tokens does it cost a cheap model to read this household from scratch? |
+| **Blind** | Does it work for a family it was not built around? A worker that cannot read the engine simulates another household, with its own traps, and runs it once. |
 
-Some oracle figures were computed by Google Sheets formulas, not by this engine. The scoreboard says plainly what the eval is given and where its truth comes from, and a household generated blind, under [`eval/heldout/`](eval/heldout/), tests what tuning cannot.
+Some oracle figures were computed by Google Sheets formulas, not by this engine. The scoreboard says plainly what the eval is given and where its truth comes from.
+
+The blind level is the one that tests what tuning cannot, and it is the one that hurt. The first blind household, under [`eval/heldout/`](eval/heldout/), crashed the rebuild, doubled 88 card lines and hid a missing month, on a model that scored 100% on the Davies. That result is [kept as it was written](eval/heldout/BLIND-1.md). Each defect became a fixture and a repair, then a new blind household tests whether the repairs generalise. A score after repair proves only that the repair works.
 
 ## Compared with
 
