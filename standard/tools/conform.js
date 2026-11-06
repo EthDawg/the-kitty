@@ -40,9 +40,11 @@ function conformTabs(file) {
   const rows = [];
   for (const [tab, headers] of Object.entries(tabs)) {
     const name = norm(tab);
-    const direct = T[name] || T[name.replace(/s$/, "")];
     const cols = (headers || []).map(norm).filter(Boolean);
-    let best = direct ? direct.name : null, bestScore = 0;
+    // A name only counts when the headers agree: a tab of logins called Accounts is not the account table.
+    const direct = T[name] || T[name.replace(/s$/, "")];
+    const agrees = direct && cols.filter((c) => direct.columns.some((k) => k.name === c)).length >= Math.max(2, Math.ceil(cols.length / 4));
+    let best = agrees ? direct.name : null, bestScore = 0;
     if (!best) for (const t of Object.values(T)) { const have = new Set(t.columns.map((c) => c.name)); const score = cols.filter((c) => have.has(c)).length; if (score > bestScore) { best = t.name; bestScore = score; } }
     const target = best && T[best];
     const known = target ? new Set(target.columns.map((c) => c.name)) : new Set();

@@ -1,5 +1,11 @@
 # Changelog
 
+## The Digital Davies Standard, draft
+- `standard/`: the data model as a public standard: 41 tables, 39 observation kinds, 59 event kinds, 20 laws, generated SQL, MongoDB validators, ER diagram, Sheet tabs and a schema card.
+- A truth-first Davies world: 2,369 files in 59 families across 10 containers, including super, a broker, RSUs, crypto, a second rental, returns as lodged, bills and things.
+- Importers as data: 58 recipes, a gate that proves them, no per-institution code.
+- The engine, the replay, the ladder, household fixtures, keep-and-update, and sheet parity. `standard/eval/SCOREBOARD.md` has the numbers.
+
 ## 2.0 records
 - A sixth tab, Records, between Goals and Setup: the household's record as `standard/` rebuilds it, a preview on the fictional Davies household, not read from the sheet yet. `build.py --v2` bundles `data/standard-view.json` and the page computes nothing from it.
 - This year (what each adult holds and what is yet to go; a lodged return is the record), How we know (the scoreboard and the laws), Where a number comes from (event, postings, witness, file and line), Things and What's missing. Experimental actions sit apart and say what they do today; two are mocks and say so.

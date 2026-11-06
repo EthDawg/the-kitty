@@ -31,6 +31,13 @@ brand icons, the merchant dictionary, the Review queue with its sheet writes, th
 of value, on a copy of the demo sheet ("Digital Davies v2", `kitty.config.json`). `python3 build.py --v2` builds the published page.
 
 
+## The Digital Davies Standard
+
+[`standard/`](standard/README.md) is the data model underneath: one open schema for a household's whole financial life, from a coffee
+to a lodged return to a laptop due for replacement. Everything derived rebuilds from evidence and decisions, one fact is recognised
+once, nothing date-effective rewrites history, and twenty laws check that it all can be true at once. The Davies family is its
+benchmark: `node standard/world/build.js && node standard/eval/all.js`. The sheet and the page here move onto it in stages.
+
 ## What is in here
 
 | Path | What it is |

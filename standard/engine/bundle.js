@@ -14,7 +14,7 @@ function toBundle(L, { setup, tablesSchema, decisions = [], rules = [], recipes 
     lot_match: L.lotMatches.map((m) => ({ ...m, event_id: m.event_ref })),
     balance: L.balances.rows.map((b) => ({ ...b, grade: "derived" })),
     tax_return: L.returns ? L.returns.returns : [], tax_line: L.returns ? L.returns.lines : [],
-    tax_item: L.tax ? L.tax.items : [], check_result: L.checks, review_item: L.review, metric_value: L.metrics || [],
+    tax_item: L.tax ? L.tax.items.flatMap((i) => { const by = Object.entries(i.by_activity || {}); const rest = i.amount_cents - by.reduce((n, [, v]) => n + v, 0); return [...by.map(([activity_id, amount_cents]) => ({ ...i, activity_id, amount_cents })), ...(rest ? [{ ...i, amount_cents: rest }] : [])]; }) : [], check_result: L.checks, review_item: L.review, metric_value: L.metrics || [],
     run: [{ run_id: L.bundleHash, mode: mode || "rebuild", sources: L.sources.length, observations: L.observations.length, events: L.events.length, review_items: L.review.length, tokens_in: 0, tokens_out: 0, bundle_hash: L.bundleHash }],
   };
   const out = { tables: {}, manifest: { standard_version: version, bundle_hash: L.bundleHash, as_of: L.asOf, tables: {} } };
@@ -24,7 +24,8 @@ function toBundle(L, { setup, tablesSchema, decisions = [], rules = [], recipes 
     const rows = (tables[t] || []).map(pick(t, cols));
     const body = rows.map((r) => stableStringify(r)).join("\n");
     out.tables[t] = body ? `${body}\n` : "";
-    out.manifest.tables[t] = { rows: rows.length, hash: hash64(body), class: classOf(def.plane), plane: def.plane, workbook: "household" };
+    // A household that separates writers or audiences lists several workbooks, with the key that partitions the table between them.
+    out.manifest.tables[t] = { rows: rows.length, hash: hash64(body), class: classOf(def.plane), plane: def.plane, workbooks: [{ name: "household", partition: null }] };
   }
   return out;
 }
