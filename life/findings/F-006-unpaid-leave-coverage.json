@@ -1,0 +1,19 @@
+{
+ "id": "F-006",
+ "title": "Coverage counts payslips as missing during unpaid parental leave",
+ "chapter": 5,
+ "trap": "T5-PARENTAL-LEAVE-MONTH",
+ "kind": "engine",
+ "found": "PAY-A is a fortnightly stream. During unpaid leave nothing is issued, and coverage names those fortnights as missing, so a low month reads as a missing month.",
+ "shape": {
+  "stream": "PAY-A",
+  "cadence": "fortnightly",
+  "leave": {
+   "from": "2028-06-12",
+   "to": "2029-02-05"
+  }
+ },
+ "want": "A person can pause a stream for a dated period. A run of `stream` rows with valid_to already does this, so the runtime may be able to land it without the base.",
+ "landing": "tailoring or runtime",
+ "owner": "runtime first, data model session if it cannot"
+}
