@@ -28,6 +28,7 @@ ALLOWED_TOP_LEVEL_DIRS = frozenset({
     "period-close", "portals", "skills", "sources", "src", "tax", "tools", "ios",
     "standard",  # the household data standard; agreed for the Records tab, which reads its generated view
     "life",  # the fictional family and their chapters; agreed in the programme brief, a good first read
+    "evidence", "template",  # agreed 7 Nov 2026 in the re-founding: the runs behind FINDINGS.md, and the blank Sheet's contract
 })
 WEB_EXTENSIONS = frozenset({
     ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".html", ".htm",
