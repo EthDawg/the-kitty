@@ -1,0 +1,41 @@
+[
+  {
+    "q": 1,
+    "answer": "Assuming Sam is an Australian-resident individual, the 50% CGT discount applies because he held the shares for more than 12 months. With no capital losses, the discounted RFT gain is $627.28 ($1,254.55 × 50%, rounded). His total net capital gain must also include the ETH result.",
+    "sources": [
+      "ATO — CGT discount"
+    ]
+  },
+  {
+    "q": 2,
+    "answer": "Start with CoinJug's transaction/tax report, then the original exchange's trade confirmations and account history, bank/card payment records, and wallet/blockchain records linked to Sam. Together these should establish acquisition date, AUD purchase value and fees; a wallet transfer alone does not establish purchase cost. Reconstruct the actual cost from evidence, not a guess. If no purchase cost can be substantiated, that component is effectively $0: the gain would be $4,706.27 less any other substantiated eligible costs. Do not apply the 50% discount unless the holding period can also be established.",
+    "sources": [
+      "ATO — Keeping crypto records",
+      "ATO — Cost base of assets"
+    ]
+  },
+  {
+    "q": 3,
+    "answer": "No. The $50 bought a chance to win a prize, so it is not a deductible gift, even if the school P&C is a deductible gift recipient. Keep it separate from Ria's other donations.",
+    "sources": [
+      "ATO — Gifts and donations"
+    ]
+  },
+  {
+    "q": 4,
+    "answer": "The fixed-rate method may apply, but 'about two days a week' is insufficient. Sam needs a record of actual WFH hours for the entire FY26 year; export the Tidewater records and check that they establish hours, not merely locations. He also needs evidence of each type of covered expense he incurred. I can recall 70 cents/hour for FY25, but cannot confirm the FY26 rate without checking the ATO; do not automatically carry that rate forward. The actual-cost method is an alternative only where actual deductible costs and work use can be substantiated; it does not cure missing evidence.",
+    "sources": [
+      "ATO — Working from home expenses — fixed rate method",
+      "ATO — Working from home expenses — actual cost method"
+    ]
+  },
+  {
+    "q": 5,
+    "answer": "Consider an affordable personal super contribution claimed as a deduction, received by the fund before 30 June 2027. On similar incomes, either Sam or Ria would generally save income tax at a 30% marginal rate, potentially plus Medicare levy, while deductible contributions are generally taxed at 15% in the fund. Check eligibility and available concessional cap after employer/other contributions, retain sufficient accessible savings, and lodge a valid notice of intent and obtain the fund's acknowledgement before claiming, within the required deadlines. FY27 income and caps need checking; the money is generally preserved in super.",
+    "sources": [
+      "ATO — Personal super contributions",
+      "ATO — Concessional contributions cap",
+      "ATO — Individual income tax rates"
+    ]
+  }
+]

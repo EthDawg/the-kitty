@@ -14,7 +14,7 @@ A frontier model in a coding harness (Claude Code, Codex) reads a household's ba
 
 The harness and model do everything in between: finding files, reading CSV/OFX/QIF/PDF, reconciling, categorising, writing.
 
-## Evidence 1: one-shots on family six
+## Evidence 1: one-shots on family six (the Mulcahy-Bonettis: Paul, Dee and Dee's mum)
 
 Family six: fictional, 379 files in seven formats, 36 months (July 2023 to June 2026), 13 accounts, sealed truth. Traps include a mother's care money, her death and estate, a $168,000 granny-flat payment, overlapping exports, a pending card pre-authorisation, a saver export that belongs to someone else, and a $1,347.37 hole where one bank's export stops on 10 March 2025.
 
@@ -44,7 +44,7 @@ Question: does an established data model help the model, or does it do as well f
 
 - Model: Opus 5.5. Family six. Two runs per arm. Three deliveries in arrival order (258 files / 24 months, then 60 + 1 re-sent, then 61 + 1 re-sent), a fresh agent with no memory for each delivery, then a fresh reader agent with only the finished Sheet.
 - Arm A, "empty Sheet": a new Google Sheet, one empty tab. Prompt: "Set up this Google Sheet to track our money, load it all in, and build us a dashboard we can open."
-- Arm B, "Kitty template": 26 tabs, 1,860 formulas, headers, a README tab, no household rows. Prompt: "This Google Sheet is our Kitty. It's blank and ready. Read its README tab, then load it all in."
+- Arm B, "Kitty template": 26 tabs, 1,860 formulas, headers, a README tab, no household rows. Prompt, word for word (here "blank" meant no household rows): "This Google Sheet is our Kitty. It's blank and ready. Read its README tab, then load it all in."
 
 | | Empty 1 | Empty 2 | Template 1 | Template 2 |
 |---|---|---|---|---|
@@ -92,6 +92,41 @@ Share of what decides whether a household's numbers come out right and usable, n
 | Skill | 10 | 5 | Harnesses absorb it. Answers that jump about need a shape (headline, facts, actions), not a longer skill |
 | CHANGES.md | 5 | 5 | Upgrades as notes |
 | Importer code | 0 | 0 | Retiring |
+
+## Where the files live: reach comes first
+
+The fictional Davies keep eight years of money in 24 parody portals (https://the-kitty-portals.vercel.app, any name, password demo): 4,179 bank transactions, 417 payslips, 2,369 files as delivered. Five ways in:
+
+- Export in the institution's exact columns (7): Westpaw, CommBark, Amewx, PING, PropertyMeow, Pawroll, Purrsure.
+- Files as delivered, PDF, CSV, JSON, saved pages (14): the super funds, broker, share registry, employee share plan, crypto exchange, second property manager, council, water, value estimates, energy, health insurer, childcare, rego.
+- A folder the harness can list (1): Litterbox, the household's shared folder.
+- Search only (1): Gmeow, the inbox. A mail connector searches; it does not list.
+- You sign in, every time (1): myGuv, the tax office.
+
+Reading the files is the easy part. Getting them in front of the harness is the work, and the coverage checklist is what tells a model where to look.
+
+## The permission moment
+
+A page that reads a Sheet asks the viewer to grant the Google Sheets connector. The Kitty page's prompt reads "Can read and make changes" and lists six tools: get values, get spreadsheet, update values, append values, update spreadsheet, batch clear values.
+
+- Reading needs two of them (get values, get spreadsheet).
+- update_values and append_values parse what they are sent: `=1+1` became 2, `0012345` became 12345, `2026-03-04` became a date value. Bank text can start with "=".
+- update_spreadsheet with typed cells kept all three exactly, applied a batch all or nothing, and refused a stale revision.
+- A page that only reads never needs batch clear values.
+- The owner's connector wrote straight through a protected range on a hidden tab: locks stop people, not agents.
+- Reads are cached for 30 minutes; after a load, refresh.
+- The connector prompt's Continue and Ask's "Use Claude" are the viewer's clicks; an agent is not allowed to click them for you.
+- A range typo reconciled 7 of 18 accounts on the live Sheet while every local snapshot test passed: some defects only show live.
+
+Recommendation (not yet tried on a published page): declare only the read tools, plus one typed write if the page must save a choice, so the prompt lists two or three tools instead of six; let the harness do the rest of the writing, as typed cells, at the revision it read, then read Compliance Checks.
+
+## Ask the page, tell the harness
+
+The page's Ask answers questions about numbers already in the Sheet: about 10 seconds an answer, one "Use Claude" click before the first, nothing remembered between questions (the page sends the numbers each time), and every button in an answer is checked against the Sheet before it shows. Answers are a fixed shape (headline, facts, actions, a receipt naming the tabs read); before the shape, free-text answers jumped and wrapped. Anything that needs files, sites or writes goes to the harness, and the page hands over the sentence instead of a button. Example on the Davies: "Why was January so expensive?" is answered "It wasn't": January cost $13,811 against a three-month average of $15,228.
+
+## Tax guidance through MCP
+
+Five questions about the fictional couple (CGT discount on shares held since 2019, an ETH sale with no purchase record, raffle tickets as a gift, work from home with no log, one legitimate step before 30 June 2027), asked twice in Codex (prompts and answers in evidence/guidance-test/): once with the Australian Tax MCP (https://ato-mcp.com.au/, independent, returns published guidance with citations) and once without. Same reasoning and advice both times. With it, 5 of 5 answers linked an ato.gov.au page and it stated FY26's work-from-home fixed rate (70 cents an hour). Without it, sources were page titles from memory and it declined to state the FY26 rate. Once the admin is automated, guidance through MCP keeps facts current and checkable; it does not decide a treatment or lodge. Not tax advice.
 
 ## Evidence 3: twenty-one tests on why
 
@@ -148,7 +183,7 @@ Two of the one-shot pages read the same numbers and gave different verdicts ("Wo
 
 | Start | First sentence | Day one | Tested |
 |---|---|---|---|
-| Nothing yet | "Copy the Kitty template for us and load these bank files." | A ledger, checks green, a page | Yes (family six) |
+| Nothing yet | "Copy the Kitty template for us and load these bank files." | A ledger, checks green, a page | Yes (two template runs on the Mulcahy-Bonettis, Evidence 2) |
 | A bit of everything | "Search my Drive and email for the last two tax years. Tell me which copy is current, what's missing and where to get it. Then move us into the Kitty." | One live record and a missing list | Yes (the fictional couple) |
 | Our own system | "Map our sheet onto the Kitty's README and list what doesn't fit." | Keep yours; see which checks it could run | Not yet |
 
