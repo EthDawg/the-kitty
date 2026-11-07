@@ -119,9 +119,10 @@ The blind level is the one that tests what tuning cannot, and it is the one that
 | Fourth | 69 | 33 | 24 | 12 |
 | Fifth | 63 | 32 | 17 | 14 |
 | Sixth | 65 | 37 | 10 | 18 |
-| Seventh | 67 | 30 | 34 | 3 |
+| Seventh, first run | 67 | 19 | 32 | 16 |
+| Seventh, not a first run | 67 | 30 | 34 | 3 |
 
-Each family was built to be harder than the last, so these are not runs of one test. Each defect becomes a fixture and a repair, and only a new blind household shows whether a repair generalises. A score after repair proves only that the repair works. Most repairs hold, but not all: of the 37 shapes the sixth family repeated, 5 got worse, every one from a rule of ours that read a name as proof. With that rule narrowed, the seventh family came back at 3 of 67 silently wrong, the lowest of any run. Its own first run read 19, 32 and 16 before its worker fixed two bugs in its build, and both are kept. That is one result, and it means the engine asks more, not that it knows more: its 34 flagged numbers stay wrong until a person answers. A person's answers are still what makes most of these numbers exact, and the last column is not yet zero.
+Each family was built to be harder than the last, so these are not runs of one test. Each defect becomes a fixture and a repair, and only a new blind household shows whether a repair generalises. A score after repair proves only that the repair works. Most repairs hold, but not all: of the 37 shapes the sixth family repeated, 5 got worse, every one from a rule of ours that read a name as proof. With that rule narrowed, the seventh family read 16 of 67 silently wrong on its first run, 13 of them on lines a bug in its build left out of every file. Its worker fixed that after seeing the score and ran it again: 3 of 67. So that row is not a first run, and the engine did not change between the two. It means the engine asks more, not that it knows more: its 34 flagged numbers stay wrong until a person answers. A person's answers are still what makes most of these numbers exact, and the last column is not yet zero.
 
 ## Compared with
 
