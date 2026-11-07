@@ -1,6 +1,6 @@
 // The vault: the portals hand over the Davies world's files exactly as delivered. A browser signs in to two of the new
 // portals, downloads a PDF and a CSV, and each file's hash must equal the world's. Builds the world and the vault first,
-// so it needs nothing a checkout does not have; the server reads public/ on every request.
+// if they are not there, so it needs nothing a checkout does not have.
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
@@ -13,13 +13,15 @@ const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex"
 const local = (p) => JSON.parse(fs.readFileSync(path.join(__dirname, "..", p), "utf8"));
 
 test.beforeAll(() => {
+  if (fs.existsSync(path.join(__dirname, "..", "estate", "benchmark", "vault.json"))) return;
   for (const script of ["standard/world/build.js", "portals/build-vault.js"]) execFileSync("node", [script], { cwd: ROOT, stdio: "pipe" });
 });
 
 test("two new portals sign in and hand over the world's files byte for byte, and every world file has one home", async ({ page }) => {
   const manifest = JSON.parse(fs.readFileSync(path.join(WORLD, "manifest.json"), "utf8"));
-  const vault = local("public/vault.json");
+  const vault = local("estate/benchmark/vault.json");
   const brands = [...local("public/brands.json"), ...local("public/vault-brands.json")];
+  const holders = brands.filter((b) => !b.holdsNoFiles);
   const types = require("../lib/file-types");
   const config = local("vercel.json");
 
@@ -28,11 +30,12 @@ test("two new portals sign in and hand over the world's files byte for byte, and
     expect(vault.files.length).toBe(manifest.files.length);
     expect(home.size).toBe(manifest.files.length);
     for (const f of manifest.files) { expect(home.get(f.path)?.sha256, f.path).toBe(f.sha256); expect(home.get(f.path).size, f.path).toBe(f.bytes); }
-    expect([...new Set(vault.files.map((f) => f.brand))].sort()).toEqual(brands.map((b) => b.id).sort());
+    expect([...new Set(vault.files.map((f) => f.brand))].sort()).toEqual(holders.map((b) => b.id).sort());
   });
 
   await test.step("vercel.json routes every portal and serves every file type the way server.js does", () => {
-    const routed = config.rewrites[0].source.match(/\(([^)]+)\)/)[1].split("|").sort();
+    const route = config.rewrites.find((r) => r.destination === "/portal");
+    const routed = route.source.match(/\(([^)]+)\)/)[1].split("|").sort();
     expect(routed).toEqual(brands.map((b) => b.id).sort());
     expect(config.headers.some((h) => h.source === "/vault/(.*)" && h.headers.some((x) => x.key === "Content-Disposition" && x.value === "attachment"))).toBe(true);
     for (const [ext, type] of Object.entries(types)) {
@@ -46,13 +49,13 @@ test("two new portals sign in and hand over the world's files byte for byte, and
     await page.goto(`/${brand}#/files/${stream}`);
     await expect(page.locator("#signin")).toBeVisible();
     await expect(page.locator("#view")).toBeHidden();
-    await page.fill("#name", "Mia");
+    await page.fill("#name", "A visitor");
     await page.fill("#password", "wrong");
     await page.click("#loginbtn");
     await expect(page.locator("#loginerror")).toBeVisible();
     await page.fill("#password", "demo");
     await page.click("#loginbtn");
-    await expect(page.locator("#whoname")).toContainText("Mia");
+    await expect(page.locator("#whoname")).toContainText("A visitor");
     await expect(page.locator(`a.acct[data-stream="${stream}"]`)).toHaveAttribute("aria-current", "true");
     const year = page.locator(`details.fy[data-year="${file.year}"]`);
     if ((await year.getAttribute("open")) === null) await year.locator("summary").click();
@@ -66,6 +69,14 @@ test("two new portals sign in and hand over the world's files byte for byte, and
   };
 
   await test.step("a PDF from Bupaw", async () => { expect((await take("bupaw", "PHI-M", ".pdf")).bytes.subarray(0, 5).toString()).toBe("%PDF-"); });
+  await test.step("the files are static, as llms.txt says, and the listing is not", async () => {
+    const f = vault.files.find((x) => x.brand === "waterbowl");
+    const anon = await page.request.get(`/${f.path}`);
+    expect(anon.status(), "no sign-in stops a fetch of an address").toBe(200);
+    expect((await page.request.get("/vault.json")).status()).toBe(404);
+    expect((await page.request.get("/estate/benchmark/vault.json")).status()).toBe(404);
+    expect((await page.request.get(`/api/files?brand=waterbowl`)).status(), "the list needs a sign-in").toBe(401);
+  });
   await test.step("a CSV from Purrannuation, a separate sign-in", async () => { expect((await take("purrannuation", "SUPER-J", ".csv")).bytes.toString()).toContain("Investment"); });
 
   await test.step("scans, email and workbooks download with their own content types", async () => {
@@ -81,7 +92,7 @@ test("two new portals sign in and hand over the world's files byte for byte, and
 
   await test.step("an original portal keeps its exports and adds the files as delivered", async () => {
     await page.goto("/ping");
-    await page.fill("#name", "Mia");
+    await page.fill("#name", "A visitor");
     await page.fill("#password", "demo");
     await page.click("#loginbtn");
     await expect(page.locator(".greet")).toBeVisible();

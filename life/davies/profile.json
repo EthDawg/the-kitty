@@ -1,0 +1,147 @@
+{
+  "schema": "davies-profile/2",
+  "about": "The Digital Davies: a fictional Australian family used to test The Kitty and for future builds and demos. Every person, employer and address here is invented. This file is the single source for who they are.",
+  "provenance": {
+    "canon": "Set by the project owner. Do not change without asking.",
+    "brief": "From the programme brief: birth years and the shape of the life.",
+    "generator": "Agrees with life/davies/life.json, the script the life generator plays. Change the two together.",
+    "invented": "Written here to fill the gaps. Ours to change."
+  },
+  "not_the_benchmark": "This is a new life, generated forward from their early thirties. It is not the 2019 to 2027 benchmark world, whose Jordan, Mia and Ava stay as they are.",
+  "household": {
+    "name": "The Davies household (fictional)",
+    "jurisdiction": "AU",
+    "state": "VIC",
+    "timezone": "Australia/Melbourne",
+    "shared_mail": "the.davies@mail.example",
+    "homes": [
+      { "what": "Daisy's flat", "address": "3/88 Nicholson Street, Coburg VIC 3058", "to": "2027-03-20", "provenance": "generator" },
+      { "what": "Danny's share house", "address": "17 Union Street, Northcote VIC 3070", "to": "2027-03-20", "provenance": "generator" },
+      { "what": "First rental together", "address": "9 Lygon Walk, Brunswick East VIC 3057", "from": "2027-03-20", "to": "2028-02-14", "provenance": "generator" },
+      { "what": "The family home, bought for $880,000", "address": "12 Wren Street, Thornbury VIC 3071", "from": "2028-01-28", "provenance": "generator" }
+    ]
+  },
+  "people": [
+    {
+      "id": "danny",
+      "first_name": "Danny",
+      "family_name": "Davies",
+      "role": "adult",
+      "born": "1993-06-12",
+      "born_provenance": "brief for the year, generator for the day",
+      "summary": "Dad. Business and commerce, by way of financial services. Moves from advice into corporate finance and later goes out alone.",
+      "provenance": "canon",
+      "study": [
+        { "what": "Bachelor of Commerce, finance and accounting", "where": "University of Mewbourne", "from": "2011-02-28", "to": "2014-11-21", "provenance": "invented" }
+      ],
+      "help": [
+        { "what": "HECS-HELP for the commerce degree", "borrowed": 24600, "repaid_by": "2024-06-30", "note": "Gone before the simulation begins, which is why the script holds no HELP for Danny.", "provenance": "invented" }
+      ],
+      "jobs": [
+        { "employer": "Bank of Whiskers", "title": "Graduate, then business banking analyst", "from": "2015-02-02", "to": "2018-01-19", "provenance": "invented" },
+        { "employer": "Purrpetual Advice", "title": "Financial adviser", "from": "2018-02-05", "to": "2023-07-28", "provenance": "invented" },
+        { "employer": "Northwind Logistics", "title": "Finance analyst, then treasury manager", "from": "2023-08-07", "to": "2041-06-28", "provenance": "generator for the employer, invented for the title and dates", "cadence": "fortnightly" }
+      ],
+      "pay": [
+        { "from": "2026-07-08", "employer": "Northwind Logistics", "annual_gross": 128000, "provenance": "generator" },
+        { "from": "2027-03-15", "employer": "Northwind Logistics", "annual_gross": 142000, "note": "A promotion, part way through a fortnight.", "provenance": "generator" }
+      ],
+      "leave": [
+        { "what": "Two weeks' partner leave for Salt, on normal pay", "from": "2028-03-20", "to": "2028-03-31", "provenance": "invented" },
+        { "what": "Two weeks' partner leave for George", "from": "2030-05-13", "to": "2030-05-24", "provenance": "invented" },
+        { "what": "Two weeks' partner leave for Evie", "from": "2033-10-03", "to": "2033-10-14", "provenance": "invented" }
+      ],
+      "super": { "fund": "Purrannuation", "member": "PN-884213", "provenance": "generator" },
+      "shares": { "plan": "Northwind RSU plan, held at E*Treat", "plan_account": "ET-55120-RSU", "issuer": "Northwind Global Inc", "code": "NWGL", "currency": "USD", "provenance": "generator" },
+      "business": {
+        "name": "Bright Whisker Advisory Pty Ltd",
+        "what": "Part-time finance chief for small businesses. Fixed monthly fees, no product commissions.",
+        "from": "2041-07-01",
+        "structure": "A company, Danny the sole director and shareholder, paying a director's salary through its own payroll.",
+        "gst": "Registered from the first day. Services are taxable, so 10% goes on every invoice.",
+        "bas": "Quarterly, with PAYG withholding for the director's salary.",
+        "provenance": "invented"
+      }
+    },
+    {
+      "id": "daisy",
+      "first_name": "Daisy",
+      "family_name": "Davies",
+      "role": "adult",
+      "born": "1995-02-03",
+      "born_provenance": "brief for the year, generator for the day",
+      "summary": "Mum. The sciences, by way of allied health. A hospital physiotherapist who later opens a private practice.",
+      "provenance": "canon",
+      "study": [
+        { "what": "Bachelor of Science, anatomy and physiology", "where": "University of Mewbourne", "from": "2013-02-25", "to": "2015-11-20", "provenance": "invented" },
+        { "what": "Master of Physiotherapy, graduate entry", "where": "University of Mewbourne", "from": "2016-02-22", "to": "2017-11-17", "provenance": "invented" }
+      ],
+      "help": [
+        { "what": "HECS-HELP for both degrees", "balance_at": "2026-07-01", "balance": 27940.15, "note": "Still being repaid when the simulation begins.", "provenance": "generator" }
+      ],
+      "jobs": [
+        { "employer": "Bayview Health", "title": "Physiotherapist, then senior physiotherapist", "from": "2018-01-22", "to": "2036-12-19", "provenance": "generator for the employer, invented for the title and dates", "cadence": "fortnightly" }
+      ],
+      "pay": [
+        { "from": "2026-07-02", "employer": "Bayview Health", "annual_gross": 96000, "provenance": "generator" }
+      ],
+      "salary_packaging": { "state": "Packaged through Bayview Health, $346.54 a fortnight.", "provenance": "generator" },
+      "leave": [
+        { "what": "Parental leave for Salt: 14 paid weeks, then 22 weeks of government pay. Back at three days a week.", "from": "2028-03-06", "to": "2029-02-04", "provenance": "generator" },
+        { "what": "Parental leave for George: the same again.", "from": "2030-04-27", "to": "2031-02-02", "provenance": "generator" },
+        { "what": "Parental leave for Evie: the same again.", "from": "2033-09-19", "to": "2034-08-06", "provenance": "generator" }
+      ],
+      "super": { "fund": "HESTAbby", "member": "HB-2210-7744", "provenance": "generator" },
+      "business": {
+        "name": "Paws and Stretch Physio",
+        "what": "A private physiotherapy practice in rented rooms, about 22 consultations a week at $115.",
+        "from": "2037-01-05",
+        "structure": "A sole trader with an ABN.",
+        "gst": "Allied health services are often GST-free. A physiotherapy consultation that is necessary treatment carries no GST, but GST-free sales still count towards the $75,000 registration threshold, so the practice registers and lodges anyway. About 94% of sales are GST-free. Braces and bands sold at the desk, and ergonomic assessments for employers, are taxable.",
+        "bas": "Quarterly, most of the income at the GST-free label.",
+        "provenance": "generator for the figures, invented for the name",
+        "caution": "A sketch for a chapter, not tax advice. Check the rule when chapter 7 is built."
+      }
+    },
+    {
+      "id": "salt",
+      "first_name": "Salt",
+      "family_name": "Davies",
+      "role": "dependant",
+      "born": "2028-03-20",
+      "born_provenance": "brief for the year, generator for the day",
+      "summary": "The eldest. Pocket money at 8, a first job at 15, a Kitty of their own at 18.",
+      "provenance": "canon",
+      "milestones": [
+        { "what": "Childcare, three days a week", "date": "2029-02-05", "provenance": "generator" },
+        { "what": "Pocket money begins", "date": "2036-03-20", "note": "Chapter 6.", "provenance": "brief" },
+        { "what": "First job, at Lakeside Cinema Bar, with a TFN and super", "date": "2043-04-05", "note": "Chapter 9.", "provenance": "generator" },
+        { "what": "Turns 18, a Kitty of their own", "date": "2046-03-20", "note": "Chapter 9.", "provenance": "brief" }
+      ]
+    },
+    {
+      "id": "george",
+      "first_name": "George",
+      "family_name": "Davies",
+      "role": "dependant",
+      "born": "2030-05-11",
+      "born_provenance": "brief for the year, generator for the day",
+      "summary": "The middle child.",
+      "provenance": "canon"
+    },
+    {
+      "id": "evie",
+      "first_name": "Evie",
+      "family_name": "Davies",
+      "role": "dependant",
+      "born": "2033-10-03",
+      "born_provenance": "brief for the year, generator for the day",
+      "summary": "The youngest.",
+      "provenance": "canon"
+    }
+  ],
+  "advisers": [
+    { "name": "Tabby Tax", "role": "Their accountant from their first joint tax time, chapter 4. Takes emailed PDFs and a zip, no cloud links.", "from": "2027-07-01", "provenance": "invented" }
+  ],
+  "voice": "Plain Australian English. The institutions are cat puns. The household is ordinary, busy and slightly disorganised, never a joke."
+}

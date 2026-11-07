@@ -1,0 +1,64 @@
+{
+ "chapters": {
+  "1": {
+   "today": "2027-01-16",
+   "drive": [
+    {
+     "path": "drive/wren/tax stuff/scan0001.csv",
+     "kind": "scan",
+     "person": "wren",
+     "visible_to": [
+      "wren"
+     ],
+     "sha256": "e8c09eb8b96eb66fcee8b672def7afa9a6a12997e6501574085e8b15d8cccdbc",
+     "size": 28,
+     "of": null,
+     "note": "A hand-made fixture."
+    }
+   ],
+   "inbox": [
+    {
+     "path": "inbox/wren/2026-09-14-return.eml",
+     "kind": "attachment",
+     "person": "wren",
+     "visible_to": [
+      "wren"
+     ],
+     "of": "sources/TAX-A/2026-09-14/Tax-Return-Wren-FY2026.csv",
+     "sha256": "ad2ae74b39eebc54f174f529d6f91e9a8f139070dca4f6be422e89aa7cbb24fe",
+     "size": 251
+    }
+   ]
+  },
+  "2": {
+   "today": "2027-02-14",
+   "drive": [
+    {
+     "path": "drive/shared/Receipts/IMG_0001.csv",
+     "kind": "copy",
+     "person": "wren",
+     "visible_to": [
+      "ash",
+      "wren"
+     ],
+     "sha256": "16749eac24766f08c5319980bc8a0d330b5d7ef1116d0d348d8416bf3645f05c",
+     "size": 27,
+     "of": null
+    }
+   ],
+   "inbox": [
+    {
+     "path": "inbox/wren/2027-02-01-hello.eml",
+     "kind": "email",
+     "person": "wren",
+     "visible_to": [
+      "wren"
+     ],
+     "of": null,
+     "sha256": "56f4934fb99e19a4a4c5ddfbd7afcc45e7efd7529a9aca5613a148b52b48f9df",
+     "size": 277
+    }
+   ]
+  }
+ }
+}

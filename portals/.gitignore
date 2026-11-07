@@ -4,5 +4,6 @@ playwright-report/
 .vercel/
 .env*
 .scratch-simulate/
+estate/
 public/vault/
-public/vault.json
+public/vault-stats.json

@@ -78,9 +78,15 @@ jobs:
       - name: the simulator still builds the portals' data
         run: python3 portals/build-data.py --out /tmp/months.json
       - run: python3 build.py --v2
+      - name: the family profile is one source, and the estate's chapter map is current
+        run: |
+          node life/davies/build-profile.js --check
+          node standard/world/build.js
+          node portals/build-vault.js --fixture
+          git diff --exit-code -- life/davies/ESTATE.md
       - run: npx playwright install --with-deps chromium
         working-directory: portals
-      - name: sign in, download every shape, import, reconcile, repeat appends nothing
+      - name: sign in, download every shape, import, reconcile, repeat appends nothing; the clock, the people, the families, the estate and the accountant
         run: npx playwright test
         working-directory: portals
       - uses: actions/upload-artifact@v4

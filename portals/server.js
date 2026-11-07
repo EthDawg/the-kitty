@@ -7,18 +7,20 @@ const path = require("path");
 
 const PUBLIC = path.join(__dirname, "public");
 const BRANDS = new Set([...require("./public/brands.json"), ...require("./public/vault-brands.json")].map((b) => b.id));
-const API = { login: require("./api/login"), logout: require("./api/logout"), accounts: require("./api/accounts"), export: require("./api/export") };
+const API = { login: require("./api/login"), logout: require("./api/logout"), accounts: require("./api/accounts"), export: require("./api/export"), files: require("./api/files"), estate: require("./api/estate") };
 const MIME = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8", ...require("./lib/file-types") };
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   try {
+    const connector = url.pathname.match(/^\/api\/(drive|mail|tabby)(?:\/(\w+))?\/?$/); // the rewrites in vercel.json
+    if (connector) { const extra = url.search.slice(1); req.url = `/api/estate?surface=${connector[1]}&tool=${connector[2] || ""}${extra ? `&${extra}` : ""}`; url.pathname = "/api/estate"; }
     if (url.pathname.startsWith("/api/")) {
       const fn = API[url.pathname.slice(5).replace(/\/$/, "")];
       if (!fn) { res.statusCode = 404; return res.end("no such function"); }
       return await fn(req, res);
     }
-    let p = url.pathname;
+    let p = decodeURIComponent(url.pathname);
     if (BRANDS.has(p.replace(/^\/|\/$/g, ""))) p = "/portal.html"; // the rewrite in vercel.json
     if (p === "/") p = "/index.html";
     else if (!path.extname(p) && fs.existsSync(path.join(PUBLIC, p + ".html"))) p += ".html"; // cleanUrls
@@ -30,7 +32,7 @@ const server = http.createServer(async (req, res) => {
     fs.createReadStream(file).pipe(res);
   } catch (e) {
     console.error(e);
-    res.statusCode = 500; res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ error: "server error" }));
+    res.statusCode = e.status || 500; res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ error: e.status ? e.message : "server error" }));
   }
 });
 

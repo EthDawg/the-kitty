@@ -69,5 +69,9 @@
   {"id": "litterbox", "name": "Litterbox", "kind": "folder", "vault": true, "standsInFor": "the household's shared folder",
    "tagline": "Where the paperwork gets buried.", "serves": "Receipt scans, deductions worksheets, the work-from-home log, the car logbook and the wallet export.",
    "colors": {"brand": "#44403C", "ink": "#FFFFFF", "soft": "#ECEAE7", "bg": "#F7F6F5", "accent": "#EAB308"},
-   "streams": {"RECEIPTS": {"name": "Receipt scans", "families": ["receipt-scan"]}, "DED-J": "Jordan's deductions worksheets", "DED-M": "Mia's deductions worksheets", "WFH-J": "Jordan's work-from-home log", "LOGBOOK": "Car logbook", "CRYPTO-COLD": "Self-custody wallet exports"}}
+   "streams": {"RECEIPTS": {"name": "Receipt scans", "families": ["receipt-scan"]}, "DED-J": "Jordan's deductions worksheets", "DED-M": "Mia's deductions worksheets", "WFH-J": "Jordan's work-from-home log", "LOGBOOK": "Car logbook", "CRYPTO-COLD": "Self-custody wallet exports"}},
+  {"id": "tabbytax", "name": "Tabby Tax", "kind": "agent", "vault": true, "standsInFor": "a tax agent's practice", "holdsNoFiles": true,
+   "tagline": "We'll need the schedules too.", "serves": "A practice that takes emailed PDFs and a zip, and asks what a real one asks.",
+   "colors": {"brand": "#7A4A21", "ink": "#FFFFFF", "soft": "#F4E6D6", "bg": "#FBF6F0", "accent": "#2F7A78"},
+   "streams": {}}
 ]

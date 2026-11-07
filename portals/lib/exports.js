@@ -2,28 +2,41 @@
 "use strict";
 const S = require("./shapes");
 const P = require("./pdf");
-const { D, brandById, accountById, accountsFor, presets, txRows, balanceBefore, validDate, today, monthEnd, fyOf, fyLabel, round2 } = require("./data");
+const { D, brandById, accountById, accountsFor, txRows, balanceBefore, validDate, today, monthEnd, fyOf, fyLabel, round2, lastDay, firstDay, fits } = require("./data");
+const Clock = require("./clock");
+const { OPEN } = require("./view");
 
 class ExportError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const CSV = "text/csv; charset=utf-8", PDF = "application/pdf";
 const ymd = (iso) => iso.replace(/-/g, "");
 const monthsBetween = (from, to) => D.months.filter((m) => `${m}-01` <= to && monthEnd(m) >= from);
 
-async function buildExport({ brand: brandId, account: accountId, from, to, format }) {
+// What a named person's portal refuses: older than it keeps, or more than it will hand over at once.
+const friction = (brand, view, from, to) => {
+  const oldest = firstDay(view);
+  if (oldest && to < oldest) throw new ExportError(403, `${brand.name} keeps ${view.rules.back_years} years online. Nothing before ${oldest} can be downloaded here.`);
+  if (oldest && from < oldest) throw new ExportError(403, `${brand.name} keeps ${view.rules.back_years} years online. Start from ${oldest} or later.`);
+  if (!fits(view, from, to)) throw new ExportError(400, `${brand.name} exports at most ${view.rules.window_days} days at a time. Pick a shorter period.`);
+};
+
+async function buildExport({ brand: brandId, account: accountId, from, to, format, view = OPEN }) {
   const brand = brandById[brandId];
   if (!brand) throw new ExportError(404, "No such portal.");
-  const account = accountsFor(brandId).find((a) => a.id === accountId);
+  const account = accountsFor(brandId, view).find((a) => a.id === accountId);
   if (!account) throw new ExportError(404, "No such account on this portal.");
   if (!account.formats.some(([f]) => f === format)) throw new ExportError(400, "That format is not offered for this account.");
   if (account.kind === "policy") {
     const policy = D.policies.find((p) => p.id === accountId);
-    const per = policy.periods.find((p) => p.from === from && p.to === to) || policy.periods[policy.periods.length - 1];
+    const held = policy.periods.filter((p) => p.from <= lastDay(view));
+    const per = held.find((p) => p.from === from && p.to === to) || held[held.length - 1];
     const year = per.from.slice(0, 4);
     if (format === "renewal") return { filename: `${brand.name}-RenewalNotice-${policy.property}-${year}.pdf`, type: PDF, body: await P.renewalNotice({ brand, policy, per }) };
     return { filename: `${brand.name}-CertificateOfCurrency-${policy.property}-${year}.pdf`, type: PDF, body: await P.certificate({ brand, policy, per }) };
   }
   if (!validDate(from) || !validDate(to) || from > to) throw new ExportError(400, "Pick a date range: from and to as YYYY-MM-DD, from no later than to.");
-  if (to > today) throw new ExportError(400, `Nothing after ${today} yet.`);
+  const now = Clock.upTo(view, today);
+  if (to > now) throw new ExportError(400, `Nothing after ${now} yet.`);
+  friction(brand, view, from, to);
   if (account.kind === "bank") {
     const rows = txRows(accountId, from, to).map((t) => [t[0], t[2], t[3]]);
     const opening = balanceBefore(accountId, from);
@@ -35,7 +48,7 @@ async function buildExport({ brand: brandId, account: accountId, from, to, forma
   }
   if (account.kind === "loan") {
     const loan = D.loans[accountId];
-    const months = monthsBetween(from, to).map((m) => [m, loan.months[m]]);
+    const months = monthsBetween(from, to).filter((m) => monthEnd(m) <= lastDay(view)).map((m) => [m, loan.months[m]]);
     if (!months.length) throw new ExportError(400, "No whole month in that range.");
     if (format === "csv") return { filename: `${brand.name}-Loan-${accountId}-${ymd(to)}.csv`, type: CSV, body: S.loanCsv(loan.number, months) };
     return { filename: `${brand.name}-LoanStatement-${accountId}-${ymd(to)}.pdf`, type: PDF, body: await P.loanStatement({ brand, loanId: accountId, loan, months, from, to }) };
@@ -61,10 +74,11 @@ async function buildExport({ brand: brandId, account: accountId, from, to, forma
 }
 
 // The page's view of the same rows the file holds: newest first, searchable, a page at a time.
-function preview({ brand: brandId, account: accountId, from, to, q, page, size }) {
+function preview({ brand: brandId, account: accountId, from, to, q, page, size, view = OPEN }) {
   const brand = brandById[brandId];
-  const account = accountsFor(brandId).find((a) => a.id === accountId);
+  const account = accountsFor(brandId, view).find((a) => a.id === accountId);
   if (!brand || !account) throw new ExportError(404, "No such account on this portal.");
+  if (to) to = Clock.upTo(view, to);
   const paginate = (res) => {
     const needle = String(q || "").trim().toLowerCase();
     let rows = needle ? res.rows.filter((r) => r.some((c) => String(c).toLowerCase().includes(needle))) : res.rows;
@@ -74,7 +88,7 @@ function preview({ brand: brandId, account: accountId, from, to, q, page, size }
   };
   if (account.kind === "policy") {
     const policy = D.policies.find((p) => p.id === accountId);
-    return paginate({ columns: ["Policy period", "Premium", "Paid on", "Paid from"], rows: [...policy.periods].reverse().map((p) => [`${p.from} to ${p.to}`, P.money(p.premium), p.paid_on, accountById[p.paid_from] ? accountById[p.paid_from].name : p.paid_from]), summary: Object.entries(policy.cover).map(([k, v]) => [k, typeof v === "number" ? P.money(v) : String(v)]) });
+    return paginate({ columns: ["Policy period", "Premium", "Paid on", "Paid from"], rows: [...policy.periods].reverse().filter((p) => p.from <= lastDay(view)).map((p) => [`${p.from} to ${p.to}`, P.money(p.premium), p.paid_on, accountById[p.paid_from] ? accountById[p.paid_from].name : p.paid_from]), summary: Object.entries(policy.cover).map(([k, v]) => [k, typeof v === "number" ? P.money(v) : String(v)]) });
   }
   if (!validDate(from) || !validDate(to) || from > to) throw new ExportError(400, "Pick a date range.");
   if (account.kind === "bank") {
@@ -86,7 +100,7 @@ function preview({ brand: brandId, account: accountId, from, to, q, page, size }
       summary: isCard ? [["Previous balance", P.money(-opening)], ["New charges", P.money(moneyOut)], ["Payments and credits", P.money(moneyIn)], ["New balance", P.money(-bal)]] : [["Opening balance", P.money(opening)], ["Money in", P.money(moneyIn)], ["Money out", P.money(moneyOut)], ["Closing balance", P.money(bal)]] });
   }
   if (account.kind === "loan") {
-    const months = monthsBetween(from, to).map((m) => [m, D.loans[accountId].months[m]]).filter(([, x]) => x);
+    const months = monthsBetween(from, to).filter((m) => monthEnd(m) <= lastDay(view)).map((m) => [m, D.loans[accountId].months[m]]).filter(([, x]) => x);
     const interest = round2(months.reduce((s, [, x]) => s + x.interest, 0)), repaid = round2(months.reduce((s, [, x]) => s + x.repayments, 0));
     return paginate({ columns: ["Month", "Rate", "Opening balance", "Interest charged", "Repayments", "Closing balance"], rows: months.map(([m, x]) => [m, `${x.rate.toFixed(2)}%`, P.money(x.opening), P.money(x.interest), P.money(x.repayments), P.money(x.closing)]).reverse(),
       summary: [["Interest charged", P.money(interest)], ["Repayments", P.money(repaid)], ["Balance at end", months.length ? P.money(months[months.length - 1][1].closing) : ""]] });

@@ -1,0 +1,191 @@
+{
+  "_about": "Tabby Tax, a parody tax practice. It answers from this script, the way a real practice works from a new-client checklist. It takes PDFs and a zip and it does not open cloud links. Each family has its own checklist. It stores nothing: the page holds the conversation.",
+  "practice": {
+    "name": "Tabby Tax",
+    "address": "hello@tabbytax.example",
+    "from": "Tess at Tabby Tax <hello@tabbytax.example>",
+    "signoff": "Tess\nTabby Tax\nA parody practice. Fictional, and nothing here is tax advice."
+  },
+  "words": {
+    "welcome": "Thanks for getting in touch. New clients send us the same list, so we can pick up where your last agent left off.",
+    "cloud": "Thanks, but we can't open cloud links here: our insurer and our file system both say no. Please send the files themselves, as PDFs attached to an email, or as one zip.",
+    "noa_only": "We have the notice of assessment for {who}, thank you, but a notice gives the result and not the working. Please also send the full return with all its schedules. Your last agent will have it, and it may be in your email.",
+    "amend_which": "You mentioned an amendment. Which financial year does it cover, and what changed? We need to know before we touch the prior-year figures.",
+    "amend_known": "Noted: an amendment for FY{fy}. Please make sure we have both versions of that year's return.",
+    "chasing": "No problem. We'll note {what} as outstanding and work from the settlement statement for now. If the conveyancer has a copy we'll use it; if not, you may need to ask them for a certified copy.",
+    "unknown": "We couldn't tell what {name} is. Can you rename it, or tell us in a line?",
+    "not_tax": "{name} looks like {what}, which is lovely, but we can't claim it.",
+    "stale": "We have two versions of the work-from-home log for the same year and they disagree. Which one did you claim?",
+    "dupe": "{name} is the same file as {other}, so we've kept one.",
+    "still_need": "Here's what we still need:",
+    "done": "That's everything on our list, thank you. We'll start on the returns and come back to you with drafts to sign."
+  },
+  "checklists": {
+    "benchmark": [
+      {
+        "id": "return-mia",
+        "label": "Mia's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "mia",
+        "fy": 2026
+      },
+      {
+        "id": "return-jordan",
+        "label": "Jordan's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "jordan",
+        "fy": 2026
+      },
+      {
+        "id": "contract-geelong",
+        "label": "Geelong: the purchase contract",
+        "kinds": [
+          "contract_of_sale"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "settlement-geelong",
+        "label": "Geelong: the settlement statement",
+        "kinds": [
+          "settlement_statement"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "invoice-geelong",
+        "label": "Geelong: the legal invoices",
+        "kinds": [
+          "legal_invoice"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "schedule-geelong",
+        "label": "Geelong: the depreciation schedule",
+        "kinds": [
+          "depreciation_schedule"
+        ],
+        "property": "geelong"
+      },
+      {
+        "id": "contract-ballarat",
+        "label": "Ballarat: the purchase contract",
+        "kinds": [
+          "contract_of_sale"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "settlement-ballarat",
+        "label": "Ballarat: the settlement statement",
+        "kinds": [
+          "settlement_statement"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "invoice-ballarat",
+        "label": "Ballarat: the legal invoices",
+        "kinds": [
+          "legal_invoice"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "schedule-ballarat",
+        "label": "Ballarat: the depreciation schedule",
+        "kinds": [
+          "depreciation_schedule"
+        ],
+        "property": "ballarat"
+      },
+      {
+        "id": "year-summary",
+        "label": "This year's figures: your workbook or tax pack, as a PDF, a spreadsheet or inside a zip",
+        "kinds": [
+          "tax_pack"
+        ]
+      }
+    ],
+    "default": [
+      {
+        "id": "prior-return",
+        "label": "Your full prior-year return with all schedules",
+        "kinds": [
+          "full_return"
+        ]
+      },
+      {
+        "id": "year-summary",
+        "label": "This year's figures: your workbook or tax pack, as a PDF, a spreadsheet or inside a zip",
+        "kinds": [
+          "tax_pack"
+        ]
+      }
+    ],
+    "davies": [
+      {
+        "id": "return-daisy",
+        "label": "Daisy's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "daisy",
+        "fy": 2026
+      },
+      {
+        "id": "return-danny",
+        "label": "Danny's full FY2026 return with all schedules",
+        "kinds": [
+          "full_return"
+        ],
+        "person": "danny",
+        "fy": 2026
+      },
+      {
+        "id": "income-daisy",
+        "label": "Daisy's FY2027 income statement",
+        "kinds": [
+          "income_statement"
+        ],
+        "person": "daisy",
+        "fy": 2027
+      },
+      {
+        "id": "income-danny",
+        "label": "Danny's FY2027 income statement",
+        "kinds": [
+          "income_statement"
+        ],
+        "person": "danny",
+        "fy": 2027
+      },
+      {
+        "id": "health",
+        "label": "Your private health statements",
+        "kinds": [
+          "health_statement"
+        ]
+      },
+      {
+        "id": "shares",
+        "label": "Danny's share plan statement",
+        "kinds": [
+          "share_plan"
+        ]
+      },
+      {
+        "id": "year-summary",
+        "label": "This year's figures: your workbook or tax pack, as a PDF, a spreadsheet or inside a zip",
+        "kinds": [
+          "tax_pack"
+        ]
+      }
+    ]
+  }
+}

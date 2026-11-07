@@ -1,0 +1,10 @@
+{
+  "_about": "Who signs in by name to the benchmark world. These are the people in its files. A generated family brings its own people.",
+  "shared_mail": "the.davies@mail.example",
+  "family_name": "Davies",
+  "people": [
+    { "id": "jordan", "first_name": "Jordan", "party_id": "JORDAN" },
+    { "id": "mia", "first_name": "Mia", "party_id": "MIA" },
+    { "id": "ava", "first_name": "Ava", "party_id": "AVA" }
+  ]
+}

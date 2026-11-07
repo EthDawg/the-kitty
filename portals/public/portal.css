@@ -44,8 +44,9 @@ nav.primary a.off::after{content:" · not in this demo";font-size:11px}
 main{padding:22px 0 60px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 20px}
 .card+.card{margin-top:16px}
-.grid{display:grid;gap:16px;grid-template-columns:1fr}
-@media (min-width:900px){.grid.side{grid-template-columns:300px 1fr}.grid.two{grid-template-columns:1fr 1fr}.grid.cards{grid-template-columns:repeat(3,1fr)}}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.grid>*{min-width:0}
+@media (min-width:900px){.grid.side{grid-template-columns:300px minmax(0,1fr)}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.cards{grid-template-columns:repeat(3,1fr)}}
 @media (min-width:600px) and (max-width:899px){.grid.cards{grid-template-columns:repeat(2,1fr)}}
 .crumbs{font-size:12.5px;color:var(--muted);margin-bottom:10px}
 .crumbs a{color:var(--muted)}
@@ -68,6 +69,9 @@ main{padding:22px 0 60px}
 .btn[disabled]{opacity:.5;cursor:default}
 .hint{background:var(--soft);border-radius:var(--r-sm);padding:10px 12px;font-size:12.5px;margin-top:14px}
 .error{background:var(--warn-soft);color:var(--bad);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;margin-top:12px}
+
+.quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.quick .btn{flex:1 1 150px}
 
 /* account list (overview and side rail) */
 .acctlist{display:grid;gap:10px}
@@ -125,6 +129,45 @@ tbody tr:last-child td{border-bottom:0}
 .fy li .links a:hover{border-color:var(--brand);color:var(--brand)}
 .fy li .file{overflow-wrap:anywhere;min-width:0}
 #docs{scroll-margin-top:130px}
+
+/* the Drive and the inbox */
+.estate-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+.estate-bar input.search{flex:1 1 220px;width:auto}
+.tree{display:grid;gap:2px;font-size:13.5px}
+.tree a{display:block;padding:6px 8px;border-radius:6px;color:var(--ink2);text-decoration:none;overflow-wrap:anywhere}
+.tree a:hover{background:var(--soft)}
+.tree a[aria-current="true"]{background:var(--soft);color:var(--ink);font-weight:700}
+.tree .deep{padding-left:22px}
+.files td.name{white-space:normal;min-width:180px;overflow-wrap:anywhere}
+.files a{text-decoration:none;color:var(--ink);font-weight:600}
+.files a:hover{color:var(--brand)}
+.files .kind{display:inline-block;min-width:44px;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#FAFAF9;border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;font-size:12.5px;max-height:560px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.previewframe{width:100%;height:640px;border:1px solid var(--line);border-radius:var(--r-sm);background:#fff}
+.previewimg{max-width:100%;height:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
+.mailrow{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) auto;gap:12px;padding:10px 6px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;font-size:13.5px}
+.mailrow:hover{background:#FAFBFC}
+.mailrow .who,.mailrow .what{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mailrow .who{font-weight:700}
+.mailrow .what span{color:var(--muted)}
+.mailrow .when{color:var(--muted);font-size:12px;white-space:nowrap}
+.message{border-top:1px solid var(--line);padding:14px 0}
+.message:first-of-type{border-top:0}
+#treplies .card.message{padding:18px 20px;margin-top:16px;border-top:1px solid var(--line)}
+.message .head{font-size:12.5px;color:var(--muted);margin-bottom:8px;overflow-wrap:anywhere}
+.message .head b{color:var(--ink);font-size:13.5px}
+.message .body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{display:inline-flex;gap:8px;align-items:center;border:1px solid #C9CFD6;border-radius:8px;padding:5px 9px;font-size:12.5px;background:#fff;overflow-wrap:anywhere}
+.chip button,.chip a{font-size:12px}
+.chip button{background:none;border:0;color:var(--brand);cursor:pointer;padding:0}
+.field textarea{border:1px solid #C9CFD6;border-radius:var(--r-sm);padding:9px 11px;background:#fff;width:100%;min-height:150px;font:inherit}
+.checklist{list-style:none;margin:10px 0 0;padding:0}
+.checklist li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.state{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;background:#FFF0D2;color:#7A4B00;white-space:nowrap;align-self:flex-start}
+.state.received{background:#DCFCE7;color:#166534}
+.state.chasing{background:#E0E7FF;color:#3730A3}
+@media (max-width:640px){.mailrow{grid-template-columns:minmax(0,1fr) auto}.mailrow .what{grid-column:1 / -1;grid-row:2}}
 
 /* landing */
 .hero{padding:30px 0 10px}

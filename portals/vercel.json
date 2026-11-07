@@ -1,13 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "test -f public/vault.json || (cd .. && node standard/world/build.js && node portals/build-vault.js)",
+  "buildCommand": "test -f estate/families.json || (cd .. && node standard/world/build.js && node portals/build-vault.js)",
   "outputDirectory": "public",
   "cleanUrls": true,
   "trailingSlash": false,
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- .",
+  "functions": {
+    "api/files.js": { "includeFiles": "estate/**" },
+    "api/accounts.js": { "includeFiles": "estate/**" },
+    "api/export.js": { "includeFiles": "estate/**" },
+    "api/login.js": { "includeFiles": "estate/**" },
+    "api/estate.js": { "includeFiles": "{estate,public/vault}/**" }
+  },
   "rewrites": [
-    { "source": "/:brand(westpaw|commbark|amewx|ping|propertymeow|pawroll|purrsure|myguv|purrannuation|hestabby|cedartrade|computerpaw|etreat|coinpurr|rentpurrfect|ratepurr|waterbowl|pawprice|meowtility|bupaw|kittenhood|vicpaws|gmeow|litterbox)", "destination": "/portal" }
+    { "source": "/api/:surface(drive|mail|tabby)", "destination": "/api/estate?surface=:surface" },
+    { "source": "/api/:surface(drive|mail|tabby)/:tool", "destination": "/api/estate?surface=:surface&tool=:tool" },
+    { "source": "/:brand(westpaw|commbark|amewx|ping|propertymeow|pawroll|purrsure|myguv|purrannuation|hestabby|cedartrade|computerpaw|etreat|coinpurr|rentpurrfect|ratepurr|waterbowl|pawprice|meowtility|bupaw|kittenhood|vicpaws|gmeow|litterbox|tabbytax)", "destination": "/portal" }
   ],
   "headers": [
     { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
