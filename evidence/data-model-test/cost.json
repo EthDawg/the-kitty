@@ -1,0 +1,242 @@
+{
+ "A1": {
+  "stage1": {
+   "usd": 12.03,
+   "mins": 39.0,
+   "out": 267158,
+   "cr": 20222137,
+   "cw": 527849,
+   "tools": 114,
+   "calls": {
+    "get_spreadsheet": 3,
+    "update_spreadsheet": 18,
+    "update_formulas": 11,
+    "get_values": 12
+   }
+  },
+  "stage2": {
+   "usd": 8.32,
+   "mins": 24.6,
+   "out": 154384,
+   "cr": 14402202,
+   "cw": 470620,
+   "tools": 121,
+   "calls": {
+    "get_spreadsheet": 6,
+    "get_values": 38,
+    "update_values": 22,
+    "update_formulas": 12,
+    "update_spreadsheet": 3
+   }
+  },
+  "stage3": {
+   "usd": 8.98,
+   "mins": 28.9,
+   "out": 181941,
+   "cr": 13269524,
+   "cw": 537910,
+   "tools": 163,
+   "calls": {
+    "get_spreadsheet": 6,
+    "get_values": 40,
+    "update_spreadsheet": 4,
+    "update_values": 38,
+    "append_values": 1,
+    "update_formulas": 6,
+    "batch_clear_values": 1
+   }
+  },
+  "reader": {
+   "usd": 1.51,
+   "mins": 4.4,
+   "out": 28317,
+   "cr": 1211514,
+   "cw": 139898,
+   "tools": 28,
+   "calls": {
+    "get_spreadsheet": 2,
+    "get_values": 16
+   }
+  }
+ },
+ "A2": {
+  "stage1": {
+   "usd": 9.99,
+   "mins": 34.9,
+   "out": 235061,
+   "cr": 14930930,
+   "cw": 459852,
+   "tools": 121,
+   "calls": {
+    "get_spreadsheet": 1,
+    "update_spreadsheet": 5,
+    "update_values": 16,
+    "update_formulas": 15,
+    "get_values": 12,
+    "batch_clear_values": 1
+   }
+  },
+  "stage2": {
+   "usd": 7.05,
+   "mins": 20.6,
+   "out": 124275,
+   "cr": 12453179,
+   "cw": 413873,
+   "tools": 109,
+   "calls": {
+    "get_spreadsheet": 7,
+    "get_values": 31,
+    "update_spreadsheet": 3,
+    "append_values": 1,
+    "update_values": 22,
+    "update_formulas": 4
+   }
+  },
+  "stage3": {
+   "usd": 6.38,
+   "mins": 24.1,
+   "out": 138573,
+   "cr": 8606479,
+   "cw": 378235,
+   "tools": 131,
+   "calls": {
+    "get_spreadsheet": 4,
+    "get_values": 29,
+    "update_values": 46,
+    "update_spreadsheet": 2,
+    "update_formulas": 10
+   }
+  },
+  "reader": {
+   "usd": 1.18,
+   "mins": 2.9,
+   "out": 16412,
+   "cr": 1203494,
+   "cw": 121933,
+   "tools": 28,
+   "calls": {
+    "get_spreadsheet": 6,
+    "get_values": 15
+   }
+  }
+ },
+ "B1": {
+  "stage1": {
+   "usd": 9.06,
+   "mins": 30.4,
+   "out": 193095,
+   "cr": 14387821,
+   "cw": 463601,
+   "tools": 105,
+   "calls": {
+    "get_spreadsheet": 9,
+    "get_values": 30,
+    "update_spreadsheet": 9,
+    "update_values": 16,
+    "update_formulas": 3
+   }
+  },
+  "stage2": {
+   "usd": 7.24,
+   "mins": 22.8,
+   "out": 152499,
+   "cr": 9103543,
+   "cw": 474591,
+   "tools": 90,
+   "calls": {
+    "get_spreadsheet": 7,
+    "get_values": 45,
+    "update_spreadsheet": 8
+   }
+  },
+  "stage3": {
+   "usd": 7.25,
+   "mins": 25.5,
+   "out": 156477,
+   "cr": 8783074,
+   "cw": 472326,
+   "tools": 125,
+   "calls": {
+    "get_spreadsheet": 6,
+    "get_values": 55,
+    "update_spreadsheet": 4,
+    "update_values": 26,
+    "batch_clear_values": 1,
+    "append_values": 1,
+    "update_formulas": 2
+   }
+  },
+  "reader": {
+   "usd": 1.73,
+   "mins": 5.1,
+   "out": 28627,
+   "cr": 2211049,
+   "cw": 143511,
+   "tools": 36,
+   "calls": {
+    "get_spreadsheet": 2,
+    "get_values": 22
+   }
+  }
+ },
+ "B2": {
+  "stage1": {
+   "usd": 9.52,
+   "mins": 33.0,
+   "out": 212973,
+   "cr": 14108113,
+   "cw": 488493,
+   "tools": 103,
+   "calls": {
+    "get_spreadsheet": 5,
+    "get_values": 26,
+    "update_spreadsheet": 9,
+    "update_formulas": 3,
+    "update_values": 16,
+    "batch_clear_values": 1
+   }
+  },
+  "stage2": {
+   "usd": 6.75,
+   "mins": 21.5,
+   "out": 138392,
+   "cr": 9311738,
+   "cw": 424859,
+   "tools": 91,
+   "calls": {
+    "get_spreadsheet": 6,
+    "get_values": 41,
+    "update_spreadsheet": 11,
+    "update_values": 2
+   }
+  },
+  "stage3": {
+   "usd": 7.69,
+   "mins": 25.8,
+   "out": 155121,
+   "cr": 11516262,
+   "cw": 457493,
+   "tools": 120,
+   "calls": {
+    "get_spreadsheet": 5,
+    "get_values": 49,
+    "update_spreadsheet": 6,
+    "update_values": 21,
+    "batch_clear_values": 1,
+    "update_formulas": 1
+   }
+  },
+  "reader": {
+   "usd": 1.68,
+   "mins": 4.9,
+   "out": 29277,
+   "cr": 1497489,
+   "cw": 159636,
+   "tools": 34,
+   "calls": {
+    "get_spreadsheet": 1,
+    "get_values": 20
+   }
+  }
+ }
+}

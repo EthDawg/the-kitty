@@ -1,0 +1,53 @@
+{
+  "sam": {
+    "salary_gross": 112450.00,
+    "tax_withheld": 27118.00,
+    "interest": 414.92,
+    "dividends_cash": 468.00,
+    "franking_credits": null,
+    "capital_gains": [
+      {
+        "asset": "RFT Reef Telecom Ltd, 1,200 shares, sold 10 Mar 2026 (settled 12 Mar 2026)",
+        "proceeds": 4934.50,
+        "cost_base": 3679.95,
+        "held_over_12m": true
+      },
+      {
+        "asset": "ETH (Ether) 0.8, sold on CoinJug 14 Nov 2025",
+        "proceeds": 4706.27,
+        "cost_base": null,
+        "held_over_12m": null
+      }
+    ],
+    "donations": 0.00,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.00,
+    "tax_withheld": 13602.00,
+    "interest": 414.91,
+    "dividends_cash": 0.00,
+    "franking_credits": 0.00,
+    "capital_gains": [],
+    "donations": 250.00,
+    "wfh_hours": null
+  },
+  "missing": [
+    "Sam: Amewx card (ending 3007) statement for February 2026 is not in the estate; the email of 4 Mar 2026 says it is ready to download from Amewx.",
+    "Joint Harbour Bank account: statement stops at 24 Jun 2026; 25 to 30 Jun 2026 is missing from Harbour Bank internet banking.",
+    "Sam: Koala Mining (KMN) dividend statement for the 18 Sep 2025 payment ($192.00 cash) is missing, so franking credits are unknown; get it from the holder statement or registry for HIN ending 4410.",
+    "Sam: ETH purchase record (date and cost of the 0.8 ETH sold 14 Nov 2025); get the CoinJug tax report under Account > Reports. Cost base and holding period are null until then.",
+    "Sam: Tidewater WFH log for FY26; export from the Tidewater people portal (My time > Locations). FY25 figure of 412 hours came from a diary that is not in the estate.",
+    "Ria: confirm whether she worked from home in FY26 (no evidence found); wfh_hours left null.",
+    "Both: payslips or payment summaries from Tidewater and Northshore Council; deposits in the joint account do not reach the ATO net pay (see conflicts)."
+  ],
+  "conflicts": [
+    "Money/Copy of Tax FY26 working.csv says Sam had no capital gains this year; the source (brokerbee-sell.eml, settled 12 Mar 2026) shows an RFT sale. Source wins.",
+    "Presentations/Money plan 2026 (slides) says 'still holding 0.8 ETH' (dated 10 Jan 2026); coinjug-sell.eml shows 0.8 ETH sold 14 Nov 2025 and $4,706.27 withdrawn 17 Nov 2025. Source wins.",
+    "The tax working sheet and the FY25 summary omit the KMN dividend of $192.00 paid 18 Sep 2025, which appears only in harbour_joint_FY26.csv.",
+    "Tidewater deposits total $81,696.68 (26 x $3,142.18) against ATO net pay of $85,332.00 (112,450.00 less 27,118.00), a gap of $3,635.32.",
+    "Northshore deposits total $52,660.80 (12 x $4,388.40) against ATO net pay of $61,278.00 (74,880.00 less 13,602.00), a gap of $8,617.20.",
+    "Money plan slides say the $25,000 emergency fund in the Wattle saver is 'do not touch'; the Wattle ledger is $21,069.83 at 30 Jun 2026 after $12,000 moved out on 18 Nov 2025.",
+    "Tax working sheet says WFH 'same as last year?'; FY25's 412 hours cannot be carried into FY26 without a FY26 log."
+  ]
+}

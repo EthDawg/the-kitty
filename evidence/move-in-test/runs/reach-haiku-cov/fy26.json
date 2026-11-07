@@ -1,0 +1,43 @@
+{
+  "sam": {
+    "salary_gross": 112450.00,
+    "tax_withheld": 27118.00,
+    "interest": 414.92,
+    "dividends_cash": 468.00,
+    "franking_credits": null,
+    "capital_gains": [
+      {"asset": "RFT (Reef Telecom) 1,200 shares, sold 10 Mar 2026 (contract note m0305)", "proceeds": 4934.50, "cost_base": 3679.95, "held_over_12m": true},
+      {"asset": "Ether (ETH) 0.8, sold 14 Nov 2025 on CoinJug (order email m0077)", "proceeds": 4706.27, "cost_base": null, "held_over_12m": null}
+    ],
+    "donations": 0.00,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.00,
+    "tax_withheld": 13602.00,
+    "interest": 414.91,
+    "dividends_cash": 0.00,
+    "franking_credits": 0.00,
+    "capital_gains": [],
+    "donations": 250.00,
+    "wfh_hours": null
+  },
+  "missing": [
+    "Sam: purchase history for the 0.8 ETH sold 14 Nov 2025 (cost base, purchase date) - CoinJug Account > Reports",
+    "Sam: KMN dividend statement for Sep 2025 (192.00 cash, bank 18 Sep 2025) - needed for franking; only Mar 2026 statement held",
+    "Sam: FY26 work-from-home hours - export from Tidewater people portal (My time > Locations); FY25 used 412 hours from a diary",
+    "Ria: confirm whether she worked from home in FY26 (no evidence either way); wfh_hours left null",
+    "Sam: Amewx Platinum Edge statement for Feb 2026 (card 3007) - only the 'ready' notice (m0028) is in the mailbox; Jan closes 788.88, Mar opens 630.70",
+    "Both: payslips for FY26 are in the Tidewater people portal and not in estate; ATO income statements used for salary",
+    "Both: private health statement 2025-26 found in email (m0120); the copy in estate is not needed for the return"
+  ],
+  "conflicts": [
+    "Money plan 2026 slide 5 says still holding 0.8 ETH; CoinJug shows 0.8 ETH sold 14 Nov 2025 and A$4,706.27 withdrawn to Harbour 17 Nov 2025. Source wins: sold",
+    "Copy of Tax FY26 working says Sam capital gains 'None this year'; RFT sold 10 Mar 2026 and ETH sold 14 Nov 2025. Source wins",
+    "Money plan slide 3 says emergency fund $25,000 in Wattle; Wattle ledger is 21,069.83 at 30 Jun 2026 and 12,000.00 went to Harbour on 18 Nov 2025. Source wins; slide not used",
+    "Tax working sheets say donations 'ask Ria'; receipt HFB-25-88213 and bank show a 250.00 gift on 9 Dec 2025. Source wins",
+    "Ria: gross 74,880.00 less withheld 13,602.00 leaves 61,278.00; net deposits 52,660.80; 8,617.20 unexplained, no packaging or super on the income statement",
+    "Sam: gross 112,450.00 less withheld 27,118.00 leaves 85,332.00; net deposits 81,696.68; 3,635.32 unexplained",
+    "Wattle interest is one joint account (WS-4471-JOINT); split half each per FY25 practice: 829.83 total, Sam 414.92, Ria 414.91 (odd cent)"
+  ]
+}

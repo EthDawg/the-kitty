@@ -1,0 +1,40 @@
+{
+  "sam": {
+    "salary_gross": 112450.00,
+    "tax_withheld": 27118.00,
+    "interest": 414.92,
+    "dividends_cash": 468.00,
+    "franking_credits": null,
+    "capital_gains": [
+      {"asset": "Reef Telecom Ltd (RFT), 1,200 shares, sold 10 Mar 2026, bought 14 Aug 2019", "proceeds": 4934.50, "cost_base": 3679.95, "held_over_12m": true},
+      {"asset": "Ether (ETH), 0.8 units on CoinJug, sold 14 Nov 2025", "proceeds": 4706.27, "cost_base": null, "held_over_12m": null}
+    ],
+    "donations": 0.00,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.00,
+    "tax_withheld": 13602.00,
+    "interest": 414.91,
+    "dividends_cash": 0.00,
+    "franking_credits": 0.00,
+    "capital_gains": [],
+    "donations": 250.00,
+    "wfh_hours": 0
+  },
+  "missing": [
+    "Sam: KMN final dividend statement for the $192.00 paid 18 Sep 2025, so the franking credit is unknown (KMN share registry, HIN ending 4410, or ATO prefill); $118.28 is known from the other two statements",
+    "Sam: purchase date and cost of the 0.8 ETH sold 14 Nov 2025 (CoinJug Account > Reports tax report, or the records of wherever it was bought)",
+    "Sam: FY26 work-from-home hours record (Tidewater people portal, My time > Locations, year-end export); FY25's 412 hours cannot be reused",
+    "Sam and Ria: payslips or year-end pay summaries to explain why pay deposits fall short of gross minus tax (union fees or workplace giving would be deductible)",
+    "Not needed to lodge, needed for the Kitty: Amewx February 2026 statement (download from the Amewx login; card spending that month was $630.70 by arithmetic)"
+  ],
+  "conflicts": [
+    "Tax FY26 working sheet says 'Capital gains: None this year', but Sam sold 1,200 RFT on 10 Mar 2026 and 0.8 ETH on 14 Nov 2025",
+    "Money plan slides (10 Jan 2026) say 'still holding 0.8 ETH', but CoinJug filled a sale of 0.8 ETH on 14 Nov 2025 and A$4,706.27 reached Harbour on 17 Nov 2025",
+    "Money plan slides say the $25,000 emergency fund in Wattle is 'do not touch', but $12,000 left Wattle on 18 Nov 2025 (car deposit $16,000 on 20 Nov); balance $21,069.83 at 30 Jun 2026",
+    "Tax working sheet suggests WFH 'same as last year?' (412 hours from a diary), but FY26 needs its own record; the phone note says 2 days most weeks and the Tidewater log was never exported",
+    "Pay deposits are below gross minus tax withheld: Sam banked $81,696.68 vs $85,332.00 expected (gap $3,635.32, $139.82 a fortnight); Ria banked $52,660.80 vs $61,278.00 (gap $8,617.20, $718.10 a month)",
+    "Budget 2025.csv and Budget 2025 (1).csv give different figures for Jul 2025 to Jan 2026, and neither matches the bank (July groceries 730 vs 932 vs $889.44 at Merrivale Fresh)"
+  ]
+}

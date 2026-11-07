@@ -2,43 +2,44 @@
 
 ![test](https://github.com/EthDawg/the-kitty/actions/workflows/test.yml/badge.svg)
 
-A money page for one household, built the way a neobank would build it and kept the way a spreadsheet is
-kept. One Google Sheet holds every number and owns every original; one published page reads it, says what needs a person, shows
-where the money went, tracks goals as money ("$11k of $12k"), installs on a phone, and answers questions
-as a planner's note. No server, no database, no telemetry, nothing to pay for.
+One Google Sheet for a household's money, a page to read it, and Claude or Codex doing everything in between. There is no importer, no server and no database. The harness is the importer.
 
-**Try it:** https://claude.ai/artifact/QH2gsDP8sHZmgMVKBtkwxn (the fictional Davies household; works on a phone,
-add it to your home screen). **Copy the sheet:** https://docs.google.com/spreadsheets/d/16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA/copy
+**The findings behind this shape:** [The Harness Is the Importer](FINDINGS.md). Opus 5.5 read one fictional family's 379 files and tied all 468 month-end balances, within 0.03% of the truth over three years, for $4.58. The engine we had built for the job tied 389. An empty Sheet loaded as well as this template; the template's value is that every household has the same shape, so one page, one upgrade and one test work for all of them.
 
-| | |
+## Start
+
+1. Copy the template (26 tabs, no household rows): https://docs.google.com/spreadsheets/d/1ym0cNBMcRtkxaQIhWFccDdz210e9nanH1B0_OCDi89U/copy
+2. Put your bank exports, statements and payslips in one folder, in whatever format the bank gives you.
+3. In Claude Code or Codex, with Google Sheets connected, say:
+
+   > This Google Sheet is our Kitty: [link]. Read its README tab, then load everything in [folder].
+
+4. Read it on the page (https://claude.ai/artifact/QH2gsDP8sHZmgMVKBtkwxn, paste your Sheet's link under Setup), or ask the harness for a page of your own.
+
+Next month, say "Bring my Kitty up to date." Install `skills/kitty/` in your harness to give it the loop, the safe write call and the checks.
+
+**Try the filled example:** the fictional Davies household, https://docs.google.com/spreadsheets/d/16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA/edit
+
+## What ships
+
+| Path | What it is |
 |---|---|
-| ![Home, light](docs/screenshots/pub-home-light.png) | ![Home, dark](docs/screenshots/pub-home-dark.png) |
-| ![Insights](docs/screenshots/pub-insights-dark.png) | ![Setup](docs/screenshots/pub-setup-light.png) |
+| `template/` | The template's link (26 tabs, headers and formulas, no household rows) and its README tab as text. The tab is the contract every writer follows. |
+| `skills/kitty/SKILL.md` | The loop: read the Sheet, read the files any way that works, reconcile in scratch, write one typed batch, read the checks, stop after three tries. Claude and Codex both read this format. |
+| `skills/kitty/coverage.md` | Six lines an agent works through before trusting a year: what's missing, where to get it, what disagrees. |
+| `skills/kitty/page-bar.md` | Eighteen lines a page has to meet, distilled from 35 versions of a real one. |
+| `CHANGES.md` | Changes to the Sheet's shape, in sentences. A household's own harness applies them; nothing upstream writes to a Sheet. |
+| `src/`, `brand/`, `merchants/` | The page. It reads any Sheet in this shape through the viewer's own Google connector. |
+| `ios/` | The iPhone view of the same page. |
+| `FINDINGS.md` | The findings as plain text, for people and agents. |
+| `evidence/` | The one-shot runs across five models, the data model test, the move-in test and the page test, with protocols, scores and costs. |
+| `standard/eval/`, `standard/world/`, `life/`, `portals/`, `sources/` | The fictional families: seven blind households with sealed truth and scorers, the life generator, and parody bank sites serving their files. |
 
-## Status
+## Retiring
 
-Version 2.0 is the published page, reading the "Digital Davies v2" ledger sheet. Version 1.1 was verified live on 3 November 2026: live read and write through the viewer's Google Sheets
-connector, the onboarding's writes, Ask the Kitty, two month-end closes through the import pipeline, light and
-dark themes, phone install. See `CHANGELOG.md`; known limits are listed at the end of this file.
+The engine, reader and recipes (`standard/engine`, `standard/intake`, `standard/recipes`), the Standard's own schema and generated files, the per-bank Python in `period-close/` and its JavaScript port in `src/core/period-*` are being retired. The findings showed a model in a harness reads files better than they do. The portals, the life generator and CI still call some of them, so they leave in their own pull request once those are rewired. The tag `engine-era-2026-11-07` keeps the whole tree as it was.
 
-**2.0, phase C (widgets, signals, the canvas, the kit gallery), 5 November 2026:** Home is widgets the sheet switches on, arranged per person, on GridStack.
-
-**2.0, phase B (the row and the review), 4 November 2026:** Activity on `EntryRow` with monograms and
-brand icons, the merchant dictionary, the Review queue with its sheet writes, the fortune cookie that proposes rules, and
-"Worth it?"; the fortune cookie's proposal, rule write, category write and Decisions row verified live against the v2 sheet (rule `R0086`). See `CHANGELOG.md`.
-
-**2.0, phase A (the ledger), 4 November 2026, on branch `v2-ledger`:** the data model below now carries every store
-of value, on a copy of the demo sheet ("Digital Davies v2", `kitty.config.json`). `python3 build.py --v2` builds the published page.
-
-
-## The Digital Davies Standard
-
-[`standard/`](standard/README.md) is the data model underneath: one open schema for a household's whole financial life, from a coffee
-to a lodged return to a laptop due for replacement. Everything derived rebuilds from evidence and decisions, one fact is recognised
-once, nothing date-effective rewrites history, and twenty laws check that it all can be true at once. The Davies family is its
-benchmark: `node standard/world/build.js && node standard/eval/all.js`. The sheet and the page here move onto it in stages.
-
-## What is in here
+## What else is in here
 
 | Path | What it is |
 |---|---|
@@ -58,7 +59,6 @@ benchmark: `node standard/world/build.js && node standard/eval/all.js`. The shee
 | `test-v2.js` | The ledger's tests: the sheet's Balances tab is the oracle for every account at every month end; the transfer invariant; signals; on the live v2 snapshot and the fixtures `everyday-only` and `everyday+property` (cut by `fixtures/make-v2-fixtures.py`). |
 | `skills/bank-export/SKILL.md` | The agent skill for the monthly export, country-aware, credential-free. |
 | `portals/` | The parody portals on Vercel (https://the-kitty-portals.vercel.app): eight years of the household's files, static pages, four Node functions, `history.py` and `build-data.py`, the Playwright proof. |
-| `sources/` | The bank files as delivered, one per account per month since March 2019, in each institution's shape; what the importer reads. |
 
 ## Build, test, publish
 
@@ -76,123 +76,15 @@ code points at the page, and publish again.
 Local check: `python3 -m http.server 8765 --directory dist` then open `/local.html`. The page runs
 on the bundled data without any connector; connector features show as absent.
 
-## The data model, in one paragraph
-
-Raw tabs are append-only (Transactions, Payslips, Valuations). Input tabs are set up once (Accounts,
-Categories, Goals, Loans, Assets, Subscriptions, Settings, and the Kitty tab this page owns). View tabs
-are formulas only (Cash Flow, Budget, Savings Finder, Mortgage Scenarios, Tax Forecast, Compliance
-Checks, Net Worth). Metrics names each headline figure once. The page draws from Metrics and the views,
-derives only what a search or a window needs, and checks its derivations against the sheet in the trust
-drawer. It writes three things, each to the owning tab: Kitty settings, a goal's target or date, the
-safety-net target.
-
-**The ledger (sheet_version 2).** Every store of value is a row on Accounts with a type (transaction, savings,
-offset, credit card, loan, property, vehicle, device, shares, crypto, super, smsf), an owner, an opening anchor and
-date, a class, a valuation method (ledger, statement, appraisal, market, estimate) and a status (active, beta,
-closed). Everything that happens is a row on Entries of one of three kinds: a transaction (money moved, with Up's
-vocabulary: raw text, description, status, created at, settled at, transfer id and account, foreign amount), a
-trade (units at a price) or a valuation (a value observed on a date, from a statement or an appraisal). Balances
-holds the balance of every account at every month end: the anchor plus entries for a ledger account, the last
-valuation carried forward for the rest; Net Worth is derived from it. Contracts holds recurring obligations
-(subscriptions, insurance, the lease, loan terms) with provider, cadence, next date and cover; Decisions holds
-human judgments keyed to an entry, contract or account; Rules maps descriptors to merchant, category, tax label
-and property. Transactions, Valuations, Assets and Subscriptions are formula views over these, so every 1.1
-formula keeps working and every existing ID is stable. A transfer is one event on two accounts paired by
-`transfer_id`, and the sheet checks the invariant (a mate of the opposite amount within four days; pairs never
-count as spending; each month's change in total balances equals income less spending plus valuation changes)
-alongside the engine. Loan terms stay on the Loans tab (Mortgage Scenarios reads it); Contracts mirrors them by
-formula. On a v2 sheet the month-end rows land on Entries (columns A to T, `entries.json` from the importer), by
-explicit range at the first empty row, never by appending to a tab with helper columns.
-
-## The month-end close, as the banks deliver it
-
-Two months (December 2026 and January 2027) were closed this way on 3 November 2026 to prove the model.
-
-```bash
-python3 period-close/simulate.py 2027-02      # demo only: writes the month's files as each bank would
-python3 snapshot.py                     # the sheet as it stands, for de-duplication and history
-python3 period-close/import_month.py 2027-02  # reads sources/, refuses rows already in the sheet, categorises
-# settle period-close/2027-02/review.md in overrides.csv, run the import again, then append rows.json,
-# payslips.csv and valuations.csv to the sheet, move Settings → As-of date, update Last used, read Compliance Checks
-```
-
-- Files land in `sources/<account id>/<download date>/`, one per account, in the institution's own shape
-  (`period-close/adapters.py`: Harbour Bank writes like Westpac with debit and credit columns and a running
-  balance; Southern Card like American Express with charges positive; Wattle Credit Union like ING). The
-  adapter folds each into one signed amount; the file is never edited.
-- Overlapping exports are safe in one run: each row is taken once, and a genuine double charge survives because the most copies in any one file is how many are real. Where a file prints a running balance, its last balance in the month must equal the sheet's opening balance plus every row to that date; if not, the run exits 2, `rows.json` is empty and the rows wait in `rows.held.json`. Card files print no balance, so they carry no such check.
-- `import_month.py` refuses any row the sheet already holds (same date, account, description and amount,
-  counted), so a file imported twice appends nothing while a genuine same-day double charge survives for the
-  sheet's duplicate check to flag. December re-imported after it was appended: 51 rows, 0 to append.
-- Txn IDs continue from the sheet's last. Helper columns on Transactions, Payslips and Valuations are
-  ARRAYFORMULAs, so appended rows need nothing else. The one thing to get right by hand is the first empty
-  row: the header makes T0001 row 2.
-- The close is done when every Close check on Compliance Checks is OK and `close.items_missing` is 0.
-- The sheet's bound Apps Script serves the JSON feed only while the Kitty tab says `public_feed = yes`. The demo sheet says yes because every number in it is fictional; a household with real money leaves it off and reads live through the connector instead.
-
-## Portals (the end-to-end proof)
-
-**https://the-kitty-portals.vercel.app** holds the fictional Davies household's whole financial life, from the day the
-home settled in March 2019 to two months past the sheet's as-of date, behind seven parody portals that work the way
-the real ones do: Westpaw (the Westpac CSV shape), CommBark (CommBank's headerless four-column export), Amewx (the
-American Express statement shape, statement periods closing on the 14th), PING (the ING shape), PropertyMeow (owner
-statements per investment property), Pawroll (payslips and income statements) and Purrsure (landlord, home and car
-insurance renewals). Sign in with **any name and the password `demo`**. Each portal has an overview with balances, an
-activity page per account with period presets (every financial year, the last two years of months, everything since
-the account opened), search, paging through thousands of rows, an Export panel, and a Statements & documents page
-listing every monthly statement, end-of-year summary, payslip and renewal by financial year. Every download is
-generated on the server with `Content-Disposition: attachment`: CSV in the institution's exact column shape, PDF
-through pdf-lib.
-
-The data is one dataset, `portals/data/months.json` (8 years, 4,179 transactions over 7 accounts, 417 payslips,
-about 1,250 documents), built by `portals/build-data.py` from three sources that never disagree: `portals/history.py`
-invents March 2019 to June 2025 (a refinance, the Geelong rental bought in 2021, a card in 2020, a saver in 2022, a
-baby, a car, rate rises, pay rises, price rises) and lands every account to the cent on the sheet's opening balances;
-`data/snapshot.json` supplies every month the sheet holds unchanged; `period-close/simulate.py`, run in a scratch copy,
-supplies the two months ahead. The same build writes the history as the banks would have delivered it, one file per
-account per month under `sources/<account>/<download date>/` (`--write-sources`; 417 files, the simulator's own
-closed months left byte-identical), so an agent can rebuild the sheet from files alone: open each account on the
-Accounts tab at its balance the day before the first file, then import month by month in order. The importer's
-closing-balance check holds a month imported out of order. One account, Jordan's old everyday at CommBark, is not on
-the sheet and not under `sources/`; it exists so the CommBank shape has an account behind it, and it is labelled.
-
-The CI job `portals` proves the path with Playwright (Chromium only): sign in, download every bank shape for the first
-month after the sheet's as-of date, check names, headers, CRLF and closing balances against the simulator, import
-against a scratch copy of the snapshot, check IDs, accounts, categories and totals, re-import and get nothing to
-append, show the card's straddling statement imports only the month asked for, export a whole financial year of 2021-22
-and import its twelve months in order (with September-before-July held), and download statements, owner statements,
-payslips, income statements and renewals from every portal. See `portals/README.md` for the descriptor conventions,
-the data pipeline and the deploy notes.
-
-| | |
-|---|---|
-| ![Westpaw overview](docs/screenshots/portals/westpaw.png) | ![Westpaw activity and export](docs/screenshots/portals/westpaw-activity.png) |
-| ![Statements by year](docs/screenshots/portals/westpaw-documents.png) | ![Amewx](docs/screenshots/portals/amewx.png) |
-| ![PropertyMeow](docs/screenshots/portals/propertymeow.png) | ![Pawroll](docs/screenshots/portals/pawroll.png) |
-
-## Make it yours
-
-1. File → Make a copy of the demo sheet. Clear the three raw tabs; fill the input tabs.
-2. Add the Google Sheets connector in claude.ai with the account that owns the copy.
-3. Open the page, Setup → Make it yours → paste your sheet ID. It reads live from then on.
-4. Export the last three months from each account (Setup → Getting your data in, or the skill), run
-   `period-close/import_month.py`, settle the review, append, move the As-of date.
-5. For real money you can stay on the public page, which reads your sheet through your own connector and stores only your
-   preferences. If you would rather run a page you published yourself, build with `--no-snapshot` and publish it unedited.
-   That is a pin, not a fork: rebuild to update. An edited page stops receiving updates.
 
 ## Known limits (what is still a tinker)
 
 - English copy only; currency and date order follow the Kitty tab's country, nothing else is localised.
 - One sheet shape. A household with different tab names or columns needs the sheet template, not this page.
 - Bank export paths for the real banks are documented from product knowledge, not yet verified on each bank's site; the skill stamps them as it verifies. The parody portals' paths are the first verified entries (`demo` in `src/data-sources.json`).
-- The import pipeline is Python on a laptop; a scheduled, supervised version is the next real step.
+- Loads run in a harness when a person asks. A schedule that says the sentence for them is designed, not built.
 - Tested with a 925-row sheet; reads are chunked for larger ones but not yet exercised past a few thousand rows.
 - Verified on Chrome, Safari (iOS) and the Claude apps. Not tested on Firefox. The 2.0 canvas is verified in Chromium only, phones by emulation; phones skip GridStack and use a handle and arrows.
 
-## Decisions (why this shape)
 
-Recorded on the page's Setup tab under "Why this, not that", and in the commit history. The short
-version: the sheet holds every number and owns every original, and a household depends on the base and never copies its logic; the page is disposable; writes are few, narrow and
-reread; demo data is bundled because it is fictional and real data never is; charts are hand-drawn
-SVG with d3 for layout maths only. The tax model and engine live here, tested on fictional households only. Real returns stay private.
+Everyone and everything in this repository is fictional. Not financial or tax advice.

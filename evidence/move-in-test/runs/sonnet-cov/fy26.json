@@ -1,0 +1,58 @@
+{
+  "sam": {
+    "salary_gross": 112450.0,
+    "tax_withheld": 27118.0,
+    "interest": 414.92,
+    "dividends_cash": 468.0,
+    "franking_credits": null,
+    "capital_gains": [
+      {
+        "asset": "RFT 1,200 shares (bought 14/08/2019, sold 10/03/2026)",
+        "proceeds": 4934.5,
+        "cost_base": 3679.95,
+        "held_over_12m": true
+      },
+      {
+        "asset": "ETH 0.8 (sold 14/11/2025 on CoinJug)",
+        "proceeds": 4706.27,
+        "cost_base": null,
+        "held_over_12m": null
+      }
+    ],
+    "donations": 0.0,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.0,
+    "tax_withheld": 13602.0,
+    "interest": 414.91,
+    "dividends_cash": 0.0,
+    "franking_credits": 0.0,
+    "capital_gains": [],
+    "donations": 250.0,
+    "wfh_hours": null
+  },
+  "missing": [
+    "Sam KMN Sep 2025 dividend statement ($192.00 paid 18/09/2025, found only as a bank line): franking credit and franked/unfranked split unknown - get from KMN share registry or broker portal.",
+    "Sam ETH purchase record (date and cost of the 0.8 ETH sold 14/11/2025): needed for cost base and 12-month test - get CoinJug Account > Reports.",
+    "Sam CoinJug full history: confirm no other crypto sales or trades in FY26 (only one sale email found).",
+    "Sam WFH hours for FY26: export Tidewater people portal log (My time > Locations); none found anywhere. Ria WFH not mentioned at all - confirm none.",
+    "Amewx card statement for February 2026 (Sam card 3007): not in Drive, only a 'ready' email - download from Amewx; check for deductible items.",
+    "Joint Harbour statement ends 24/06/2026 and Wattle OFX is complete to 30/06/2026; confirm no Harbour entries 25-30 June and no Harbour interest line (none shown all year).",
+    "Confirmation that Sam and Ria have no other income (second jobs, other bank/term deposit interest, super, government payments), no HELP/HECS debt and no other deductions: not evidenced either way.",
+    "Ria (and Sam) FY25 return notices / assessments: only a self-kept summary exists, not the lodged returns.",
+    "Ria income statement and Sam income statement show 'Tax ready'; no employer super info beyond reportable contributions 0.00 - fine, but confirm no salary-sacrifice/deductions explain pay gaps below."
+  ],
+  "conflicts": [
+    "Slides say Sam still holds 0.8 ETH, but CoinJug sold 0.8 ETH on 14/11/2025 and A$4,706.27 reached the joint account on 17/11/2025: sale wins, a capital gains event exists.",
+    "Copy of Tax FY26 working says capital gains 'None' for both: wrong - RFT sale (March 2026) and ETH sale (Nov 2025) are CGT events.",
+    "Tax working lists dividends as KMN + RFT with 'KMN Sep and Mar; RFT Oct': matches bank, but Sep statement is missing.",
+    "Slides: 'Selling RFT in March' agreed with BrokerBee sell 10/03/2026 (plan became fact). Slides also say emergency fund $25,000 in Wattle; OFX closing balance 30/06/2026 is $21,069.83 after a $12,000 withdrawal 18/11/2025 (car deposit $16,000 went out 20/11/2025) - statement wins.",
+    "Slides say car bought November; bank shows an Oaks Motors $16,000 deposit 20/11/2025 only - not a tax item unless used for work.",
+    "Tax working says WFH 'same as last year?' (412 hrs FY25): FY25 hours not evidence for FY26; Tidewater now requires a portal log.",
+    "Income statements vs joint account: Sam's 26 payrolls deposit $81,696.68 net vs $85,332.00 implied by income statement; Ria's 12 deposits $52,660.80 vs $61,278.00 implied. Differences $3,635.32 and $8,617.20 are unexplained (other accounts, salary sacrifice, deductions?). Income statements used.",
+    "Wattle account ID WS-4471-JOINT: interest $829.83 split half each ($414.92 Sam / $414.91 Ria) per FY25 practice; confirm ownership split.",
+    "Budget 2025 (1).csv and Budget 2025.csv disagree on monthly Groceries/Fuel/etc. (Jul 2025 groceries 932 vs 730); not tax relevant, newer file is the longer one; neither checked against bank.",
+    "Ria's $50 raffle (3/11/2025) is not a deductible gift; excluded from donations."
+  ]
+}

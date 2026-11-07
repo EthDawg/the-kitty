@@ -1,0 +1,18 @@
+{
+  "family": "family six (fictional, Mulcahy-Bonetti): 379 files, 36 months July 2023 to June 2026, 13 accounts",
+  "truth_totals": {"income": 642384.67, "spending": 378481.57},
+  "method": "One run per model, Claude Code subagent, own folder with the files, setup answers and a five-line definitions file. No repository, skills or memory. Output result.json, scored by score.py against sealed truth. Cost at API list price from the run's own token counts, cache writes at 1.25x input.",
+  "runs": [
+    {"run": "Engine alone", "balances_right_of_468": 389, "income_pct": -35.2, "spending_pct": 54.2, "spending_mean_monthly_miss": 8630, "minutes": null, "usd": 0},
+    {"run": "Haiku 5.5", "balances_right_of_468": 385, "income_pct": 8.17, "spending_pct": 3.77, "spending_mean_monthly_miss": 431.48, "minutes": 11.0, "usd": 1.09},
+    {"run": "Sonnet 5.5", "balances_right_of_468": 438, "income_pct": 1.78, "spending_pct": 0.0, "spending_mean_monthly_miss": 84.24, "minutes": 11.4, "usd": 3.34},
+    {"run": "Opus 5.5", "balances_right_of_468": 468, "income_pct": 0.03, "spending_pct": -0.02, "spending_mean_monthly_miss": 135.9, "minutes": 15, "usd": 4.58},
+    {"run": "Fable 5.1", "balances_right_of_468": 468, "income_pct": 26.19, "spending_pct": 44.37, "spending_mean_monthly_miss": 4919.39, "minutes": 12, "usd": 6.00},
+    {"run": "Engine + Opus", "balances_right_of_468": 467, "income_pct": 1.78, "spending_pct": 0.0, "spending_mean_monthly_miss": 0, "minutes": 30, "usd": 9.04}
+  ],
+  "biggest_calls": {
+    "Fable 5.1": "Mum's $168,000 for a granny flat booked as income and as spending, flagged in its notes",
+    "Sonnet 5.5": "one $11,224.30 transfer from Mum's saver counted as income; card purchases dated by statement purchase date (all 30 missed balances)",
+    "Haiku 5.5": "$50,000 of Mum's estate; spending $14,263 high across several smaller calls; Mum's own account left out of balances"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "sam": {
+    "salary_gross": 112450.0,
+    "tax_withheld": 27118.0,
+    "interest": 414.92,
+    "dividends_cash": 468.0,
+    "franking_credits": null,
+    "capital_gains": [
+      {
+        "asset": "Reef Telecom (RFT) 1,200 shares, bought 14 Aug 2019, sold 10 Mar 2026",
+        "proceeds": 4934.5,
+        "cost_base": 3679.95,
+        "held_over_12m": true
+      },
+      {
+        "asset": "Ether (ETH) 0.8, CoinJug, sold 14 Nov 2025",
+        "proceeds": 4706.27,
+        "cost_base": null,
+        "held_over_12m": null
+      }
+    ],
+    "donations": 0.0,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.0,
+    "tax_withheld": 13602.0,
+    "interest": 414.91,
+    "dividends_cash": 0.0,
+    "franking_credits": 0.0,
+    "capital_gains": [],
+    "donations": 250.0,
+    "wfh_hours": null
+  },
+  "missing": [
+    "Sam: KMN final dividend statement for the $192.00 paid 18 Sep 2025 (franking credit unknown; $82.29 if fully franked, which would make Sam's total $200.57; known so far $118.28) - KMN share registry, HIN ending 4410",
+    "Sam: ETH cost base and purchase date(s) for the 0.8 ETH sold 14 Nov 2025 - CoinJug Account > Reports (tax report / full history)",
+    "Sam: FY26 work-from-home hours record - export from the Tidewater people portal (My time > Locations); the FY25 diary figure of 412 hours cannot be reused",
+    "Sam: FY26 Tidewater payslips - people portal; needed to explain $3,635.32 of pay that never reached Harbour joint (possible union fees, workplace giving or a split to another account)",
+    "Ria: FY26 Northshore Council payslips - payroll/HR; needed to explain $8,617.20 of pay that never reached Harbour joint",
+    "Both: FY26 statement for whatever account receives Healthy Fund extras claims ($1,089.21 paid to a 'nominated account' that is not Harbour or Wattle) - any interest on it is not yet counted",
+    "Ria: whether she worked from home or had any work-related expenses in FY26 - nothing in Drive, phone notes or email",
+    "Kitty only: Amewx statement for February 2026 is not in Drive - download from Amewx (email of 4 Mar 2026 says it is ready)",
+    "Kitty only: home loan LN-88 balance, car purchase/finance details (only a $16,000 Oaks Motors deposit shows), KMN holding value and both super balances - from the lender, dealer, registry and super funds"
+  ],
+  "conflicts": [
+    "Tax FY26 working (Drive/Money/Copy of Tax FY26 working.csv) says Sam had no capital gains; BrokerBee contract note (10 Mar 2026) and CoinJug order (14 Nov 2025) show RFT and ETH sales, both confirmed by Harbour credits",
+    "Money plan 2026 slides (Jan 2026) say 'still holding 0.8 ETH'; CoinJug shows all 0.8 ETH sold 14 Nov 2025 and A$4,706.27 withdrawn to Harbour joint 17 Nov 2025",
+    "Slides say the $25,000 emergency fund in the Wattle saver is 'do not touch'; $12,000 left it on 18 Nov 2025 for the car, it held $16,683.69 when the slides were saved and $21,069.83 at 30 Jun 2026",
+    "Tax working says WFH 'same as last year?'; FY26 needs its own record, and Tidewater moved logging to the people portal from Aug 2025",
+    "Ria's copy of the tax working lists only salary and the donation; it omits her half of the Wattle saver interest ($414.91)",
+    "Sam's income statement gross less tax withheld is $85,332.00 but Harbour received 26 x $3,142.18 = $81,696.68 ($3,635.32 short)",
+    "Ria's income statement gross less tax withheld is $61,278.00 but Harbour received 12 x $4,388.40 = $52,660.80 ($8,617.20 short)",
+    "Four Budget 2025 files disagree (July groceries 730, 790, 801 and 932); Harbour shows $889.44 at Merrivale Fresh in July 2025"
+  ]
+}

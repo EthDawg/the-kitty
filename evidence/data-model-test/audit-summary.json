@@ -1,0 +1,1537 @@
+{
+ "audited": "2026-11-07",
+ "read_only": true,
+ "comparison_key": "account, date, amount, description with runs of whitespace collapsed to one space (the Sheets store the card text collapsed); CSV signs flipped to match the Sheets",
+ "reference_files": {
+  "joint": {
+   "path": "dmt/stage1/sources/ACC-JOINT/2025-07-02/Harbour_2025-04-01_2025-06-30.csv",
+   "data_rows": 109,
+   "first": "2025-04-03",
+   "last": "2025-06-30"
+  },
+  "card": {
+   "path": "dmt/stage2/sources/ACC-CARD/2026-01-03/activity_2025-10-01.csv",
+   "data_rows": 63,
+   "first": "2025-10-01",
+   "last": "2025-12-31"
+  }
+ },
+ "b1_tabs_method": "Written from one get_spreadsheet call (grid data, formattedValue) reshaped to the get_values form {range, values}, because small get_values results are not saved to a file. Trailing blanks are trimmed as get_values does. Entries and Transactions are identical to real get_values results, including range; Kitty and Settings spot-checked against real get_values.",
+ "sheets": {
+  "a1": {
+   "id": "1jeT1K59WIzppk8wHFXy0hAtj-nj9984jz4hrSaAn-gY",
+   "title": "A1 our money (fictional)",
+   "ledger_tab": "Ledger",
+   "ledger_rows_saved": 2915,
+   "ledger_rows_compared": 2915,
+   "ledger_file": "audit/a1_ledger.json",
+   "ledger_header": [
+    "Date",
+    "Account",
+    "Description",
+    "Amount",
+    "Category",
+    "Source",
+    "Note",
+    "Counts as",
+    "Month end"
+   ],
+   "tabs": [
+    {
+     "tab": "Start here",
+     "grid_rows": 60,
+     "grid_columns": 6,
+     "rows_with_values": 26,
+     "last_row_with_values": 30
+    },
+    {
+     "tab": "Needs a look",
+     "grid_rows": 60,
+     "grid_columns": 6,
+     "rows_with_values": 40,
+     "last_row_with_values": 40
+    },
+    {
+     "tab": "Summary",
+     "grid_rows": 41,
+     "grid_columns": 12,
+     "rows_with_values": 31,
+     "last_row_with_values": 34
+    },
+    {
+     "tab": "Monthly",
+     "grid_rows": 45,
+     "grid_columns": 10,
+     "rows_with_values": 37,
+     "last_row_with_values": 37
+    },
+    {
+     "tab": "Net worth",
+     "grid_rows": 45,
+     "grid_columns": 19,
+     "rows_with_values": 37,
+     "last_row_with_values": 37
+    },
+    {
+     "tab": "By category",
+     "grid_rows": 45,
+     "grid_columns": 44,
+     "rows_with_values": 27,
+     "last_row_with_values": 27
+    },
+    {
+     "tab": "Ledger",
+     "grid_rows": 6000,
+     "grid_columns": 9,
+     "rows_with_values": 2916,
+     "last_row_with_values": 2916
+    },
+    {
+     "tab": "Mum (not ours)",
+     "grid_rows": 1014,
+     "grid_columns": 6,
+     "rows_with_values": 327,
+     "last_row_with_values": 327
+    },
+    {
+     "tab": "Payslips",
+     "grid_rows": 404,
+     "grid_columns": 12,
+     "rows_with_values": 179,
+     "last_row_with_values": 179
+    },
+    {
+     "tab": "Bills and cover",
+     "grid_rows": 131,
+     "grid_columns": 11,
+     "rows_with_values": 42,
+     "last_row_with_values": 42
+    },
+    {
+     "tab": "Documents",
+     "grid_rows": 79,
+     "grid_columns": 6,
+     "rows_with_values": 36,
+     "last_row_with_values": 36
+    },
+    {
+     "tab": "Valuations",
+     "grid_rows": 60,
+     "grid_columns": 6,
+     "rows_with_values": 18,
+     "last_row_with_values": 18
+    },
+    {
+     "tab": "Checks",
+     "grid_rows": 255,
+     "grid_columns": 8,
+     "rows_with_values": 212,
+     "last_row_with_values": 212
+    },
+    {
+     "tab": "Accounts",
+     "grid_rows": 30,
+     "grid_columns": 12,
+     "rows_with_values": 14,
+     "last_row_with_values": 14
+    },
+    {
+     "tab": "Categories",
+     "grid_rows": 80,
+     "grid_columns": 9,
+     "rows_with_values": 59,
+     "last_row_with_values": 59
+    },
+    {
+     "tab": "People and contracts",
+     "grid_rows": 91,
+     "grid_columns": 8,
+     "rows_with_values": 58,
+     "last_row_with_values": 60
+    },
+    {
+     "tab": "Files",
+     "grid_rows": 159,
+     "grid_columns": 7,
+     "rows_with_values": 151,
+     "last_row_with_values": 155
+    }
+   ],
+   "tab_count": 17,
+   "distinct_category_ids": 34,
+   "rows_with_blank_category": 0,
+   "windows": {
+    "joint": {
+     "from": "2025-04-01",
+     "to": "2025-06-30",
+     "sheet_rows": 109,
+     "csv_data_rows": 109,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    },
+    "card": {
+     "from": "2025-10-01",
+     "to": "2025-12-31",
+     "sheet_rows": 63,
+     "csv_data_rows": 63,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    }
+   },
+   "dennington_grocer_30_sep_2024": {
+    "matches": 1,
+    "headers": [
+     "Date",
+     "Account",
+     "Description",
+     "Amount",
+     "Category",
+     "Source",
+     "Note",
+     "Counts as",
+     "Month end"
+    ],
+    "rows": [
+     {
+      "sheet_row": 1211,
+      "values": [
+       "2024-09-30",
+       "CARD",
+       "DENNINGTON GROCER DENNINGTON VIC",
+       "-130.88",
+       "GROCERIES",
+       "C5.3",
+       "",
+       "Spending",
+       "2024-09-30"
+      ],
+      "by_header": {
+       "Date": "2024-09-30",
+       "Account": "CARD",
+       "Description": "DENNINGTON GROCER DENNINGTON VIC",
+       "Amount": "-130.88",
+       "Category": "GROCERIES",
+       "Source": "C5.3",
+       "Note": "",
+       "Counts as": "Spending",
+       "Month end": "2024-09-30"
+      }
+     }
+    ]
+   },
+   "home_loan_lump_sum_june_2026": {
+    "matches": 2,
+    "headers": [
+     "Date",
+     "Account",
+     "Description",
+     "Amount",
+     "Category",
+     "Source",
+     "Note",
+     "Counts as",
+     "Month end"
+    ],
+    "rows": [
+     {
+      "sheet_row": 2894,
+      "account": "SAVER",
+      "values": [
+       "2026-06-23",
+       "SAVER",
+       "PING HOME LOAN 88412010 LUMP",
+       "-100,000.00",
+       "MORTGAGE",
+       "S12.7",
+       "Lump sum to the home loan. definitions.json counts loan repayments at their cash amount, so this is spending. See Needs a look",
+       "Spending",
+       "2026-06-30"
+      ],
+      "by_header": {
+       "Date": "2026-06-23",
+       "Account": "SAVER",
+       "Description": "PING HOME LOAN 88412010 LUMP",
+       "Amount": "-100,000.00",
+       "Category": "MORTGAGE",
+       "Source": "S12.7",
+       "Note": "Lump sum to the home loan. definitions.json counts loan repayments at their cash amount, so this is spending. See Needs a look",
+       "Counts as": "Spending",
+       "Month end": "2026-06-30"
+      }
+     },
+     {
+      "sheet_row": 2897,
+      "account": "HOMELOAN",
+      "values": [
+       "2026-06-23",
+       "HOMELOAN",
+       "ADDITIONAL REPAYMENT",
+       "100,000.00",
+       "TRANSFER",
+       "L3.38",
+       "Mirror of the Saver row",
+       "Left out",
+       "2026-06-30"
+      ],
+      "by_header": {
+       "Date": "2026-06-23",
+       "Account": "HOMELOAN",
+       "Description": "ADDITIONAL REPAYMENT",
+       "Amount": "100,000.00",
+       "Category": "TRANSFER",
+       "Source": "L3.38",
+       "Note": "Mirror of the Saver row",
+       "Counts as": "Left out",
+       "Month end": "2026-06-30"
+      }
+     }
+    ]
+   },
+   "whole_ledger_exact_repeats": [
+    {
+     "account": "SAVER",
+     "date": "2026-04-28",
+     "amount": "50000.00",
+     "description": "BRAUER LEGAL ESTATE A BONETTI",
+     "count": 2
+    }
+   ]
+  },
+  "a2": {
+   "id": "1FY6o5lTUDwQA3raymf97_KXycvneL_QF0HP8ftUoRRA",
+   "title": "A2 our money (fictional)",
+   "ledger_tab": "Ledger",
+   "ledger_rows_saved": 2924,
+   "ledger_rows_compared": 2924,
+   "ledger_file": "audit/a2_ledger.json",
+   "ledger_header": [
+    "Date",
+    "Amount",
+    "Key",
+    "Account",
+    "Bank's wording",
+    "Who or what",
+    "Category",
+    "Group",
+    "Counts as",
+    "Month end",
+    "FY",
+    "Change category",
+    "Note"
+   ],
+   "tabs": [
+    {
+     "tab": "Start here",
+     "grid_rows": 60,
+     "grid_columns": 10,
+     "rows_with_values": 38,
+     "last_row_with_values": 44
+    },
+    {
+     "tab": "Notes",
+     "grid_rows": 70,
+     "grid_columns": 6,
+     "rows_with_values": 43,
+     "last_row_with_values": 43
+    },
+    {
+     "tab": "Monthly",
+     "grid_rows": 48,
+     "grid_columns": 19,
+     "rows_with_values": 40,
+     "last_row_with_values": 41
+    },
+    {
+     "tab": "Net worth",
+     "grid_rows": 40,
+     "grid_columns": 21,
+     "rows_with_values": 37,
+     "last_row_with_values": 37
+    },
+    {
+     "tab": "Categories",
+     "grid_rows": 70,
+     "grid_columns": 12,
+     "rows_with_values": 65,
+     "last_row_with_values": 65
+    },
+    {
+     "tab": "Ledger",
+     "grid_rows": 4000,
+     "grid_columns": 13,
+     "rows_with_values": 2925,
+     "last_row_with_values": 2925
+    },
+    {
+     "tab": "Rules",
+     "grid_rows": 207,
+     "grid_columns": 7,
+     "rows_with_values": 175,
+     "last_row_with_values": 175
+    },
+    {
+     "tab": "Accounts",
+     "grid_rows": 20,
+     "grid_columns": 10,
+     "rows_with_values": 14,
+     "last_row_with_values": 14
+    },
+    {
+     "tab": "Valuations",
+     "grid_rows": 40,
+     "grid_columns": 6,
+     "rows_with_values": 21,
+     "last_row_with_values": 21
+    },
+    {
+     "tab": "Bills",
+     "grid_rows": 54,
+     "grid_columns": 9,
+     "rows_with_values": 43,
+     "last_row_with_values": 43
+    },
+    {
+     "tab": "Payslips",
+     "grid_rows": 190,
+     "grid_columns": 11,
+     "rows_with_values": 179,
+     "last_row_with_values": 179
+    },
+    {
+     "tab": "Mum's accounts",
+     "grid_rows": 360,
+     "grid_columns": 6,
+     "rows_with_values": 332,
+     "last_row_with_values": 332
+    },
+    {
+     "tab": "Checks",
+     "grid_rows": 157,
+     "grid_columns": 7,
+     "rows_with_values": 139,
+     "last_row_with_values": 141
+    },
+    {
+     "tab": "Coverage",
+     "grid_rows": 40,
+     "grid_columns": 7,
+     "rows_with_values": 34,
+     "last_row_with_values": 34
+    }
+   ],
+   "tab_count": 14,
+   "distinct_category_ids": 38,
+   "rows_with_blank_category": 0,
+   "windows": {
+    "joint": {
+     "from": "2025-04-01",
+     "to": "2025-06-30",
+     "sheet_rows": 109,
+     "csv_data_rows": 109,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    },
+    "card": {
+     "from": "2025-10-01",
+     "to": "2025-12-31",
+     "sheet_rows": 63,
+     "csv_data_rows": 63,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    }
+   },
+   "dennington_grocer_30_sep_2024": {
+    "matches": 1,
+    "headers": [
+     "Date",
+     "Amount",
+     "Key",
+     "Account",
+     "Bank's wording",
+     "Who or what",
+     "Category",
+     "Group",
+     "Counts as",
+     "Month end",
+     "FY",
+     "Change category",
+     "Note"
+    ],
+    "rows": [
+     {
+      "sheet_row": 1220,
+      "values": [
+       "30 Sep 2024",
+       "-130.88",
+       "91",
+       "ACC-CARD",
+       "DENNINGTON GROCER DENNINGTON VIC",
+       "Groceries",
+       "GROCERIES",
+       "Essentials",
+       "Spending",
+       "Sep 2024",
+       "FY2025",
+       "",
+       ""
+      ],
+      "by_header": {
+       "Date": "30 Sep 2024",
+       "Amount": "-130.88",
+       "Key": "91",
+       "Account": "ACC-CARD",
+       "Bank's wording": "DENNINGTON GROCER DENNINGTON VIC",
+       "Who or what": "Groceries",
+       "Category": "GROCERIES",
+       "Group": "Essentials",
+       "Counts as": "Spending",
+       "Month end": "Sep 2024",
+       "FY": "FY2025",
+       "Change category": "",
+       "Note": ""
+      }
+     }
+    ]
+   },
+   "home_loan_lump_sum_june_2026": {
+    "matches": 2,
+    "headers": [
+     "Date",
+     "Amount",
+     "Key",
+     "Account",
+     "Bank's wording",
+     "Who or what",
+     "Category",
+     "Group",
+     "Counts as",
+     "Month end",
+     "FY",
+     "Change category",
+     "Note"
+    ],
+    "rows": [
+     {
+      "sheet_row": 2903,
+      "account": "SAVE",
+      "values": [
+       "23 Jun 2026",
+       "-100,000.00",
+       "168",
+       "ACC-SAVE",
+       "PING HOME LOAN 88412010 LUMP",
+       "Extra home loan repayment",
+       "MORTGAGE",
+       "Housing",
+       "Spending",
+       "Jun 2026",
+       "FY2026",
+       "",
+       "Spending, because the definitions count loan repayments at their cash amount. To leave it out, change this Category to TRANSFER. See Notes."
+      ],
+      "by_header": {
+       "Date": "23 Jun 2026",
+       "Amount": "-100,000.00",
+       "Key": "168",
+       "Account": "ACC-SAVE",
+       "Bank's wording": "PING HOME LOAN 88412010 LUMP",
+       "Who or what": "Extra home loan repayment",
+       "Category": "MORTGAGE",
+       "Group": "Housing",
+       "Counts as": "Spending",
+       "Month end": "Jun 2026",
+       "FY": "FY2026",
+       "Change category": "",
+       "Note": "Spending, because the definitions count loan repayments at their cash amount. To leave it out, change this Category to TRANSFER. See Notes."
+      }
+     },
+     {
+      "sheet_row": 2906,
+      "account": "HOMELOAN",
+      "values": [
+       "23 Jun 2026",
+       "100,000.00",
+       "170",
+       "ACC-HOMELOAN",
+       "ADDITIONAL REPAYMENT",
+       "Extra repayment received",
+       "TRANSFER",
+       "Transfers",
+       "Left out",
+       "Jun 2026",
+       "FY2026",
+       "",
+       "Cash side is on the saver. Counted there."
+      ],
+      "by_header": {
+       "Date": "23 Jun 2026",
+       "Amount": "100,000.00",
+       "Key": "170",
+       "Account": "ACC-HOMELOAN",
+       "Bank's wording": "ADDITIONAL REPAYMENT",
+       "Who or what": "Extra repayment received",
+       "Category": "TRANSFER",
+       "Group": "Transfers",
+       "Counts as": "Left out",
+       "Month end": "Jun 2026",
+       "FY": "FY2026",
+       "Change category": "",
+       "Note": "Cash side is on the saver. Counted there."
+      }
+     }
+    ]
+   },
+   "whole_ledger_exact_repeats": []
+  },
+  "b1": {
+   "id": "1mVMlntGT0gnsBfIsv8SsB1anzGRxB83_hjIRppys7Lk",
+   "title": "B1 established Kitty (fictional)",
+   "ledger_tab": "Entries",
+   "ledger_rows_saved": 2907,
+   "ledger_rows_compared": 2565,
+   "ledger_file": "audit/b1_ledger.json",
+   "ledger_header": [
+    "Entry ID",
+    "Kind",
+    "Settled at",
+    "Account ID",
+    "Raw text",
+    "Description",
+    "Amount",
+    "Category ID",
+    "Person",
+    "Receipt held",
+    "Note",
+    "Status",
+    "Created at",
+    "Transfer ID",
+    "Transfer account",
+    "Foreign amount",
+    "Foreign currency",
+    "Units",
+    "Unit price",
+    "Source",
+    "Flow",
+    "Pair net",
+    "Pair count",
+    "Pair days"
+   ],
+   "kinds": {
+    "transaction": 2565,
+    "valuation": 342
+   },
+   "tabs": [
+    {
+     "tab": "Dashboard",
+     "grid_rows": 50,
+     "grid_columns": 20,
+     "rows_with_values": 24,
+     "last_row_with_values": 33
+    },
+    {
+     "tab": "Kitty",
+     "grid_rows": 40,
+     "grid_columns": 6,
+     "rows_with_values": 17,
+     "last_row_with_values": 18
+    },
+    {
+     "tab": "README",
+     "grid_rows": 996,
+     "grid_columns": 26,
+     "rows_with_values": 38,
+     "last_row_with_values": 44
+    },
+    {
+     "tab": "Metrics",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 27,
+     "last_row_with_values": 28
+    },
+    {
+     "tab": "Cash Flow",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 50,
+     "last_row_with_values": 53
+    },
+    {
+     "tab": "Budget",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 29,
+     "last_row_with_values": 31
+    },
+    {
+     "tab": "Savings Finder",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 12,
+     "last_row_with_values": 14
+    },
+    {
+     "tab": "Mortgage Scenarios",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 33,
+     "last_row_with_values": 37
+    },
+    {
+     "tab": "Tax Forecast",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 37,
+     "last_row_with_values": 41
+    },
+    {
+     "tab": "Compliance Checks",
+     "grid_rows": 1007,
+     "grid_columns": 26,
+     "rows_with_values": 23,
+     "last_row_with_values": 25
+    },
+    {
+     "tab": "Net Worth",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 19,
+     "last_row_with_values": 20
+    },
+    {
+     "tab": "Entries",
+     "grid_rows": 3200,
+     "grid_columns": 24,
+     "rows_with_values": 2908,
+     "last_row_with_values": 2908
+    },
+    {
+     "tab": "Balances",
+     "grid_rows": 1000,
+     "grid_columns": 6,
+     "rows_with_values": 519,
+     "last_row_with_values": 519
+    },
+    {
+     "tab": "Contracts",
+     "grid_rows": 200,
+     "grid_columns": 17,
+     "rows_with_values": 17,
+     "last_row_with_values": 17
+    },
+    {
+     "tab": "Decisions",
+     "grid_rows": 501,
+     "grid_columns": 10,
+     "rows_with_values": 55,
+     "last_row_with_values": 55
+    },
+    {
+     "tab": "Rules",
+     "grid_rows": 507,
+     "grid_columns": 10,
+     "rows_with_values": 86,
+     "last_row_with_values": 86
+    },
+    {
+     "tab": "Transactions",
+     "grid_rows": 2901,
+     "grid_columns": 17,
+     "rows_with_values": 2566,
+     "last_row_with_values": 2566
+    },
+    {
+     "tab": "Payslips",
+     "grid_rows": 300,
+     "grid_columns": 8,
+     "rows_with_values": 179,
+     "last_row_with_values": 179
+    },
+    {
+     "tab": "Valuations",
+     "grid_rows": 500,
+     "grid_columns": 5,
+     "rows_with_values": 271,
+     "last_row_with_values": 271
+    },
+    {
+     "tab": "Subscriptions",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 6,
+     "last_row_with_values": 6
+    },
+    {
+     "tab": "Goals",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 4,
+     "last_row_with_values": 4
+    },
+    {
+     "tab": "Accounts",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 15,
+     "last_row_with_values": 15
+    },
+    {
+     "tab": "Categories",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 60,
+     "last_row_with_values": 60
+    },
+    {
+     "tab": "Loans",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 3,
+     "last_row_with_values": 3
+    },
+    {
+     "tab": "Assets",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 9,
+     "last_row_with_values": 9
+    },
+    {
+     "tab": "Settings",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 33,
+     "last_row_with_values": 34
+    }
+   ],
+   "tab_count": 26,
+   "distinct_category_ids": 29,
+   "rows_with_blank_category": 0,
+   "windows": {
+    "joint": {
+     "from": "2025-04-01",
+     "to": "2025-06-30",
+     "sheet_rows": 109,
+     "csv_data_rows": 109,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    },
+    "card": {
+     "from": "2025-10-01",
+     "to": "2025-12-31",
+     "sheet_rows": 63,
+     "csv_data_rows": 63,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    }
+   },
+   "dennington_grocer_30_sep_2024": {
+    "matches": 1,
+    "headers": [
+     "Entry ID",
+     "Kind",
+     "Settled at",
+     "Account ID",
+     "Raw text",
+     "Description",
+     "Amount",
+     "Category ID",
+     "Person",
+     "Receipt held",
+     "Note",
+     "Status",
+     "Created at",
+     "Transfer ID",
+     "Transfer account",
+     "Foreign amount",
+     "Foreign currency",
+     "Units",
+     "Unit price",
+     "Source",
+     "Flow",
+     "Pair net",
+     "Pair count",
+     "Pair days"
+    ],
+    "rows": [
+     {
+      "sheet_row": 1044,
+      "values": [
+       "T1043",
+       "transaction",
+       "30/09/2024",
+       "ACC-CARD",
+       "DENNINGTON GROCER DENNINGTON VIC",
+       "Dennington Grocer",
+       "($130.88)",
+       "GROCERIES",
+       "Paul",
+       "",
+       "",
+       "posted",
+       "07/11/2026",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "activity_2024-07-01.csv",
+       "Expense",
+       "",
+       "",
+       ""
+      ],
+      "by_header": {
+       "Entry ID": "T1043",
+       "Kind": "transaction",
+       "Settled at": "30/09/2024",
+       "Account ID": "ACC-CARD",
+       "Raw text": "DENNINGTON GROCER DENNINGTON VIC",
+       "Description": "Dennington Grocer",
+       "Amount": "($130.88)",
+       "Category ID": "GROCERIES",
+       "Person": "Paul",
+       "Receipt held": "",
+       "Note": "",
+       "Status": "posted",
+       "Created at": "07/11/2026",
+       "Transfer ID": "",
+       "Transfer account": "",
+       "Foreign amount": "",
+       "Foreign currency": "",
+       "Units": "",
+       "Unit price": "",
+       "Source": "activity_2024-07-01.csv",
+       "Flow": "Expense",
+       "Pair net": "",
+       "Pair count": "",
+       "Pair days": ""
+      }
+     }
+    ]
+   },
+   "home_loan_lump_sum_june_2026": {
+    "matches": 1,
+    "headers": [
+     "Entry ID",
+     "Kind",
+     "Settled at",
+     "Account ID",
+     "Raw text",
+     "Description",
+     "Amount",
+     "Category ID",
+     "Person",
+     "Receipt held",
+     "Note",
+     "Status",
+     "Created at",
+     "Transfer ID",
+     "Transfer account",
+     "Foreign amount",
+     "Foreign currency",
+     "Units",
+     "Unit price",
+     "Source",
+     "Flow",
+     "Pair net",
+     "Pair count",
+     "Pair days"
+    ],
+    "rows": [
+     {
+      "sheet_row": 2807,
+      "account": "SAVE",
+      "values": [
+       "T2551",
+       "transaction",
+       "23/06/2026",
+       "ACC-SAVE",
+       "PING HOME LOAN 88412010 LUMP",
+       "PING extra repayment, lump sum",
+       "($100,000.00)",
+       "MORTGAGE",
+       "Joint",
+       "",
+       "Paid from the Saver; PING shows ADDITIONAL REPAYMENT. Counts as spending under definitions.json",
+       "posted",
+       "07/11/2026",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "Wattle_saver_2026-04-01.ofx",
+       "Expense",
+       "",
+       "",
+       ""
+      ],
+      "by_header": {
+       "Entry ID": "T2551",
+       "Kind": "transaction",
+       "Settled at": "23/06/2026",
+       "Account ID": "ACC-SAVE",
+       "Raw text": "PING HOME LOAN 88412010 LUMP",
+       "Description": "PING extra repayment, lump sum",
+       "Amount": "($100,000.00)",
+       "Category ID": "MORTGAGE",
+       "Person": "Joint",
+       "Receipt held": "",
+       "Note": "Paid from the Saver; PING shows ADDITIONAL REPAYMENT. Counts as spending under definitions.json",
+       "Status": "posted",
+       "Created at": "07/11/2026",
+       "Transfer ID": "",
+       "Transfer account": "",
+       "Foreign amount": "",
+       "Foreign currency": "",
+       "Units": "",
+       "Unit price": "",
+       "Source": "Wattle_saver_2026-04-01.ofx",
+       "Flow": "Expense",
+       "Pair net": "",
+       "Pair count": "",
+       "Pair days": ""
+      }
+     }
+    ]
+   },
+   "whole_ledger_exact_repeats": [
+    {
+     "account": "CARD",
+     "date": "2025-06-13",
+     "amount": "-57.26",
+     "description": "FAIRY ST CHEMIST WARRNAMBOOL VIC",
+     "count": 2
+    },
+    {
+     "account": "CARD",
+     "date": "2025-06-18",
+     "amount": "-120.82",
+     "description": "FAIRY ST CHEMIST WARRNAMBOOL VIC",
+     "count": 2
+    },
+    {
+     "account": "SAVE",
+     "date": "2026-04-28",
+     "amount": "50000.00",
+     "description": "BRAUER LEGAL ESTATE A BONETTI",
+     "count": 2
+    }
+   ]
+  },
+  "b2": {
+   "id": "1J9DiJWJ00tm_fQikOqJ5H3vujgI-o9CRSs3sutIHMbI",
+   "title": "B2 established Kitty (fictional)",
+   "ledger_tab": "Entries",
+   "ledger_rows_saved": 2845,
+   "ledger_rows_compared": 2575,
+   "ledger_file": "audit/b2_ledger.json",
+   "ledger_header": [
+    "Entry ID",
+    "Kind",
+    "Settled at",
+    "Account ID",
+    "Raw text",
+    "Description",
+    "Amount",
+    "Category ID",
+    "Person",
+    "Receipt held",
+    "Note",
+    "Status",
+    "Created at",
+    "Transfer ID",
+    "Transfer account",
+    "Foreign amount",
+    "Foreign currency",
+    "Units",
+    "Unit price",
+    "Source",
+    "Flow",
+    "Pair net",
+    "Pair count",
+    "Pair days"
+   ],
+   "kinds": {
+    "transaction": 2575,
+    "valuation": 270
+   },
+   "tabs": [
+    {
+     "tab": "Dashboard",
+     "grid_rows": 50,
+     "grid_columns": 20,
+     "rows_with_values": 24,
+     "last_row_with_values": 33
+    },
+    {
+     "tab": "Kitty",
+     "grid_rows": 40,
+     "grid_columns": 6,
+     "rows_with_values": 17,
+     "last_row_with_values": 18
+    },
+    {
+     "tab": "README",
+     "grid_rows": 996,
+     "grid_columns": 26,
+     "rows_with_values": 35,
+     "last_row_with_values": 40
+    },
+    {
+     "tab": "Metrics",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 27,
+     "last_row_with_values": 28
+    },
+    {
+     "tab": "Cash Flow",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 51,
+     "last_row_with_values": 54
+    },
+    {
+     "tab": "Budget",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 20,
+     "last_row_with_values": 22
+    },
+    {
+     "tab": "Savings Finder",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 12,
+     "last_row_with_values": 14
+    },
+    {
+     "tab": "Mortgage Scenarios",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 33,
+     "last_row_with_values": 37
+    },
+    {
+     "tab": "Tax Forecast",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 37,
+     "last_row_with_values": 41
+    },
+    {
+     "tab": "Compliance Checks",
+     "grid_rows": 1007,
+     "grid_columns": 26,
+     "rows_with_values": 23,
+     "last_row_with_values": 25
+    },
+    {
+     "tab": "Net Worth",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 19,
+     "last_row_with_values": 20
+    },
+    {
+     "tab": "Entries",
+     "grid_rows": 3000,
+     "grid_columns": 24,
+     "rows_with_values": 2846,
+     "last_row_with_values": 2846
+    },
+    {
+     "tab": "Balances",
+     "grid_rows": 1000,
+     "grid_columns": 6,
+     "rows_with_values": 519,
+     "last_row_with_values": 519
+    },
+    {
+     "tab": "Contracts",
+     "grid_rows": 200,
+     "grid_columns": 17,
+     "rows_with_values": 18,
+     "last_row_with_values": 18
+    },
+    {
+     "tab": "Decisions",
+     "grid_rows": 501,
+     "grid_columns": 10,
+     "rows_with_values": 78,
+     "last_row_with_values": 78
+    },
+    {
+     "tab": "Rules",
+     "grid_rows": 500,
+     "grid_columns": 10,
+     "rows_with_values": 110,
+     "last_row_with_values": 110
+    },
+    {
+     "tab": "Transactions",
+     "grid_rows": 3001,
+     "grid_columns": 17,
+     "rows_with_values": 2576,
+     "last_row_with_values": 2576
+    },
+    {
+     "tab": "Payslips",
+     "grid_rows": 300,
+     "grid_columns": 8,
+     "rows_with_values": 179,
+     "last_row_with_values": 179
+    },
+    {
+     "tab": "Valuations",
+     "grid_rows": 500,
+     "grid_columns": 5,
+     "rows_with_values": 271,
+     "last_row_with_values": 271
+    },
+    {
+     "tab": "Subscriptions",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 8,
+     "last_row_with_values": 8
+    },
+    {
+     "tab": "Goals",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 4,
+     "last_row_with_values": 4
+    },
+    {
+     "tab": "Accounts",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 15,
+     "last_row_with_values": 15
+    },
+    {
+     "tab": "Categories",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 62,
+     "last_row_with_values": 62
+    },
+    {
+     "tab": "Loans",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 3,
+     "last_row_with_values": 3
+    },
+    {
+     "tab": "Assets",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 9,
+     "last_row_with_values": 9
+    },
+    {
+     "tab": "Settings",
+     "grid_rows": 1000,
+     "grid_columns": 26,
+     "rows_with_values": 33,
+     "last_row_with_values": 34
+    }
+   ],
+   "tab_count": 26,
+   "distinct_category_ids": 30,
+   "rows_with_blank_category": 0,
+   "windows": {
+    "joint": {
+     "from": "2025-04-01",
+     "to": "2025-06-30",
+     "sheet_rows": 109,
+     "csv_data_rows": 109,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    },
+    "card": {
+     "from": "2025-10-01",
+     "to": "2025-12-31",
+     "sheet_rows": 63,
+     "csv_data_rows": 63,
+     "difference": 0,
+     "exact_duplicates_in_sheet": 0,
+     "exact_duplicates_in_csv": 0,
+     "extra_rows_added": 0,
+     "csv_rows_missing_from_sheet": 0
+    }
+   },
+   "dennington_grocer_30_sep_2024": {
+    "matches": 1,
+    "headers": [
+     "Entry ID",
+     "Kind",
+     "Settled at",
+     "Account ID",
+     "Raw text",
+     "Description",
+     "Amount",
+     "Category ID",
+     "Person",
+     "Receipt held",
+     "Note",
+     "Status",
+     "Created at",
+     "Transfer ID",
+     "Transfer account",
+     "Foreign amount",
+     "Foreign currency",
+     "Units",
+     "Unit price",
+     "Source",
+     "Flow",
+     "Pair net",
+     "Pair count",
+     "Pair days"
+    ],
+    "rows": [
+     {
+      "sheet_row": 1054,
+      "values": [
+       "T1053",
+       "transaction",
+       "30/09/2024",
+       "ACC-CARD",
+       "DENNINGTON GROCER DENNINGTON VIC",
+       "Dennington Grocer",
+       "($130.88)",
+       "GROCERIES",
+       "Paul",
+       "",
+       "",
+       "settled",
+       "2026-11-07",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "ACC-CARD/2024-10-03/activity_2024-07-01.csv",
+       "Expense",
+       "",
+       "",
+       ""
+      ],
+      "by_header": {
+       "Entry ID": "T1053",
+       "Kind": "transaction",
+       "Settled at": "30/09/2024",
+       "Account ID": "ACC-CARD",
+       "Raw text": "DENNINGTON GROCER DENNINGTON VIC",
+       "Description": "Dennington Grocer",
+       "Amount": "($130.88)",
+       "Category ID": "GROCERIES",
+       "Person": "Paul",
+       "Receipt held": "",
+       "Note": "",
+       "Status": "settled",
+       "Created at": "2026-11-07",
+       "Transfer ID": "",
+       "Transfer account": "",
+       "Foreign amount": "",
+       "Foreign currency": "",
+       "Units": "",
+       "Unit price": "",
+       "Source": "ACC-CARD/2024-10-03/activity_2024-07-01.csv",
+       "Flow": "Expense",
+       "Pair net": "",
+       "Pair count": "",
+       "Pair days": ""
+      }
+     }
+    ]
+   },
+   "home_loan_lump_sum_june_2026": {
+    "matches": 2,
+    "headers": [
+     "Entry ID",
+     "Kind",
+     "Settled at",
+     "Account ID",
+     "Raw text",
+     "Description",
+     "Amount",
+     "Category ID",
+     "Person",
+     "Receipt held",
+     "Note",
+     "Status",
+     "Created at",
+     "Transfer ID",
+     "Transfer account",
+     "Foreign amount",
+     "Foreign currency",
+     "Units",
+     "Unit price",
+     "Source",
+     "Flow",
+     "Pair net",
+     "Pair count",
+     "Pair days"
+    ],
+    "rows": [
+     {
+      "sheet_row": 2754,
+      "account": "SAVE",
+      "values": [
+       "T2558",
+       "transaction",
+       "23/06/2026",
+       "ACC-SAVE",
+       "PING HOME LOAN 88412010 LUMP",
+       "PING",
+       "($100,000.00)",
+       "TRANSFER",
+       "Joint",
+       "",
+       "Extra 100,000 off the home loan from the inheritance. Treated like the redraw: a move to the loan, not spending. See Decisions.",
+       "settled",
+       "2026-11-07",
+       "X0131",
+       "ACC-HOMELOAN",
+       "",
+       "",
+       "",
+       "",
+       "ACC-SAVE/2026-07-02/Wattle_saver_2026-04-01.ofx",
+       "Transfer",
+       "0.00",
+       "2",
+       "0"
+      ],
+      "by_header": {
+       "Entry ID": "T2558",
+       "Kind": "transaction",
+       "Settled at": "23/06/2026",
+       "Account ID": "ACC-SAVE",
+       "Raw text": "PING HOME LOAN 88412010 LUMP",
+       "Description": "PING",
+       "Amount": "($100,000.00)",
+       "Category ID": "TRANSFER",
+       "Person": "Joint",
+       "Receipt held": "",
+       "Note": "Extra 100,000 off the home loan from the inheritance. Treated like the redraw: a move to the loan, not spending. See Decisions.",
+       "Status": "settled",
+       "Created at": "2026-11-07",
+       "Transfer ID": "X0131",
+       "Transfer account": "ACC-HOMELOAN",
+       "Foreign amount": "",
+       "Foreign currency": "",
+       "Units": "",
+       "Unit price": "",
+       "Source": "ACC-SAVE/2026-07-02/Wattle_saver_2026-04-01.ofx",
+       "Flow": "Transfer",
+       "Pair net": "0.00",
+       "Pair count": "2",
+       "Pair days": "0"
+      }
+     },
+     {
+      "sheet_row": 2757,
+      "account": "HOMELOAN",
+      "values": [
+       "T2561",
+       "transaction",
+       "23/06/2026",
+       "ACC-HOMELOAN",
+       "ADDITIONAL REPAYMENT",
+       "PING",
+       "$100,000.00",
+       "TRANSFER",
+       "Joint",
+       "",
+       "Other side of the lump sum from the saver.",
+       "settled",
+       "2026-11-07",
+       "X0131",
+       "ACC-SAVE",
+       "",
+       "",
+       "",
+       "",
+       "ACC-HOMELOAN/2026-07-03/ping_loan_2025-07-01.tsv",
+       "Transfer",
+       "0.00",
+       "2",
+       "0"
+      ],
+      "by_header": {
+       "Entry ID": "T2561",
+       "Kind": "transaction",
+       "Settled at": "23/06/2026",
+       "Account ID": "ACC-HOMELOAN",
+       "Raw text": "ADDITIONAL REPAYMENT",
+       "Description": "PING",
+       "Amount": "$100,000.00",
+       "Category ID": "TRANSFER",
+       "Person": "Joint",
+       "Receipt held": "",
+       "Note": "Other side of the lump sum from the saver.",
+       "Status": "settled",
+       "Created at": "2026-11-07",
+       "Transfer ID": "X0131",
+       "Transfer account": "ACC-SAVE",
+       "Foreign amount": "",
+       "Foreign currency": "",
+       "Units": "",
+       "Unit price": "",
+       "Source": "ACC-HOMELOAN/2026-07-03/ping_loan_2025-07-01.tsv",
+       "Flow": "Transfer",
+       "Pair net": "0.00",
+       "Pair count": "2",
+       "Pair days": "0"
+      }
+     }
+    ]
+   },
+   "whole_ledger_exact_repeats": [
+    {
+     "account": "SAVE",
+     "date": "2026-04-28",
+     "amount": "50000.00",
+     "description": "BRAUER LEGAL ESTATE A BONETTI",
+     "count": 2
+    }
+   ]
+  }
+ },
+ "surprises": [
+  "The 100,000 lump sum is treated differently. A1, A2 and B1 count the Saver row as spending (MORTGAGE). B2 pairs it with the loan row as a transfer (TRANSFER, X0131), not spending.",
+  "B1 has only the Saver leg of the lump sum as a transaction; A1, A2 and B2 also have the ADDITIONAL REPAYMENT row on the home loan account.",
+  "A2 keeps 9 card rows dated 16 to 29 Jun 2023 that A1, B1 and B2 do not have (they start 3 Jul 2023). That explains A2's 680 card rows against A1's 671.",
+  "Exact repeats outside the windows are deliberate, not re-imports: the 28 Apr 2026 estate credit of 100,000 is split into two 50,000 rows in A1, B1 and B2 (A2 words its second half differently), and B1's two Fairy St Chemist repeats are re-posts as Mum's care after correction rows."
+ ]
+}

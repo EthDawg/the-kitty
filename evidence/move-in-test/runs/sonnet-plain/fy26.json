@@ -1,0 +1,43 @@
+{
+  "sam": {
+    "salary_gross": 112450.00,
+    "tax_withheld": 27118.00,
+    "interest": 414.92,
+    "dividends_cash": 468.00,
+    "franking_credits": null,
+    "capital_gains": [
+      {"asset": "RFT 1,200 shares (bought 14/08/2019, sold 10/03/2026)", "proceeds": 4944.00, "cost_base": 3689.45, "held_over_12m": true},
+      {"asset": "ETH 0.8 (CoinJug, sold 14/11/2025)", "proceeds": 4729.92, "cost_base": null, "held_over_12m": null}
+    ],
+    "donations": 0.00,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.00,
+    "tax_withheld": 13602.00,
+    "interest": 414.91,
+    "dividends_cash": 0.00,
+    "franking_credits": 0.00,
+    "capital_gains": [],
+    "donations": 250.00,
+    "wfh_hours": null
+  },
+  "missing": [
+    "KMN September 2025 final dividend statement (bank shows $192.00 on 18/09/2025; no statement in Drive) - needed for franking credit (about $82.29 if fully franked) and to confirm the amount",
+    "Sam ETH cost base and purchase date(s): no purchase record anywhere; CoinJug Account > Reports has full history",
+    "Sam Tidewater work-from-home log (people portal, My time > Locations, export) - hours not recorded anywhere",
+    "Whether Ria worked from home, and her hours if so",
+    "Confirmation that the Wattle saver interest is jointly held 50/50 (account ACCTID WS-4471-JOINT; no year-end interest statement, total taken from 12 monthly credits)",
+    "Amewx February 2026 statement (only an email notice; file missing) - not tax-critical but the card record has a gap",
+    "Any other FY26 dividends or sales not in the files (e.g. RFT interim; Wattle/Harbour bank interest statements; ATO pre-fill for share and crypto data)"
+  ],
+  "conflicts": [
+    "Tax FY26 working sheet says capital gains 'None' for both, but Sam sold 1,200 RFT (March 2026, gain about $1,254.55) and 0.8 ETH (Nov 2025)",
+    "Money plan slides say still holding 0.8 ETH, but CoinJug shows it was sold 14/11/2025 and the proceeds paid to Harbour joint on 17/11/2025",
+    "Working sheet lists dividends as KMN + RFT with Sep and Mar for KMN, but only the Mar 2026 KMN statement exists (Sep 2025 payment is in the bank only)",
+    "Slides say $25,000 emergency fund in Wattle saver; the statement shows $21,069.83 at 30/06/2026 after a $12,000 transfer out on 18/11/2025",
+    "Net pay does not match income statements: Sam deposits $81,696.68 vs gross less tax $85,332.00; Ria deposits $52,660.80 vs $61,278.00 (possible salary packaging, other account, or deductions - unexplained)",
+    "Two Budget 2025 files (Budget 2025.csv and Budget 2025 (1).csv) have different figures for the same months",
+    "Working sheet says donation 'ask Ria' and phone note says food bank; receipt confirms $250.00 - consistent, but the P&C raffle $50.00 is not a donation and is excluded"
+  ]
+}
