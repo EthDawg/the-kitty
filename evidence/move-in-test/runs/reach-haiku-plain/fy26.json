@@ -1,0 +1,48 @@
+{
+  "sam": {
+    "salary_gross": 112450.00,
+    "tax_withheld": 27118.00,
+    "interest": 414.92,
+    "dividends_cash": 468.00,
+    "franking_credits": null,
+    "capital_gains": [
+      {"asset": "Reef Telecom Ltd (RFT), 1,200 shares sold 10/03/2026", "proceeds": 4934.50, "cost_base": 3679.95, "held_over_12m": true},
+      {"asset": "Ether (ETH), 0.8 units sold 14/11/2025", "proceeds": 4706.27, "cost_base": null, "held_over_12m": null}
+    ],
+    "donations": 0.00,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.00,
+    "tax_withheld": 13602.00,
+    "interest": 414.91,
+    "dividends_cash": 0.00,
+    "franking_credits": 0.00,
+    "capital_gains": [],
+    "donations": 250.00,
+    "wfh_hours": null
+  },
+  "missing": [
+    "Sam: FY26 work-from-home hours. Export the Tidewater people portal log (My time > Locations; see mail m0393). FY25 used 412 hours from a diary; no FY26 record in estate/.",
+    "Ria: whether she worked from home in FY26 and how many hours. Nothing in estate/ or mail.",
+    "Sam: KMN September 2025 dividend statement. Bank shows $192.00 received 18/09/2025 (ref 0012) but no statement, so franked/unfranked split and franking credit are unknown.",
+    "Sam: franking credits total is incomplete until the KMN September statement arrives (known so far: KMN March 2026 $74.57, RFT October 2025 $43.71).",
+    "Sam: ETH cost base and acquisition date for the 0.8 ETH sold 14/11/2025. Get the CoinJug tax report (Account > Reports, per mail m0077). The 2019 buy record does not cover ETH.",
+    "Sam: confirm RFT cost base of $3,679.95 (buy 14/08/2019, contract note m0181, includes $19.95 brokerage) and that there were no corporate actions since.",
+    "Sam: payslip explanation for the gap between gross less tax withheld ($85,332.00) and net deposits ($81,696.68, 26 Tidewater deposits). Gap $3,635.32. Payslips are in the Tidewater portal (mail m0160).",
+    "Ria: payslip explanation for the gap between gross less tax withheld ($61,278.00) and net deposits ($52,660.80, 12 Northshore deposits). Gap $8,617.20.",
+    "Household: who claims the $250.00 Harbour Food Bank gift of 09/12/2025. Receipt HFB-25-88213 is in Ria's name, but the payment came from the joint account (Harbour ***221).",
+    "Household: Northshore PS P&C raffle $50.00 on 03/11/2025. Confirm whether it is a gift with a receipt or a raffle purchase (not claimed here).",
+    "Household: Harbour joint interest split. Wattle FY26 credit interest totals $829.83 (12 entries in the OFX); split as $414.92 Sam and $414.91 Ria, which is a one-cent judgement call.",
+    "Both: private health insurance statement FY26 is in mail m0120 (premiums $3,751.20 for both members, matching 12 x $312.60 on the bank). Attach it to both returns; it is not in estate/.",
+    "Both: confirm lodgement status. Today is 8 Nov 2026, past the usual 31 Oct date for self-lodgement, unless a tax agent is lodging."
+  ],
+  "conflicts": [
+    "ETH: Money plan 2026 slide 5 (Jan 2026) says still holding 0.8 ETH; CoinJug mail m0077 shows 0.8 ETH sold 14/11/2025 and A$4,706.27 withdrawn to Harbour bank 17/11/2025 (m0276, joint bank line).",
+    "Capital gains: Drive 'Copy of Tax FY26 working' says 'None this year' for both; contract note m0305 shows Sam sold 1,200 RFT on 10/03/2026, and the ETH sale above.",
+    "Donation: receipt is to Ria, payment came from the joint account; Drive working says 'ask Ria'.",
+    "Emergency fund: Money plan slide 3 says $25,000 in Wattle saver, do not touch; Wattle OFX closing balance 30/06/2026 is $21,069.83 (not a tax item, relevant to Kitty).",
+    "Income: Ria's Northshore net deposits are $8,617.20 below gross less tax withheld; Sam's Tidewater net deposits are $3,635.32 below. Both unexplained in the files.",
+    "Card: Amewx statement for Feb 2026 is missing from estate/ Drive, but mail m0028 says it is ready; Amex closing balance 30/06/2026 is $1,222.01 (not a tax item)."
+  ]
+}

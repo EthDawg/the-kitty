@@ -1,0 +1,107 @@
+{
+ "movein haiku-plain": {
+  "model": "haiku",
+  "usd": 0.13,
+  "mins": 2.1
+ },
+ "movein haiku-cov": {
+  "model": "haiku",
+  "usd": 0.14,
+  "mins": 2.3
+ },
+ "movein sonnet-plain": {
+  "model": "sonnet",
+  "usd": 0.45,
+  "mins": 1.1
+ },
+ "movein sonnet-cov": {
+  "model": "sonnet",
+  "usd": 0.46,
+  "mins": 1.1
+ },
+ "movein opus-plain": {
+  "model": "opus",
+  "usd": 1.37,
+  "mins": 4.0
+ },
+ "asks sonnet-ramble": {
+  "model": "sonnet",
+  "usd": 0.25,
+  "mins": 0.7
+ },
+ "asks sonnet-list": {
+  "model": "sonnet",
+  "usd": 0.26,
+  "mins": 0.7
+ },
+ "asks sonnet-loaded": {
+  "model": "sonnet",
+  "usd": 0.62,
+  "mins": 1.2
+ },
+ "asks haiku-ramble": {
+  "model": "haiku",
+  "usd": 0.11,
+  "mins": 1.6
+ },
+ "asks haiku-list": {
+  "model": "haiku",
+  "usd": 0.09,
+  "mins": 1.3
+ },
+ "page sonnet-plain": {
+  "model": "sonnet",
+  "usd": 0.33,
+  "mins": 1.2
+ },
+ "page sonnet-bar": {
+  "model": "sonnet",
+  "usd": 0.68,
+  "mins": 3.1
+ },
+ "page sonnet-loop": {
+  "model": "sonnet",
+  "usd": 0.73,
+  "mins": 3.8
+ },
+ "page opus-plain": {
+  "model": "opus",
+  "usd": 5.94,
+  "mins": 19.2
+ },
+ "page opus-bar": {
+  "model": "opus",
+  "usd": 8.73,
+  "mins": 27.2
+ },
+ "page haiku-bar": {
+  "model": "haiku",
+  "usd": 0.25,
+  "mins": 4.9
+ },
+ "reach haiku-plain": {
+  "model": "haiku",
+  "usd": 0.14,
+  "mins": 1.8
+ },
+ "reach haiku-cov": {
+  "model": "haiku",
+  "usd": 0.19,
+  "mins": 2.6
+ },
+ "reach sonnet-plain": {
+  "model": "sonnet",
+  "usd": 0.33,
+  "mins": 1.0
+ },
+ "reach sonnet-cov": {
+  "model": "sonnet",
+  "usd": 0.36,
+  "mins": 1.2
+ },
+ "reach opus-plain": {
+  "model": "opus",
+  "usd": 1.74,
+  "mins": 4.5
+ }
+}

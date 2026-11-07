@@ -1,0 +1,121 @@
+{
+ "numbers": {
+  "saver_interest_total_fy26": 829.83,
+  "saver_balance_2026_06_30": 21069.83,
+  "harbour_balance_2026_06_30": 75191.7,
+  "sam_dividends_cash_fy26": 468.0,
+  "sam_franking_known": 118.28,
+  "rft_proceeds_net": 4934.5,
+  "rft_cost_base": 3679.95,
+  "rft_gain_gross": 1254.55,
+  "rft_held_over_12m": true,
+  "eth_proceeds_net": 4706.27,
+  "eth_cost_base": null,
+  "ria_donation_deductible": 250.0,
+  "sam_salary_gross": 112450.0,
+  "sam_tax_withheld": 27118.0,
+  "ria_salary_gross": 74880.0,
+  "ria_tax_withheld": 13602.0,
+  "card_spend_2025_12": 1004.48,
+  "sam_pays_fy26": 26
+ },
+ "missing": {
+  "G1": "CoinJug purchase history for the 0.8 ETH (cost base); the sale has no purchase record",
+  "G2": "KMN September 2025 dividend statement (franking credit unknown; only the bank deposit exists)",
+  "G3": "Sam's work-from-home hours record for FY26 (Tidewater portal export)",
+  "G4": "Amewx February 2026 statement (card months not unbroken)"
+ },
+ "found_elsewhere": {
+  "F1": "ETH sale only in email (CoinJug order filled)",
+  "F2": "RFT sale only in email (contract note)",
+  "F3": "RFT purchase cost only in an archived 2019 email",
+  "F4": "Ria's donation receipt only in email",
+  "F5": "Private health statement only in email, covers both",
+  "F6": "KMN September dividend amount only in the bank file"
+ },
+ "conflicts": {
+  "C1": "Tax working sheet says no capital gains; there are two disposals (RFT, ETH)",
+  "C2": "Slides say $25,000 emergency fund; saver holds less",
+  "C3": "Slides say still holding ETH; sold 14 Nov 2025",
+  "C4": "Two budget copies disagree; Budget 2025.csv (Apr 2026, runs to Mar) is newer than (1) (Feb 2026, runs to Jan)"
+ },
+ "traps": {
+  "X1": "School P&C raffle tickets are not a deductible gift",
+  "X2": "CoinJug price alert is not a trade",
+  "X3": "Saver to joint transfer is not income"
+ },
+ "card": {
+  "2025-07": {
+   "prev": 1312.4,
+   "purchases": 916.32,
+   "payment": 1312.4,
+   "close": 916.32
+  },
+  "2025-08": {
+   "prev": 916.32,
+   "purchases": 1006.15,
+   "payment": 916.32,
+   "close": 1006.15
+  },
+  "2025-09": {
+   "prev": 1006.15,
+   "purchases": 939.42,
+   "payment": 1006.15,
+   "close": 939.42
+  },
+  "2025-10": {
+   "prev": 939.42,
+   "purchases": 603.72,
+   "payment": 939.42,
+   "close": 603.72
+  },
+  "2025-11": {
+   "prev": 603.72,
+   "purchases": 684.71,
+   "payment": 603.72,
+   "close": 684.71
+  },
+  "2025-12": {
+   "prev": 684.71,
+   "purchases": 1004.48,
+   "payment": 684.71,
+   "close": 1004.48
+  },
+  "2026-01": {
+   "prev": 1004.48,
+   "purchases": 788.88,
+   "payment": 1004.48,
+   "close": 788.88
+  },
+  "2026-02": {
+   "prev": 788.88,
+   "purchases": 630.7,
+   "payment": 788.88,
+   "close": 630.7
+  },
+  "2026-03": {
+   "prev": 630.7,
+   "purchases": 1019.41,
+   "payment": 630.7,
+   "close": 1019.41
+  },
+  "2026-04": {
+   "prev": 1019.41,
+   "purchases": 1034.49,
+   "payment": 1019.41,
+   "close": 1034.49
+  },
+  "2026-05": {
+   "prev": 1034.49,
+   "purchases": 960.12,
+   "payment": 1034.49,
+   "close": 960.12
+  },
+  "2026-06": {
+   "prev": 960.12,
+   "purchases": 1222.01,
+   "payment": 960.12,
+   "close": 1222.01
+  }
+ }
+}

@@ -4,11 +4,11 @@
 
 One Google Sheet for a household's money, a page to read it, and Claude or Codex doing everything in between. There is no importer, no server and no database. The harness is the importer.
 
-**The findings behind this shape:** [The Harness Is the Importer](FINDINGS.md). Opus 5.5 read one fictional family's 379 files and tied all 468 month-end balances, within 0.03% of the truth over three years, for $4.58. The engine we had built for the job tied 389. A blank Sheet loaded as well as this template; the template's value is that every household has the same shape, so one page, one upgrade and one test work for all of them.
+**The findings behind this shape:** [The Harness Is the Importer](FINDINGS.md). Opus 5.5 read one fictional family's 379 files and tied all 468 month-end balances, within 0.03% of the truth over three years, for $4.58. The engine we had built for the job tied 389. An empty Sheet loaded as well as this template; the template's value is that every household has the same shape, so one page, one upgrade and one test work for all of them.
 
 ## Start
 
-1. Copy the blank template: https://docs.google.com/spreadsheets/d/1ym0cNBMcRtkxaQIhWFccDdz210e9nanH1B0_OCDi89U/copy
+1. Copy the template (26 tabs, no household rows): https://docs.google.com/spreadsheets/d/1ym0cNBMcRtkxaQIhWFccDdz210e9nanH1B0_OCDi89U/copy
 2. Put your bank exports, statements and payslips in one folder, in whatever format the bank gives you.
 3. In Claude Code or Codex, with Google Sheets connected, say:
 
@@ -24,13 +24,15 @@ Next month, say "Bring my Kitty up to date." Install `skills/kitty/` in your har
 
 | Path | What it is |
 |---|---|
-| `template/` | The blank Sheet's link and its README tab as text. The tab is the contract every writer follows. |
+| `template/` | The template's link (26 tabs, headers and formulas, no household rows) and its README tab as text. The tab is the contract every writer follows. |
 | `skills/kitty/SKILL.md` | The loop: read the Sheet, read the files any way that works, reconcile in scratch, write one typed batch, read the checks, stop after three tries. Claude and Codex both read this format. |
+| `skills/kitty/coverage.md` | Six lines an agent works through before trusting a year: what's missing, where to get it, what disagrees. |
+| `skills/kitty/page-bar.md` | Eighteen lines a page has to meet, distilled from 35 versions of a real one. |
 | `CHANGES.md` | Changes to the Sheet's shape, in sentences. A household's own harness applies them; nothing upstream writes to a Sheet. |
 | `src/`, `brand/`, `merchants/` | The page. It reads any Sheet in this shape through the viewer's own Google connector. |
 | `ios/` | The iPhone view of the same page. |
 | `FINDINGS.md` | The findings as plain text, for people and agents. |
-| `evidence/` | The one-shot runs across five models and the data model test, with protocols, scores and costs. |
+| `evidence/` | The one-shot runs across five models, the data model test, the move-in test and the page test, with protocols, scores and costs. |
 | `standard/eval/`, `standard/world/`, `life/`, `portals/`, `sources/` | The fictional families: seven blind households with sealed truth and scorers, the life generator, and parody bank sites serving their files. |
 
 ## Retiring

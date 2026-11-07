@@ -14,4 +14,8 @@ The Sheet's README tab is the contract. Read it first and follow it. A text copy
 7. Read Compliance Checks. If any is red, fix it and read again. After three tries, stop and say what is wrong.
 8. Move originals to `Sources/<account>/<month>/`. Report in three lines: what landed, what ties, what needs a person.
 
+Moving in from elsewhere, or getting a tax year ready: work through `coverage.md` before you use any number, and report what's missing and where to get it.
+
+Asked for a page: meet every line of `page-bar.md`.
+
 Never move money, pay a bill, accept terms or change a bank setting. Say plainly at setup that the model reads the bank lines and that they go to its provider.

@@ -1,6 +1,6 @@
 # The README tab
 
-This is the text of the blank template's README tab, so an agent without Sheets access can read the contract. The Sheet itself is the authority: if the two ever differ, the tab wins.
+This is the text of the template's README tab, so an agent without Sheets access can read the contract. The Sheet itself is the authority: if the two ever differ, the tab wins.
 
 Copy the template: https://docs.google.com/spreadsheets/d/1ym0cNBMcRtkxaQIhWFccDdz210e9nanH1B0_OCDi89U/copy
 

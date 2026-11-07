@@ -43,10 +43,10 @@ What it means:
 Question: does an established data model help the model, or does it do as well from nothing? Rules written before any run: evidence/data-model-test/PROTOCOL.md in the repository.
 
 - Model: Opus 5.5. Family six. Two runs per arm. Three deliveries in arrival order (258 files / 24 months, then 60 + 1 re-sent, then 61 + 1 re-sent), a fresh agent with no memory for each delivery, then a fresh reader agent with only the finished Sheet.
-- Arm A, "blank": a new Google Sheet, one empty tab. Prompt: "Set up this Google Sheet to track our money, load it all in, and build us a dashboard we can open."
-- Arm B, "Kitty template": 26 tabs, 1,860 formulas, headers, a README tab, no rows. Prompt: "This Google Sheet is our Kitty. It's blank and ready. Read its README tab, then load it all in."
+- Arm A, "empty Sheet": a new Google Sheet, one empty tab. Prompt: "Set up this Google Sheet to track our money, load it all in, and build us a dashboard we can open."
+- Arm B, "Kitty template": 26 tabs, 1,860 formulas, headers, a README tab, no household rows. Prompt: "This Google Sheet is our Kitty. It's blank and ready. Read its README tab, then load it all in."
 
-| | Blank 1 | Blank 2 | Kitty 1 | Kitty 2 |
+| | Empty 1 | Empty 2 | Template 1 | Template 2 |
 |---|---|---|---|---|
 | First load income vs truth | +0.08% | +0.08% | +0.08% | +0.08% |
 | First load spending vs truth | -0.06% | -0.06% | -0.06% | -0.06% |
@@ -59,15 +59,110 @@ Question: does an established data model help the model, or does it do as well f
 
 Kitty 2's -54% and 432: it booked a $100,000 extra home-loan payment as a transfer (flagged as unsure) and left one account off. The template did not prevent it.
 
-Result by the pre-written rule: Partly. The established model added nothing to the load. The blank runs share only 43% of their shape (9 of 22 tabs, 7 of 15 ledger columns); the Kitty runs share 100%. The unmodified Kitty page, fed Kitty 1's saved tabs through a stand-in connector, opened the household and lit its views. On a blank-start Sheet it found none of its tabs.
+Result by the pre-written rule: Partly. The established model added nothing to the load. The empty-Sheet runs share only 43% of their shape (9 of 22 tabs, 7 of 15 ledger columns); the Kitty runs share 100%. The unmodified Kitty page, fed Kitty 1's saved tabs through a stand-in connector, opened the household and lit its views. On an empty-start Sheet it found none of its tabs.
 
 Conclusion: the value of the data model is sameness across households. It is worth exactly what plugs into it: a shared page, a shared upgrade, a shared test.
 
 The Sheet is the memory: no agent saw the previous one, yet each carried on from the Sheet and added 0 rows for a byte-identical re-sent export.
 
+## What the shared shape buys one household
+
+Sameness across households sounds like a benefit for the project, not the person. For one household it means borrowed work:
+
+| | Your own shape | The template's shape |
+|---|---|---|
+| Numbers right | Yes | Yes |
+| 54 checks someone else wrote | Write your own | Run unchanged |
+| A page that opens it | Ask for one each time | No code changed |
+| Your setup scored on test families | No | Same shape, same scorer |
+| Upgrades | Work them out | Notes your agent applies |
+| Someone new reads it | Learns it first | Reads the README tab |
+
+## Where the value sits (our read, not a measurement)
+
+Share of what decides whether a household's numbers come out right and usable, now and one model generation on:
+
+| Piece | Now | Next | Why |
+|---|---|---|---|
+| Template (26 tabs) | 25 | 20 | A good model builds a fine Sheet from nothing; what must not change is the contract (tab names, Entries columns, Metric IDs) |
+| Evals | 20 | 25 | The only way to know a new model, skill or tab is better. The page bar and the coverage checklist are evals too |
+| Compliance Checks | 15 | 20 | What a person trusts with nobody watching. Next: meaning and coverage checks |
+| Kitty page | 15 | 10 | 35 versions of asks fit in an 18-line bar that one-shot pages meet |
+| README tab | 10 | 15 | The contract in plain English; what a model needs to rebuild, map or upgrade a Sheet |
+| Skill | 10 | 5 | Harnesses absorb it. Answers that jump about need a shape (headline, facts, actions), not a longer skill |
+| CHANGES.md | 5 | 5 | Upgrades as notes |
+| Importer code | 0 | 0 | Retiring |
+
+## Evidence 3: twenty-one tests on why
+
+A fictional couple, Sam and Ria Calder, built by a script with a sealed answer key: a Drive dump (bank CSV, OFX saver, 11 monthly card statements with February missing, income statements, two dividend statements, last year's return summary, two budget copies, a tax working sheet that says no capital gains, a stale slide deck), phone notes, and 13 emails that matter (crypto sale, share sale, a 2019 share purchase, a donation receipt, a raffle that is not a donation, a health statement, a statement-ready notice, an employer note about logging work-from-home days). Planted gaps: the crypto purchase record, the September dividend statement, the work-from-home log, the February card statement. One run per cell; API list prices. Kit and outputs: evidence/move-in-test/.
+
+Move-in, everything in one folder ("Get our FY26 tax returns ready and tell us what's missing"):
+
+| Run | Gaps found of 4 | Figures right of 9 | Cost |
+|---|---|---|---|
+| Haiku 5.5 | 4 | 9 | $0.13 |
+| Haiku 5.5 + coverage checklist | 4 | 9 | $0.14 |
+| Sonnet 5.5 | 4 | 9 | $0.45 |
+| Sonnet 5.5 + checklist | 4 | 9 | $0.46 |
+| Opus 5.5 | 4 | 9 | $1.37 |
+
+Move-in, email reachable only by search among 413 messages:
+
+| Run | Gaps found of 4 | Figures right of 9 | Searches | Cost |
+|---|---|---|---|---|
+| Haiku 5.5 | 3 (missed the February card statement) | 9 | 53 | $0.14 |
+| Haiku 5.5 + checklist | 4 | 9 | 77 | $0.19 |
+| Sonnet 5.5 | 3 (missed the February card statement) | 9 | 44 | $0.33 |
+| Sonnet 5.5 + checklist | 4 | 9 | 29 | $0.36 |
+| Opus 5.5 | 4 (opened all 413 emails) | 9 | 61 | $1.74 |
+
+The checklist line that made the difference: "Every account's statements run unbroken."
+
+Eight asks in one message (saver balance, December card spend, is a raffle a donation, where is a receipt, which budget file is current, share cost base, fix the tax working sheet, how many pays, with two leading suggestions):
+
+| Run | Answered of 8 | Cost |
+|---|---|---|
+| Haiku, rambling voice note | 8 | $0.11 |
+| Haiku, numbered list | 8 | $0.09 |
+| Sonnet, rambling | 8 | $0.25 |
+| Sonnet, numbered list | 8 | $0.26 |
+| Sonnet, rambling, 38,000 tokens of unrelated skills loaded first | 7, one hedged (would not say which budget file is current) | $0.62 |
+
+A page in one shot ("Make us one page to see how we're going", fictional Davies export), scored on 16 of the 18 lines in skills/kitty/page-bar.md (13 by script, 3 by eye). Kit and outputs: evidence/page-test/.
+
+| Run | Lines met of 16 | Cost |
+|---|---|---|
+| Sonnet 5.5 | 10 | $0.33 |
+| Opus 5.5 | 12 | $5.94 |
+| Sonnet 5.5 + bar | 16 | $0.68 |
+| Sonnet 5.5 + bar + screenshot loop (2 rounds) | 16 | $0.73 |
+| Haiku 5.5 + bar | 16 | $0.25 |
+| Opus 5.5 + bar | 16 | $8.73 |
+
+Opus with no bar wrote the most insightful page (it flagged four sheet figures that disagree with the transactions) but not this household's page: no one-line verdict, seven asks, no tap-to-trace.
+
+Two of the one-shot pages read the same numbers and gave different verdicts ("Worth a look", "Mostly on track"). A verdict belongs on Metrics, worked out once.
+
+## Three ways in
+
+| Start | First sentence | Day one | Tested |
+|---|---|---|---|
+| Nothing yet | "Copy the Kitty template for us and load these bank files." | A ledger, checks green, a page | Yes (family six) |
+| A bit of everything | "Search my Drive and email for the last two tax years. Tell me which copy is current, what's missing and where to get it. Then move us into the Kitty." | One live record and a missing list | Yes (the fictional couple) |
+| Our own system | "Map our sheet onto the Kitty's README and list what doesn't fit." | Keep yours; see which checks it could run | Not yet |
+
+## The tests are the product
+
+- Public: the family generator, practice families with sealed answers, the scorer (dollars and months), the 54 Compliance Checks, skills/kitty/coverage.md, skills/kitty/page-bar.md.
+- Held back: test families, their seeds and traps; new ones each quarter; a canary line in every file.
+- Score setups, not models: harness, model, skill version, Sheet version. Three runs per family; a family passes only if all three do. Report dollars and minutes.
+- Checks to add: meaning (a one-off inflow over $10,000 needs a source document; a loan shows on both sides), coverage (statements unbroken; every sale has a purchase record), tampering (fingerprint the check formulas before and after a run; a run that changes them fails). Green checks never count as success alone: in AccountingBench, models invented transactions to make a reconciliation tie.
+- Baseline your own setup: rerun one fictional family whenever the model, harness, skills or memory change.
+
 ## The Sheet
 
-- Blank template (copy it): https://docs.google.com/spreadsheets/d/1ym0cNBMcRtkxaQIhWFccDdz210e9nanH1B0_OCDi89U/copy
+- The template, no household rows (copy it): https://docs.google.com/spreadsheets/d/1ym0cNBMcRtkxaQIhWFccDdz210e9nanH1B0_OCDi89U/copy
 - Filled example, fictional Davies household: https://docs.google.com/spreadsheets/d/16BNQv2jTt9G3Yfbkj1NwgaAxDjBibCth40wdNXWf3aA/edit
 
 Layers, from the template's README tab:
@@ -146,15 +241,17 @@ Pull, never push. Upstream never writes to a household's Sheet.
 
 1. The harness is the runtime. Ship a shape, checks, a page and a small skill. No importer.
 2. Define the end state, not the steps.
-3. The Sheet is the memory.
+3. The Sheet is the memory; the originals are the evidence.
 4. Checks decide; a writer never marks its own work.
-5. Keep originals; everything else can be rebuilt.
-6. Pull, never push.
-7. Score in dollars, on a family the model has never seen.
+5. Reach first. A model finds what it can open; give it the mailbox, the exports and a coverage checklist.
+6. Write the bar down. Every round of fixes becomes a line a one-shot can meet.
+7. Pull, never push.
+8. Score your setup (harness, model, skills, memory) in dollars, on a family it has never seen.
 
 ## What stays hard
 
-- Arithmetic cannot prove meaning. The $168,000 ties either way; only a definition or a question settles it.
+- Every balance can be right while the meaning is wrong. Fable matched all 468 balances and still counted the $168,000 Mum paid for her granny flat as the family's income. Only a definition or a question settles it.
+- Some things cannot be reached: a partner's mailbox, a site with no export, a statement that arrives after lodging. They belong on a missing list.
 - No stated balance, no proof. Card CSVs print none; rows wait for the statement.
 - The model reads the bank lines, and whatever it reads goes to its provider. Say so at setup.
 - Agents hold the owner's keys. A bad write is caught and undone, never prevented.
@@ -162,7 +259,7 @@ Pull, never push. Upstream never writes to a household's Sheet.
 
 ## Limits
 
-One fictional family. One run per model for the one-shots; two runs per arm for the data model test; Claude only in scored runs. One-shots wrote JSON, not a Sheet, and had the family's setup answers. Costs are API list prices from each run's own token counts, cache writes at 1.25x input; on a subscription the extra cost is nil. No scored run used real bank files; the author's live Kitty uses them monthly and was read as code only.
+The 21 tests are one run per cell on one fictional couple; single misses are signals, not rates. Elsewhere: one fictional family. One run per model for the one-shots; two runs per arm for the data model test; Claude only in scored runs. One-shots wrote JSON, not a Sheet, and had the family's setup answers. Costs are API list prices from each run's own token counts, cache writes at 1.25x input; on a subscription the extra cost is nil. No scored run used real bank files; the author's live Kitty uses them monthly and was read as code only.
 
 ## Links
 

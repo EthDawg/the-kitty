@@ -1,0 +1,44 @@
+{
+  "sam": {
+    "salary_gross": 112450.00,
+    "tax_withheld": 27118.00,
+    "interest": 414.92,
+    "dividends_cash": 468.00,
+    "franking_credits": null,
+    "capital_gains": [
+      {"asset": "Reef Telecom Ltd (RFT), 1,200 shares sold 10 Mar 2026", "proceeds": 4934.50, "cost_base": 3679.95, "held_over_12m": true},
+      {"asset": "Ether (ETH), 0.8 sold 14 Nov 2025 on CoinJug", "proceeds": 4706.27, "cost_base": null, "held_over_12m": null}
+    ],
+    "donations": 0.00,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.00,
+    "tax_withheld": 13602.00,
+    "interest": 414.91,
+    "dividends_cash": 0.00,
+    "franking_credits": 0.00,
+    "capital_gains": [],
+    "donations": 250.00,
+    "wfh_hours": null
+  },
+  "missing": [
+    "Sam: FY26 work-from-home hours. Export the Tidewater people portal log (My time > Locations); wfh_hours is null until then.",
+    "Sam: KMN final dividend statement for Sep 2025 (bank shows 192.00 cash on 18 Sep 2025, no franking detail). Franking credits stay null until then.",
+    "Sam: CoinJug purchase history for the 0.8 ETH sold (Account > Reports): purchase dates and cost. Needed for cost_base and held_over_12m.",
+    "Ria: FY26 work-from-home hours, if she worked from home. Nothing found in the files.",
+    "Sam: confirm no donations in FY26 (none found in the files).",
+    "Household: confirm the Wattle saver interest split (joint account, 829.83 total, split half each as in FY25). Half of 829.83 is 414.915; Sam is shown 414.92 and Ria 414.91.",
+    "Amewx Platinum Edge statement for Feb 2026 is not in Drive (email of 4 Mar 2026 says it is ready). Not needed for lodgement, but the set is incomplete.",
+    "Harbour joint statement ends 24 Jun 2026; confirm nothing posted 25 to 30 Jun 2026."
+  ],
+  "conflicts": [
+    "Working sheet says capital gains none this year; RFT sale (10 Mar 2026) and ETH sale (14 Nov 2025) both fall in FY26.",
+    "Money plan slides (10 Jan 2026) say still holding 0.8 ETH; CoinJug emails and the Harbour bank line (17 Nov 2025, 4,706.27) say it was sold.",
+    "Slides say 25,000 emergency fund in Wattle saver; Wattle ledger balance at 30 Jun 2026 is 21,069.83 after 12,000 moved to Harbour on 18 Nov 2025.",
+    "Sam pay: 26 Tidewater deposits total 81,696.68 net; gross less withheld is 85,332.00 (gap 3,635.32). Check for salary sacrifice or other deductions on payslips.",
+    "Ria pay: 12 Northshore deposits total 52,660.80 net; gross less withheld is 61,278.00 (gap 8,617.20). Check for deductions on payslips.",
+    "Working sheet says donations ask Ria; Ria's receipt (250.00) is in the files. Northshore PS raffle (50.00) is not a gift and is not claimed.",
+    "Private health statement says rebate tier 0; confirm it matches the household's combined income."
+  ]
+}

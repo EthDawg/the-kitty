@@ -1,0 +1,41 @@
+{
+  "sam": {
+    "salary_gross": 112450.00,
+    "tax_withheld": 27118.00,
+    "interest": 414.92,
+    "dividends_cash": 468.00,
+    "franking_credits": null,
+    "capital_gains": [
+      {"asset": "RFT 1,200 shares (Reef Telecom), sold 10/03/2026, bought 14/08/2019", "proceeds": 4944.00, "cost_base": 3689.45, "held_over_12m": true},
+      {"asset": "ETH 0.8 (CoinJug), sold 14/11/2025", "proceeds": 4729.92, "cost_base": null, "held_over_12m": null}
+    ],
+    "donations": 0.00,
+    "wfh_hours": null
+  },
+  "ria": {
+    "salary_gross": 74880.00,
+    "tax_withheld": 13602.00,
+    "interest": 414.91,
+    "dividends_cash": 0.00,
+    "franking_credits": 0.00,
+    "capital_gains": [],
+    "donations": 250.00,
+    "wfh_hours": null
+  },
+  "missing": [
+    "Sam: KMN final dividend statement (paid 18/09/2025, $192.00 cash) - franking credit not on file; only RFT $43.71 and KMN Mar $74.57 known ($118.28), so franking total left null",
+    "Sam: ETH cost base and purchase date (0.8 ETH sold 14/11/2025 for $4,729.92 gross, fee $23.65) - get CoinJug Account > Reports, or purchase emails/bank history",
+    "Sam: WFH hours - export the log from the Tidewater people portal (My time > Locations); FY25 used 412 hours from a diary",
+    "Ria: whether she worked from home, and hours if so (no records found)",
+    "Wattle saver interest: only a joint account statement; the half-each split is assumed from FY25 practice, and the bank's own year-end interest summary was not found",
+    "Sam: private health insurance statement figures are in email (premiums $3,751.20, tier 0 rebate as reduction) but this json has no key for them; enter in both returns"
+  ],
+  "conflicts": [
+    "Slides (Jan 2026) say 'still holding 0.8 ETH, leave it alone' but CoinJug shows it was sold 14/11/2025 - treat as sold, a CGT event",
+    "Slides say 'selling RFT in March'; the contract note confirms the sale on 10/03/2026 - consistent, but the working sheet says 'Capital gains: None this year' for both, which is wrong",
+    "Working sheet lists Sam's dividends as 'KMN + RFT' with KMN Sep and Mar, but no Sep 2025 KMN statement exists in Drive; only the bank credit of $192.00",
+    "Net pay in the joint account is below the income statements: Sam 26 x $3,142.18 = $81,696.68 vs $85,332.00 (gross less withheld); Ria 12 x $4,388.40 = $52,660.80 vs $61,278.00. Could be HELP, salary sacrifice, or another bank account; income statements used",
+    "Working sheet has donations blank/'ask Ria'; the Harbour Food Bank receipt shows $250.00 on 09/12/2025 (Ria). The $50 school raffle is not deductible and was excluded",
+    "Several Budget 2025 copies and a 'kitty test import.csv' (one TEST ROW) are in Drive; ignored as non-tax data"
+  ]
+}
