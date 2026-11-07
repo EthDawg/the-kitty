@@ -1,0 +1,27 @@
+[
+  {
+    "q": 1,
+    "answer": "Assuming Sam is an Australian tax resident, the 50% CGT discount applies because he held the shares for over 12 months. With no losses, $1,254.55 × 50% = $627.275, or $627.28 to cents. This is the RFT gain after discount; his ETH result must also be included when calculating his total net capital gain.",
+    "sources": ["https://www.ato.gov.au/individuals-and-families/investments-and-assets/capital-gains-tax/cgt-discount"]
+  },
+  {
+    "q": 2,
+    "answer": "Reconstruct the purchase using CoinJug/original-exchange transaction exports, receipts or confirmation emails, bank payments, and wallet/blockchain history. Establish the acquisition date, quantity, AUD value and fees. If no cost can be substantiated, do not invent one: the full $4,706.27 proceeds could be exposed as a gain, and the 12-month discount is unproven. The retrieved guidance does not establish an automatic zero-cost-base rule; seek an ATO determination or tax-agent help if reconstruction fails.",
+    "sources": ["https://www.ato.gov.au/individuals-and-families/investments-and-assets/crypto-asset-investments/keeping-crypto-records", "https://www.ato.gov.au/individuals-and-families/investments-and-assets/capital-gains-tax/acquiring-cgt-assets"]
+  },
+  {
+    "q": 3,
+    "answer": "No. The $50 buys a chance to win, so it is not a deductible gift, even though the raffle supports the school P&C.",
+    "sources": ["https://www.ato.gov.au/tax-and-super-professionals/for-tax-professionals/prepare-and-lodge/tax-time/tax-time-toolkit-general"]
+  },
+  {
+    "q": 4,
+    "answer": "The fixed-rate method is 70 cents per actual WFH hour for FY26. Sam needs records of actual hours throughout the year, such as contemporaneous timesheets or electronic logs, plus at least one bill for each covered expense he incurred. Export Tidewater's FY26 records and check that they establish hours, not just locations. 'About two days a week' and FY25's 412 hours are insufficient. Without adequate records, he cannot support that fixed-rate claim; any actual-cost claim needs its own evidence.",
+    "sources": ["https://www.ato.gov.au/individuals-and-families/your-tax-return/instructions-to-complete-your-tax-return/mytax-instructions/2026/deductions/work-related-expenses/other-work-related-expenses"]
+  },
+  {
+    "q": 5,
+    "answer": "My candidate: either makes an affordable deductible personal super contribution, received by their fund by 30 June 2027. With salaries similar to $112,450 and $74,880, this would likely lower tax. Check eligibility and remaining FY27 concessional cap ($32,500, including employer and salary-sacrifice contributions). Give a valid notice of intent by the earlier of lodging the FY27 return or 30 June 2028, and receive acknowledgment before claiming. Contributions are generally taxed at 15% in the fund and preserved until release conditions are met. This reduces FY27 tax, not FY26 tax.",
+    "sources": ["https://www.ato.gov.au/individuals-and-families/super-for-individuals-and-families/super/growing-and-keeping-track-of-your-super/how-to-save-more-in-your-super/personal-super-contributions", "https://www.ato.gov.au/tax-rates-and-codes/key-superannuation-rates-and-thresholds/contributions-caps"]
+  }
+]

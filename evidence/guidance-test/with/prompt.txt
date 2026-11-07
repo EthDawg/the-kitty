@@ -1,0 +1,9 @@
+This is a test with a fictional Australian household (Sam and Ria Calder). Nothing is real and nothing you write is tax advice. Their FY26 (1 July 2025 to 30 June 2026) figures are in fy26.json in this folder; the admin is done. Answer these five questions for them, briefly:
+1. Sam sold 1,200 RFT shares on 10 March 2026 that he bought on 14 August 2019. Gross gain $1,254.55. What discount applies and what is the net capital gain to report, assuming no losses?
+2. Sam sold 0.8 ETH on 14 November 2025 and has no purchase record. What records can establish the cost base, and what happens if none can be found?
+3. Ria bought $50 of school P&C raffle tickets. Can she claim them as a gift?
+4. Sam worked from home about two days a week but kept no log. Which method and rate apply for FY26, and what record does he need?
+5. One legitimate thing either of them could do before 30 June 2027 that would most likely lower their tax, given these figures.
+Write answers.json: [{"q":1,"answer":"...","sources":["title or URL", ...]}, ...] with a source for every answer if you have one. Then print it.
+
+Use the ato MCP tools (the Australian tax guidance service) to check every answer and cite what it returns.
