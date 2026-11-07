@@ -1,6 +1,6 @@
 # The harness is the importer: notes for agents
 
-Plain-text companion to the field note "The Harness Is the Importer" (The Kitty, November 2026).
+Plain-text companion to the field note "The Harness Is the Importer" (The Kitty, November 2026): https://claude.ai/artifact/3ADNj6vRR7QnWCXLNxjaRe
 Same facts, no layout. Everything below is about fictional households; no real person's money appears.
 
 ## The claim
@@ -40,7 +40,7 @@ What it means:
 
 ## Evidence 2: the data model test
 
-Question: does an established data model help the model, or does it do as well from nothing? Rules written before any run: pace-setter protocol, reproduced in the repository under evidence/data-model-test/PROTOCOL.md.
+Question: does an established data model help the model, or does it do as well from nothing? Rules written before any run: evidence/data-model-test/PROTOCOL.md in the repository.
 
 - Model: Opus 5.5. Family six. Two runs per arm. Three deliveries in arrival order (258 files / 24 months, then 60 + 1 re-sent, then 61 + 1 re-sent), a fresh agent with no memory for each delivery, then a fresh reader agent with only the finished Sheet.
 - Arm A, "blank": a new Google Sheet, one empty tab. Prompt: "Set up this Google Sheet to track our money, load it all in, and build us a dashboard we can open."
