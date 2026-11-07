@@ -33,7 +33,7 @@ Truth: income $642,384.67, spending $378,481.57 over 36 months.
 
 What it means:
 - Reading is solved. Every model wrote throwaway Python, read the PDFs, chained every stated balance and found the same traps unprompted.
-- Misses are meaning calls, and they come in lumps. Fable booked the $168,000 as income and spending (flagged in its notes); without that one call its totals equal Opus's to the cent. Sonnet's income gap is one $11,224.30 transfer; its 30 missed balances are one card-date convention (purchase date vs export date). Haiku's largest miss is $50,000 of an estate.
+- Misses are meaning calls, and they come in lumps. Fable booked the $168,000 as income and spending (flagged in its notes); without that one call its totals equal Opus's to the cent. Sonnet's income gap is one $11,224.30 transfer; its 30 missed balances are one card-date convention (purchase date vs export date). Haiku's largest miss is $50,000 of an estate; its missing balances are accounts it left out (385 of the 386 it gave were right).
 - Model size matters for meaning, not reading. Use the strongest model available for the first load, where most judgement calls are made and recorded.
 - Score in dollars as well as months. Months-exact-to-the-cent ranked the engine (4/36) above Opus (3/36) although the engine's mean miss was 63 times larger.
 - Engine + Opus was best on spending because it had a fixed target and a check it could rerun. Keep those; drop the engine.
