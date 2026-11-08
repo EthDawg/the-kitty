@@ -3,7 +3,7 @@
 ## One host — 8 November 2026
 - The iOS app and its native host are retired. The Kitty has one host, the Claude artifact page that `build.py` builds from `src/`; the household's Google Sheet still owns every number, and there is no server.
 - On a phone, the Kitty is the same web page added to the Home Screen (Setup shows how, for iPhone and Android).
-- Gone with it: `ios/`, its CI workflow, `build.py --host native` and the native shim, the Swift token output, the Ask provider probes, and the page's native-only paths (Google sign-in through Swift, the Sheet lock, the Home Screen icon chooser, deep links, the share sheet). The artifact page behaves as before.
+- Gone with it: `ios/`, its CI workflow, `build.py --host native` and the native shim, the offline script and font copies only that build inlined, the Swift token output, the Ask provider probes, and the page's native-only paths (Google sign-in through Swift, the Sheet lock, the Home Screen icon chooser, deep links, the share sheet). The artifact page behaves as before.
 - The iOS work stays in git history, and the earlier SwiftUI branch on the `ios-swiftui-checkpoint` tag.
 
 ## 3.0 sheet version 3: receipts, choices, levers, tax years
