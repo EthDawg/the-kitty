@@ -68,6 +68,8 @@ Empty tabs hide formula mistakes: in a trial of nine runs, two wrote Date if off
 - Receipts and Receipt Lines: one receipt with Total 10.00 and two lines of 4.00 and 6.00. Check must read OK; change one line to 5.00 and it must read "Lines 9.00 vs 10.00".
 Clear every test cell and untick the boxes. Report what each test read.
 
+A name inside `LET` or `LAMBDA` is never also a function's name (`n`, `sum`, `count`, `max`). Sheets then reads `N(...)` as a call to the name, and every row errors. The first cut of this note named them `sum` and `n` in the Receipts check, and on the Davies sheet all 94 receipts read #N/A until the names were changed to `lsum` and `lcount`.
+
 ### Tailoring
 - A household that already keeps receipts, quotes or returns in its own tab keeps that tab. Map it rather than copying it: either add the version 3 tab as formulas over theirs, or record on Decisions that their tab is the source and leave the version 3 tab out. Ask before either.
 - Never rename, reorder or rewrite an existing tab, header or formula. A name collision (the household already has a tab called `Receipts`) is a question, not an overwrite. A page reads a version 3 tab only when its headers match, so a household's own tab of the same name is never mistaken for it.
