@@ -817,3 +817,8 @@ ul.difflist li{margin:4px 0}
 .bars .val small{white-space:normal;max-width:9em;margin-left:auto}
 /* every chevron is an icon-sized affordance; an unsized one swelled to fill the checks drawer */
 svg.chev{width:20px;height:20px;flex:none;color:var(--muted)}
+/* the slider was drawn for the dark setup screens; in a drawer its words and marks use the drawer's colours */
+.drawer .slide .val small,.drawer .slide .marks{color:var(--muted)}
+.drawer .slide input[type=range]{accent-color:var(--accent)}
+.phoneonly{display:none}
+@media (max-width:819px){.phoneonly{display:inline}}
