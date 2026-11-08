@@ -40,21 +40,23 @@
     for (const t of things) { const g = t.group || "Other"; if (!byGroup.has(g)) byGroup.set(g, []); byGroup.get(g).push(t); }
     const groups = [...byGroup.entries()].map(([group, list]) => ({ group, monthly: list.reduce((s, t) => s + (t.monthly || 0), 0), things: list.sort((a, b) => (b.monthly || 0) - (a.monthly || 0)) }))
       .sort((a, b) => { const ia = GROUP_ORDER.indexOf(a.group), ib = GROUP_ORDER.indexOf(b.group); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || b.monthly - a.monthly; });
-    for (const t of things) pickNext(t, today);
+    for (const t of things) if (!t.nextDate) pickNext(t, today); else if (t.renewal == null) t.renewal = /renew|ends|decide|check/i.test(t.nextLabel || "");
     const dated = things.filter((t) => t.nextDate && t.nextDate >= today);
     const upcoming = (dated.some((t) => t.renewal) ? dated.filter((t) => t.renewal) : dated).sort((a, b) => (a.nextDate < b.nextDate ? -1 : 1));
     const decisions = (input.decisions || []).filter((d) => (d.status || "Open") === "Open" && (d.options || []).length).map((d) => {
       const options = d.options.map((o, i) => {
         const up = num(o.upfront) || 0, pm = num(o.perMonth) || 0, mo = num(o.months) || 0, ex = num(o.extra) || 0;
-        return { ...o, i, upfront: up, perMonth: pm, months: mo, extra: ex, total: num(o.total) != null ? num(o.total) : Math.round((up + pm * mo + ex) * 100) / 100 };
+        const noCost = num(o.total) == null && [o.upfront, o.perMonth, o.extra].every((v) => num(v) == null);
+        return { ...o, i, upfront: up, perMonth: pm, months: mo, extra: ex, noCost, total: noCost ? null : num(o.total) != null ? num(o.total) : Math.round((up + pm * mo + ex) * 100) / 100 };
       });
       const rec = options.find((o) => o.recommended) || null;
-      const cheapest = options.reduce((a, o) => (o.total < a.total ? o : a), options[0]);
-      const base = rec || cheapest;
-      for (const o of options) o.delta = Math.round((o.total - base.total) * 100) / 100;
+      const costed = options.filter((o) => !o.noCost);
+      const cheapest = costed.length ? costed.reduce((a, o) => (o.total < a.total ? o : a), costed[0]) : null;
+      const base = rec && !rec.noCost ? rec : cheapest;
+      for (const o of options) o.delta = o.noCost || !base ? null : Math.round((o.total - base.total) * 100) / 100;
       const horizon = Math.max(0, ...options.map((o) => o.months || 0));
       const left = d.decideBy ? days(today, d.decideBy) : null;
-      return { ...d, options, rec, cheapest, base, horizon, max: Math.max(...options.map((o) => o.total), 1), daysLeft: left };
+      return { ...d, options, rec, cheapest, base, horizon, max: Math.max(1, ...costed.map((o) => o.total)), daysLeft: left };
     }).sort((a, b) => String(a.decideBy || "9") < String(b.decideBy || "9") ? -1 : 1);
     return {
       today, things, groups, decisions,
@@ -86,22 +88,23 @@
     if (o.upfront) parts.push(`<span><b class="num">${smart(o.upfront)}</b> now</span>`);
     if (o.perMonth && o.months) parts.push(`<span><b class="num">${smart(o.perMonth)}</b> a month for ${plural(o.months, "month")}</span>`);
     if (o.extra) parts.push(`<span><b class="num">${smart(o.extra)}</b> other costs</span>`);
-    if (!parts.length) parts.push(`<span>Nothing to pay</span>`);
-    const vs = d.base && o !== d.base ? (o.delta > 0 ? `<b class="num">${smart(o.delta)}</b> more than ${esc(d.base.option.toLowerCase())}` : o.delta < 0 ? `<b class="num">${smart(-o.delta)}</b> less than ${esc(d.base.option.toLowerCase())}` : `the same as ${esc(d.base.option.toLowerCase())}`) : d.rec === o ? "our pick" : "the cheapest";
+    if (!parts.length) parts.push(o.noCost ? `<span>No cost recorded for this option yet</span>` : `<span>Nothing to pay</span>`);
+    const baseName = d.base === d.rec ? "our pick" : "the cheapest option";
+    const vs = o.noCost ? "no cost recorded" : d.base && o !== d.base ? (o.delta > 0 ? `<b class="num">${smart(o.delta)}</b> more than ${baseName}` : o.delta < 0 ? `<b class="num">${smart(-o.delta)}</b> less than ${baseName}` : `the same as ${baseName}`) : d.rec === o ? "our pick" : "the cheapest";
     return `<div class="kx-th-odetail" aria-live="polite">
-      <div class="kx-th-ototal"><b class="num">${smart(o.total)}</b><span>${d.horizon ? `over the next ${plural(d.horizon, "month")}` : "in total"} · ${vs}</span></div>
+      <div class="kx-th-ototal"><b class="num">${o.noCost ? "–" : smart(o.total)}</b><span>${d.horizon ? `over the next ${plural(d.horizon, "month")}` : "in total"} · ${vs}</span></div>
       <div class="kx-th-oparts">${parts.join("")}</div>
       ${o.note ? `<p class="kx-th-onote">${esc(o.note)}</p>` : ""}
       ${o.source ? `<p class="kx-th-src">Source: ${esc(o.source)}</p>` : ""}</div>`;
   }
   function decisionCard(d, pick) {
     const sel = d.options[pick == null ? (d.rec || d.cheapest).i : pick] || d.options[0];
-    const bars = d.options.map((o) => `<div class="kx-th-bar${o === sel ? " on" : ""}"><span class="kx-th-bl">${esc(o.option)}${o === d.rec ? ` <em>our pick</em>` : ""}</span><span class="kx-th-bt"><i style="width:${Math.max(2, (o.total / d.max) * 100).toFixed(1)}%"></i></span><b class="num">${smart(o.total)}</b></div>`).join("");
+    const bars = d.options.filter((o) => !o.noCost).map((o) => `<div class="kx-th-bar${o === sel ? " on" : ""}"><span class="kx-th-bl">${esc(o.option)}${o === d.rec ? ` <em>our pick</em>` : ""}</span><span class="kx-th-bt"><i style="width:${Math.max(2, (o.total / d.max) * 100).toFixed(1)}%"></i></span><b class="num">${smart(o.total)}</b></div>`).join("");
     return `<article class="card kx-th-dec" data-dec="${esc(d.id)}">
       <div class="kx-th-dhead"><h3>${esc(d.question)}</h3>${dueChip(d)}</div>
-      <div class="kx-th-opts" role="radiogroup" aria-label="Options">${d.options.map((o) => `<button type="button" role="radio" class="kx-th-opt${o === sel ? " on" : ""}" aria-checked="${o === sel}" data-opt="${o.i}"><span>${esc(o.option)}</span><b class="num">${smart(o.total)}</b></button>`).join("")}</div>
+      <div class="kx-th-opts" role="radiogroup" aria-label="Options">${d.options.map((o) => `<button type="button" role="radio" class="kx-th-opt${o === sel ? " on" : ""}" aria-checked="${o === sel}" data-opt="${o.i}"><span>${esc(o.option)}</span><b class="num">${o.noCost ? "no cost yet" : smart(o.total)}</b></button>`).join("")}</div>
       ${optionDetail(d, sel)}
-      <div class="kx-th-bars" role="img" aria-label="${esc(d.options.map((o) => `${o.option} ${smart(o.total)}`).join("; "))}">${bars}</div>
+      ${bars ? `<div class="kx-th-bars" role="img" aria-label="${esc(d.options.filter((o) => !o.noCost).map((o) => `${o.option} ${smart(o.total)}`).join("; "))}">${bars}</div>` : ""}
       ${d.source ? `<p class="kx-th-src">Costs from ${esc(d.source)}. Totals use the same horizon so the options compare.</p>` : `<p class="kx-th-src">Totals use the same horizon so the options compare.</p>`}
     </article>`;
   }
@@ -136,7 +139,7 @@
       <div class="kx-th-decs">${m.decisions.map((d) => decisionCard(d, st[d.id])).join("")}</div></section>` : "";
     const groups = m.groups.map((g) => `<section class="kx-th-grp card"><div class="kx-th-gh"><h3>${esc(g.group)}</h3><span class="num">${whole(g.monthly)} a month</span></div>
       <div class="kx-th-grid">${g.things.map((t) => thingCard(t, m)).join("")}</div></section>`).join("");
-    return `<div class="kx-th">${facts}${dec}<section class="kx-th-sec"><div class="kx-th-sh"><h2>What we own and pay for</h2><p class="sub">Tap a thing for every contract behind it, its timeline and what leaving today would cost.</p></div>${groups ? `<div class="kx-th-groups">${groups}</div>` : `<div class="empty">No things on the record yet.</div>`}</section></div>`;
+    return `<div class="kx-th">${opts && opts.hideFacts ? "" : facts}${dec}<section class="kx-th-sec"><div class="kx-th-sh"><h2>What we own and pay for</h2><p class="sub">Tap a thing for every contract behind it, its timeline and what leaving today would cost.</p></div>${groups ? `<div class="kx-th-groups">${groups}</div>` : `<div class="empty">No things on the record yet.</div>`}</section></div>`;
   }
 
   // ---------- drawer ----------
@@ -144,20 +147,15 @@
     const cs = t.contracts.filter((c) => c.start && c.end && c.end > c.start);
     if (!cs.length) return "";
     const lo = cs.reduce((a, c) => (c.start < a ? c.start : a), cs[0].start), hi = cs.reduce((a, c) => (c.end > a ? c.end : a), cs[0].end);
-    const span = Math.max(1, days(lo, hi)), W = 520, x = (iso) => 8 + (Math.min(Math.max(days(lo, iso), 0), span) / span) * (W - 16);
-    const rows = cs.map((c, i) => {
-      const y = 22 + i * 30, past = today > c.start ? Math.min(x(today), x(c.end)) : x(c.start);
-      const left = c.end >= today ? monthsBetween(today, c.end) : 0;
-      return `<rect x="${x(c.start)}" y="${y}" width="${Math.max(2, x(c.end) - x(c.start))}" height="10" rx="5" fill="var(--accent-soft)"/>
-        <rect x="${x(c.start)}" y="${y}" width="${Math.max(0, past - x(c.start))}" height="10" rx="5" fill="var(--accent)"/>
-        <text x="${x(c.start)}" y="${y - 5}" font-size="11" fill="currentColor">${esc(c.product)}${c.end >= today ? ` · ${plural(left, "month")} left` : " · ended"}</text>`;
+    const span = Math.max(1, days(lo, hi)), pct = (iso) => (Math.min(Math.max(days(lo, iso), 0), span) / span) * 100;
+    const tp = pct(today);
+    const rows = cs.map((c) => {
+      const a = pct(c.start), b = pct(c.end), done = Math.max(0, Math.min(tp, b) - a), left = c.end >= today ? monthsBetween(today, c.end) : 0;
+      return `<div class="kx-th-tlrow"><span class="kx-th-tlname">${esc(c.product)}<small>${c.end >= today ? `${plural(left, "month")} left, ends ${esc(dayShort(c.end, today))}` : "ended"}</small></span>
+        <span class="kx-th-tltrack"><i class="kx-th-tlspan" style="left:${a.toFixed(1)}%;width:${Math.max(1, b - a).toFixed(1)}%"></i><i class="kx-th-tldone" style="left:${a.toFixed(1)}%;width:${done.toFixed(1)}%"></i></span></div>`;
     }).join("");
-    const H = 22 + cs.length * 30 + 18;
-    const tx = x(today);
-    return `<figure class="kx-th-tl"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Contract timeline from ${esc(day(lo))} to ${esc(day(hi))}, today marked">${rows}
-      <line x1="${tx}" x2="${tx}" y1="8" y2="${H - 16}" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="3 3"/>
-      <text x="${Math.min(W - 30, Math.max(30, tx))}" y="${H - 3}" font-size="11" text-anchor="middle" fill="var(--warn)">today</text>
-      <text x="8" y="${H - 3}" font-size="11" fill="var(--muted)">${esc(dayShort(lo))}</text><text x="${W - 8}" y="${H - 3}" font-size="11" text-anchor="end" fill="var(--muted)">${esc(dayShort(hi))}</text></svg></figure>`;
+    return `<figure class="kx-th-tl" role="img" aria-label="Contract timeline from ${esc(day(lo))} to ${esc(day(hi))}, today marked"><div class="kx-th-tlrows" style="--today:${tp.toFixed(1)}%">${rows}<span class="kx-th-tltoday" aria-hidden="true"><b>today</b></span></div>
+      <div class="kx-th-tlaxis"><span>${esc(dayShort(lo))}</span><span>${esc(dayShort(hi))}</span></div></figure>`;
   }
   function renderThing(m, id) {
     const t = m.byId[id]; if (!t) return "";

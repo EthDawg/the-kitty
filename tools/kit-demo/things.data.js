@@ -37,8 +37,8 @@ function thingsInput(snap, options) {
     const t = things.get(id), m = Math.round(perMonth(c) * 100) / 100;
     t.monthly = Math.round((t.monthly + m) * 100) / 100;
     if (t.owner !== c.owner) t.owner = "Joint";
-    t.contracts.push({ id: c.contract_id, product: c.name, provider: c.provider, monthly: m, cost: +c.amount, cadence: (c.cadence || "").toLowerCase(), start: c.start_date, end: c.end_date, nextDate: c.next_date, exit: 0, decision: decided.get(c.contract_id) || "", confidence: "Measured", source: `Contracts ${c.contract_id}` });
-    if (c.next_date && c.next_date >= asOf && (!t.nextDate || c.next_date < t.nextDate)) { t.nextDate = c.next_date; t.nextLabel = `${NEXT[c.contract_id] || "Next charge"}: ${c.name}`; }
+    t.contracts.push({ id: c.contract_id, product: c.name, provider: c.provider, monthly: m, cost: +c.amount, cadence: (c.cadence || "").toLowerCase(), start: c.start_date, end: c.end_date, nextDate: c.next_date, exit: 0, decision: decided.get(c.contract_id) || "", confidence: "Measured", source: "Contracts tab" });
+    // the module picks each thing's next date (renewals before routine charges) when the adapter leaves it blank
   }
   // decisions: one card per Decision ID, options in sheet order; the ref is a contract, so point it at that contract's thing
   const byId = new Map();

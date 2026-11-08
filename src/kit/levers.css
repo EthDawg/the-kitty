@@ -3,6 +3,7 @@
 .kx-lv-hero{display:grid;gap:2px}
 .kx-lv-k{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .kx-lv-date{font-family:var(--display);font-size:44px;font-weight:700;line-height:1.05;color:var(--ink)}
+.kx-lv-note{margin:6px 0 0;max-width:66ch;font-size:14px;color:var(--ink2);background:var(--amber-soft);border-radius:var(--r-sm);padding:8px 12px}
 .kx-lv-lede{margin:6px 0 0;max-width:66ch;color:var(--ink2);font-size:15px}
 .kx-lv-tl{position:relative;height:96px;margin:4px 6px 0}
 .kx-lv-axis{position:absolute;left:0;right:0;top:20px;height:2px;background:var(--line);border-radius:1px}

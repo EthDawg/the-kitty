@@ -72,7 +72,7 @@
     }
     return `<div class="kx-lv">
       <div class="kx-lv-hero"><span class="kx-lv-k">${esc(g.name)}</span><span class="kx-lv-date">${mon(m.plan)}</span>
-        <p class="kx-lv-lede">${g.target ? `${money(g.have || 0)} of ${money(g.target)}. ` : ""}${help}.${off}${g.recentDate ? ` At the last few months' pace alone: ${mon(g.recentDate)}.` : ""}</p></div>
+        <p class="kx-lv-lede">${g.target ? `${money(g.have || 0)} of ${money(g.target)}. ` : ""}${help}.${off}${g.recentDate ? ` At the last few months' pace alone: ${mon(g.recentDate)}.` : ""}</p>${g.note ? `<p class="kx-lv-note">${esc(g.note)}</p>` : ""}</div>
       ${tl}
       <div class="kx-lv-head"><span>Lever</span><span class="kx-lv-hscale"><em>← earlier</em><em>if switched</em><em>later →</em></span><span>Now</span></div>
       <ol class="kx-lv-rows">${m.rows.map((r) => row(r, m, pend)).join("")}</ol>
