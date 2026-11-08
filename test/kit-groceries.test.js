@@ -204,7 +204,7 @@ test("receipts list is latest first, and each receipt knows its bank match", () 
   assert.equal(m.receipt("R0042").match, "waiting");
   assert.equal(m.receipt("R0041").match, "outside");
   assert.equal(m.receipt("R0040").match, "matched");
-  assert.match(G.receiptHTML(m, "R0040"), /Matched to bank row T4207, 23 Jan\./);
+  assert.match(G.receiptHTML(m, "R0040"), /Matched to the charge on 23 Jan\./); assert.doesNotMatch(G.receiptHTML(m, "R0040"), /T4207/);
   assert.match(G.receiptHTML(m, "R0041"), /Paid by gift card, so no bank row\./);
 });
 

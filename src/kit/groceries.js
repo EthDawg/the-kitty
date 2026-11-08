@@ -69,7 +69,7 @@
     return {
       id: String(r.id == null ? "" : r.id).trim(), date, time: String(r.time || "").trim(), merchant: String(r.merchant || "").trim(), shop: shopName(r.merchant),
       store: String(r.store || "").trim(), channel: String(r.channel || "").trim(), person: String(r.person || "").trim(), items: num(r.items), total: num(r.total),
-      gst: num(r.gst), savings: num(r.savings), paidWith: String(r.paidWith || "").trim(), entryId: String(r.entryId == null ? "" : r.entryId).trim(),
+      gst: num(r.gst), savings: num(r.savings), paidWith: String(r.paidWith || "").trim(), entryId: String(r.entryId == null ? "" : r.entryId).trim(), entryDate: String(r.entryDate || "").trim(), entryAccount: String(r.entryAccount || "").trim(), entryAmount: num(r.entryAmount),
       source: String(r.source || "").trim(), sourceKind: String(r.sourceKind || "").trim(), check: String(r.check == null ? "" : r.check).trim(), note: String(r.note || "").trim(), lines: [],
     };
   }
@@ -301,7 +301,7 @@
     const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1];
     return `In ${MONTH[+m.outsideBank.month.slice(5, 7) - 1]}, ${list}, so your bank won't show it.`;
   }
-  const matchSentence = (r) => (r.match === "matched" ? `Matched to bank row ${r.entryId}, ${dShort(r.date)}.${/mixed/i.test(r.paidWith) ? " Part was paid another way, so the bank row is less than the total." : ""}`
+  const matchSentence = (r) => (r.match === "matched" ? `Matched to the ${r.entryAccount ? r.entryAccount + " " : ""}charge${r.entryAmount != null ? " of " + money2(Math.abs(r.entryAmount)) : ""} on ${dShort(r.entryDate || r.date)}.${/mixed/i.test(r.paidWith) ? " Part was paid another way, so the bank row is less than the total." : ""}`
     : r.match === "outside" ? (/gift/i.test(r.paidWith) ? "Paid by gift card, so no bank row." : /cash/i.test(r.paidWith) ? "Paid in cash, so no bank row." : `Paid ${paidPhrase(r.paidWith || "another way")}, so no bank row.`)
       : "Paid by card, but no bank row matches it yet. It should match after the next bank import.");
   const matchChip = (r) => (r.match === "matched" ? `<span class="kx-groc-chip good">Matched</span>` : r.match === "outside" ? `<span class="kx-groc-chip">No bank row</span>` : `<span class="kx-groc-chip amber">Not matched yet</span>`);
