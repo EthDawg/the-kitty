@@ -67,14 +67,15 @@ test("oracle: movers rank Shopping first with the sheet's growth figure", () => 
   assert.ok(mv[0].diff > 0 && mv[mv.length - 1].diff < 0, "increases first, decreases last");
 });
 
-test("verdict: the planted findings make it 'Worth a look.' with warnings first", () => {
+test("verdict: the planted findings make it 'Worth a look.', most serious first, then the larger amount", () => {
   const nd = E.needs(m);
   assert.equal(nd.verdict, "Worth a look.");
-  assert.ok(nd.items[0].warn);
+  assert.ok(nd.all.every((x, i) => i === 0 || nd.all[i - 1].rank <= x.rank), "ranked most serious first");
   assert.ok(nd.all.some((i) => /doubled/.test(i.t)));
   assert.ok(nd.all.some((i) => /Paramount\+ is still charging/.test(i.t)));
-  assert.ok(nd.all.some((i) => /tax claim/.test(i.t)));
-  assert.ok(nd.all.some((i) => /Emergency fund is behind/.test(i.t)));
+  assert.ok(nd.all.some((i) => /tax claims? to check before lodging/.test(i.t)));
+  const fund = nd.all.findIndex((i) => /Emergency fund is behind/.test(i.t)), leak = nd.all.findIndex((i) => /Paramount/.test(i.t));
+  assert.ok(fund >= 0 && fund < 4 && leak > fund, "a $120 leak never outranks a goal falling short");
   assert.equal(nd.items.length, 4);
 });
 

@@ -173,12 +173,13 @@ test("every historical row resolves: the sheet's Rules first (name and category 
   assert.ok(dt.filter((e) => !e.mer.unresolved && e.mer.cat === e.cat).length >= 870, "the dictionary's category agrees with the sheet on most rows");
 });
 
-for (const [name, sn, expect] of [["fixture everyday-only", everyday, { uncategorised: 3, duplicate: 3 }], ["fixture everyday+property", property, { uncategorised: 3, duplicate: 3 }], ["live v2 snapshot", live, { uncategorised: 3, duplicate: 3 }]]) {
-  test(`${name}: the review queue holds the sheet's three uncategorised rows and three possible doubles, nothing unpaired, nothing unknown`, () => {
+for (const [name, sn, expect] of [["fixture everyday-only", everyday, { uncategorised: 3, duplicate: 2 }], ["fixture everyday+property", property, { uncategorised: 3, duplicate: 2 }], ["live v2 snapshot", live, { uncategorised: 3, duplicate: 2 }]]) {
+  test(`${name}: the review queue holds the sheet's three uncategorised rows and two possible doubles (two receipted Qantas fares are two tickets), nothing unpaired, nothing unknown`, () => {
     const m = E.model(sn); const rv = E.review(m);
     assert.deepEqual(rv.counts, { uncategorised: expect.uncategorised, unresolved: 0, duplicate: expect.duplicate, unpaired: 0, first_big: 0 });
-    assert.deepEqual(rv.items.map((i) => i.id).sort(), ["T0413", "T0596", "T0687", "T0746", "T0761", "T0858"]);
-    assert.equal(rv.items.find((i) => i.id === "T0858").dupOf, "T0857");
+    assert.deepEqual(rv.items.map((i) => i.id).sort(), ["T0413", "T0596", "T0687", "T0746", "T0761"]);
+    assert.equal(rv.items.find((i) => i.id === "T0413").dupOf, "T0412");
+    assert.equal(m.dupesExplained.get("T0858"), "T0857", "the Qantas pair is kept as explained, not dropped");
     const uncat = rv.items.find((i) => i.id === "T0761"); assert.deepEqual(uncat.reasons, ["uncategorised"]); assert.ok(/needs a category/.test(uncat.why));
     const af = m.entries.filter((e) => e.desc === "Anytime Fitness"); assert.ok(m.firstSeen.has(af[0].id) && af.slice(1).every((e) => !m.firstSeen.has(e.id)), "the first visit to a merchant is marked once");
   });
@@ -221,12 +222,13 @@ test("EntryRow renders every kind: monogram letters in the brand hue, the catego
   const t5 = Kit.EntryRow(m.entryById.T0005, ctx); assert.match(t5, /bdg pair/); assert.match(t5, /Japan 2027 saver/); assert.match(t5, /amt num mv/);
   const trade = Kit.EntryRow(m.entries.find((e) => e.kind === "trade"), ctx); assert.match(trade, /25 units at \$48\.20/); assert.match(trade, /#i-shares/); assert.match(trade, /\+\$1,205/);
   const val = Kit.EntryRow(m.entryById.V0001, ctx); assert.match(val, /Family home, Brunswick/); assert.match(val, /value from an appraisal/); assert.match(val, /#i-property/); assert.match(val, /\$1,185,000/);
-  const dup = Kit.EntryRow(m.entryById.T0858, ctx); assert.match(dup, /possible double/); assert.match(dup, /needs review/);
+  const dup = Kit.EntryRow(m.entryById.T0413, ctx); assert.match(dup, /possible double/); assert.match(dup, /needs review/);
+  assert.ok(!/possible double/.test(Kit.EntryRow(m.entryById.T0858, ctx)), "a receipted second fare is not a double");
   assert.match(Kit.EntryRow(m.entryById.T0925, ctx), /#i-/);
   const refund = m.entries.find((e) => /REFUND/.test(e.raw)); assert.match(Kit.EntryRow(refund, ctx), /bdg refund/);
   const list = Kit.EntryList(m.entries.slice(-40).reverse(), ctx); assert.ok((list.match(/class="dayg"/g) || []).length >= 2); assert.match(list, /class="day"/);
   const card = Kit.ReviewCard(rv.items.find((i) => i.id === "T0761"), ctx); assert.match(card, /data-ract="pick" data-cat="DINING"/); assert.match(card, /data-ract="cat"/); assert.match(card, /k-fortune/); assert.match(card, /SQ \*MARKET LANE/);
-  const dcard = Kit.ReviewCard(rv.items.find((i) => i.id === "T0858"), ctx); assert.match(dcard, /data-ract="merge"/); assert.ok(!/k-fortune/.test(dcard), "a double has a rule, so no cookie");
+  const dcard = Kit.ReviewCard(rv.items.find((i) => i.id === "T0413"), ctx); assert.match(dcard, /data-ract="merge"/); assert.ok(!/k-fortune/.test(dcard), "a double has a rule, so no cookie");
   for (const e of m.entries.slice(0, 200)) assert.ok(!/undefined|NaN/.test(Kit.EntryRow(e, ctx)), e.id);
 });
 
@@ -491,4 +493,90 @@ test("Records: the generated view draws clean, every year and every trace", () =
   for (const key of ["generated", "proof", "years", "coverage", "things", "traces", "experimental"]) assert.ok(key in v, key);
   for (const y of v.years) clean(Records.RecordsYear(v, y.fy));
   for (const t of v.traces) clean(Records.RecordTrace(t, v));
+});
+
+// ---------- the public page audit (8 November 2026): each engine fix, on the Davies ledger ----------
+test("safety net: the Emergency fund goal over essential spending (the sheet's own metric), never all cash and offset", () => {
+  const m = E.model(live), sf = E.safety(m);
+  const ess = E.spend(m.tx, E.window("quarter", m.asOf), (t) => (m.catById[t.cat] || {}).essential).out / 3;
+  near(sf.essentialPm, ess, 0.01); near(sf.essentialPm, 7344.91, 0.01);
+  near(sf.months, m.metrics["emergency.months_covered"].num, 1e-9);
+  near(sf.months * sf.essentialPm, m.goals.find((g) => g.name === "Emergency fund").balance, 1);
+  assert.equal(sf.fund, "Emergency fund"); near(sf.held, 26902.84, 0.01);
+  near(sf.short, (6 - sf.months) * sf.essentialPm, 0.01); near(sf.short, 17166.60, 0.05);
+  assert.ok(sf.liquidMonths > 13 && sf.liquidMonths < 14, "cash and offset together cover far more than the fund alone");
+  assert.ok(sf.essentialPm < m.metrics["cashflow.spending.3m_avg"].num, "essential spending is less than all spending");
+});
+
+test("subscriptions: a premium adjustment is not a price, a refund is not a charge, and a travel policy is not the car policy", () => {
+  const m = E.model(live), by = (n) => m.subs.find((s) => s.service === n);
+  const bupa = by("Bupa health cover");
+  near(bupa.lowest, 398.2); near(bupa.latest, 419.35); near(bupa.riseEach, 21.15); near(bupa.riseYear, 253.8); assert.equal(bupa.riseCheck, false);
+  assert.equal(bupa.sheet.lowest, 31.2, "the sheet's figure is kept beside the page's"); assert.ok(bupa.adjustments.some((a) => a.amount === 31.2));
+  const pp = by("Paramount+");
+  near(pp.latest, 9.99); assert.equal(pp.lastCharged, "2027-01-19"); assert.equal(pp.refundedOn, "2027-01-24"); near(pp.annual, 119.88);
+  assert.ok(m.subs.every((s) => !(s.annual < 0) && !(s.latest < 0)), "no negative charge or annual cost anywhere");
+  const car = by("Car insurance");
+  near(car.latest, 1348); assert.equal(car.lastCharged, "2026-08-14"); near(car.annual, 1348);
+  const c11 = m.contracts.find((c) => c.name === "Car insurance"); near(c11.amount, 1348); assert.equal(c11.next, "2027-08-14"); assert.equal(c11.sheet.next, "2028-01-15");
+  const ctx = Kit.context(m), travel = m.entryById.T0903;
+  assert.equal(Kit.contractFor(travel, ctx), null, "ALLIANZ TRAVEL INSURANCE under Holidays matches no contract");
+  assert.equal(Kit.contractFor(m.entryById.T0654, ctx).name, "Car insurance");
+  // a jump of more than half is a question, not a saving
+  const jumped = E.model(Object.assign({}, live, { transactions: live.transactions.map((t) => (t.txn_id === "T0850" || /PREMIUM ADJ/.test(t.bank_description) ? { ...t, bank_description: "BUPA HEALTH INSURANCE" } : t)) }));
+  const b2 = jumped.subs.find((s) => s.service === "Bupa health cover"); assert.equal(b2.riseCheck, true); assert.equal(b2.riseYear, 0);
+  assert.ok(E.leaks(jumped).jumps.includes(b2) && !E.leaks(jumped).rises.includes(b2));
+});
+
+test("savings ideas: rebuilt from the checked rows, ranked by dollars, and the headline is their sum", () => {
+  const m = E.model(live), by = (re) => m.savings.find((s) => re.test(s.title)), lk = E.leaks(m);
+  near(by(/price rise/i).amount, 313.8); assert.equal(by(/price rise/i).sheet.amount, 4717.8);
+  assert.match(by(/price rise/i).shows, /Bupa health cover \$398\.20 to \$419\.35/);
+  near(by(/unused subscription/i).amount, 1349.16); near(by(/unused subscription/i).amount, lk.unusedYear + lk.stillYear);
+  near(lk.unusedYear, 1229.28); near(lk.stillYear, 119.88);
+  const d = by(/doubled/i); near(d.amount, 295.8); assert.equal(d.title, "Check charges that look doubled"); assert.equal(d.sheet.amount, 2713.8);
+  assert.ok(m.savings.every((s, i) => i === 0 || m.savings[i - 1].amount >= s.amount), "largest first");
+  near(m.savingsYear, m.savings.filter((s) => s.type === "Recurring").reduce((a, s) => a + s.amount, 0)); near(m.savingsYear, 7719.92, 0.01);
+  near(m.savingsOnce, 295.8);
+});
+
+test("duplicates: a same-day pair where each row holds a receipt or a note is two purchases; the check counts only the rest", () => {
+  const m = E.model(live);
+  assert.ok(!m.dupes.has("T0858")); assert.equal(m.dupesExplained.get("T0858"), "T0857");
+  const dc = m.checks.find((c) => /^Possible duplicate charges/.test(c.name));
+  assert.equal(dc.items, 2); near(dc.amount, 295.8); assert.deepEqual(dc.sheet, { items: 3, amount: 2713.8, status: "Review" });
+  assert.equal(dc.explained.length, 1); assert.equal(dc.explained[0].b.id, "T0858");
+  // a pair with one receipt and no notes is still a suspect
+  const one = E.model(Object.assign({}, live, { entries: live.entries.map((e) => (e.entry_id === "T0858" ? { ...e, receipt_held: null, note: null } : e)) }));
+  assert.equal(one.dupes.get("T0858"), "T0857");
+  assert.ok(E.review(m).items.every((i) => !/\b[TDR]\d{4}\b/.test(i.why)), "the reason names no internal ID");
+});
+
+test("needs: most serious first; a passed target date asks for no monthly amount; five distinct tax claims; the review queue is one need", () => {
+  const m = E.model(live), nd = E.needs(m);
+  assert.ok(nd.all.every((x, i) => i === 0 || nd.all[i - 1].rank <= x.rank));
+  const fund = nd.all[0]; assert.match(fund.t, /^Emergency fund passed its Dec 2026 target date$/); assert.equal(fund.amtNote, "to go"); near(fund.amt, 3097.16);
+  assert.match(fund.s, /Jun 2027/); assert.ok(!/a month until/.test(fund.s));
+  assert.equal(E.goalState(m.goals[0], m.asOf).passed, true);
+  const tax = nd.all.find((i) => /tax claim/.test(i.t)); assert.equal(tax.t, "Five tax claims to check before lodging");
+  assert.equal(E.taxClaims(m).rows.length, 5, "the laptop is one claim, not two");
+  assert.ok(nd.all.findIndex((i) => /Paramount/.test(i.t)) > 3, "a $120 leak is not in the first four");
+  assert.equal(nd.all.filter((i) => i.go === "review").length, 1);
+  assert.equal(nd.all.filter((i) => /safety|emergency fund covers/i.test(i.t)).length, 0, "the fund's months ride on its goal line, not a second need");
+  assert.ok(!nd.all.some((i) => /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{2}\b(?!\d)/.test(i.t + i.s)), "no Mon YY date");
+});
+
+test("formats: a month reads Jun 2027, never Jun 27; millions keep two decimals; lists keep cents", () => {
+  assert.equal(E.fmtMonth("2027-06-01", true), "Jun 2027"); assert.equal(E.fmtMonth("2027-06-01"), "June 2027");
+  assert.equal(E.fmtS(1454481.87), "$1.45m"); assert.equal(E.fmtS(2037000), "$2.04m"); assert.equal(E.fmtS(1100000), "$1.1m"); assert.equal(E.fmtS(354433.82), "$354k"); assert.equal(E.fmtS(26902.84), "$26.9k");
+  const m = E.model(live), ctx = Kit.context(m);
+  assert.match(Kit.EntryRow(m.entryById.T0857, ctx), /−\$2,418\.00/);
+  assert.match(Kit.EntryRow(m.entryById.T0297, ctx, { date: true }), /5 Jan 2026/, "a date outside the as-of year carries its year");
+});
+
+test("the rental: a repair at the review amount is a one-off line, not a monthly running cost", () => {
+  const m = E.model(live), p = E.property(m);
+  near(p.oneOffTotal, 12800); assert.equal(p.oneOffs[0].id, "T0518");
+  near(p.byCat.find((c) => c.cat === "RENT-REPAIR").pm, 2150 / 12, 0.01);
+  near(E.owed(m), 1111715.18); near(E.ownership(m).reduce((a, x) => a + x.v, 0) - E.owed(m), m.networth[m.networth.length - 1].total, 1);
 });

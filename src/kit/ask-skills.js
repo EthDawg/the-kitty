@@ -193,7 +193,7 @@
       links.push({go:"upcoming",label:"See the schedule"});
     }else{
       const items=E.review(m).items;title=items.length+" "+(items.length===1?"entry needs":"entries need")+" a look";basis="Review queue";source="Entries, Rules and Decisions · "+m.asOf;
-      for(const i of items.slice(0,3))links.push({go:"entry:"+i.id,label:i.id+" · "+i.why});
+      for(const i of items.slice(0,3))links.push({go:"entry:"+i.id,label:(i.entry.desc||i.entry.raw)+", "+E.fmtDay(i.entry.date,{year:true})+" · "+i.why});
       detail="Nothing changes until you choose a review action.";links.push({go:"review",label:"Open Review"});
     }
     return {ok:true,plan:p,title,basis,detail,source,facts,links,...(p.kind==="spending"?{rowCount:Number(facts[1].value)}:{})};
