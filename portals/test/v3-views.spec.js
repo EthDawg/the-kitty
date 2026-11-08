@@ -66,7 +66,7 @@ async function openLive(page, missing) {
     window.claude = { use: async (c) => (c === "mcp" ? mcp : c === "user" ? { isOwner: async () => true, me: async () => ({ name: "Fictional owner" }), id: async () => null } : null) };
   }, { tabs: household({ missing }), missing });
   await page.goto(url + "?noonb&noanim&layout=default");
-  await expect(page.locator("#trustpill")).toHaveText("Live · demo sheet");
+  await expect(page.locator("#trustpill")).toHaveText(/^Live demo · \d{1,2} \w{3} \d{4}$/);   // the pill carries the data date
 }
 
 test("a version 3 sheet opens Live with Things and Tax lit, and reading it writes nothing", async ({ page }) => {

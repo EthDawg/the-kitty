@@ -837,7 +837,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   // ----- Insights -----
   function renderInsights() {
     const m = S.m, v = $("#v-insights");
-    if (!m.tx.length) { v.innerHTML = `<div class="card" style="--i:0"><div class="cardhead"><span class="q">Insights</span></div><div class="empty">No transactions yet. Insights fill in once the sheet's Entries tab has a month of rows.</div></div>`; bindCommon(v); return; }
+    if (!m.tx.length) { v.innerHTML = `<div class="card" style="--i:0"><div class="cardhead"><span class="q">Insights</span></div><div class="empty">No transactions yet. Insights fill in once the sheet's Entries tab has a month of rows.</div></div><div id="grochost" style="--i:1" hidden></div>`; bindCommon(v); renderGroceries(); return; }   // receipts draw even before the first bank import
     const w = period(); const sp = E.spend(m.tx, w);
     const months = Math.max(1, E.monthsBetween(w.from, w.to) + 1);
     const prevW = { from: E.addMonths(w.from, -months), to: E.addMonths(w.to, -months) }; const prev = E.spend(m.tx, prevW); const pm = new Map(prev.byCat);

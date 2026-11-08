@@ -46,7 +46,7 @@ test("desktop: signals add widgets once with an undo; drag and resize survive a 
   await expect(cell(page, "things")).toHaveCount(1);
   // reset
   await page.getByRole("button", { name: "Back to the default" }).click();
-  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "upcoming"]);
+  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "decide"]);
   expect(errors).toEqual([]);
 });
 
@@ -84,7 +84,7 @@ test.describe("phone", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const lefts = await page.locator(".wcell").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().left))); expect(new Set(lefts).size).toBe(1);
     await page.getByRole("button", { name: "Arrange this page" }).click();
-    await page.getByRole("button", { name: "Move What's coming up up" }).click();
+    for (let k = (await ids(page)).indexOf("upcoming"); k > 1; k--) await page.getByRole("button", { name: "Move What's coming up up" }).click();
     expect((await ids(page)).slice(0, 3)).toEqual(["hero", "upcoming", "needs"]);
     await cell(page, "needs").scrollIntoViewIfNeeded();
     const h = await cell(page, "needs").locator(".whandle").boundingBox(), t = await cell(page, "upcoming").boundingBox();
@@ -203,7 +203,7 @@ test("Escape and a resize in mid-drag cost nothing, and leaving the arrange view
 test("a blocked GridStack offers no handle it cannot honour", async ({ page }) => {
   await page.route(/gridstack/, (r) => r.abort()); await open(page);
   await page.locator("#arrangebtn").click(); await expect(page.locator(".whandle").first()).toBeHidden();
-  await page.getByRole("button", { name: "Move What's coming up up" }).click();
+  for (let k = (await ids(page)).indexOf("upcoming"); k > 1; k--) await page.getByRole("button", { name: "Move What's coming up up" }).click();
   await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "upcoming", "needs"]);
 });
 
