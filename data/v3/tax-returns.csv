@@ -1,0 +1,11 @@
+Person,FY,Status,Taxable income,Tax on income,Medicare,Offsets,Withheld,Result,Lodged,Notice,Pack,Source,Note
+Jordan,FY23,Assessed,108340.0,25677.5,2166.8,0.0,27120.0,-724.3,2023-08-14,2023-08-29,,,
+Mia,FY23,Assessed,58910.0,9612.75,1178.2,116.35,11402.0,727.4,2023-08-14,2023-08-30,,,
+Jordan,FY24,Amended,114960.0,27829.0,2299.2,0.0,29310.0,-818.2,2024-09-02,2024-11-18,,,"Amended 18 Nov 2024: a $1,100 rental repair reclassed as capital works."
+Mia,FY24,Assessed,61480.0,10448.0,1229.6,77.8,12160.0,560.2,2024-09-02,2024-09-20,,,
+Jordan,FY25,Assessed,121420.0,27214.0,2428.4,0.0,31880.0,2237.6,2025-08-26,2025-09-09,,,
+Mia,FY25,Assessed,64210.0,10051.0,1284.2,36.85,13420.0,2121.65,2025-08-26,2025-09-10,,,
+Jordan,FY26,Assessed,127090.62,28915.19,2541.81,0.0,35148,3691.0,2026-09-04,2026-09-22,,,Lodged on the corrected figures: large repairs and receipt-less items taken out.
+Mia,FY26,Assessed,67166.7,10938.01,1343.33,0.0,15964,3682.66,2026-09-04,2026-09-23,,,
+Jordan,FY27,Estimate,133746.41,30643.92,2674.93,0.0,35929.71,2610.86,,,,,Projected from the year to 2027-01-31; the Tax Forecast tab owns it.
+Mia,FY27,Estimate,70904.97,11791.49,1418.1,0.0,16251.43,3041.84,,,,,Projected from the year to 2027-01-31; the Tax Forecast tab owns it.

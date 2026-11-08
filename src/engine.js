@@ -71,9 +71,10 @@
     if (n == null || !Number.isFinite(n)) return "—";
     const abs = Math.abs(n), sign = n < 0 ? "−" : o.plus && n > 0 ? "+" : "";
     if (o.short && abs >= 10000) {
-      const v = abs >= 1e6 ? abs / 1e6 : abs / 1e3, suf = abs >= 1e6 ? "m" : "k";
-      const digits = v >= 100 ? 0 : v >= 10 ? 1 : 1;
-      return sign + E.sym() + v.toFixed(digits).replace(/\.0$/, "") + suf;
+      // millions keep two decimals under $10m, so $1,454,482 reads $1.45m rather than rounding up to $1.5m
+      const mil = abs >= 999500, v = mil ? abs / 1e6 : abs / 1e3, suf = mil ? "m" : "k";
+      const digits = mil ? (v >= 10 ? 1 : 2) : v >= 100 ? 0 : 1;
+      return sign + E.sym() + v.toFixed(digits).replace(/\.0+$/, "").replace(/(\.\d)0$/, "$1") + suf;
     }
     const cents = o.cents != null ? o.cents : abs < 1000 && !o.whole;
     return sign + new Intl.NumberFormat(E.locale, { style: "currency", currency: E.currency, minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 }).format(abs).replace(/^[A-Z]{1,3}\s?/, (m) => (/[A-Z]{2,}/.test(m) ? "" : m));
@@ -83,7 +84,8 @@
   E.fmtS = (n) => E.fmt(n, { short: true, cents: false });
   E.fmtPct = (p, d = 0) => (p == null ? "—" : `${(p * 100).toFixed(d)}%`);
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  E.fmtMonth = (s, short) => { if (!s) return ""; const d = toD(E.date(s)); const m = MONTHS[d.getUTCMonth()]; return `${short ? m.slice(0, 3) : m} ${short ? String(d.getUTCFullYear()).slice(2) : d.getUTCFullYear()}`; };
+  // "June 2027", or "Jun 2027" short. Never "Jun 27": a two-digit year reads as a day of the month.
+  E.fmtMonth = (s, short) => { if (!s) return ""; const d = toD(E.date(s)); const m = MONTHS[d.getUTCMonth()]; return `${short ? m.slice(0, 3) : m} ${d.getUTCFullYear()}`; };
   E.fmtDay = (s, o = {}) => { if (!s) return ""; const d = toD(s); const day = d.getUTCDate(), m = MONTHS[d.getUTCMonth()].slice(0, 3); return o.year ? `${day} ${m} ${d.getUTCFullYear()}` : `${day} ${m}`; };
   E.weekday = (s) => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][toD(s).getUTCDay()];
   E.rel = (from, to) => { const n = E.daysBetween(from, to); if (n === 0) return "today"; if (n === 1) return "tomorrow"; if (n === -1) return "yesterday"; if (n > 0 && n < 14) return `in ${n} days`; if (n < 0 && n > -14) return `${-n} days ago`; if (n > 0 && n < 60) return `in ${Math.round(n / 7)} weeks`; if (n < 0 && n > -60) return `${Math.round(-n / 7)} weeks ago`; const m = Math.round(n / 30.4); return n > 0 ? `in ${m} months` : `${-m} months ago`; };
@@ -120,7 +122,7 @@
     const versions = kitty.filter(r => r && r[0] === "sheet_version");
     if (!requireV2 && !g.entries?.length && versions.every(r => ["1", "1.1"].includes(String(r[1])))) return;
     if (!kitty.some(r => r?.[0] === "Key" && r[1] === "Value") ||
-        versions.length !== 1 || String(versions[0][1]) !== "2") invalidLedger("The Kitty tab needs one sheet_version 2 setting.");
+        versions.length !== 1 || !["2", "3"].includes(String(versions[0][1]))) invalidLedger("The Kitty tab needs one sheet_version 2 or 3 setting.");   // 3 adds tabs and changes none
     for (const [k, name] of Object.entries({ accounts: "Accounts", category_list: "Categories", entries: "Entries",
                                              balances: "Balances", contracts: "Contracts", decisions: "Decisions", rules: "Rules" })) {
       if (g[k]?.[0]?.[0] !== HEAD[k]) invalidLedger(`Check the ${name} tab and its ${HEAD[k]} header.`);
@@ -187,7 +189,14 @@
 
   // ---------- the model: typed, cross-linked ----------
   const by = (f) => (a, b) => (f(a) < f(b) ? -1 : f(a) > f(b) ? 1 : 0);
-  E.model = (snap) => {
+  E.model = (snapIn) => {
+    // A tab that is not a list of rows reads as empty and is named in m.unreadable, so one malformed tab never blanks the page.
+    const unreadable = [], snap = {};
+    for (const [k, v] of Object.entries(snapIn || {})) {
+      if (Array.isArray(v)) { const rows = v.filter((r) => r && typeof r === "object"); if (rows.length < v.length) unreadable.push(k); snap[k] = rows; }
+      else if (v != null && !["fetchedAt", "household", "mortgage_inputs", "source"].includes(k)) { unreadable.push(k); snap[k] = []; }
+      else snap[k] = v;
+    }
     const kitty = {}; for (const r of snap.kitty || []) if (r.key) kitty[r.key] = r.value == null ? "" : String(r.value);
     E.dateOrder = ["US", "PH", "CA"].includes(String(kitty.country || "").toUpperCase()) && kitty.date_order !== "dmy" ? "mdy" : kitty.date_order === "mdy" ? "mdy" : "dmy";
     const settings = {}; for (const r of snap.settings || []) if (r.setting) settings[r.setting] = r.value;
@@ -227,16 +236,23 @@
       else if (d.decision === "split") { e.split = E.parseSplit(d.value); e.reviewed = true; }
       else if (d.decision === "worth_it") e.worth = String(d.value || "").toLowerCase();
     }
-    const firstSeen = new Set(), seenMerchant = new Set(), dupKey = new Map(), dupes = new Map();
+    const firstSeen = new Set(), seenMerchant = new Set(), dupGroups = new Map(), dupes = new Map(), dupesExplained = new Map();
     for (const e of entries) {
       e.flow = e.kind === "transaction" ? ((catById[e.cat] || {}).flow || "Expense") : e.kind;
       if (acctById[e.acct]) acctById[e.acct].entries.push(e);
       if (e.transferId && txById[e.id]) txById[e.id].transferId = e.transferId;
       if (e.kind === "transaction") {
         const name = e.desc || e.raw; if (name && !seenMerchant.has(name)) { seenMerchant.add(name); firstSeen.add(e.id); }
-        // the sheet's own duplicate check: same merchant, amount, account and day; the later row is the suspect
-        if (e.flow === "Expense") { const k = `${e.date}|${e.acct}|${name}|${e.amount}`; if (dupKey.has(k)) dupes.set(e.id, dupKey.get(k)); else dupKey.set(k, e.id); }
+        // the sheet's duplicate check: same merchant, amount, account and day; the later row is the suspect
+        if (e.flow === "Expense" && e.amount < 0) { const k = `${e.date}|${e.acct}|${name}|${e.amount}`; if (!dupGroups.has(k)) dupGroups.set(k, []); dupGroups.get(k).push(e); }
       }
+    }
+    // A pair is not a duplicate when someone has explained each row: every row holds its own receipt, or every row carries a note.
+    // Two Qantas fares on one day, each with a receipt and the note "Japan flights", are two tickets, not a double charge.
+    for (const g of dupGroups.values()) {
+      if (g.length < 2) continue;
+      const explained = g.every((e) => /^y/i.test(String(e.receipt || ""))) || g.every((e) => String(e.note || "").trim());
+      for (let i = 1; i < g.length; i++) (explained ? dupesExplained : dupes).set(g[i].id, g[0].id);
     }
     const balances = (snap.balances || []).map((b) => ({ month: E.date(b.month_end), acct: b.account_id, balance: E.num(b.balance), cls: b.class || "", method: String(b.method || "").toLowerCase(), status: String(b.status || "active").toLowerCase() })).filter((b) => b.month && b.acct);
     const contracts = (snap.contracts || []).map((c) => ({ id: c.contract_id, kind: String(c.kind || "").toLowerCase(), name: c.name, provider: c.provider || "", owner: c.owner || "", acct: c.account_id || "", cat: c.category_id || "", cadence: c.cadence || "Monthly", amount: E.num(c.amount), rate: E.pct(c.rate), start: E.date(c.start_date), end: E.date(c.end_date), next: E.date(c.next_date), lastUsed: E.date(c.last_used), lastUsedRaw: c.last_used, cover: c.cover || "", status: String(c.status || "active").toLowerCase(), note: c.note || "" })).filter((c) => c.id);
@@ -264,10 +280,75 @@
     const people = (kitty.people || "").split(",").map((s) => s.trim()).filter(Boolean);
     if (!people.length) for (const p of payslips) if (!people.includes(p.person)) people.push(p.person);
     const householdName = kitty.household_name || (settings.Household ? String(settings.Household).replace(/\s*\(.*\)\s*$/, "") : "This household");
-    const m = { asOf, settings, kitty, sheetVersion, householdName, people, cats, catById, accounts, acctById, tx, entries, entryById, balances, contracts, decisions, rules, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, firstSeen, dupes, fetchedAt: snap.fetchedAt || null };
+    // a contract's keep-or-cancel decision: the latest Decisions row for it
+    for (const d of decisions) if (d.refKind === "contract" && d.decision === "keep_or_cancel") { const c = contracts.find((x) => x.id === d.ref); if (c) c.decision = d.value; }
+    const m = { asOf, settings, kitty, sheetVersion, householdName, people, cats, catById, accounts, acctById, tx, entries, entryById, balances, contracts, decisions, rules, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, firstSeen, dupes, dupesExplained, unreadable, goalRows: (snap.goals || []).length, source: snap.source || null, fetchedAt: snap.fetchedAt || null };
     // every transaction carries its merchant resolution: the sheet's Rules first, then the dictionary, then a flagged fallback
     m.merMemo = new Map(); m.ruleIndex = null;
     for (const e of entries) if (e.kind === "transaction") { e.mer = E.merchant(e.raw || e.desc, m); const t = txById[e.id]; if (t) t.mer = e.mer; }
+    E.checkAgainstRows(m);
+    return m;
+  };
+
+  // ---------- the sheet's derived columns, checked against the rows they were made from ----------
+  // Where a derived column disagrees with its own rows, the rows win on the page and the sheet's figure is kept beside it, so a drawer
+  // can say what the sheet says and why the page differs. CHANGES.md (version 3, Fixes) carries the formula fix for each one.
+  const ADJ = /\b(?:ADJ|ADJUSTMENT|REFUND|REVERSAL|REVERSED)\b/i;
+  E.isAdjustment = (t) => ADJ.test(String((t && (t.desc || t.raw)) || ""));
+  // A Subscriptions row's charges: the same merchant and, when the row names one, the same category. Allianz sells car and travel
+  // insurance; a travel policy filed under Holidays is not the car policy's renewal.
+  E.subRows = (m, s) => m.tx.filter((t) => t.flow !== "Transfer" && (t.merchant === s.merchant || (t.mer && t.mer.name === s.merchant)) && (!s.cat || t.cat === s.cat));
+  E.checkSub = (m, s) => {
+    const rows = E.subRows(m, s), charges = rows.filter((t) => t.amount < 0 && !E.isAdjustment(t));
+    if (!charges.length) return s;
+    const was = { latest: s.latest, lastCharged: s.lastCharged, lowest: s.lowest, riseEach: s.riseEach, riseYear: s.riseYear, annual: s.annual };
+    const look = E.num(m.settings["Look-back for subscription price rises (months)"]) || 15;
+    const minRise = E.pct(m.settings["Smallest price change counted as a rise"]) != null ? E.pct(m.settings["Smallest price change counted as a rise"]) : 0.03;
+    const last = charges[0], latest = -last.amount, from = E.addMonths(m.asOf, -look);
+    const inLook = charges.filter((t) => t.date > from).map((t) => -t.amount), lowest = inLook.length ? Math.min(...inLook) : latest;
+    const perYear = s.perYear || Math.round(12 / E.cadenceMonths(s.cadence));
+    const rise = latest - lowest, counts = lowest > 0 && rise / lowest >= minRise - 1e-9;
+    s.latest = latest; s.lastCharged = last.date; s.lowest = lowest; s.riseEach = counts ? Math.round(rise * 100) / 100 : 0;
+    // a jump of more than half is a question, not a saving: it is usually a different product or a one-off
+    s.riseCheck = counts && rise / lowest > 0.5;
+    s.riseYear = counts && !s.riseCheck && !/cancel/i.test(s.decision) ? Math.round(rise * perYear * 100) / 100 : 0;
+    if (!/^cancelled/i.test(s.flag)) s.annual = Math.round(latest * perYear * 100) / 100;
+    const refund = rows.find((t) => t.amount > 0 && t.date >= last.date); s.refundedOn = refund ? refund.date : null; s.refund = refund ? refund.amount : null;
+    s.adjustments = rows.filter((t) => t.amount < 0 && E.isAdjustment(t)).map((t) => ({ date: t.date, amount: -t.amount, desc: t.desc }));
+    s.sheet = was; s.fixed = Object.keys(was).filter((k) => (typeof was[k] === "number" ? Math.abs(was[k] - (s[k] || 0)) > 0.005 : was[k] !== s[k]));
+    return s;
+  };
+  // pairs that still look doubled, oldest row first, with the amount at stake (the later row of each pair)
+  E.dupePairs = (m, map) => [...(map || m.dupes).entries()].map(([id, of]) => ({ a: m.entryById[of], b: m.entryById[id] })).filter((p) => p.a && p.b).sort((x, y) => (x.b.date < y.b.date ? 1 : -1));
+  E.checkAgainstRows = (m) => {
+    for (const s of m.subs) E.checkSub(m, s);
+    // a contract follows its Subscriptions row when the rows moved its charge
+    for (const c of m.contracts) {
+      if (!["subscription", "insurance", "bill"].includes(c.kind)) continue;
+      const s = m.subs.find((x) => x.service === c.name); if (!s || !s.fixed || !s.fixed.length) continue;
+      const next = E.nextCharge(s, m.asOf); c.sheet = { amount: c.amount, next: c.next };
+      if (s.latest > 0) c.amount = s.latest; if (c.next && next) c.next = next;
+    }
+    // the duplicate check counts only pairs nobody has explained
+    const dc = m.checks.find((c) => /^Possible duplicate charges/.test(c.name));
+    if (dc) {
+      const pairs = E.dupePairs(m), amount = Math.round(pairs.reduce((a, p) => a - p.b.amount, 0) * 100) / 100;
+      if (pairs.length !== dc.items || Math.abs(amount - (dc.amount || 0)) > 0.005) { dc.sheet = { items: dc.items, amount: dc.amount, status: dc.status }; dc.items = pairs.length; dc.amount = amount; dc.status = pairs.length ? "Review" : "OK"; dc.explained = E.dupePairs(m, m.dupesExplained); }
+    }
+    // the savings ideas built on those columns, rebuilt from the checked figures
+    const lk = E.leaks(m), dupes = E.dupePairs(m), look = E.num(m.settings["Look-back for subscription price rises (months)"]) || 15;
+    const fix = (s, amount, shows, why) => { if (Math.abs((s.amount || 0) - amount) > 0.005) { s.sheet = { amount: s.amount, shows: s.shows, why }; s.amount = Math.round(amount * 100) / 100; if (shows) s.shows = shows; } };
+    const adj = m.subs.filter((x) => x.sheet && x.fixed.includes("lowest") && x.adjustments && x.adjustments.length).map((x) => x.service);
+    const refunded = m.subs.filter((x) => x.sheet && x.refundedOn && x.fixed.includes("annual")).map((x) => x.service);
+    const explained = E.dupePairs(m, m.dupesExplained);
+    for (const s of m.savings) {
+      if (/price rise/i.test(s.title)) fix(s, lk.risesYear, lk.rises.length ? `${E.cap(E.words(lk.rises.length))} bill${lk.rises.length === 1 ? "" : "s"} you keep rose in price in the last ${look} months: ${lk.rises.map((x) => `${x.service} ${E.fmt(x.lowest, { cents: true })} to ${E.fmt(x.latest, { cents: true })}`).join(", ")}.` : "", adj.length ? `it read a premium adjustment on ${adj.join(" and ")} as a price` : "");
+      else if (/unused subscription/i.test(s.title)) fix(s, lk.unusedYear + lk.stillYear, "", refunded.length ? `it read the refund on ${refunded.join(" and ")} as a negative charge` : "");
+      else if (/duplicate/i.test(s.title)) { fix(s, dupes.reduce((a, p) => a - p.b.amount, 0), `${E.cap(E.words(dupes.length))} pair${dupes.length === 1 ? "" : "s"} of identical charges on the same day, with no receipt or note on each.`, explained.length ? `it counted ${explained.map((p) => `two ${p.b.desc} charges on ${E.fmtDay(p.b.date, { year: true })}, each with a receipt`).join(" and ")}` : ""); if (s.sheet) s.title = "Check charges that look doubled"; }
+    }
+    m.savings = m.savings.filter((s) => (s.amount || 0) >= 1).sort((a, b) => (b.amount || 0) - (a.amount || 0));
+    m.savingsYear = m.savings.filter((s) => s.type === "Recurring").reduce((a, s) => a + (s.amount || 0), 0);
+    m.savingsOnce = m.savings.filter((s) => s.type === "One-off").reduce((a, s) => a + (s.amount || 0), 0);
     return m;
   };
 
@@ -371,12 +452,21 @@
   };
 
   // ---------- safety net, goals, forecasts ----------
+  // Essential spending a month: the categories marked Essential on the Categories tab, over the last three months, divided by three.
+  // This is the sheet's own denominator for emergency cover (Metrics: the Emergency fund goal's balance over this figure).
+  E.essentialPm = (m) => { const w = E.window("quarter", m.asOf); const s = E.spend(m.tx, w, (t) => !!(m.catById[t.cat] || {}).essential); return s.count ? s.out / 3 : null; };
+  // The safety net is the Emergency fund goal measured in months of essential spending. The months come from the sheet's metric;
+  // the money is the goal's balance; "short" is what would reach the target. Cash and offset together are a different, larger figure.
   E.safety = (m) => {
     const target = E.num(m.settings["Emergency fund target (months of essential spending)"]) || (m.metrics["emergency.months_covered"] && m.metrics["emergency.months_covered"].comp) || 6;
-    const months = m.metrics["emergency.months_covered"] ? m.metrics["emergency.months_covered"].num : null;
+    const fund = m.goals.find((g) => /^emergency fund$/i.test(String(g.name || "").trim())) || null;
+    const essentialPm = E.essentialPm(m);
+    const metric = m.metrics["emergency.months_covered"];
+    const months = metric && metric.num != null ? metric.num : fund && essentialPm ? (fund.balance || 0) / essentialPm : null;
+    const held = fund ? fund.balance || 0 : months != null && essentialPm ? months * essentialPm : null;
     const liquid = m.accounts.filter((a) => a.liquid && a.type !== "Credit card").reduce((s, a) => s + (a.balance || 0), 0);
-    const essentialPm = months ? liquid / months : null;
-    return { months, target, liquid, essentialPm, short: months != null && essentialPm ? Math.max(0, (target - months) * essentialPm) : null, pct: months != null ? Math.min(1, months / target) : null };
+    return { months, target, held, fund: fund ? fund.name : null, acct: fund ? fund.acct : null, essentialPm, liquid, liquidMonths: essentialPm ? liquid / essentialPm : null,
+      short: months != null && essentialPm ? Math.max(0, (target - months) * essentialPm) : null, pct: months != null ? Math.min(1, months / target) : null };
   };
   E.goalEta = (g, extraPm = 0, asOf) => {
     const left = Math.max(0, (g.target || 0) - (g.balance || 0)), pace = (g.savedPm || 0) + extraPm;
@@ -392,41 +482,84 @@
   E.leaks = (m) => {
     const unused = m.subs.filter((s) => /unused|never/i.test(s.flag) && !/cancel/i.test(s.decision));
     const stillCharging = m.subs.filter((s) => /still charging/i.test(s.flag));
-    const rises = m.subs.filter((s) => (s.riseYear || 0) > 0 && !/cancel/i.test(s.decision));
+    const rises = m.subs.filter((s) => (s.riseYear || 0) > 0 && !/cancel/i.test(s.decision)).sort((a, b) => b.riseYear - a.riseYear);
+    const jumps = m.subs.filter((s) => s.riseCheck && !/cancel/i.test(s.decision));
     const review = m.subs.filter((s) => /review/i.test(s.decision));
-    const sum = (xs, f) => xs.reduce((a, x) => a + (f(x) || 0), 0);
-    return { unused, stillCharging, rises, review, unusedYear: sum(unused, (s) => s.annual), stillYear: sum(stillCharging, (s) => s.annual), risesYear: sum(rises, (s) => s.riseYear), total: m.subs.filter((s) => !/cancel/i.test(s.decision) || /still charging/i.test(s.flag)).reduce((a, s) => a + (s.annual || 0), 0) };
+    const sum = (xs, f) => xs.reduce((a, x) => a + Math.max(0, f(x) || 0), 0);
+    return { unused, stillCharging, rises, jumps, review, unusedYear: sum(unused, (s) => s.annual), stillYear: sum(stillCharging, (s) => s.annual), risesYear: sum(rises, (s) => s.riseYear), total: m.subs.filter((s) => !/cancel/i.test(s.decision) || /still charging/i.test(s.flag)).reduce((a, s) => a + Math.max(0, s.annual || 0), 0) };
+  };
+
+  // ---------- the rows behind each of the sheet's checks ----------
+  const CHECK_ROWS = {
+    "Work expenses without a receipt": (t) => /^WORK-/.test(t.cat) && !/^y/i.test(t.receipt),
+    "Work equipment over the immediate-deduction limit": (t, m) => t.cat === "WORK-EQUIP" && Math.abs(t.amount) > (E.num(m.settings["Work items above this amount are depreciated, not claimed outright ($)"]) || 300),
+    "Large rental repairs": (t, m) => t.cat === "RENT-REPAIR" && Math.abs(t.amount) >= (E.num(m.settings["Rental repair amount that triggers a repair-or-improvement review ($)"]) || 5000),
+    "Donations without a receipt": (t) => t.cat === "DONATION" && !/^y/i.test(t.receipt),
+    "Uncategorised transactions": (t) => t.cat === "UNCAT",
+    "Card interest charged (last 12 months)": (t) => t.cat === "FEES" && /interest/i.test(t.desc),
+  };
+  // the transactions a check is about, or null when the page does not know how the check picks its rows
+  E.checkRows = (m, c) => { const f = c && CHECK_ROWS[c.name]; if (c && /^Possible duplicate charges/.test(c.name)) return E.dupePairs(m).flatMap((p) => [p.a, p.b]).map((e) => m.tx.find((t) => t.id === e.id)).filter(Boolean); return f ? m.tx.filter((t) => f(t, m)) : null; };
+  // "Five tax claims to check before lodging": distinct rows across the tax checks marked Review, so one laptop is one claim
+  E.taxClaims = (m) => {
+    const checks = m.checks.filter((c) => c.type === "Tax" && c.status === "Review"), rows = new Map();
+    for (const c of checks) for (const t of E.checkRows(m, c) || []) { if (!rows.has(t.id)) rows.set(t.id, { t, checks: [] }); rows.get(t.id).checks.push(c.name); }
+    const known = checks.every((c) => CHECK_ROWS[c.name]);
+    return { checks, rows: [...rows.values()], count: known ? rows.size : checks.reduce((a, c) => a + c.items, 0) };
+  };
+
+  // ---------- goals against the as-of date ----------
+  // A target date before the as-of date has passed: the page never asks for a monthly amount to hit a date that has gone.
+  E.goalState = (g, asOf) => {
+    const left = Math.max(0, (g.target || 0) - (g.balance || 0)), reached = /reached/i.test(g.status) || (g.target > 0 && left <= 0);
+    const passed = !reached && !!g.date && g.date < asOf;
+    return { left, reached, passed, behind: !reached && !passed && /behind/i.test(g.status), eta: E.goalEta(g, 0, asOf) };
   };
 
   // ---------- the verdict and the one list of what needs a person ----------
+  // Most serious first: the data is incomplete, a goal whose date has passed, money at risk on a check, a goal behind, a bill soon,
+  // money leaking, spending over budget, then housekeeping. Within a rank, the larger amount (a month counts twelve times) comes first.
   E.needs = (m) => {
     const items = [];
     const push = (x) => items.push(x);
     const ck = (name) => m.checks.find((c) => c.name.startsWith(name));
     const close = m.metrics["close.items_missing"];
-    if (close && close.num > 0) push({ em: "📥", t: `${E.words(close.num)} month-end item${close.num > 1 ? "s are" : " is"} missing`, s: "Valuations, payslips or a bank import have not landed, so some numbers are provisional.", warn: true, go: "setup", amt: null });
-    const dup = ck("Possible duplicate charges");
-    if (dup && dup.status === "Review" && dup.items) push({ em: "👯", t: `${E.words(dup.items)} charge${dup.items > 1 ? "s look" : " looks"} doubled`, s: "Same merchant, amount, account and day. Usually worth a dispute.", warn: true, go: "dupes", amt: dup.amount, amtNote: "to recover" });
-    const lk = E.leaks(m);
-    for (const s of lk.stillCharging) push({ em: "🧟", t: `${s.service} is still charging after you cancelled`, s: `Last charged ${E.fmtDay(s.lastCharged)} · ${E.fmt(s.latest)} ${String(s.cadence).toLowerCase()}`, warn: true, go: "sub:" + s.service, amt: s.annual, amtNote: "a year" });
-    const taxItems = m.checks.filter((c) => c.type === "Tax" && c.status === "Review");
-    const risk = m.metrics["tax.refund_at_risk.prior_year"];
-    if (taxItems.length) push({ em: "🧾", t: `${E.words(taxItems.reduce((a, c) => a + c.items, 0))} tax claim${taxItems.length > 1 ? "s need" : " needs"} evidence`, s: `${E.fmt0(risk ? risk.num : null)} of the expected refund rests on them. ${taxItems[0].why}`, warn: false, go: "checks", amt: risk ? risk.num : null, amtNote: "at risk" });
-    const interest = ck("Card interest charged");
-    if (interest && interest.status === "Review") push({ em: "💳", t: "The card charged interest this year", s: interest.why, warn: false, go: "cat:FEES", amt: interest.amount, amtNote: "interest" });
-    if (lk.unused.length) push({ em: "😴", t: `${E.words(lk.unused.length)} subscription${lk.unused.length > 1 ? "s haven't" : " hasn't"} been used in months`, s: lk.unused.map((s) => s.service).join(", "), warn: false, go: "subs", amt: lk.unusedYear, amtNote: "a year" });
-    const behind = m.goals.filter((g) => /behind/i.test(g.status));
-    for (const g of behind.slice(0, 2)) push({ em: E.goalIcon(g.name), t: `${g.name} is behind pace`, s: `Needs ${E.fmt0(g.needPm)} a month until ${E.fmtMonth(g.date, true)}; the last 3 months put in ${E.fmt0(g.savedPm)}.`, warn: false, go: "goal:" + g.name, amt: g.needPm - g.savedPm, amtNote: "a month short" });
-    const sf = E.safety(m);
-    if (sf.months != null && sf.months < sf.target) push({ em: "🛟", t: `Safety net covers ${sf.months.toFixed(1)} of ${sf.target} months`, s: `About ${E.fmtS(sf.short)} more in cash would reach the target you set.`, warn: false, go: "safety", amt: null });
-    const over = m.budget.filter((b) => /over/i.test(b.status));
-    if (over.length) push({ em: "📈", t: `${over.length === 1 ? over[0].name + " is" : over.length === 2 ? `${over[0].name} and ${over[1].name} are` : `${over.length} categories are`} over budget this year`, s: over.slice(0, 3).map((b) => `${b.name} ${E.fmtPct(b.used)}`).join(" · "), warn: false, go: "budget", amt: -over.reduce((a, b) => a + (b.left || 0), 0), amtNote: "over so far" });
-    const uncat = ck("Uncategorised transactions");
-    if (uncat && uncat.items) push({ em: "🏷️", t: `${E.words(uncat.items)} transaction${uncat.items > 1 ? "s need" : " needs"} a category`, s: "Left out of budgets and tax totals until someone names them.", warn: false, go: "cat:UNCAT", amt: uncat.amount });
+    if (close && close.num > 0) push({ rank: 1, em: "📥", t: `${E.words(close.num)} month-end item${close.num > 1 ? "s are" : " is"} missing`, s: "Valuations, payslips or a bank import have not landed, so some numbers are provisional.", warn: true, go: "setup", amt: null });
+    const sf = E.safety(m), sfShort = sf.months != null && sf.months < sf.target;
+    const sfLine = sfShort ? ` It covers ${sf.months.toFixed(1)} of the ${sf.target} months of essential spending you want (about ${E.fmtS(sf.short)} short).` : "";
+    let sfTold = false;
+    for (const g of m.goals) {
+      const st = E.goalState(g, m.asOf), isFund = sf.fund && g.name === sf.fund; if (st.reached) continue;
+      const pace = st.eta.date ? ` At ${E.fmt0(g.savedPm)} a month it gets there in ${E.fmtMonth(st.eta.date, true)}.` : " Nothing has gone in for three months.";
+      if (st.passed) { push({ rank: 2, em: E.goalIcon(g.name), t: `${g.name} passed its ${E.fmtMonth(g.date, true)} target date`, s: `${E.fmt0(st.left)} to go.${pace}${isFund ? sfLine : ""}`, warn: false, go: "goal:" + g.name, amt: st.left, amtNote: "to go" }); if (isFund) sfTold = true; }
+      else if (st.behind) { push({ rank: 4, em: E.goalIcon(g.name), t: `${g.name} is behind pace`, s: `Needs ${E.fmt0(g.needPm)} a month until ${E.fmtMonth(g.date, true)}; the last 3 months put in ${E.fmt0(g.savedPm)} a month.${isFund ? sfLine : ""}`, warn: false, go: "goal:" + g.name, amt: Math.max(0, (g.needPm || 0) - (g.savedPm || 0)), amtNote: "a month short", monthly: true }); if (isFund) sfTold = true; }
+    }
+    if (sfShort && !sfTold) push({ rank: 4, em: "🛟", t: `The emergency fund covers ${sf.months.toFixed(1)} of ${sf.target} months`, s: `Essential spending is about ${E.fmt0(sf.essentialPm)} a month. About ${E.fmtS(sf.short)} more would reach the ${sf.target} months you set.`, warn: false, go: "safety", amt: sf.short, amtNote: "short" });
+    const tc = E.taxClaims(m), risk = m.metrics["tax.refund_at_risk.prior_year"];
+    if (tc.checks.length && tc.count) push({ rank: 3, em: "🧾", t: `${E.cap(E.words(tc.count))} tax claim${tc.count > 1 ? "s" : ""} to check before lodging`, s: `${risk && risk.num != null ? `${E.fmt0(risk.num)} of the expected refund rests on them. ` : ""}Some lack a receipt; some may need to be claimed differently.`, warn: false, go: "checks", amt: risk ? risk.num : null, amtNote: "at risk" });
+    const dupes = E.dupePairs(m).filter((p) => !p.b.reviewed);
+    if (dupes.length) push({ rank: 3, em: "👯", t: `${E.cap(E.words(dupes.length))} charge${dupes.length > 1 ? "s look" : " looks"} doubled`, s: "Same merchant, amount, account and day, with no receipt or note on each. Check whether these are two purchases.", warn: true, go: "dupes", amt: dupes.reduce((a, p) => a - p.b.amount, 0), amtNote: "to check" });
     const bigAt = E.num(m.kitty.big_bill_amount) || 500;
-    const big = E.upcoming(m, 14).filter((u) => u.kind === "bill" && -u.amount >= bigAt);
-    for (const u of big) push({ em: "📅", t: `${u.title} is due ${E.rel(m.asOf, u.date)}`, s: u.sub, warn: false, go: "upcoming", amt: -u.amount });
-    items.sort((a, b) => (b.warn === true) - (a.warn === true));
+    for (const u of E.upcoming(m, 14).filter((u) => u.kind === "bill" && -u.amount >= bigAt)) push({ rank: 5, em: "📅", t: `${u.title} is due ${E.rel(m.asOf, u.date)}`, s: `${E.fmtDay(u.date, { year: true })} · ${u.sub}`, warn: false, go: "upcoming", amt: -u.amount });
+    const lk = E.leaks(m);
+    for (const s of lk.stillCharging) push({ rank: 6, em: "🧟", t: `${s.service} is still charging after you cancelled`, s: `Last charged ${E.fmtDay(s.lastCharged)}, ${E.fmt(s.latest, { cents: true })} ${String(s.cadence).toLowerCase()}${s.refundedOn ? `, refunded ${E.fmtDay(s.refundedOn)}` : ""}.`, warn: true, go: "sub:" + s.service, amt: s.annual, amtNote: "a year" });
+    const interest = ck("Card interest charged");
+    if (interest && interest.status === "Review") push({ rank: 6, em: "💳", t: "The card charged interest this year", s: interest.why, warn: false, go: "cat:FEES", amt: interest.amount, amtNote: "interest" });
+    const over = m.budget.filter((b) => /over/i.test(b.status));
+    if (over.length) push({ rank: 7, em: "📈", t: `${over.length === 1 ? over[0].name + " is" : over.length === 2 ? `${over[0].name} and ${over[1].name} are` : `${E.cap(E.words(over.length))} categories are`} over budget this year`, s: over.slice(0, 3).map((b) => `${b.name} ${E.fmtPct(b.used)}`).join(" · "), warn: false, go: "budget", amt: -over.reduce((a, b) => a + (b.left || 0), 0), amtNote: "over so far" });
+    if (lk.unused.length) push({ rank: 8, em: "😴", t: `${E.cap(E.words(lk.unused.length))} subscription${lk.unused.length > 1 ? "s haven't" : " hasn't"} been used in months`, s: lk.unused.map((s) => s.service).join(", "), warn: false, go: "subs", amt: lk.unusedYear, amtNote: "a year" });
+    // the review queue, less the doubles above: one need, not a banner above the list
+    const rv = m.sheetVersion >= 2 ? E.review(m) : { items: [] }, rest = rv.items.filter((i) => i.reasons.some((r) => r !== "duplicate"));
+    const uncat = ck("Uncategorised transactions");
+    if (m.sheetVersion < 2 && uncat && uncat.items) push({ rank: 9, em: "🏷️", t: `${E.cap(E.words(uncat.items))} transaction${uncat.items > 1 ? "s need" : " needs"} a category`, s: "They stay out of budgets and tax totals until someone names them.", warn: false, go: "cat:UNCAT", amt: uncat.amount });
+    if (rest.length) {
+      const c = {}; for (const i of rest) for (const r of i.reasons) if (r !== "duplicate") c[r] = (c[r] || 0) + 1;
+      const only = Object.keys(c).length === 1 && c.uncategorised, n = rest.length, N = E.cap(E.words(n));
+      push({ rank: 9, em: "🏷️", t: only ? `${N} ${n === 1 ? "entry needs" : "entries need"} a category` : `${N} ${n === 1 ? "entry needs" : "entries need"} a look`,
+        s: only ? "They stay out of budgets and tax totals until someone names them. One or two taps each." : `${Object.entries(c).map(([r, k]) => `${k} ${{ uncategorised: "with no category", unresolved: "from a merchant no rule knows", unpaired: `transfer${k === 1 ? "" : "s"} with no other side`, first_big: `first big bill${k === 1 ? "" : "s"}` }[r] || r}`).join(" · ")}. One or two taps each.`, warn: false, go: "review", amt: null });
+    }
+    const yearly = (i) => Math.abs(i.amt || 0) * (i.monthly ? 12 : 1);
+    items.sort((a, b) => a.rank - b.rank || yearly(b) - yearly(a));
     const n = items.length;
     const verdict = items.some((i) => i.warn) ? "Worth a look." : n ? "Mostly on track." : "On track.";
     const line = !n ? "Nothing needs you today." : n === 1 ? "One thing needs you." : `${E.cap(E.words(n))} things need you.${n > 4 ? " The first four are here." : ""}`;
@@ -434,13 +567,20 @@
   };
 
   // ---------- property, net worth ----------
+  // The rental over the last 12 months. A repair at or above the sheet's review amount is a one-off on its own line (it may be a
+  // capital improvement, which the tax checks flag), so it never reads as a monthly running cost.
   E.property = (m) => {
     const w = E.window("year", m.asOf); const rentIn = E.spend(m.tx, w, (t) => t.cat === "RENT-INC").in;
-    const costs = E.spend(m.tx, w, (t) => /^RENT-/.test(t.cat) && t.cat !== "RENT-INC");
+    const reviewAt = E.num(m.settings["Rental repair amount that triggers a repair-or-improvement review ($)"]) || 5000;
+    const oneOff = (t) => t.cat === "RENT-REPAIR" && -t.amount >= reviewAt;
+    const oneOffs = m.tx.filter((t) => E.inWin(t, w) && t.flow === "Expense" && oneOff(t));
+    const costs = E.spend(m.tx, w, (t) => /^RENT-/.test(t.cat) && t.cat !== "RENT-INC" && !oneOff(t));
     const loan = m.loans.find((l) => l.purpose === "Investment");
-    return { rentPm: rentIn / 12, costPm: costs.out / 12, netPm: (rentIn - costs.out) / 12, byCat: costs.byCat.map(([c, v]) => ({ cat: c, name: (m.catById[c] || {}).name || c, pm: v / 12 })), loan, asset: m.assets.find((a) => a.id === "RENTAL"), value: (m.networth[m.networth.length - 1] || {}).property };
+    return { rentPm: rentIn / 12, costPm: costs.out / 12, netPm: (rentIn - costs.out) / 12, oneOffs, oneOffTotal: -oneOffs.reduce((a, t) => a + t.amount, 0), reviewAt, byCat: costs.byCat.map(([c, v]) => ({ cat: c, name: (m.catById[c] || {}).name || c, pm: v / 12 })), loan, asset: m.assets.find((a) => a.id === "RENTAL"), value: (m.networth[m.networth.length - 1] || {}).property };
   };
-  E.ownership = (m) => { const n = m.networth[m.networth.length - 1]; if (!n) return []; return [["Property", n.property, "var(--c-loan)"], ["Super", n.super, "var(--accent)"], ["Cash", n.cash, "var(--c-in)"], ["Shares", n.shares, "var(--c-kept)"], ["Vehicle", n.vehicle, "var(--c-move)"]].filter((x) => x[1] > 0).map(([k, v, c]) => ({ k, v, c })); };
+  // What the household owns, by class, from the latest Net Worth row; loans are what it owes. Owned less owed is net worth.
+  E.ownership = (m) => { const n = m.networth[m.networth.length - 1]; if (!n) return []; return [["Property", n.property, "var(--c-prop)"], ["Super", n.super, "var(--accent)"], ["Cash", n.cash, "var(--c-in)"], ["Shares", n.shares, "var(--c-kept)"], ["Things", n.vehicle, "var(--c-move)"]].filter((x) => x[1] > 0).map(([k, v, c]) => ({ k, v, c })); };
+  E.owed = (m) => { const n = m.networth[m.networth.length - 1]; return n && n.loans != null ? Math.abs(n.loans) : 0; };
 
   // ---------- search ----------
   E.parseQuery = (q, m) => {
@@ -700,7 +840,7 @@
     items.sort((a, b) => (a.entry.date < b.entry.date ? 1 : a.entry.date > b.entry.date ? -1 : 0));
     return { items, counts, byId: new Set(items.map((i) => i.id)), hasRule: (e) => !!(e.mer && e.mer.source === "rule" && e.mer.cat && e.mer.cat !== "UNCAT") };
   };
-  E.reviewWhy = (r, e, m) => ({ uncategorised: "needs a category", unresolved: "no rule knows this descriptor", duplicate: `looks like a double of ${m.dupes.get(e.id) || "another row"}`, unpaired: "a transfer with no mate", first_big: `first time here, over ${E.fmt0(E.num(m.kitty.big_bill_amount) || 500)}` }[r] || r);
+  E.reviewWhy = (r, e, m) => ({ uncategorised: "needs a category", unresolved: "no rule knows this merchant yet", duplicate: "same merchant, amount, account and day as another charge, with no receipt or note on each", unpaired: "a transfer with no other side on another account", first_big: `first time here, over ${E.fmt0(E.num(m.kitty.big_bill_amount) || 500)}` }[r] || r);
   // mates a transfer could pair with: the opposite amount, another account, within four days, not already paired
   E.transferMates = (m, e) => m.entries.filter((x) => x.kind === "transaction" && x.id !== e.id && x.acct !== e.acct && Math.abs(x.amount + e.amount) < 0.005 && Math.abs(E.daysBetween(x.date, e.date)) <= 4 && !x.transferId && !x.matchedWith);
   // every unreviewed row whose descriptor a rule pattern would match: what "Make it a rule" applies the category to

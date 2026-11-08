@@ -1,0 +1,1376 @@
+[
+ {
+  "run": "H1-haiku",
+  "spreadsheetId": "1A-Q3ansPwFKO_KZ1lFGstxIBTbQQvKGzVbD59UWlhWw",
+  "tabs": {
+   "Receipts": "ok",
+   "Receipt Lines": "ok",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "5/5",
+  "tabs_ok": true,
+  "formulas": {
+   "Receipts!S2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Receipt Lines!N2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": false,
+    "formula": "=MAP(A2:A,B2:B,D2:D,E2:E,F2:F,LAMBDA(id,goal,on,pm,oo,IF(id=\"\",\"\",LET(asof,INDEX(Settings!B:B,MATCH(\"As-of date\",Settings!A:A,0)),r,MATCH(goal,Goals!A:A,0),need,INDEX(Goals!B:B,r)-INDEX(Goals!E:E,r),base,N(INDEX(Goals!I:I,r)),opm,SUMIFS(E:E,B:B,goal,D:D,TRUE),ooo,SUMIFS(F:F,B:B,goal,D:D,TRUE),rest,need-ooo,rate,base+opm,IF(rest<=0,EOMONTH(asof,-1)+1,IF(rate<=0,\"Never\",EOMONTH(asof,CEILING(rest/rate,1)-1)+1))))))",
+    "defect": "opm/ooo no longer net of this lever: Date if off equals Date if on for any lever that is on, so Months moved reads 0"
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "7/7, 0 errors; Goal Levers!H2 differs",
+  "lists": {
+   "Receipts!G": "ok",
+   "Receipts!M": "ok",
+   "Receipts!Q": "ok",
+   "Receipt Lines!F": "ok",
+   "Receipt Lines!G": "ok",
+   "Receipt Lines!I": "ok",
+   "Receipt Lines!L": "ok",
+   "Decision Options!L": "ok",
+   "Tax Returns!C": "ok",
+   "Decision Options!J": "ok",
+   "Goal Levers!D": "ok"
+  },
+  "lists_score": "11/11",
+  "checks": {
+   "Receipts that don't add up": {
+    "row": 24,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Card receipts with no bank row": {
+    "row": 25,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Spending outside the bank, latest month": {
+    "row": 26,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions with more than one pick": {
+    "row": 27,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 28,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 29,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "6/6",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    25,
+    31
+   ],
+   "total_formula_same": true,
+   "total_shows": "0",
+   "review_rows": 0,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [
+    "Checks needing review: row 25 -> 31"
+   ],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1,
+    1
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C31",
+   "before_by_position": "='Compliance Checks'!C25",
+   "rewritten": true,
+   "shows": "0"
+  },
+  "collision": "n/a",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "yes"
+  },
+  "cost": {
+   "tokens": 141590,
+   "tool_uses": 36,
+   "minutes": 2.6
+  }
+ },
+ {
+  "run": "H1-sonnet",
+  "spreadsheetId": "1dJK6lhKgLhCF2SQ18MF5egHPwUicIzjpVYiVm5XD8f4",
+  "tabs": {
+   "Receipts": "ok",
+   "Receipt Lines": "ok",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "5/5",
+  "tabs_ok": true,
+  "formulas": {
+   "Receipts!S2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Receipt Lines!N2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "7/7, 0 errors",
+  "lists": {
+   "Receipts!G": "ok (warn only)",
+   "Receipts!M": "ok (warn only)",
+   "Receipts!Q": "ok (warn only)",
+   "Receipt Lines!F": "ok (warn only)",
+   "Receipt Lines!G": "ok (warn only)",
+   "Receipt Lines!I": "ok (warn only)",
+   "Receipt Lines!L": "ok (warn only)",
+   "Decision Options!L": "ok (warn only)",
+   "Tax Returns!C": "ok (warn only)",
+   "Decision Options!J": "ok (warn only)",
+   "Goal Levers!D": "ok (warn only)"
+  },
+  "lists_score": "11/11 (11 warn-only)",
+  "checks": {
+   "Receipts that don't add up": {
+    "row": 24,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Card receipts with no bank row": {
+    "row": 25,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Spending outside the bank, latest month": {
+    "row": 26,
+    "type": "Note",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions with more than one pick": {
+    "row": 27,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 28,
+    "type": "Review",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 29,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "6/6, Type set to Note/Review",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    25,
+    31
+   ],
+   "total_formula_same": true,
+   "total_shows": "0",
+   "review_rows": 0,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [
+    "Checks needing review: row 25 -> 31"
+   ],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1,
+    1
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C31",
+   "before_by_position": "='Compliance Checks'!C25",
+   "rewritten": true,
+   "shows": "0"
+  },
+  "collision": "n/a",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "yes"
+  },
+  "cost": {
+   "tokens": 134978,
+   "tool_uses": 36,
+   "minutes": 2.8
+  }
+ },
+ {
+  "run": "H1-opus",
+  "spreadsheetId": "1hgdaXJBokA6tIYvzaLvCOBkJLqA8oO6r21QsAMhTasA",
+  "tabs": {
+   "Receipts": "ok",
+   "Receipt Lines": "ok",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "5/5",
+  "tabs_ok": true,
+  "formulas": {
+   "Receipts!S2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Receipt Lines!N2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "7/7, 0 errors",
+  "lists": {
+   "Receipts!G": "ok",
+   "Receipts!M": "ok",
+   "Receipts!Q": "ok",
+   "Receipt Lines!F": "ok",
+   "Receipt Lines!G": "ok",
+   "Receipt Lines!I": "ok",
+   "Receipt Lines!L": "ok",
+   "Decision Options!L": "ok",
+   "Tax Returns!C": "ok",
+   "Decision Options!J": "ok (warn only)",
+   "Goal Levers!D": "ok (warn only)"
+  },
+  "lists_score": "11/11 (2 warn-only)",
+  "checks": {
+   "Receipts that don't add up": {
+    "row": 27,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Card receipts with no bank row": {
+    "row": 28,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Spending outside the bank, latest month": {
+    "row": 29,
+    "type": "Cash",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions with more than one pick": {
+    "row": 30,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 31,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 32,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "6/6",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    25,
+    25
+   ],
+   "total_formula_same": true,
+   "total_shows": "0",
+   "review_rows": 0,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1,
+    1
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C25",
+   "before_by_position": "='Compliance Checks'!C25",
+   "rewritten": false,
+   "shows": "0"
+  },
+  "collision": "n/a",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "yes"
+  },
+  "cost": {
+   "tokens": 258338,
+   "tool_uses": 35,
+   "minutes": 10.3
+  }
+ },
+ {
+  "run": "H2-haiku",
+  "spreadsheetId": "1n_0ew5c0fcAsXGw9srsO9j_27O-ySCkdZAwarq6t31k",
+  "tabs": {
+   "Receipts": "ok",
+   "Receipt Lines": "ok",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "5/5",
+  "tabs_ok": true,
+  "formulas": {
+   "Receipts!S2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Receipt Lines!N2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": false,
+    "formula": "=MAP(A2:A,B2:B,D2:D,E2:E,F2:F,LAMBDA(id,goal,on,pm,oo,IF(id=\"\",\"\",LET(asof,INDEX(Settings!B:B,MATCH(\"As-of date\",Settings!A:A,0)),r,MATCH(goal,Goals!A:A,0),need,INDEX(Goals!B:B,r)-INDEX(Goals!E:E,r),base,N(INDEX(Goals!I:I,r)),opm,SUMIFS(E:E,B:B,goal,D:D,TRUE),ooo,SUMIFS(F:F,B:B,goal,D:D,TRUE),rest,need-ooo,rate,base+opm,IF(rest<=0,EOMONTH(asof,-1)+1,IF(rate<=0,\"Never\",EOMONTH(asof,CEILING(rest/rate,1)-1)+1))))))",
+    "defect": "opm/ooo no longer net of this lever: Date if off equals Date if on for any lever that is on, so Months moved reads 0"
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "7/7, 0 errors; Goal Levers!H2 differs",
+  "lists": {
+   "Receipts!G": "ok",
+   "Receipts!M": "ok",
+   "Receipts!Q": "ok",
+   "Receipt Lines!F": "ok",
+   "Receipt Lines!G": "ok",
+   "Receipt Lines!I": "ok",
+   "Receipt Lines!L": "ok",
+   "Decision Options!L": "ok",
+   "Tax Returns!C": "ok",
+   "Decision Options!J": "ok",
+   "Goal Levers!D": "ok"
+  },
+  "lists_score": "11/11",
+  "checks": {
+   "Receipts that don't add up": {
+    "row": 24,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Card receipts with no bank row": {
+    "row": 25,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Spending outside the bank, latest month": {
+    "row": 26,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": [
+     "D"
+    ]
+   },
+   "Decisions with more than one pick": {
+    "row": 27,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 28,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 29,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "6/6, 1 formula rewritten",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    25,
+    31
+   ],
+   "total_formula_same": true,
+   "total_shows": "6",
+   "review_rows": 6,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [
+    "Checks needing review: row 25 -> 31"
+   ],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1083,
+    1083
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C31",
+   "before_by_position": "='Compliance Checks'!C25",
+   "rewritten": true,
+   "shows": "6"
+  },
+  "collision": "n/a",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "yes"
+  },
+  "cost": {
+   "tokens": 186446,
+   "tool_uses": 50,
+   "minutes": 4.0
+  }
+ },
+ {
+  "run": "H2-sonnet",
+  "spreadsheetId": "1SE6k3grlPrrBit5j8qQCH-eyidMLRP0D-kZxi9ay3og",
+  "tabs": {
+   "Receipts": "ok",
+   "Receipt Lines": "ok",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "5/5",
+  "tabs_ok": true,
+  "formulas": {
+   "Receipts!S2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Receipt Lines!N2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "7/7, 0 errors",
+  "lists": {
+   "Receipts!G": "ok",
+   "Receipts!M": "ok",
+   "Receipts!Q": "ok",
+   "Receipt Lines!F": "ok",
+   "Receipt Lines!G": "ok",
+   "Receipt Lines!I": "ok",
+   "Receipt Lines!L": "ok",
+   "Decision Options!L": "ok",
+   "Tax Returns!C": "ok",
+   "Decision Options!J": "ok",
+   "Goal Levers!D": "ok"
+  },
+  "lists_score": "11/11",
+  "checks": {
+   "Receipts that don't add up": {
+    "row": 24,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Card receipts with no bank row": {
+    "row": 25,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Spending outside the bank, latest month": {
+    "row": 26,
+    "type": "Note",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions with more than one pick": {
+    "row": 27,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 28,
+    "type": "Review",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 29,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "6/6, Type set to Note/Review",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    25,
+    31
+   ],
+   "total_formula_same": true,
+   "total_shows": "6",
+   "review_rows": 6,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [
+    "Checks needing review: row 25 -> 31"
+   ],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1083,
+    1083
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C31",
+   "before_by_position": "='Compliance Checks'!C25",
+   "rewritten": true,
+   "shows": "6"
+  },
+  "collision": "n/a",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "yes"
+  },
+  "cost": {
+   "tokens": 157128,
+   "tool_uses": 30,
+   "minutes": 2.9
+  }
+ },
+ {
+  "run": "H2-opus",
+  "spreadsheetId": "1Fo0-USlKj3xIO_5WzE-rGP6L9B3ssEDcqM29pzSj3ws",
+  "tabs": {
+   "Receipts": "ok",
+   "Receipt Lines": "ok",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "5/5",
+  "tabs_ok": true,
+  "formulas": {
+   "Receipts!S2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Receipt Lines!N2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "7/7, 0 errors",
+  "lists": {
+   "Receipts!G": "ok (warn only)",
+   "Receipts!M": "ok (warn only)",
+   "Receipts!Q": "ok (warn only)",
+   "Receipt Lines!F": "ok (warn only)",
+   "Receipt Lines!G": "ok (warn only)",
+   "Receipt Lines!I": "ok (warn only)",
+   "Receipt Lines!L": "ok (warn only)",
+   "Decision Options!L": "ok (warn only)",
+   "Tax Returns!C": "ok (warn only)",
+   "Decision Options!J": "ok (warn only)",
+   "Goal Levers!D": "ok (warn only)"
+  },
+  "lists_score": "11/11 (11 warn-only)",
+  "checks": {
+   "Receipts that don't add up": {
+    "row": 27,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Card receipts with no bank row": {
+    "row": 28,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Spending outside the bank, latest month": {
+    "row": 29,
+    "type": "Cash",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions with more than one pick": {
+    "row": 30,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 31,
+    "type": "Cash",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 32,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "6/6",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    25,
+    25
+   ],
+   "total_formula_same": true,
+   "total_shows": "6",
+   "review_rows": 6,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1083,
+    1083
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C25",
+   "before_by_position": "='Compliance Checks'!C25",
+   "rewritten": false,
+   "shows": "6"
+  },
+  "collision": "n/a",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "yes"
+  },
+  "cost": {
+   "tokens": 262297,
+   "tool_uses": 44,
+   "minutes": 11.3
+  }
+ },
+ {
+  "run": "H3-haiku",
+  "spreadsheetId": "1WnjR7SWnF8XLWnrDHePOQnASUgPfc57AT2nJF7M-TcI",
+  "tabs": {
+   "Receipts": "held for the household",
+   "Receipt Lines": "held for the household",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "3/5 + 2 held",
+  "tabs_ok": true,
+  "formulas": {
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "5/5, 0 errors",
+  "lists": {
+   "Decision Options!L": "ok",
+   "Tax Returns!C": "ok",
+   "Decision Options!J": "ok",
+   "Goal Levers!D": "ok"
+  },
+  "lists_score": "4/4",
+  "checks": {
+   "Receipts that don't add up": "held for the household",
+   "Card receipts with no bank row": "held for the household",
+   "Spending outside the bank, latest month": "held for the household",
+   "Decisions with more than one pick": {
+    "row": 25,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 26,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 27,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "3/3",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    26,
+    29
+   ],
+   "total_formula_same": true,
+   "total_shows": "6",
+   "review_rows": 6,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [
+    "Checks needing review: row 26 -> 29"
+   ],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1083,
+    1083
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C29",
+   "before_by_position": "='Compliance Checks'!C26",
+   "rewritten": true,
+   "shows": "6"
+  },
+  "household": {
+   "receipts_tab_unchanged": true,
+   "receipts_grid": [
+    {
+     "columnCount": 5,
+     "frozenRowCount": 1,
+     "rowCount": 100
+    }
+   ],
+   "goal_levers_read_our_goals": true,
+   "asked_about_receipts": true
+  },
+  "collision": "yes",
+  "version": {
+   "before": 2,
+   "after": 2,
+   "fits": "yes (held at 2 while the receipts question is open)"
+  },
+  "cost": {
+   "tokens": 167788,
+   "tool_uses": 27,
+   "minutes": 2.6
+  }
+ },
+ {
+  "run": "H3-sonnet",
+  "spreadsheetId": "1FTZv2VZza8spM2drdnuKvzsdBaOT0MsswsDbBSANpzE",
+  "tabs": {
+   "Receipts": "held for the household",
+   "Receipt Lines": "held for the household",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "3/5 + 2 held",
+  "tabs_ok": true,
+  "formulas": {
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "5/5, 0 errors",
+  "lists": {
+   "Decision Options!L": "ok (warn only)",
+   "Tax Returns!C": "ok (warn only)",
+   "Decision Options!J": "ok (warn only)",
+   "Goal Levers!D": "ok (warn only)"
+  },
+  "lists_score": "4/4 (4 warn-only)",
+  "checks": {
+   "Receipts that don't add up": "held for the household",
+   "Card receipts with no bank row": "held for the household",
+   "Spending outside the bank, latest month": "held for the household",
+   "Decisions with more than one pick": {
+    "row": 25,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 26,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 27,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "3/3",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    26,
+    29
+   ],
+   "total_formula_same": true,
+   "total_shows": "6",
+   "review_rows": 6,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [
+    "Checks needing review: row 26 -> 29"
+   ],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1083,
+    1083
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C29",
+   "before_by_position": "='Compliance Checks'!C26",
+   "rewritten": true,
+   "shows": "6"
+  },
+  "household": {
+   "receipts_tab_unchanged": true,
+   "receipts_grid": [
+    {
+     "columnCount": 5,
+     "frozenRowCount": 1,
+     "rowCount": 100
+    }
+   ],
+   "goal_levers_read_our_goals": true,
+   "asked_about_receipts": true
+  },
+  "collision": "yes",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "arguable (3 with receipts still open)"
+  },
+  "cost": {
+   "tokens": 129323,
+   "tool_uses": 38,
+   "minutes": 2.6
+  }
+ },
+ {
+  "run": "H3-opus",
+  "spreadsheetId": "1a5yzxd-e7HyJqp61IWk7XPFaYpvxgT9nFpJWtK7hDnc",
+  "tabs": {
+   "Receipts": "held for the household",
+   "Receipt Lines": "held for the household",
+   "Decision Options": "ok",
+   "Goal Levers": "ok",
+   "Tax Returns": "ok"
+  },
+  "tabs_score": "3/5 + 2 held",
+  "tabs_ok": true,
+  "formulas": {
+   "Decision Options!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!G2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!H2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Goal Levers!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   },
+   "Tax Returns!I2": {
+    "present": true,
+    "shows": "",
+    "error": false,
+    "verbatim": true
+   }
+  },
+  "formulas_score": "5/5, 0 errors",
+  "lists": {
+   "Decision Options!L": "ok",
+   "Tax Returns!C": "ok",
+   "Decision Options!J": "ok",
+   "Goal Levers!D": "ok"
+  },
+  "lists_score": "4/4",
+  "checks": {
+   "Receipts that don't add up": "held for the household",
+   "Card receipts with no bank row": "held for the household",
+   "Spending outside the bank, latest month": "held for the household",
+   "Decisions with more than one pick": {
+    "row": 28,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Decisions past their decide-by date": {
+    "row": 29,
+    "type": "Data",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   },
+   "Lodged years without a tax pack": {
+    "row": 30,
+    "type": "Tax",
+    "status": "OK",
+    "status_ok": true,
+    "errors": [],
+    "not_as_written": []
+   }
+  },
+  "checks_score": "3/3",
+  "originals": {
+   "missing": [],
+   "total_row": [
+    26,
+    26
+   ],
+   "total_formula_same": true,
+   "total_shows": "6",
+   "review_rows": 6,
+   "total_counts": true
+  },
+  "tailoring": {
+   "changed_cells": [],
+   "moved_rows": [],
+   "tabs_renamed_or_reordered": false,
+   "entries_rows": [
+    1083,
+    1083
+   ]
+  },
+  "metrics_c20": {
+   "after": "='Compliance Checks'!C26",
+   "before_by_position": "='Compliance Checks'!C26",
+   "rewritten": false,
+   "shows": "6"
+  },
+  "household": {
+   "receipts_tab_unchanged": true,
+   "receipts_grid": [
+    {
+     "columnCount": 5,
+     "frozenRowCount": 1,
+     "rowCount": 100
+    }
+   ],
+   "goal_levers_read_our_goals": true,
+   "asked_about_receipts": true
+  },
+  "collision": "yes",
+  "version": {
+   "before": 2,
+   "after": 3,
+   "fits": "arguable (3 with receipts still open)"
+  },
+  "cost": {
+   "tokens": 215220,
+   "tool_uses": 45,
+   "minutes": 10.7
+  }
+ }
+]

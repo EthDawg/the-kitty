@@ -208,7 +208,12 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
             if file.suffix.lower() in ('.svg', '.png'):
                 mime = 'image/svg+xml' if file.suffix.lower() == '.svg' else 'image/png'
                 logos[file.stem] = f'data:{mime};base64,' + base64.b64encode(file.read_bytes()).decode()
-    kit = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.js')
+    # module tests live beside their modules (src/kit/*.test.js) and never ship
+    kit = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.js' and not file.name.endswith('.test.js'))
+    # the shared view modules' styles (src/kit/*.css, kx-* classes) and their illustrations (src/kit/art), bundled like their scripts
+    kit_css = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.css')
+    kit_art = {file.stem: 'data:image/svg+xml;base64,' + base64.b64encode(file.read_bytes()).decode()
+               for file in sorted((src / 'kit' / 'art').glob('*.svg'))} if (src / 'kit' / 'art').is_dir() else {}
     shell = read(src, 'shell.html')
     font_css, host_css, notices = '', '', []
     if native:
@@ -216,12 +221,12 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
     sprite_start = shell.index('<svg width="0" height="0"')
     sprite_end = shell.index('</svg>', sprite_start) + len('</svg>')
     shell = shell[:sprite_start] + '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' + symbols + '</defs></svg>' + shell[sprite_end:]
-    styles = read(src, 'vendor', 'gridstack-14.0.0.min.css') + '\n' + read(src, 'tokens.css') + '\n' + read(src, 'style.css') + '\n' + read(brand, 'motion', 'motion.css')
+    styles = read(src, 'vendor', 'gridstack-14.0.0.min.css') + '\n' + read(src, 'tokens.css') + '\n' + read(src, 'style.css') + '\n' + kit_css + '\n' + read(src, 'v3-views.css') + '\n' + read(brand, 'motion', 'motion.css')
     if native:
         styles = font_css + '\n' + styles + '\n' + host_css
     page = (shell
             .replace('/*STYLE*/', styles)
-            .replace('/*SOURCES*/', 'window.KITTY_SOURCES=' + js(sources) + ';window.KITTY_MERCHANTS=' + js(merchants) + ';window.KITTY_ART=' + js(art) + ';window.KITTY_LOGOS=' + js(logos) + ';')
+            .replace('/*SOURCES*/', 'window.KITTY_SOURCES=' + js(sources) + ';window.KITTY_MERCHANTS=' + js(merchants) + ';window.KITTY_ART=' + js(art) + ';window.KITTY_LOGOS=' + js(logos) + ';window.KITTY_KIT_ART=' + js(kit_art) + ';')
             .replace('/*SNAPSHOT*/', 'window.KITTY_SNAPSHOT=' + js(snapshot) + ';window.KITTY_PAGE_URL=' + js(config['page_url']) + ';window.KITTY_SHEET=' + js(sheet_id) + ';'
                      + ('' if standard_view is None else 'window.KITTY_STANDARD_VIEW=' + js(standard_view) + ';'))
             .replace('/*MOTION*/', read(brand, 'motion', 'motion.js'))

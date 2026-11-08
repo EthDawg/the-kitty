@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0 sheet version 3: receipts, choices, levers, tax years
+- Five new tabs (`CHANGES.md` version 3): Receipts and Receipt Lines, Decision Options, Goal Levers, Tax Returns. A page built for version 3 keeps each view dark until its tab exists.
+- New views, each written once as a shared module in `src/kit/` and used by any household page: Things (decision cards with every option costed on one horizon, things by group, a contract drawer), What moves the date (a lever board), Tax (this year so far, last year, history; each person and together), Groceries (this week's shop, price watch, bought before, receipts with their bank match).
+- The fictional Davies household gains 94 receipts and 4,082 lines (gift cards, cash, split payments, a refund), two costed decisions, eight goal levers and five years of tax returns. `tools/v3_davies.py`, `data/groceries/generate.py`.
+- The skill learns receipts (the tie gate), choices and tax packs: `skills/kitty/receipts.md`, `choices.md`, `tax-pack.md`. The page bar gains whose date a number is, counts beside percentages, batched cache-first reads, decisions as costed cards, and writes that ask first.
+- Evidence: `evidence/receipts-test/` (three models read 24 receipts; all exact, 7 of 7 traps) and `evidence/upgrade-test/` (three households × three models apply the version 3 note; every existing cell kept).
+
+## 3.0 public page fixes
+- A cold reader's audit of the public page (47 defects) is fixed in the page's reading; the sheet formulas that read the wrong rows are written up in `CHANGES.md` (version 3, Fixes). `docs/v3-notes.md` lists what was fixed, what waits on a decision and how it was checked.
+- The numbers: the safety net is the Emergency fund over essential spending; a premium adjustment is not a price rise, a refund is not a charge, a travel policy is not the car policy; two receipted fares are two purchases; the savings ideas and their headline are rebuilt from those figures.
+- The page: an as-of date on Home, passed target dates said plainly, "Jun 2027" for months, no internal IDs, readable goal-form labels, light text at AA, money out in one colour, Records labelled as a separate household, and Setup built around the template and one sentence to Claude or Codex.
+
 ## The Digital Davies Standard, draft
 - `standard/`: the data model as a public standard: 41 tables, 39 observation kinds, 59 event kinds, 20 laws, generated SQL, MongoDB validators, ER diagram, Sheet tabs and a schema card.
 - A truth-first Davies world: 2,369 files in 59 families across 10 containers, including super, a broker, RSUs, crypto, a second rental, returns as lodged, bills and things.

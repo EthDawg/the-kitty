@@ -1,0 +1,20 @@
+{
+ "_about": "MER- keys for the Receipts tab, each tied to an id in merchants/merchants.json. The market is not in the dictionary, so its Merchant ID is blank.",
+ "merchants": [
+  {
+   "merchant_id": "MER-WOOLWORTHS",
+   "dictionary_id": "woolworths",
+   "printed": "Woolworths"
+  },
+  {
+   "merchant_id": "MER-COLES",
+   "dictionary_id": "coles",
+   "printed": "Coles Supermarkets"
+  },
+  {
+   "merchant_id": "MER-ALDI",
+   "dictionary_id": "aldi",
+   "printed": "ALDI Stores"
+  }
+ ]
+}

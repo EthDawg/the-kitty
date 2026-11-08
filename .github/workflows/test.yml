@@ -23,7 +23,9 @@ jobs:
           python3 brand/build_brand.py --icons-only
           git diff --exit-code -- brand/icons
           python3 -m unittest discover -s tools -p 'test_brand_pipeline.py' -v
-      - run: node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js
+      - run: node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js src/kit/*.test.js
+      - name: the bundled snapshot carries the sheet-version-3 rows from data/v3 and data/groceries
+        run: python3 tools/v3_snapshot.py --check
       - name: the life generator, and its world read by the Standard (under a minute)
         timeout-minutes: 2
         run: node --test life/world/test.js
@@ -36,7 +38,7 @@ jobs:
           node --test src/hosts/native.test.js
       - name: the importer's promises (identity, fail loud, shapes, plan, verify)
         run: python3 -m unittest discover -s period-close -v
-      - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py period-close/writeplan.py period-close/verify.py period-close/pdftext.py period-close/pull_portals.py
+      - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py tools/v3_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py period-close/writeplan.py period-close/verify.py period-close/pdftext.py period-close/pull_portals.py
       - run: python3 build.py && test -s dist/kitty.html
       - run: python3 build.py --v2 && test -s dist/kitty-v2.html
       - name: every inline script parses, in both builds

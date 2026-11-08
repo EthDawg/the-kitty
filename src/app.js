@@ -10,7 +10,18 @@
   const GS = "Google Sheets";
   const DEMO_SHEET = window.KITTY_SHEET || "1zfiCnqO36a0YmMwC8-J6iGHUGvmLdXmhbL5aPWNlExM";   // the sheet the bundled snapshot came from; `build.py --v2` points it at the v2 sheet
   const PAGE_URL = window.KITTY_PAGE_URL || "";
-  const VERSION = "2.0 (phase B)"; const REPO = "https://github.com/EthDawg/the-kitty";
+  const VERSION = "3.0"; const REPO = "https://github.com/EthDawg/the-kitty";
+  const TEMPLATE = "https://docs.google.com/spreadsheets/d/1ym0cNBMcRtkxaQIhWFccDdz210e9nanH1B0_OCDi89U/copy";   // the blank template: 26 tabs, no household rows
+  // Every cell this page can write, in one place. Only for the owner of a live sheet, each behind a click, each read back after.
+  const WRITES = [
+    ["Kitty tab", "your name, country, lead goal, colour and when setup finished", "the setup screens, choosing a lead goal or a colour"],
+    ["Settings tab", "the emergency fund target, in months", "Goals, Change the target"],
+    ["Goals tab", "a goal's target and date, or a new goal row", "Goals, Edit or Add a goal"],
+    ["Entries tab", "one entry's Category ID (column H)", "Activity, choosing a category"],
+    ["Decisions tab", "a new row for each judgment: a category, a confirm, a double, a transfer match, a split, worth it", "Activity, the review queue and Worth it"],
+    ["Rules tab", "a new row naming a merchant and its category", "Activity, Make it a rule"],
+    ["Subscriptions tab", "a service's Keep, Review or Cancel decision", "a subscription's drawer"],
+  ];
   const NATIVE = window.KITTY_HOST === "native";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -36,7 +47,7 @@
     sessionDecisions: [], sessionCats: {}, cookie: null, perf: {}, recordsFy: null,
   };
   if (window.__LOCAL__) S.mode = "local";
-  // test flags for local checks: ?noonb skips the tour, ?noanim freezes motion, ?tab=insights opens a tab
+  // test flags for local checks: ?noonb skips the tour, ?noanim freezes motion, ?tab=insights opens a tab, ?signals shows the demo's "new on Home" note
   const FLAGS = new URLSearchParams((location.search || "") + "&" + (location.hash || "").replace(/^#/, ""));
   if (FLAGS.has("noanim")) document.documentElement.setAttribute("data-noanim", "");
   if (FLAGS.get("theme")) S.prefs.theme = FLAGS.get("theme");   // local checks only: ?theme=dark
@@ -73,6 +84,13 @@
   const ofFmt = (v) => (Math.abs(v) >= 10000 ? fmtS(v) : fmt0(v));
   const ofText = (v, t) => `${ofFmt(v || 0)} of ${ofFmt(t || 0)}`;
   const toGo = (v, t) => { const left = Math.max(0, (t || 0) - (v || 0)); return left <= 0 ? "done" : `${ofFmt(left)} to go`; };
+  const day = (d) => (d ? E.fmtDay(d, { year: true }) : "");
+  // a reader never sees an internal ID: an entry is its merchant, its day and its amount
+  const entryName = (id) => { const e = S.m && S.m.entryById[id]; return e ? Kit.nameOf(e) : "The entry"; };
+  const entryLine = (e) => (e ? `${Kit.nameOf(e)}, ${day(e.date)}, ${fmt(Math.abs(e.amount), { cents: true })}` : "another row");
+  // a sheet's "Where to look" names category IDs; the reader sees the category's name
+  const whereText = (w) => String(w || "").replace(/\bcategor(y|ies) ([A-Z][A-Z0-9-]+)/g, (x, y, id) => `categor${y} ${(S.m && S.m.catById[id] || {}).name || id}`);
+  const isDemo = () => S.mode === "demo";
   const buzz = (ms = 8) => { try { if (navigator.vibrate && !reduced()) navigator.vibrate(ms); } catch (e) { /* ignore */ } };
 
   // ---------- connector ----------
@@ -133,14 +151,16 @@
     mortgage: "'Mortgage Scenarios'!A1:H", tax: "'Tax Forecast'!A1:F", transactions: "Transactions!A1:J", payslips: "Payslips!A1:G", kitty: "Kitty!A1:C",
     // sheet_version 2: the ledger tabs. A 1.1 sheet has none of them and the page carries on without.
     entries: "Entries!A1:U", balances: "Balances!A1:F", contracts: "Contracts!A1:Q", decisions: "Decisions!A1:H", rules: "Rules!A1:J",
+    // sheet_version 3 (CHANGES.md version 3): five more tabs. A sheet without one keeps that view dark.
+    ...Object.fromEntries(Kit.V3.KEYS.map((k) => [k, Kit.V3.range(k)])),
   };
-  const OPTIONAL = new Set(["kitty", "payslips", "tax", "mortgage", "savings", "budget", "assets", "loans", "entries", "balances", "contracts", "decisions", "rules"]);
+  const OPTIONAL = new Set(["kitty", "payslips", "tax", "mortgage", "savings", "budget", "assets", "loans", "entries", "balances", "contracts", "decisions", "rules", ...Kit.V3.KEYS]);
   const CHUNK = 2500;
   async function loadBig(tab, lastCol, refresh, read) {
     // one read for a household-sized tab; chunks of 2,500 rows past that, three at a time, so a 20,000-row Transactions or Entries tab still opens
     read.metadata ||= call("get_spreadsheet", { spreadsheetId: read.id, fields: ["sheets.properties.title", "sheets.properties.gridProperties.rowCount", "properties.timeZone"] }, refresh, read);
     const meta = await read.metadata;
-    const sh = ((meta && meta.sheets) || []).find((x) => x.properties && x.properties.title === tab);
+    const sh = ((meta && meta.sheets) || []).find((x) => x.properties && x.properties.title === tab.replace(/^'(.*)'$/, "$1"));
     const rows = sh && sh.properties.gridProperties ? sh.properties.gridProperties.rowCount : 0;
     if (!rows || rows <= CHUNK) return values(`${tab}!A1:${lastCol}`, refresh, read);
     const header = await values(`${tab}!A1:${lastCol}1`, refresh, read);
@@ -163,7 +183,7 @@
     const errors = {}; S.loading = true;
     setPill("warn", refresh ? "Refreshing…" : "Reading your sheet…");
     const grids = {};
-    await Promise.all(Object.entries(RANGES).map(([k, r]) => (k === "transactions" || k === "entries" ? loadBig(r.split("!")[0], r.split(":")[1], refresh, read) : values(r, refresh, read)).then((v) => (grids[k] = v)).catch((e) => { grids[k] = []; errors[k] = e; })));
+    await Promise.all(Object.entries(RANGES).map(([k, r]) => (k === "transactions" || k === "entries" || k === "receipt_lines" ? loadBig(r.split("!")[0], r.split(":")[1], refresh, read) : values(r, refresh, read)).then((v) => (grids[k] = v)).catch((e) => { grids[k] = []; errors[k] = e; })));
     if (!read.current()) return false;
     S.loading = false; S.storedAt = read.storedAt; S.unknownReadAge = read.unknownAge; S.err = errors;
     const fatal = Object.entries(S.err).filter(([k]) => !OPTIONAL.has(k));
@@ -237,7 +257,7 @@
   const hexHue = (hex) => { const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim()); if (!m) { const h = /hsl\((\d+)/.exec(String(hex)); return h ? +h[1] : null; } const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return 260; let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = Math.round(h * 60); return h < 0 ? h + 360 : h; };
   const catHue = (c) => { const h = hexHue(E.catHue(c, S.m)); return h != null ? h : CAT_HUE[c] != null ? CAT_HUE[c] : hashHue(c); };
   const catSwatch = (c) => `--h:${catHue(c)};--s:${MUTED.has(c) ? 18 : 70}%`;
-  const GROUP_COLOR = { Housing: "var(--c-loan)", Essentials: "var(--c-in)", Lifestyle: "var(--accent)", Property: "var(--amber)", "Work and giving": "var(--c-kept)", Fees: "var(--c-dip)", Uncategorised: "var(--c-move)" };
+  const GROUP_COLOR = { Housing: "var(--c-loan)", Essentials: "var(--c-in)", Lifestyle: "var(--accent)", Property: "var(--c-prop)", "Work and giving": "var(--c-kept)", Fees: "var(--c-dip)", Uncategorised: "var(--c-move)" };
   const initials = (s) => String(s || "?").replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
   // every row on the page is the kit's EntryRow; a 1.1 transaction maps to its entry of the same id
   const entryOf = (t) => (t && t.kind ? t : (S.m.entryById && S.m.entryById[t.id]) || t);
@@ -258,10 +278,13 @@
   }
   function monthBarsSVG(months, W) {
     const w = W || CW(7 / 12), h = 190, pad = { l: 44, r: 8, t: 10, b: 26 };
-    const max = Math.max(1, ...months.map((m) => Math.max(m.in, m.out)));
+    // round ticks ($10k, $20k, $30k): a step of 1, 2, 2.5 or 5 times a power of ten, about three steps to the top
+    const peak = Math.max(1, ...months.map((m) => Math.max(m.in, m.out)));
+    const step = ((v) => { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; })(peak / 3);
+    const max = Math.ceil(peak / step) * step, tickAt = Array.from({ length: Math.round(max / step) }, (_, i) => (i + 1) * step);
     const n = months.length, slot = (w - pad.l - pad.r) / n, bw = Math.max(5, Math.min(18, slot * 0.32));
     const y = (v) => pad.t + (h - pad.t - pad.b) * (1 - v / max);
-    const grid = [0.5, 1].map((f) => `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="axis" x="${pad.l - 6}" y="${(y(max * f) + 4).toFixed(1)}" text-anchor="end">${fmtS(max * f)}</text>`).join("") + `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
+    const grid = tickAt.map((v) => `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="axis" x="${pad.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${fmtS(v)}</text>`).join("") + `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>`;
     const bars = months.map((m, i) => { const x = pad.l + i * slot + slot / 2; const kept = m.in - m.out; return `<g class="mb" data-i="${i}" tabindex="0" role="img" aria-label="${E.fmtMonth(m.month)}: in ${fmt0(m.in)}, out ${fmt0(m.out)}, kept ${fmt0(kept)}"><rect x="${(x - bw - 1).toFixed(1)}" y="${y(m.in).toFixed(1)}" width="${bw}" height="${(y(0) - y(m.in)).toFixed(1)}" rx="3" fill="var(--c-in)"/><rect x="${(x + 1).toFixed(1)}" y="${y(m.out).toFixed(1)}" width="${bw}" height="${(y(0) - y(m.out)).toFixed(1)}" rx="3" fill="var(--c-out)"/><text class="axis" x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle">${E.fmtMonth(m.month, true).slice(0, 3)}</text><rect x="${(x - slot / 2).toFixed(1)}" y="${pad.t}" width="${slot.toFixed(1)}" height="${h - pad.t - pad.b}" fill="transparent"/></g>`; }).join("");
     return `<div class="chartwrap" style="position:relative"><svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Money in and out by month">${grid}${bars}</svg><div class="tipbox"></div></div><div class="flowlegend"><span><i style="background:var(--c-in)"></i>Money in</span><span><i style="background:var(--c-out)"></i>Money out</span></div>`;
   }
@@ -288,7 +311,8 @@
     const r = 54, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, pct || 0));
     return `<div class="ring" style="width:${size}px;height:${size}px" role="img" aria-label="${esc(label)} ${esc(sub || "")}"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="${r}" fill="none" stroke="color-mix(in srgb,var(--ink) 9%,transparent)" stroke-width="12"/><circle class="fg" cx="66" cy="66" r="${r}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - p)).toFixed(1)}"/></svg><div class="c">${label}${sub ? `<small>${sub}</small>` : ""}</div></div>`;
   }
-  function stackHTML(parts) { const tot = parts.reduce((a, p) => a + p.v, 0) || 1; return `<div class="stack" role="img" aria-label="${parts.map((p) => `${p.k} ${fmt0(p.v)}`).join(", ")}">${parts.map((p) => `<div style="flex:0 0 ${((p.v / tot) * 100).toFixed(2)}%;background:${p.c}" title="${esc(p.k)} ${fmt0(p.v)}"></div>`).join("")}</div><div class="legendlist">${parts.map((p) => `<div class="li"><span class="sw" style="background:${p.c}"></span><span class="nm">${esc(p.k)}</span><b class="num">${fmtS(p.v)}</b><span class="muted small">${Math.round((p.v / tot) * 100)}%</span></div>`).join("")}</div>`; }
+  // what is owned, as shares of the total owned; owed (loans) is its own line under it, so net worth is owned less owed
+  function stackHTML(parts, owed) { const tot = parts.reduce((a, p) => a + p.v, 0) || 1; return `<div class="stackhead"><span>What you own</span><b class="num">${fmtS(tot)}</b></div><div class="stack" role="img" aria-label="What you own: ${parts.map((p) => `${p.k} ${fmt0(p.v)}`).join(", ")}">${parts.map((p) => `<div style="flex:0 0 ${((p.v / tot) * 100).toFixed(2)}%;background:${p.c}" title="${esc(p.k)} ${fmt0(p.v)}"></div>`).join("")}</div><div class="legendlist">${parts.map((p) => `<div class="li"><span class="sw" style="background:${p.c}"></span><span class="nm">${esc(p.k)}</span><b class="num">${fmtS(p.v)}</b><span class="muted small">${Math.round((p.v / tot) * 100)}%</span></div>`).join("")}</div>${owed ? `<div class="owed"><span>Less loans</span><b class="num">−${fmtS(owed)}</b><span>Net worth</span><b class="num">${fmtS(tot - owed)}</b></div>` : ""}`; }
   function jarSVG(sp, W) {
     const w = Math.min(520, W || CW(5 / 12)), h = Math.round(w * 0.82);
     const items = sp.byCat.filter(([, v]) => v > 0).slice(0, 14).map(([cat, v]) => ({ cat, v, name: (S.m.catById[cat] || {}).name || cat }));
@@ -329,7 +353,7 @@
     if (!S.m) return;
     applyTheme(); applyAccent();
     // one broken card must never blank a tab: each view renders inside its own boundary
-    for (const [name, fn] of [["header", renderHeader], ["home", renderHome], ["activity", renderActivity], ["insights", renderInsights], ["goals", renderGoals], ["records", renderRecords], ["setup", renderSetup]]) {
+    for (const [name, fn] of [["header", renderHeader], ["home", renderHome], ["activity", renderActivity], ["insights", renderInsights], ["goals", renderGoals], ["things", renderThings], ["tax", renderTax], ["records", renderRecords], ["setup", renderSetup]]) {
       try { fn(); } catch (e) { console.error("render " + name, e); const v = $(`#v-${name}`); if (v) v.innerHTML = `<div class="card"><div class="cardhead"><span class="q">This part couldn't be drawn</span></div><p class="sub">${esc(e && e.message ? e.message : String(e))}. The other tabs still work. If it keeps happening, <a href="${REPO}/issues" target="_blank" rel="noopener">report it</a> with the sheet's tab names.</p></div>`; }
     }
     moveGlow();
@@ -337,9 +361,9 @@
   function renderHeader() {
     const m = S.m;
     if (S.mode === "live" && S.liveErr) setPill("bad", "Sheet unavailable");
-    else if (S.mode === "live") setPill("live", isDemoSheet() ? "Live · demo sheet" : "Live from your sheet");
-    else if (S.mode === "local") setPill("demo", "Local test copy");
-    else setPill("demo", "Demo household");
+    else if (S.mode === "live") setPill("live", `${isDemoSheet() ? "Live demo" : "Live"} · ${day(m.asOf)}`);
+    else if (S.mode === "local") setPill("demo", `Local copy · ${day(m.asOf)}`);
+    else setPill("demo", `Demo · ${day(m.asOf)}`);
     document.title = `The ${m.householdName.replace(/^The /, "")} Kitty`;
     $("#askbtn").hidden = !NATIVE && !S.sample;
   }
@@ -395,7 +419,8 @@
       const was = S.prefs.layout || {}; const hidden = was.hidden || [], seen = (was.seen || []).concat(lay.added), added = lay.added;
       writeLayout({ items: lay.items, hidden, seen });
       const names = added.map((id) => Kit.widget(id).title);
-      toast(`New on Home: ${names.join(", ")}, because this household has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
+      // the public demo arrives with its widgets in place: no "new on Home" note over the needs list (?signals shows it, for tests)
+      if (!isDemo() || FLAGS.has("signals")) toast(`New on Home: ${names.join(", ")}, because this household has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
     }
     return lay;
   }
@@ -461,9 +486,9 @@
     if (window.__KIT_GALLERY__) return renderGallery();   // a resize re-renders; the gallery stays the gallery
     const m = S.m, v = $("#v-home");
     unmountCanvas(); showArrange();
-    if (!m.tx.length) { v.innerHTML = `<div class="card hero"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">Your sheet is set up. It just has no transactions yet.</h1><p class="vs">Bring in the last three months from each account (Setup → Getting your data in), run the importer, append the rows, move the As-of date. The page fills in as the sheet does.</p><div class="heronum"><button class="btn lime" data-go="setup">How to bring data in</button></div></div>`; bindCommon(v); return; }
+    if (!m.tx.length) { v.innerHTML = `<div class="card hero"><div class="blob"></div><div class="hi">The Kitty</div><h1 class="vh">Your sheet is set up. It has no transactions yet.</h1><p class="vs">Put the last three months of bank files in one folder and give them to Claude or Codex with one sentence (Setup shows it). The page fills in as the sheet does.</p><div class="heronum"><button class="btn lime" data-go="setup">How to bring data in</button></div></div>`; bindCommon(v); return; }
     const nd = E.needs(m); const last = m.cashflow[m.cashflow.length - 1];
-    const nw = m.metrics["networth.total"], sr = m.metrics["cashflow.savings_rate.3m"], cash = m.metrics["networth.cash"], sav = m.metrics["savings.recurring_per_year"];
+    const nw = m.metrics["networth.total"], sr = m.metrics["cashflow.savings_rate.3m"], cash = m.metrics["networth.cash"], close = m.metrics["close.items_missing"];
     const sf = E.safety(m); const up = E.upcoming(m); const ahead = E.num(m.kitty.look_ahead_days) || 35; const pay = E.payday(m)[0]; const lead = leadGoal();
     const nwDelta = nw && nw.comp != null ? nw.num - nw.comp : null;
     const hour = new Date().getHours(); const hello = hour < 5 ? "Still up" : hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
@@ -472,15 +497,16 @@
         <div class="hi"><span>${hello}, ${esc(greeting())}</span><span class="wave" aria-hidden="true">👋</span>${greeting() !== m.householdName.replace(/^The /, "") ? `<span class="muted">· ${esc(m.householdName)}</span>` : ""}</div>
         <h1 class="vh">${esc(nd.verdict)}</h1>
         <p class="vs">${esc(nd.line)} ${last ? `In ${E.fmtMonth(last.month).split(" ")[0]} you kept <b>${fmt0(last.net)}</b> of the <b>${fmt0(last.income)}</b> that came in.` : ""}</p>
+        <p class="asof">As of ${day(m.asOf)}${close && close.num != null ? ` · ${E.fmtMonth(m.asOf).split(" ")[0]} ${close.num > 0 ? "not closed yet" : "closed"}` : ""}</p>
         <div class="heronum"><button class="big num" id="heronum" data-open="trust" aria-label="Cash and offset, tap for the accounts behind it"><span id="heroval">${fmt0(cash ? cash.num : 0)}</span><small>cash and offset across ${m.accounts.filter((a) => a.liquid && a.type !== "Credit card").length} accounts · tap for the breakdown</small></button></div>
         <div class="facts">
           <button class="fact" data-open="networth"><b class="num">${fmtS(nw ? nw.num : null)}</b><span class="k">net worth</span>${nwDelta != null ? `<span class="d ${nwDelta >= 0 ? "gain" : "loss"}">${nwDelta >= 0 ? "▲" : "▼"} ${fmtS(Math.abs(nwDelta))} on a year ago</span>` : ""}</button>
-          <button class="fact" data-go="insights"><b class="num">${E.fmtPct(sr ? sr.num : null, 1)}</b><span class="k">savings rate, 3 months</span>${sr && sr.comp != null ? `<span class="d ${sr.num >= sr.comp ? "gain" : "loss"}">${sr.num >= sr.comp ? "▲" : "▼"} ${E.fmtPct(sr.comp, 1)} last year</span>` : ""}</button>
-          <button class="fact" data-go="goals"><b class="num">${sf.months != null ? sf.months.toFixed(1) : "—"} of ${sf.target}</b><span class="k">months of safety net</span>${sf.months != null ? `<span class="d ${sf.months >= sf.target ? "gain" : "loss"}">${sf.months >= sf.target ? "covered" : `${fmtS(sf.short)} short`}</span>` : ""}</button>
-          <button class="fact" data-go="goals:save"><b class="num">${fmtS(sav ? sav.num : null)}</b><span class="k">a year the sheet found to save</span><span class="d">${m.savings.length} ideas</span></button>
+          <button class="fact" data-go="insights"><b class="num">${E.fmtPct(sr ? sr.num : null, 1)}</b><span class="k">savings rate, 3 months</span>${sr && sr.comp != null ? `<span class="d ${sr.num >= sr.comp ? "gain" : "loss"}">${E.fmtPct(sr.comp, 1)} this time last year</span>` : ""}</button>
+          <button class="fact" data-go="safety"><b class="num">${sf.months != null ? sf.months.toFixed(1) : "—"} of ${sf.target}</b><span class="k">months of essentials in the emergency fund</span>${sf.months != null && (sf.months >= sf.target || sf.short != null) ? `<span class="d ${sf.months >= sf.target ? "gain" : "loss"}">${sf.months >= sf.target ? "covered" : `${fmtS(sf.short)} short`}</span>` : ""}</button>
+          <button class="fact" data-go="goals:save"><b class="num">${fmtS(m.savingsYear)}</b><span class="k">a year in ways to save</span><span class="d">${m.savings.length} ideas</span></button>
         </div>
       </div>`,
-      review: review().items.length ? `<button class="card rtile" data-go="review"><span class="ric">${ico("i-review")}</span><span class="mid"><span class="t">${review().items.length === 1 ? "One entry needs a look" : `${review().items.length} entries need a look`}</span><span class="s">${Object.entries(review().counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "uncategorised", unresolved: "no rule knows", duplicate: "doubled", unpaired: "unpaired transfer", first_big: "first big bill" }[k]}`).join(" · ")} · one or two taps each</span></span>${ico("i-chev", "chev")}</button>` : "" || null,
+      review: null,   // the review queue is one line in What needs you, never a banner above it
       needs: `<div class="card needs">
         <div class="cardhead"><span class="q">What needs you</span>${nd.more ? `<button class="linkbtn" data-open="needs">All ${nd.all.length} →</button>` : ""}</div>
         ${nd.items.length ? `<div class="nlist">${nd.items.map(needHTML).join("")}</div>` : `<div class="okline">${ico("i-check")} Nothing needs you today.</div>`}
@@ -501,29 +527,37 @@
       </div>` : null,
       ideas: m.savings.length ? `<div class="card">
         <div class="cardhead"><span class="q">Ways to get there faster</span><button class="linkbtn" data-go="goals:save">All ${m.savings.length} →</button></div>
-        <div class="gtiles" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">${m.savings.slice(0, 3).map(ideaTile).join("")}</div>
+        <div class="gtiles ideas" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">${m.savings.slice(0, 3).map(ideaTile).join("")}</div>
       </div>` : null,
     };
+    Object.assign(parts, v3HomeParts());
     Kit.bindCore(Object.fromEntries(Object.entries(parts).map(([id, html]) => [id, { data: () => html, render: (p) => p }])));
     const lay = homeLayout();
     v.innerHTML = `${canvasHTML(lay)}
+      ${(m.unreadable || []).length ? `<div class="secterr" style="margin:0 6px 10px">Some tabs could not be read, so the parts that use them are empty: ${esc(m.unreadable.join(", "))}. Check those tabs' headers and rows. <button class="linkbtn" data-open="trust">Details</button></div>` : ""}
       <p class="sub" style="padding:0 6px">${S.mode === "live" ? `Live from ${isDemoSheet() ? "the demo sheet" : "your sheet"}. ${esc(readAgeText())}` : "Demo household: the Davies, a fictional family in Melbourne, numbers made up to tell a story."} <button class="linkbtn" data-open="trust">Where the numbers come from</button></p>`;
     const hv = $("#heroval"); if (hv && cash) countUp(hv, cash.num, (x) => fmt0(x), "hero");
-    bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending }))); bindCanvas(v); mountCanvas();
-    // confetti once per device, and only when the person is looking at Home
-    if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name) && S.tab === "home" && document.visibilityState === "visible") { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 500); }
+    bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending }))); bindCanvas(v); mountCanvas(); bindV3Home(v);
+    // confetti once per device, only when the person is looking at Home, and never on the public demo
+    if (!isDemo() && lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name) && S.tab === "home" && document.visibilityState === "visible") { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 500); }
   }
   const needHTML = (i) => `<button class="need${i.warn ? " warn" : ""}" data-need="${esc(i.go)}"><span class="em" aria-hidden="true">${i.em}</span><span class="mid"><span class="t">${esc(E.cap(i.t))}</span><span class="s">${esc(i.s)}</span></span>${i.amt != null ? `<span class="amt num">${fmtS(Math.abs(i.amt))}${i.amtNote ? `<small>${esc(i.amtNote)}</small>` : ""}</span>` : ""}${ico("i-chev", "chev")}</button>`;
-  const upHTML = (u) => { const d = new Date(u.date + "T00:00:00Z"); return `<button class="upc ${u.kind}${u.warn ? " warn" : ""}" data-up="${esc(u.ref.type)}:${esc(u.ref.key)}"><span class="date"><b>${d.getUTCDate()}</b><span>${E.fmtDay(u.date).split(" ")[1].toUpperCase()}</span></span><span class="mid"><span class="t">${esc(u.title)}</span><span class="s">${esc(u.sub)} · ${E.rel(S.m.asOf, u.date)}</span></span>${u.amount != null ? `<span class="amt num ${u.amount > 0 ? "in" : ""}">${u.amount > 0 ? "+" : "−"}${fmt0(Math.abs(u.amount))}</span>` : ""}</button>`; };
+  const upHTML = (u) => { const d = new Date(u.date + "T00:00:00Z"); return `<button class="upc ${u.kind}${u.warn ? " warn" : ""}" data-up="${esc(u.ref.type)}:${esc(u.ref.key)}"><span class="date"><b>${d.getUTCDate()}</b><span>${E.fmtDay(u.date).split(" ")[1]}</span></span><span class="mid"><span class="t">${esc(u.title)}</span><span class="s">${esc(u.sub)} · ${E.rel(S.m.asOf, u.date)}</span></span>${u.amount != null ? `<span class="amt num ${u.amount > 0 ? "in" : ""}">${u.amount > 0 ? "+" : "−"}${fmt0(Math.abs(u.amount))}</span>` : ""}</button>`; };
+  // a goal's state in words: reached, a target date that has passed, or the date at the recent pace against the target
+  const goalTag = (g, st) => (st.passed ? `<span class="tag warn">Date passed</span>` : `<span class="tag ${g.status === "Behind" ? "warn" : g.status === "Reached" ? "lime" : "good"}">${esc(g.status || "")}</span>`);
   function goalTile(g, big) {
-    const pct = g.progress || 0, eta = E.goalEta(g, 0, S.m.asOf), col = E.goalColor(g.name);
-    const line = g.status === "Reached" ? `Reached. ${fmt0(g.balance)} saved.` : eta.date ? `At ${fmt0(g.savedPm)} a month, ${eta.late ? `<b>${E.fmtMonth(eta.date, true)}</b>, after the ${E.fmtMonth(g.date, true)} target` : `there by <b>${E.fmtMonth(eta.date, true)}</b>${g.date ? `, ahead of ${E.fmtMonth(g.date, true)}` : ""}`}.` : `Nothing has gone in lately; needs ${fmt0(g.needPm)} a month.`;
-    return `<button class="gtile${big ? " big" : ""}" data-open="goal:${esc(g.name)}"><div class="gtop"><span class="gem" aria-hidden="true">${E.goalIcon(g.name)}</span><span class="gt">${esc(g.name)}</span><span class="gof num"><b>${ofFmt(g.balance || 0)}</b> of ${ofFmt(g.target || 0)}</span></div><div class="gbar"><span data-w="${(pct * 100).toFixed(1)}" style="background:${col}"></span></div><div class="gline">${toGo(g.balance, g.target) === "done" ? "" : `${toGo(g.balance, g.target)} · `}${line} <span class="tag ${g.status === "Behind" ? "warn" : g.status === "Reached" ? "lime" : "good"}">${esc(g.status || "")}</span></div></button>`;
+    const pct = g.progress || 0, st = E.goalState(g, S.m.asOf), eta = st.eta, col = E.goalColor(g.name);
+    const line = st.reached ? `Reached. ${fmt0(g.balance)} saved.`
+      : st.passed ? `Target date passed (${E.fmtMonth(g.date, true)}).${eta.date ? ` At ${fmt0(g.savedPm)} a month, <b>${E.fmtMonth(eta.date, true)}</b>.` : " Nothing has gone in lately."}`
+      : eta.date ? `At ${fmt0(g.savedPm)} a month, ${eta.late ? `<b>${E.fmtMonth(eta.date, true)}</b>, after the ${E.fmtMonth(g.date, true)} target` : `there by <b>${E.fmtMonth(eta.date, true)}</b>${g.date ? `, ahead of ${E.fmtMonth(g.date, true)}` : ""}`}.` : `Nothing has gone in lately; needs ${fmt0(g.needPm)} a month.`;
+    return `<button class="gtile${big ? " big" : ""}" data-open="goal:${esc(g.name)}"><div class="gtop"><span class="gem" aria-hidden="true">${E.goalIcon(g.name)}</span><span class="gt">${esc(g.name)}</span><span class="gof num"><b>${ofFmt(g.balance || 0)}</b> of ${ofFmt(g.target || 0)}</span></div><div class="gbar"><span data-w="${(pct * 100).toFixed(1)}" style="background:${col}"></span></div><div class="gline">${toGo(g.balance, g.target) === "done" ? "" : `${toGo(g.balance, g.target)} · `}${line} ${goalTag(g, st)}</div></button>`;
   }
   const EFFORT = { Low: "an hour", Medium: "an evening", High: "a weekend" };
   function ideaTile(s) {
     const hidden = (S.prefs.hidden || []).includes(s.title);
-    return `<div class="idea${hidden ? " muted" : ""}" data-idea="${esc(s.title)}"><div class="mid"><div class="kind">${esc(s.type)} · ${esc(s.effort || "")} effort</div><h3>${esc(s.title)}</h3><p>${esc(s.shows)}</p><div class="acts"><button class="linkbtn" data-where="${esc(s.where)}">Where to look</button><span class="effort">about ${EFFORT[s.effort] || "some time"}</span>${S.mode !== "none" ? `<button class="linkbtn muted" data-hide="${esc(s.title)}">${hidden ? "Unhide" : "Hide on this device"}</button>` : ""}</div></div><div class="save num">${fmt0(s.amount)}<small>${s.type === "Recurring" ? "a year" : "once"}</small></div></div>`;
+    // an idea the page rebuilt from the rows says what the sheet said and why they differ
+    const fixed = s.sheet ? `<p class="fixnote">The sheet's Savings Finder says ${fmt0(s.sheet.amount)}${s.sheet.why ? `: ${esc(s.sheet.why)}` : ""}. This figure is read from the rows.</p>` : "";
+    return `<div class="idea${hidden ? " muted" : ""}" data-idea="${esc(s.title)}"><div class="mid"><div class="kind">${s.type === "Recurring" ? "Every year" : "Once"} · ${esc(String(s.effort || "some").toLowerCase())} effort, about ${EFFORT[s.effort] || "some time"}</div><h3>${esc(s.title)}</h3><p>${esc(s.shows)}</p>${fixed}<div class="acts"><button class="linkbtn" data-where="${esc(whereText(s.where))}">Where to look</button>${S.mode !== "none" ? `<button class="linkbtn muted" data-hide="${esc(s.title)}">${hidden ? "Unhide" : "Hide on this device"}</button>` : ""}</div></div><div class="save num">${fmt0(s.amount)}<small>${s.type === "Recurring" ? "a year" : "once"}</small></div></div>`;
   }
 
   // ----- Activity: the review queue, worth it?, then every entry on EntryRow, grouped by day -----
@@ -543,6 +577,7 @@
     const m = S.m, v = $("#v-activity"); const f = S.feed; const c = ctx(); const rv = review();
     const rows = feedRows(); const shown = rows.slice(0, f.limit);
     const sumOut = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Expense" ? a - e.amount : a), 0), sumIn = rows.reduce((a, e) => (e.kind === "transaction" && e.flow === "Income" ? a + e.amount : a), 0);
+    // "outside housing": everything but the Housing and Property groups (the home loan, rates, the rental)
     const everyday = (t) => t.group !== "Housing" && t.group !== "Property";
     const mo = E.spend(m.tx, E.window("month", m.asOf), everyday);
     const topMerchant = mo.byMerchant[0], biggest = m.tx.filter((t) => E.inWin(t, E.window("month", m.asOf)) && t.flow === "Expense" && everyday(t)).sort((a, b) => a.amount - b.amount)[0];
@@ -550,17 +585,23 @@
     const w = feedPeriod(); const wc = E.worthCandidates(m); const canJudge = canWriteSheet() || S.mode !== "live";
     const quiet = !f.q && !f.person && !f.flow && !w;
     const pk = S.feed.period; const atEnd = (pk.anchor || m.asOf) >= m.asOf;
+    // the queue is one line above the list until someone opens it, so this week's spending stays on the first screen
+    const open = !!S.reviewOpen, firstCookie = rv.items.findIndex((it) => !(it.entry.mer && it.entry.mer.source === "rule" && it.entry.mer.cat && it.entry.mer.cat !== "UNCAT") && !it.reasons.includes("duplicate") && !it.reasons.includes("unpaired"));
+    const reasonWords = Object.entries(rv.counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "with no category", unresolved: "from a merchant no rule knows", duplicate: "that may be doubled", unpaired: n === 1 ? "transfer with no other side" : "transfers with no other side", first_big: n === 1 ? "first big bill" : "first big bills" }[k]}`).join(" · ");
     v.innerHTML = `
       ${rv.items.length ? `<div class="card" id="reviewcard" style="--i:0">
-        <div class="cardhead"><span class="q">${ico("i-review")} Needs a look</span><span class="sub">${rv.items.length} ${rv.items.length === 1 ? "entry" : "entries"} · ${Object.entries(rv.counts).filter(([, n]) => n).map(([k, n]) => `${n} ${{ uncategorised: "uncategorised", unresolved: "unknown", duplicate: "doubled", unpaired: "unpaired", first_big: "first big bill" }[k]}`).join(" · ")}</span></div>
-        <p class="sub" style="margin:-6px 0 10px">One or two taps each. ${canWriteSheet() ? "A category writes the Entries cell and a Decisions row; everything else writes a Decisions row. The sheet keeps the judgment, this page only reads it back." : S.mode === "live" ? "This sheet is read-only for you, so judgments stay on screen for this visit." : "In the demo a judgment stays on screen for this visit; the demo sheet is never written."}${phone() ? "" : " On a keyboard: 1 to 3 pick a suggestion, C categorise, Enter confirm, D merge, T match, S split, J and K move."}</p>
-        <div class="rcards" id="rcards">${rv.items.slice(0, 20).map((it) => Kit.ReviewCard(it, c)).join("")}</div>
+        <div class="cardhead"><span class="q">${ico("i-review")} ${rv.items.length === 1 ? "One entry needs" : `${E.cap(E.words(rv.items.length))} entries need`} a look</span><button class="btn sm ${open ? "ghost" : ""}" id="reviewtoggle" aria-expanded="${open}" aria-controls="reviewbody">${open ? "Hide them" : "Review them"}</button></div>
+        <p class="sub" style="margin:-6px 0 0">${esc(reasonWords)}. One or two taps each.</p>
+        <div id="reviewbody"${open ? "" : " hidden"}>
+        <p class="sub" style="margin:10px 0">${canWriteSheet() ? "A category writes this entry's Category ID on the Entries tab and a Decisions row; everything else writes a Decisions row." : S.mode === "live" ? "This sheet is read-only for you, so judgments stay on screen for this visit." : "In the demo a judgment stays on screen for this visit; the demo sheet is never written."}${phone() ? "" : " On a keyboard: 1 to 3 pick a suggestion, C categorise, Enter confirm, D double, T match, S split, J and K move."}</p>
+        <div class="rcards" id="rcards">${rv.items.slice(0, 20).map((it, i) => Kit.ReviewCard(it, c, { cookie: i === firstCookie })).join("")}</div>
         ${rv.items.length > 20 ? `<p class="sub" style="margin-top:10px">${rv.items.length - 20} more after these.</p>` : ""}
+        </div>
       </div>` : S.reviewCleared ? `<div class="card" id="reviewcard" style="--i:0"><div class="rdone">${ART.allReviewed || ""}<p><b>All reviewed.</b> Every judgment is a row on the Decisions tab${canWriteSheet() ? "" : S.mode === "live" ? " (yours stayed on screen; the sheet is read-only for you)" : " (in the demo, for this visit only)"}.</p></div></div>` : ""}
       ${wc.items.length && canJudge ? `<div class="card" id="worthcard" style="--i:0.5">
         <div class="cardhead"><span class="q">${ico("i-worth")} Worth it?</span><span class="sub">${wc.items.length} from the week to ${E.fmtDay(wc.to)} · over ${fmt0(wc.floor)}</span></div>
         <div class="wrows" id="wrows">${wc.items.map((e) => Kit.WorthRow(e, c)).join("")}</div>
-        <p class="wnote">Not a budget, a memory check. The research on money and happiness (Dunn, Gilbert and Wilson, 2011) says experiences outlast things, many small pleasures beat a few large ones, and paying now to enjoy later feels better than the reverse. Five rows a week, one tap each, no score. Each answer is a Decisions row; once five are in, Goals shows the spend that earned a yes.</p>
+        <p class="wnote">Not a budget, a memory check: experiences and small pleasures tend to outlast things. Five rows a week, one tap each, no score. Once five are in, Goals shows the spend that earned a yes.</p>
       </div>` : ""}
       <div class="card" style="--i:1">
         <div class="searchbox">${ico("i-search")}<input id="feedq" type="search" placeholder="Search: woolworths, mia dining, >500 october, cat:subs, the bank's own words" value="${esc(f.q)}" autocomplete="off" aria-label="Search entries">${f.q ? `<button class="iconbtn" id="feedclear" aria-label="Clear search" style="width:32px;height:32px">${ico("i-x")}</button>` : ""}</div>
@@ -570,15 +611,15 @@
           ${[["", "Spending & income"], ["out", "Spending"], ["in", "Income"], ["move", "Transfers"]].concat(m.sheetVersion >= 2 && m.entries.some((e) => e.kind !== "transaction") ? [["bal", "Balances & trades"]] : []).map(([k, l]) => `<button class="chip" data-ff="${k}" aria-pressed="${f.flow === k}">${l}</button>`).join("")}
         </div>
         <div class="periodbar" id="feedperiod" style="margin-top:10px"><span class="seg mini" role="group" aria-label="Window">${[["all", "All time"], ["month", "Month"], ["quarter", "3 months"], ["year", "12 months"], ["fy", "This FY"]].map(([k, l]) => `<button data-fpk="${k}" aria-pressed="${pk.kind === k}">${l}</button>`).join("")}</span>${pk.kind !== "all" ? `<span class="nav"><button data-fpn="-1" aria-label="Earlier">${ico("i-back")}</button><button data-fpn="1" aria-label="Later" ${atEnd ? "disabled" : ""}>${ico("i-chev")}</button></span><span class="label" style="font-size:16px">${esc(w.label)}</span>` : ""}</div>
-        <div class="sumbar"><span><b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}</span><span>${f.flow !== "bal" ? `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
+        <div class="sumbar"><span><b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}</span><span>${f.flow !== "bal" && rows.length ? `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
       </div>
       ${quiet ? `<div class="grid" style="--i:2">
-        ${biggest ? `<button class="card span-4 erow" data-entry="${esc(biggest.id)}" style="align-items:center">${avatar(biggest, "lg")}<span class="mid"><span class="s">Biggest everyday buy this month</span><span class="t">${esc(biggest.merchant)}</span><span class="s">${esc(biggest.catName)} · ${E.fmtDay(biggest.date)}</span></span><span class="amt num">${fmt0(-biggest.amount)}</span></button>` : ""}
-        ${topMerchant ? `<button class="card span-4 erow" data-merchant="${esc(topMerchant[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === topMerchant[0]), "lg")}<span class="mid"><span class="s">Most spent with, outside the home</span><span class="t">${esc(topMerchant[0])}</span><span class="s">${E.fmtMonth(m.asOf)}</span></span><span class="amt num">${fmt0(topMerchant[1])}</span></button>` : ""}
+        ${biggest ? `<button class="card span-4 erow" data-entry="${esc(biggest.id)}" style="align-items:center">${avatar(biggest, "lg")}<span class="mid"><span class="s">Biggest buy this month, outside housing</span><span class="t">${esc(biggest.merchant)}</span><span class="s">${esc(biggest.catName)} · ${E.fmtDay(biggest.date)}</span></span><span class="amt num">${fmt0(-biggest.amount)}</span></button>` : ""}
+        ${topMerchant ? `<button class="card span-4 erow" data-merchant="${esc(topMerchant[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === topMerchant[0]), "lg")}<span class="mid"><span class="s">Most spent with this month, outside housing</span><span class="t">${esc(topMerchant[0])}</span><span class="s">${E.fmtMonth(m.asOf)}</span></span><span class="amt num">${fmt0(topMerchant[1])}</span></button>` : ""}
         ${most ? `<button class="card span-4 erow" data-merchant="${esc(most[0])}" style="align-items:center">${avatar(m.tx.find((t) => t.merchant === most[0]), "lg")}<span class="mid"><span class="s">Most often, last 3 months</span><span class="t">${esc(most[0])}</span><span class="s">${most[1]} visits</span></span></button>` : ""}
       </div>` : ""}
       <div class="card" style="--i:3">
-        <div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
+        <div id="feedlist">${Kit.EntryList(shown, c, { date: false, empty: !m.entries.some((e) => e.kind === "transaction") ? "No transactions yet. They appear here once the sheet's Entries tab has rows." : `Nothing matches. Try a merchant, a person, a month, the bank's own words, or <code>cat:groceries</code>.` })}</div>
         ${rows.length > shown.length ? `<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="feedmore">Show ${Math.min(120, rows.length - shown.length)} more of ${rows.length - shown.length}</button></div>` : ""}
       </div>`;
     const q = $("#feedq"); let tm;
@@ -590,6 +631,7 @@
     $$("[data-fpn]", v).forEach((b) => b.addEventListener("click", () => { const step = { month: 1, quarter: 3, year: 12, fy: 12 }[S.feed.period.kind] || 1; const a = E.addMonths(E.monthStart(S.feed.period.anchor || m.asOf), +b.dataset.fpn * step); S.feed.period.anchor = a >= m.asOf.slice(0, 7) + "-01" ? m.asOf : E.monthEnd(a); renderActivity(); }));
     const more = $("#feedmore"); if (more) { more.addEventListener("click", () => { S.feed.limit += 120; renderActivity(); window.scrollTo({ top: more.getBoundingClientRect().top + window.scrollY - 400 }); }); if ("IntersectionObserver" in window) { const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); more.click(); } }, { rootMargin: "600px" }); io.observe(more); } }
     const csv = $("#csvbtn"); if (csv) csv.addEventListener("click", () => exportCSV(rows));
+    const rt = $("#reviewtoggle"); if (rt) rt.addEventListener("click", () => { S.reviewOpen = !S.reviewOpen; renderActivity(); const n = $("#reviewtoggle"); if (n) n.focus(); if (S.reviewOpen) { const first = $("#rcards .rcard"); if (first && !phone()) first.focus({ preventScroll: true }); } });
     bindReview(v); bindWorth(v); bindCommon(v);
     S.perf.activity = performance.now() - t0;
   }
@@ -629,7 +671,7 @@
     return rows;
   }
   async function writeCategory(id, cat) {
-    if (canWriteSheet()) { const row = entryRowNumber(id); if (!row) throw { code: "tool_error", message: `${id} is not on the Entries tab` }; await writeCells(`Entries!H${row}`, [[cat]]); S.grids.entries[row - 1][7] = cat; }
+    if (canWriteSheet()) { const row = entryRowNumber(id); if (!row) throw { code: "tool_error", message: `${entryName(id)} is not on the Entries tab any more; refresh first` }; await writeCells(`Entries!H${row}`, [[cat]]); S.grids.entries[row - 1][7] = cat; }
     else S.sessionCats[id] = cat;
   }
   function rebuild() { if (S.mode === "live" && S.grids) { const snap = E.fromConnector(S.grids); snap.fetchedAt = null; setModel(applyLocalGoals(E.model(snap))); } else setModel(demoModel()); }
@@ -657,7 +699,7 @@
           decisions[0].decision !== "categorise" || decisions[0].ref !== id || decisions[0].value !== cat) {
         toast("Google verified the save. Refresh to check the dashboard.", 6000); return false;
       }
-      toast(`${id}: ${catName(cat)} · verified in Entries and Decisions`, 5000); return true;
+      toast(`${entryName(id)}: ${catName(cat)} · verified in Entries and Decisions`, 5000); return true;
     } catch (e) {
       if (host !== S.mcp) return false;
       try { googlePicker.pending = await host.pendingCategory(); } catch (_) {}
@@ -665,11 +707,11 @@
     } finally { categoryBusy = false; }
   }
   const categorise = (id, cat) => hasCategoryWriter() ? verifiedCategory(id, cat) :
-    act(async () => { await writeCategory(id, cat); await writeDecisions([["entry", id, "categorise", cat, ""]]); }, `${id}: ${catName(cat)}`);
-  const confirmEntry = (id) => act(() => writeDecisions([["entry", id, "confirm", (S.m.entryById[id] || {}).cat || "", ""]]), `${id} confirmed`);
-  const mergeDup = (id, of) => act(() => writeDecisions([["entry", id, "merge_duplicate", of, "same merchant, amount, account and day"]]), `${id} merged into ${of}`);
-  const matchTransfer = (id, mate) => act(() => writeDecisions([["entry", id, "match_transfer", mate, ""]]), `${id} matched with ${mate}`);
-  const splitEntry = (id, parts) => act(() => writeDecisions([["entry", id, "split", E.formatSplit(parts), ""]]), `${id} split ${parts.length} ways`);
+    act(async () => { await writeCategory(id, cat); await writeDecisions([["entry", id, "categorise", cat, ""]]); }, `${entryName(id)}: ${catName(cat)}`);
+  const confirmEntry = (id) => act(() => writeDecisions([["entry", id, "confirm", (S.m.entryById[id] || {}).cat || "", ""]]), `${entryName(id)} confirmed`);
+  const mergeDup = (id, of) => act(() => writeDecisions([["entry", id, "merge_duplicate", of, "same merchant, amount, account and day"]]), `${entryName(id)}: marked as a double`);
+  const matchTransfer = (id, mate) => act(() => writeDecisions([["entry", id, "match_transfer", mate, ""]]), `${entryName(id)}: matched as a transfer`);
+  const splitEntry = (id, parts) => act(() => writeDecisions([["entry", id, "split", E.formatSplit(parts), ""]]), `${entryName(id)} split ${parts.length} ways`);
   const worthIt = (id, v) => act(() => writeDecisions([["entry", id, "worth_it", v, ""]]), null);
   // "Make it a rule": a Rules row by explicit range, then the category on this row and every unreviewed row the pattern matches
   async function makeRule(id, proposal) {
@@ -725,7 +767,7 @@
       if (!e || !evidence) return;
       const category=evidence.category, count=evidence.matches.length;
       openDrawer(`${h2("Review this merchant",esc(e.raw || e.desc))}<div class="plan"><h3>${category?esc(catName(category)):"Choose a category"}</h3><p>${category?`The same description appears in ${count} earlier ${count===1?"entry":"entries"} on this account, all filed under ${esc(catName(category))}.`:count?"Earlier entries with this description used different categories.":"There’s no earlier categorised entry with this description on this account."}</p>
-        ${evidence.matches.slice(0,3).map(k=>`<button class="pp" data-go="entry:${esc(k)}">See ${esc(E.fmtDay(S.m.entryById[k].date,{year:true}))} · ${esc(k)}</button>`).join("")}
+        ${evidence.matches.slice(0,3).map(k=>`<button class="pp" data-go="entry:${esc(k)}">See ${esc(entryLine(S.m.entryById[k]))}</button>`).join("")}
         <button class="btn" data-ask-choose>Choose a category…</button><span class="plan-foot">This check hasn’t changed the entry or created a rule.</span></div>`);
       $("[data-ask-choose]").onclick=()=>openCategoryPicker(id); return;
     }
@@ -783,7 +825,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       <div class="splitrows" id="splitrows">${rowHtml(0, e.cat && e.cat !== "UNCAT" ? e.cat : cats[0].id, (total / 2).toFixed(2))}${rowHtml(1, cats.find((c) => c.id !== e.cat).id, (total - +(total / 2).toFixed(2)).toFixed(2))}</div>
       <div class="dacts"><button class="btn sm ghost" id="splitadd">${ico("i-plus")} Another part</button><span class="sub" id="splitleft" style="align-self:center"></span></div>
       <div class="dacts"><button class="btn" id="splitsave">${canWriteSheet() ? "Write the split" : "Keep the split"}</button><button class="btn ghost" id="splitcancel">Cancel</button></div>
-      <p class="sub">One Decisions row, <code>split</code>, with the parts (${esc(E.formatSplit([{ cat: "GROCERIES", amount: 60 }, { cat: "DINING", amount: 24.2 }]))}). The sheet's totals stay the row's; the parts show on the row.</p>`);
+      <p class="sub">${canWriteSheet() ? "Writes one Decisions row with the parts." : "Kept for this visit; the sheet is not written here."} The sheet's totals stay the row's; the parts show on the row.</p>`);
     const parts = () => $$("#splitrows .splitrow").map((r) => ({ cat: $("select", r).value, amount: +$("input", r).value || 0 }));
     const left = () => { const sum = parts().reduce((a, p) => a + p.amount, 0); const d = Math.round((total - sum) * 100) / 100; $("#splitleft").textContent = d === 0 ? "Adds up." : d > 0 ? `${fmt(d)} still to place` : `${fmt(-d)} over`; return d; };
     $("#splitrows").addEventListener("input", left); left();
@@ -794,7 +836,9 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
 
   // ----- Insights -----
   function renderInsights() {
-    const m = S.m, v = $("#v-insights"); const w = period(); const sp = E.spend(m.tx, w);
+    const m = S.m, v = $("#v-insights");
+    if (!m.tx.length) { v.innerHTML = `<div class="card" style="--i:0"><div class="cardhead"><span class="q">Insights</span></div><div class="empty">No transactions yet. Insights fill in once the sheet's Entries tab has a month of rows.</div></div><div id="grochost" style="--i:1" hidden></div>`; bindCommon(v); renderGroceries(); return; }   // receipts draw even before the first bank import
+    const w = period(); const sp = E.spend(m.tx, w);
     const months = Math.max(1, E.monthsBetween(w.from, w.to) + 1);
     const prevW = { from: E.addMonths(w.from, -months), to: E.addMonths(w.to, -months) }; const prev = E.spend(m.tx, prevW); const pm = new Map(prev.byCat);
     const scope = S.prefs.scope || "all"; const everyday = (t) => t.group !== "Housing" && t.group !== "Property";
@@ -813,32 +857,36 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       <div class="card" style="--i:1">
         <div class="cardhead"><span class="q">Where did the money go?</span><span class="cardtools"><span class="seg mini" role="group" aria-label="Scope"><button data-scope="all" aria-pressed="${scope === "all"}">Everything</button><button data-scope="everyday" aria-pressed="${scope === "everyday"}">Everyday</button></span><span class="seg mini" role="group" aria-label="Show as"><button data-mv="flow" aria-pressed="${view === "flow"}">Flow</button><button data-mv="jar" aria-pressed="${view === "jar"}">Jar</button></span></span></div>
         ${scope === "everyday" ? `<p class="sub" style="margin:-6px 0 10px">Everyday leaves out housing and the rental: ${fmt0(sp.out - spv.out)} of fixed costs this period.</p>` : ""}
-        <div class="moneyview ${view === "jar" ? "mv-jar" : ""}" id="moneyview">${view === "jar" ? `<div>${jarSVG(spv)}<p class="sub jarlegend">Bubble size is money spent. A dashed red ring means the category is over its budget this year. Tap a bubble.</p></div><div class="jarlist">${spv.byCat.slice(0, 10).map(([c, val]) => { const p0 = pmv.get(c) || 0; const d = p0 ? (val - p0) / p0 : null; return `<button class="jrow" data-cat="${esc(c)}" style="${catSwatch(c)};--mh:${esc(E.catHue(c, m))}">${ico("i-" + E.catIcon(c, m), "ci")}<span class="nm">${esc((m.catById[c] || {}).name || c)}</span><span class="pct num">${Math.round((val / (spv.out || 1)) * 100)}%</span><span class="amt num">${fmt0(val)}</span><span class="d ${d == null ? "" : d > 0.05 ? "more" : d < -0.05 ? "less" : ""}">${d == null ? "new this period" : `${d >= 0 ? "▲" : "▼"} ${Math.round(Math.abs(d) * 100)}% on the period before`}</span></button>`; }).join("")}</div>` : `<div id="flowhost">${flowSVG(spv, income) || barsHTML(spv.byGroup.map(([g, val]) => ({ k: g, v: val, color: GROUP_COLOR[g] })))}</div><p class="sub">Money in on the left, where it went on the right. Transfers between your own accounts are left out. Hover a band for the amount.</p>`}</div>
+        <div class="moneyview ${view === "jar" ? "mv-jar" : ""}" id="moneyview">${view === "jar" ? `<div>${jarSVG(spv)}<p class="sub jarlegend">Bubble size is money spent. A dashed red ring means the category is over its budget this year. Tap a bubble.</p></div><div class="jarlist">${spv.byCat.slice(0, 10).map(([c, val]) => { const p0 = pmv.get(c) || 0; const d = p0 ? (val - p0) / p0 : null; const small = p0 && p0 / months < 200; return `<button class="jrow" data-cat="${esc(c)}" style="${catSwatch(c)};--mh:${esc(E.catHue(c, m))}">${ico("i-" + E.catIcon(c, m), "ci")}<span class="nm">${esc((m.catById[c] || {}).name || c)}</span><span class="pct num">${Math.round((val / (spv.out || 1)) * 100)}%</span><span class="amt num">${fmt0(val)}</span><span class="d ${d == null ? "" : d > 0.05 ? "more" : d < -0.05 ? "less" : ""}">${d == null ? "new this period" : small ? `${val >= p0 ? "+" : "−"}${fmt0(Math.abs(val - p0))} on the period before` : `${d >= 0 ? "▲" : "▼"} ${Math.round(Math.abs(d) * 100)}% on the period before`}</span></button>`; }).join("")}</div>` : `<div id="flowhost">${flowSVG(spv, income) || barsHTML(spv.byGroup.map(([g, val]) => ({ k: g, v: val, color: GROUP_COLOR[g] })))}</div><p class="sub">Money in on the left, where it went on the right. Transfers between your own accounts are left out. Hover a band for the amount.</p>`}</div>
       </div>
       <div class="grid" style="--i:2">
         <div class="card span-6">
-          <div class="cardhead"><span class="q">Where spending grew</span><span class="sub">last 3 months vs the same 3 last year</span></div>
-          ${barsHTML(mv.slice(0, 5).concat(mv.slice(-3).filter((r) => r.diff < 0)).map((r) => ({ k: r.name, sub: `${fmt0(r.thenPm)} → ${fmt0(r.nowPm)} a month`, v: r.diff, val: `${r.diff >= 0 ? "+" : "−"}${fmt0(Math.abs(r.diff))}`, vsub: r.pct != null ? `${r.pct >= 0 ? "+" : ""}${Math.round(r.pct * 100)}%` : "new", go: "cat:" + r.cat })), { diverging: true })}
-          ${mv.fastest ? `<p class="sub" style="margin-top:10px">Fastest growing by share: <b>${esc(mv.fastest.name)}</b>, ${Math.round(mv.fastest.pct * 100)}% up on last year (the sheet's own ranking).</p>` : ""}
+          <div class="cardhead"><span class="q">Where spending grew</span><span class="sub">a month, last 3 months against the same 3 a year before</span></div>
+          ${(() => { const grew = mv.filter((r) => r.diff > 0).slice(0, 5), shrank = mv.filter((r) => r.diff < 0).sort((a, b) => a.diff - b.diff).slice(0, 3);
+            // a percentage on a small base says little: under $200 a month the change is given in dollars only
+            const row = (r) => ({ k: r.name, sub: `${fmt0(r.thenPm)} to ${fmt0(r.nowPm)} a month`, v: r.diff, val: `${r.diff >= 0 ? "+" : "−"}${fmt0(Math.abs(r.diff))}`, vsub: r.thenPm < 200 ? (r.thenPm ? "" : "new") : `${r.pct >= 0 ? "+" : "−"}${Math.abs(Math.round(r.pct * 100))}%`, go: "cat:" + r.cat });
+            return `${grew.length ? barsHTML(grew.map(row), { diverging: true }) : `<div class="empty">Nothing grew by much.</div>`}${shrank.length ? `<h3 class="subhead">Where it shrank</h3>${barsHTML(shrank.map(row), { diverging: true })}` : ""}`; })()}
         </div>
         <div class="card span-6">
           <div class="cardhead"><span class="q">Budget pace</span><span class="sub">${esc(m.settings["Current financial year"] || "this year")} to date</span></div>
-          ${barsHTML(m.budget.filter((b) => b.monthly > 0).sort((a, b) => (b.used || 0) - (a.used || 0)).slice(0, 8).map((b) => ({ k: b.name, sub: `${ofFmt(b.ytd || 0)} of ${ofFmt(b.toDate || 0)}`, v: Math.min(1.6, b.used || 0), val: (b.left || 0) < 0 ? `${fmt0(-b.left)} over` : `${fmt0(b.left)} left`, vsub: b.status, color: /over/i.test(b.status) ? "var(--warn)" : /watch/i.test(b.status) ? "var(--amber)" : "var(--good)", go: "cat:" + ((m.cats.find((c) => c.name === b.name) || {}).id || "") })))}
+          ${barsHTML(m.budget.filter((b) => b.monthly > 0).sort((a, b) => (b.used || 0) - (a.used || 0)).slice(0, 8).map((b) => ({ k: b.name, sub: `${ofFmt(b.ytd || 0)} of ${ofFmt(b.toDate || 0)}`, v: Math.min(1.6, b.used || 0), val: (b.left || 0) < 0 ? `${fmt0(-b.left)} over` : `${fmt0(b.left)} left`, vsub: /over/i.test(b.status) ? "" : /watch/i.test(b.status) ? `within ${Math.round((E.pct(m.settings["Budget tolerance before a category is marked Over"]) || 0.1) * 100)}%` : "", color: /over/i.test(b.status) ? "var(--warn)" : /watch/i.test(b.status) ? "var(--amber)" : "var(--good)", go: "cat:" + ((m.cats.find((c) => c.name === b.name) || {}).id || "") })))}
           <p class="sub" style="margin-top:10px">Lumpy bills are measured against their full-year budget, so a renewal doesn't read as overspending.</p>
         </div>
       </div>
       <div class="grid" style="--i:3">
         <div class="card span-6">
-          <div class="cardhead"><span class="q">Subscriptions</span><span class="sub"><b class="num">${fmt0(lk.total)}</b> a year across ${m.subs.filter((s) => !/cancel/i.test(s.decision)).length}</span></div>
-          ${lk.stillCharging.map((s) => subRow(s, "warn", `Still charging after you cancelled`)).join("")}
+          <div class="cardhead"><span class="q">Bills and subscriptions</span><span class="sub"><b class="num">${fmt0(lk.total)}</b> a year across ${m.subs.filter((s) => !/cancel/i.test(s.decision) || /still charging/i.test(s.flag)).length}, insurance included</span></div>
+          ${(m.unreadable || []).includes("subscriptions") ? `<div class="secterr" style="margin-bottom:10px">The Subscriptions tab could not be read, so this card is empty.</div>` : ""}
+          ${lk.stillCharging.map((s) => subRow(s, "warn", `Still charging after you cancelled${s.refundedOn ? ` · refunded ${E.fmtDay(s.refundedOn)}` : ""}`)).join("")}
           ${lk.unused.map((s) => subRow(s, "amber", s.daysSince != null ? `Unused for ${s.daysSince} days` : "Never used")).join("")}
-          ${lk.rises.map((s) => subRow(s, "", `Price rose ${fmt(s.riseEach)} a charge · ${fmt0(s.riseYear)} a year`)).join("")}
-          <button class="linkbtn" data-open="subs">All subscriptions and bills →</button>
+          ${lk.rises.map((s) => subRow(s, "", `Price rose ${fmt(s.lowest, { cents: true })} to ${fmt(s.latest, { cents: true })} · ${fmt0(s.riseYear)} a year more`)).join("")}
+          ${lk.jumps.map((s) => subRow(s, "amber", `Price jumped ${fmt(s.lowest, { cents: true })} to ${fmt(s.latest, { cents: true })}: check it before treating it as a rise`)).join("")}
+          <button class="linkbtn" data-open="subs">All bills and subscriptions →</button>
         </div>
         <div class="card span-6">
-          <div class="cardhead"><span class="q">Net worth</span><span class="sub"><b class="num">${fmtS(nwSeries.length ? nwSeries[nwSeries.length - 1].v : null)}</b> at ${E.fmtDay(m.asOf, { year: true })}</span></div>
+          <div class="cardhead"><span class="q">Net worth</span><span class="sub"><b class="num">${fmtS(nwSeries.length ? nwSeries[nwSeries.length - 1].v : null)}</b> at ${E.fmtDay(m.asOf, { year: true })}, what you own less what you owe</span></div>
           <div id="nwchart">${nwSeries.length > 1 ? areaSVG(nwSeries, CW(6 / 12), { label: "Net worth by month" }) : '<div class="empty">Net worth appears once two month-end valuations are in the sheet.</div>'}</div>
-          <div style="margin-top:10px">${stackHTML(own)}</div>
+          <div style="margin-top:10px">${stackHTML(own, E.owed(m))}</div>
           ${tableToggle("nwtable", `<table class="t"><thead><tr><th>Month</th><th class="n">Cash</th><th class="n">Property</th><th class="n">Super</th><th class="n">Shares</th><th class="n">Loans</th><th class="n">Net worth</th></tr></thead><tbody>${m.networth.slice().reverse().map((n) => `<tr><td>${E.fmtMonth(n.month, true)}</td><td class="n">${fmt0(n.cash)}</td><td class="n">${fmt0(n.property)}</td><td class="n">${fmt0(n.super)}</td><td class="n">${fmt0(n.shares)}</td><td class="n">${fmt0(n.loans)}</td><td class="n">${fmt0(n.total)}</td></tr>`).join("")}</tbody></table>`)}
         </div>
       </div>
@@ -850,16 +898,19 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         </div>
         <div class="card span-6">
           <div class="cardhead"><span class="q">The rental</span><span class="sub">${esc(prop.asset ? prop.asset.name : "Investment property")}</span></div>
-          <div class="statline"><div class="stat"><div class="k">Rent in</div><div class="v num" style="color:var(--c-in)">${fmt0(prop.rentPm)}<small>a month</small></div></div><div class="stat"><div class="k">Costs</div><div class="v num" style="color:var(--c-out)">${fmt0(prop.costPm)}</div></div><div class="stat"><div class="k">Net</div><div class="v num" style="color:${prop.netPm >= 0 ? "var(--good)" : "var(--warn)"}">${fmt0(prop.netPm)}</div></div></div>
-          <div class="props">${prop.byCat.map((c) => `<button class="prop" data-go="cat:${esc(c.cat)}"><span class="t">${esc(c.name)}</span><span class="s">${esc(((m.catById[c.cat] || {}).ato || "").replace(/^Item 21 /, "tax item 21: "))}</span><span class="amt num">${fmt0(c.pm)}<span class="muted small"> /mo</span></span></button>`).join("")}</div>
-          <p class="sub">Last 12 months, from the transactions. The sheet's tax forecast carries the deductions; ${prop.loan ? `the ${esc(prop.loan.type.toLowerCase())} loan of ${fmtS(prop.loan.balance)} at ${E.fmtPct(prop.loan.rate, 2)} is the largest.` : ""}</p>
+          <div class="statline"><div class="stat"><div class="k">Rent in</div><div class="v num" style="color:var(--c-in)">${fmt0(prop.rentPm)}<small>a month</small></div></div><div class="stat"><div class="k">Running costs</div><div class="v num" style="color:var(--c-out)">${fmt0(prop.costPm)}<small>a month</small></div></div><div class="stat"><div class="k">Net</div><div class="v num" style="color:${prop.netPm >= 0 ? "var(--good)" : "var(--warn)"}">${prop.netPm < 0 ? "−" : ""}${fmt0(Math.abs(prop.netPm))}<small>a month</small></div></div></div>
+          <div class="props">${prop.byCat.map((c) => `<button class="prop" data-go="cat:${esc(c.cat)}"><span class="t">${esc(c.name)}</span><span class="s">${esc(((m.catById[c.cat] || {}).ato || "").replace(/^Item 21 /, "tax item 21: "))}</span><span class="amt num">${fmt0(c.pm)}<span class="muted small"> a month</span></span></button>`).join("")}</div>
+          ${prop.oneOffs.map((t) => `<button class="prop oneoff" data-entry="${esc(t.id)}"><span class="t">One-off: ${esc(t.merchant)}</span><span class="s">${esc(day(t.date))} · may be a capital improvement rather than a repair; see Tax</span><span class="amt num">${fmt0(-t.amount)}</span></button>`).join("")}
+          <p class="sub">Last 12 months, from the transactions. ${prop.oneOffs.length ? `A repair of ${fmt0(prop.reviewAt)} or more is shown once, not as a monthly cost. ` : ""}The sheet's tax forecast carries the deductions${prop.loan ? `; the ${esc(prop.loan.type.toLowerCase())} loan of ${fmtS(prop.loan.balance)} at ${E.fmtPct(prop.loan.rate, 2)} is the largest cost.` : "."}</p>
         </div>
       </div>
       <div class="card" style="--i:5">
         <div class="cardhead"><span class="q">Tax</span><span class="sub">estimates from the sheet, not advice</span></div>
-        <div class="statline"><div class="stat"><div class="k">Refund expected · ${esc(refund ? refund.period : "")}</div><div class="v num">${fmt0(refund ? refund.num : null)}</div></div><div class="stat"><div class="k">If flagged claims are fixed</div><div class="v num">${fmt0(corrected ? corrected.num : null)}</div></div><div class="stat"><div class="k">Resting on flagged claims</div><div class="v num" style="color:var(--amber)">${fmt0(risk ? risk.num : null)}</div></div><div class="stat"><div class="k">Projected · ${esc(curRefund ? curRefund.period : "")}</div><div class="v num">${fmt0(curRefund ? curRefund.num : null)}</div></div></div>
+        <div class="statline"><div class="stat"><div class="k">Refund expected · ${esc(refund ? refund.period : "")}</div><div class="v num">${fmt0(refund ? refund.num : null)}</div></div><div class="stat"><div class="k">If flagged claims are dropped</div><div class="v num">${fmt0(corrected ? corrected.num : null)}</div></div><div class="stat"><div class="k">Resting on flagged claims</div><div class="v num" style="color:var(--amber)">${fmt0(risk ? risk.num : null)}</div></div><div class="stat"><div class="k">Projected · ${esc(curRefund ? curRefund.period : "")}</div><div class="v num">${fmt0(curRefund ? curRefund.num : null)}</div></div></div>
         <div class="nlist">${taxItems.map((c) => `<button class="need" data-open="check:${esc(c.name)}"><span class="em" aria-hidden="true">🧾</span><span class="mid"><span class="t">${esc(c.name)}</span><span class="s">${esc(c.why)}</span></span><span class="amt num">${fmt0(c.amount)}<small>${c.items} item${c.items === 1 ? "" : "s"}</small></span>${ico("i-chev", "chev")}</button>`).join("")}</div>
-      </div>`;
+      </div>
+      <div id="grochost" style="--i:6" hidden></div>`;
+    renderGroceries();
     bindPeriod($("#pb1", v));
     $$("[data-mv]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ moneyView: b.dataset.mv }); renderInsights(); }));
     $$("[data-scope]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ scope: b.dataset.scope }); buzz(); renderInsights(); }));
@@ -870,32 +921,39 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const es = $("#extraslider"); if (es) { const upd = () => { const x = m.mortgage.extras[+es.value]; $("#extraval").textContent = fmt0(x.extra); $("#extratext").innerHTML = x.extra ? `Paid off in <b>${x.years.toFixed(1)} years</b>, <b>${x.saved.toFixed(1)} years</b> sooner, saving about <b>${fmtS(x.interestSaved)}</b> in interest.` : `Today: paid off in <b>${x.years.toFixed(1)} years</b> with the offset. Slide to see what extra does.`; }; es.addEventListener("input", upd); upd(); }
     bindCommon(v); bindTables(v);
   }
-  const subRow = (s, cls, line) => `<button class="row" data-open="sub:${esc(s.service)}"><span class="ava sm" style="${catSwatch(s.cat)}">${esc(initials(s.service))}</span><span class="mid"><span class="t">${esc(s.service)}${s.owner && s.owner !== "Joint" ? ` <span class="muted small">· ${esc(s.owner)}</span>` : ""}</span><span class="s">${line}</span></span><span class="amt num"><span class="tag ${cls}">${fmt0(s.annual)}/yr</span></span></button>`;
+  const subRow = (s, cls, line) => `<button class="row" data-open="sub:${esc(s.service)}"><span class="ava sm" style="${catSwatch(s.cat)}">${esc(initials(s.service))}</span><span class="mid"><span class="t">${esc(s.service)}${s.owner && s.owner !== "Joint" ? ` <span class="muted small">· ${esc(s.owner)}</span>` : ""}</span><span class="s">${line}</span></span><span class="amt num"><span class="tag ${cls}">${fmt0(Math.max(0, s.annual || 0))} a year</span></span></button>`;
 
   // ----- Goals -----
   function renderGoals() {
     const m = S.m, v = $("#v-goals"); const lead = leadGoal(); const sf = E.safety(m);
     const extra = S.goalExtra || 0;
-    const hero = lead ? (() => { const eta = E.goalEta(lead, extra, m.asOf); const pct = lead.progress || 0; return `<div class="card" style="--i:0"><div class="cardhead"><span class="q">${esc(lead.name)}</span><span class="cardtools">${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" data-editgoal="${esc(lead.name)}">Edit</button>` : ""}<button class="linkbtn" data-open="goal:${esc(lead.name)}">Details</button></span></div>
+    const unreadGoals = !m.goals.length && m.goalRows > 0;
+    const hero = lead ? (() => { const eta = E.goalEta(lead, extra, m.asOf), st = E.goalState(lead, m.asOf); const pct = lead.progress || 0; return `<div class="card" style="--i:0"><div class="cardhead"><span class="q">${esc(lead.name)}</span><span class="cardtools">${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" data-editgoal="${esc(lead.name)}">Edit</button>` : ""}<button class="linkbtn" data-open="goal:${esc(lead.name)}">Details</button></span></div>
       <div class="goalhero">${ringSVG(pct, E.goalColor(lead.name), ofFmt(lead.balance || 0), `of ${ofFmt(lead.target || 0)}`, 150)}<div>
-        <p style="font-size:17px">${lead.status === "Reached" ? `<b>Reached.</b> ${fmt0(lead.balance)} is sitting in ${esc((m.acctById[lead.acct] || {}).name || "the saver")}.` : eta.date ? `At <b>${fmt0((lead.savedPm || 0) + extra)}</b> a month you get there <b>${E.fmtMonth(eta.date)}</b>${lead.date ? eta.late ? `, <span style="color:var(--warn)">after the ${E.fmtMonth(lead.date, true)} target</span>` : `, <span style="color:var(--good)">ahead of the ${E.fmtMonth(lead.date, true)} target</span>` : ""}.` : `Nothing has gone in for three months. To make ${E.fmtMonth(lead.date, true)} it needs <b>${fmt0(lead.needPm)}</b> a month.`}</p>
-        <p class="sub" style="margin-top:6px">${lead.status === "Reached" ? `Target met ${lead.date ? `with ${E.monthsBetween(m.asOf, lead.date)} month${E.monthsBetween(m.asOf, lead.date) === 1 ? "" : "s"} to spare` : ""} · the last 3 months put in ${fmt0(lead.savedPm)} a month.` : `${toGo(lead.balance, lead.target)} · needs ${fmt0(lead.needPm)} a month for the target date · the last 3 months put in ${fmt0(lead.savedPm)} a month.`}</p>
+        <p style="font-size:17px">${lead.status === "Reached" ? `<b>Reached.</b> ${fmt0(lead.balance)} is sitting in ${esc((m.acctById[lead.acct] || {}).name || "the saver")}.` : st.passed ? `The ${E.fmtMonth(lead.date, true)} target date has passed. ${eta.date ? `At <b>${fmt0((lead.savedPm || 0) + extra)}</b> a month it gets there <b>${E.fmtMonth(eta.date)}</b>.` : "Nothing has gone in for three months."}` : eta.date ? `At <b>${fmt0((lead.savedPm || 0) + extra)}</b> a month you get there <b>${E.fmtMonth(eta.date)}</b>${lead.date ? eta.late ? `, <span style="color:var(--warn)">after the ${E.fmtMonth(lead.date, true)} target</span>` : `, <span style="color:var(--good)">ahead of the ${E.fmtMonth(lead.date, true)} target</span>` : ""}.` : `Nothing has gone in for three months. To make ${E.fmtMonth(lead.date, true)} it needs <b>${fmt0(lead.needPm)}</b> a month.`}</p>
+        <p class="sub" style="margin-top:6px">${lead.status === "Reached" ? `Target met ${lead.date ? `with ${E.monthsBetween(m.asOf, lead.date)} month${E.monthsBetween(m.asOf, lead.date) === 1 ? "" : "s"} to spare` : ""} · the last 3 months put in ${fmt0(lead.savedPm)} a month.` : st.passed ? `${toGo(lead.balance, lead.target)} · the last 3 months put in ${fmt0(lead.savedPm)} a month.` : `${toGo(lead.balance, lead.target)} · needs ${fmt0(lead.needPm)} a month for the target date · the last 3 months put in ${fmt0(lead.savedPm)} a month.`}</p>
         ${lead.status === "Reached" ? `<div class="whatif"><div class="lab"><span>Done. Lead with the next one?</span></div><div class="chips" style="margin-top:6px">${m.goals.filter((g) => g !== lead && g.status !== "Reached").map((g) => `<button class="chip" data-lead="${esc(g.name)}">${E.goalIcon(g.name)} ${esc(g.name)}</button>`).join("") || '<span class="sub">Every goal is reached. Add one below.</span>'}</div><p class="sub" style="margin-top:8px">The ${fmt0(lead.savedPm)} a month that went to ${esc(lead.name)} could move to it.</p></div>` : `<div class="whatif"><div class="lab"><span>What if you added each month</span><b id="extraval2">${extra ? "+" + fmt0(extra) : "nothing extra"}</b></div><input id="goalextra" type="range" min="0" max="2000" step="50" value="${extra}" aria-label="Extra per month"><p class="sub" id="extraline">${extra && eta.date ? `${eta.months} month${eta.months === 1 ? "" : "s"} instead of ${E.goalEta(lead, 0, m.asOf).months || "—"}.` : "Slide to see the date move."}</p></div>`}
-      </div></div></div>`; })() : `<div class="card" style="--i:0"><div class="empty">No goals yet. Add one below.</div></div>`;
+      </div></div></div>`; })() : `<div class="card" style="--i:0"><div class="empty">${unreadGoals ? `The Goals tab has ${m.goalRows} row${m.goalRows === 1 ? "" : "s"}, but none has a name the page can read. Check column A, Goal.` : "No goals yet. Add one below."}</div></div>`;
     v.innerHTML = `${hero}
+      <div class="card v3levers" id="leverhost" style="--i:1" hidden></div>
       <div class="card" style="--i:1"><div class="cardhead"><span class="q">All goals</span><span class="cardtools">${canWriteSheet() || S.mode !== "live" ? `<button class="btn sm" id="addgoal">${ico("i-plus")} Add a goal</button>` : `<span class="sub">Edit goals on the Goals tab of the sheet</span>`}</span></div>
         <div class="gtiles" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))">${m.goals.map((g) => goalTile(g, false)).join("")}</div>
-        <p class="sub" style="margin-top:10px">Each goal is a row on the sheet's Goals tab, linked to one saver account. The sheet works out progress and pace; this page only reads it${canWriteSheet() ? ", and writes a target or date back when you change one here" : ""}.</p>
+        <p class="sub" style="margin-top:10px">Each goal is a row on the sheet's Goals tab, linked to one saver account. The sheet works out progress and pace. ${canWriteSheet() ? "Changing a target or date here writes it to the Goals tab (Setup lists every write this page makes)." : S.mode === "live" ? "This sheet is read-only for you, so a change here stays on this device." : "In the demo a change stays on this device; the demo sheet is never written."}</p>
       </div>
       <div class="grid" style="--i:2">
-        <div class="card span-5"><div class="cardhead"><span class="q">Safety net</span></div>
-          <div class="goalrow">${ringSVG(sf.pct, "var(--c-in)", sf.months != null ? sf.months.toFixed(1) : "—", `of ${sf.target} months`)}<div class="txt"><p>${sf.months != null ? `Cash and offset would cover <b>${sf.months.toFixed(1)} months</b> of essential spending (about ${fmt0(sf.essentialPm)} a month).` : "The sheet has no safety-net figure yet."}</p><p class="sub" style="margin-top:6px">${sf.short ? `About ${fmtS(sf.short)} more would reach the ${sf.target}-month target you set. ` : ""}Essential means the categories marked Essential on the Categories tab.</p>${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" id="editsafety">Change the target</button>` : ""}</div></div>
+        <div class="card span-5" id="safetycard"><div class="cardhead"><span class="q">Safety net</span><span class="sub">the emergency fund, in months of essentials</span></div>
+          <div class="goalrow">${ringSVG(sf.pct, "var(--c-in)", sf.months != null ? sf.months.toFixed(1) : "—", `of ${sf.target} months`)}<div class="txt">${(() => {
+            if (sf.months == null) return `<p>The sheet has no emergency-cover figure yet. It needs a Goals row named Emergency fund.</p>`;
+            if (!sf.essentialPm) return `<p>The sheet says the emergency fund covers <b>${sf.months.toFixed(1)} months</b>. The page cannot show the essential spending behind that until the Entries tab has rows.</p>`;
+            const fund = m.goals.find((g) => g.name === sf.fund), acct = fund && m.acctById[fund.acct];
+            return `<p>The emergency fund${acct ? ` (${esc(acct.name)})` : ""} holds <b>${fmt0(sf.held)}</b>. That covers <b>${sf.months.toFixed(1)} months</b> of essential spending, about ${fmt0(sf.essentialPm)} a month over the last three months.</p>
+            <p class="sub" style="margin-top:6px">${sf.short ? `About ${fmtS(sf.short)} more would reach the ${sf.target} months you set. ` : `That meets the ${sf.target} months you set. `}${fund && fund.target && sf.essentialPm ? `The Emergency fund goal's own target, ${fmt0(fund.target)}, is ${(fund.target / sf.essentialPm).toFixed(1)} months. ` : ""}Essential means the categories marked Essential on the Categories tab. ${sf.liquidMonths != null ? `Cash and offset together, ${fmtS(sf.liquid)}, would cover ${sf.liquidMonths.toFixed(1)} months.` : ""}</p>`; })()}${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" id="editsafety">Change the target</button>` : ""}</div></div>
         </div>
         ${(() => { const ws = E.worthSummary(m); if (ws.count < 5) return ""; return `<div class="card span-12" id="yescard"><div class="cardhead"><span class="q">${ico("i-worth")} Spend that earned a yes</span><span class="sub"><b class="num">${fmt0(ws.yesTotal)}</b> of ${fmt0(ws.total)} you were asked about · ${ws.yes} yes, ${ws.meh} meh, ${ws.no} no</span></div>
           <div class="yesblock"><div><h3 style="font-size:15px;margin-bottom:6px">By category</h3>${barsHTML(ws.byCat.slice(0, 6).map(([k, v]) => ({ k, v })))}</div><div><h3 style="font-size:15px;margin-bottom:6px">By merchant</h3>${barsHTML(ws.byMerchant.slice(0, 6).map(([k, v]) => ({ k, v, go: "merchant:" + k })))}</div></div>
-          <p class="sub" style="margin-top:10px">What you said was worth it, summed. ${ws.noByMerchant.length ? `The no's: ${ws.noByMerchant.slice(0, 3).map(([k, v]) => `${esc(k)} (${fmt0(v)})`).join(", ")}.` : ""} Experiences, small pleasures and things enjoyed with others tend to collect the yeses (Dunn, Gilbert and Wilson, 2011); the point is noticing, not scoring.</p></div>`; })()}
-        <div class="card span-7" id="savecard"><div class="cardhead"><span class="q">Ways to get there faster</span><span class="sub"><b class="num">${fmt0(m.savings.filter((s) => s.type === "Recurring").reduce((a, s) => a + (s.amount || 0), 0))}</b> a year, the sheet's estimate</span></div>
-          <div class="gtiles">${m.savings.filter((s) => !(S.prefs.hidden || []).includes(s.title)).map(ideaTile).join("")}</div>
+          <p class="sub" style="margin-top:10px">What you said was worth it, summed. ${ws.noByMerchant.length ? `The no's: ${ws.noByMerchant.slice(0, 3).map(([k, v]) => `${esc(k)} (${fmt0(v)})`).join(", ")}.` : ""} The point is noticing, not scoring.</p></div>`; })()}
+        <div class="card span-7" id="savecard"><div class="cardhead"><span class="q">Ways to get there faster</span><span class="sub"><b class="num">${fmt0(m.savingsYear)}</b> a year${m.savingsOnce ? ` and ${fmt0(m.savingsOnce)} once` : ""}, estimates from the sheet's Savings Finder, checked against the rows</span></div>
+          <div class="gtiles ideas">${m.savings.filter((s) => !(S.prefs.hidden || []).includes(s.title)).map(ideaTile).join("")}</div>
           ${(S.prefs.hidden || []).length ? `<button class="linkbtn" id="unhideall">Show ${S.prefs.hidden.length} hidden on this device</button>` : ""}
         </div>
       </div>`;
@@ -906,6 +964,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $$("[data-editgoal]", v).forEach((b) => b.addEventListener("click", () => openGoalEditor(m.goals.find((g) => g.name === b.dataset.editgoal))));
     const es = $("#editsafety"); if (es) es.addEventListener("click", openSafetyEditor);
     const ua = $("#unhideall"); if (ua) ua.addEventListener("click", () => { savePrefs({ hidden: [] }); renderGoals(); renderHome(); });
+    renderLevers();
     bindCommon(v);
   }
 
@@ -920,30 +979,30 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     return `<p class="sub" style="margin-bottom:8px">On a phone, this page installs like an app: full screen, its own icon, no browser bars. ${PAGE_URL ? "Scan the code with your phone's camera, then:" : "Open the page on your phone, then:"}</p><details><summary style="font-weight:700;cursor:pointer">iPhone</summary>${ios}</details><details style="margin-top:8px"><summary style="font-weight:700;cursor:pointer">Android</summary>${android}</details>`;
   }
   function qrHTML() { if (!PAGE_URL || !window.qrcode) return ""; try { const q = window.qrcode(0, "M"); q.addData(PAGE_URL); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) { return ""; } }
+  // How the Kitty is built, as it is now: your files, Claude or Codex with the Kitty skill, one Sheet (Entries and the input tabs raw,
+  // everything else formulas), and this page reading it. The dashed arrows are the only writes.
   function diagramSVG() {
-    return `<svg viewBox="0 0 960 372" role="img" aria-label="Bank files land in a sources folder, an importer appends rows to the sheet's raw tabs, the sheet's views and Metrics compute everything, and The Kitty reads the sheet through the viewer's connector or a bundled snapshot; onboarding writes only to the Kitty, Goals and Settings tabs">
+    return `<svg viewBox="0 0 960 380" role="img" aria-label="Your bank files go to Claude or Codex with the Kitty skill, which writes rows to the Sheet's Entries tab; the Sheet's views, checks and Metrics compute everything; this page reads the Sheet through your connector, or reads a bundled snapshot in the demo; for the owner, the page writes the few cells listed under What this page writes">
       <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="currentColor"/></marker></defs>
       <g class="dg">
-        <rect class="dg-box" x="10" y="40" width="150" height="70" rx="12"/><text class="dg-t" x="85" y="68" text-anchor="middle">Banks</text><text class="dg-s" x="85" y="86" text-anchor="middle">CSV export · Up API</text>
-        <rect class="dg-box" x="10" y="210" width="150" height="70" rx="12"/><text class="dg-t" x="85" y="238" text-anchor="middle">sources/</text><text class="dg-s" x="85" y="256" text-anchor="middle">files as delivered, never edited</text>
-        <rect class="dg-box" x="210" y="120" width="150" height="100" rx="12"/><text class="dg-t" x="285" y="150" text-anchor="middle">Importer</text><text class="dg-s" x="285" y="168" text-anchor="middle">a person or an agent</text><text class="dg-s" x="285" y="184" text-anchor="middle">dedupe · categorise · review</text><text class="dg-s" x="285" y="200" text-anchor="middle">then append</text>
-        <rect class="dg-box owner" x="410" y="20" width="250" height="300" rx="16"/><text class="dg-t" x="535" y="46" text-anchor="middle">Google Sheet · the one owner</text>
-        <rect class="dg-box" x="425" y="60" width="220" height="56" rx="10"/><text class="dg-t" x="535" y="82" text-anchor="middle">Raw tabs</text><text class="dg-s" x="535" y="100" text-anchor="middle">Transactions · Payslips · Valuations</text>
-        <rect class="dg-box" x="425" y="128" width="220" height="56" rx="10"/><text class="dg-t" x="535" y="150" text-anchor="middle">Input tabs</text><text class="dg-s" x="535" y="168" text-anchor="middle">Accounts · Categories · Goals · Settings · Kitty</text>
-        <rect class="dg-box" x="425" y="196" width="220" height="56" rx="10"/><text class="dg-t" x="535" y="218" text-anchor="middle">Views, formulas only</text><text class="dg-s" x="535" y="236" text-anchor="middle">Cash Flow · Budget · Checks · Tax · Loans</text>
-        <rect class="dg-box" x="425" y="264" width="220" height="40" rx="10"/><text class="dg-t" x="535" y="289" text-anchor="middle">Metrics · one row per headline</text>
-        <rect class="dg-box" x="740" y="40" width="100" height="60" rx="12"/><text class="dg-t" x="790" y="64" text-anchor="middle">Apps Script</text><text class="dg-s" x="790" y="82" text-anchor="middle">JSON snapshot</text>
-        <rect class="dg-box" x="740" y="210" width="100" height="60" rx="12"/><text class="dg-t" x="790" y="234" text-anchor="middle">Sheets</text><text class="dg-s" x="790" y="252" text-anchor="middle">viewer's connector</text>
-        <rect class="dg-box page" x="865" y="110" width="90" height="110" rx="16"/><text class="dg-t dg-page" x="910" y="150" text-anchor="middle">The Kitty</text><text class="dg-s dg-page" x="910" y="170" text-anchor="middle" opacity=".75">this page</text><text class="dg-s dg-page" x="910" y="188" text-anchor="middle" opacity=".75">phone · desktop</text>
-        <path class="dg-edge" d="M85 110 V210" marker-end="url(#arr)"/><text class="dg-lab" x="92" y="164">downloaded monthly</text>
-        <path class="dg-edge" d="M160 245 H185 V170 H210" marker-end="url(#arr)"/>
-        <path class="dg-edge" d="M360 170 H385 V88 H425" marker-end="url(#arr)"/>
-        <path class="dg-edge" d="M535 116 V128"/><path class="dg-edge" d="M535 184 V196" marker-end="url(#arr)"/><path class="dg-edge" d="M535 252 V264" marker-end="url(#arr)"/>
-        <path class="dg-edge" d="M660 70 H740" marker-end="url(#arr)"/><text class="dg-lab" x="700" y="62" text-anchor="middle">reads all tabs</text>
-        <path class="dg-edge" d="M660 240 H740" marker-end="url(#arr)"/><text class="dg-lab" x="700" y="232" text-anchor="middle">reads live</text>
-        <path class="dg-edge" d="M840 70 H852 V150 H865" marker-end="url(#arr)"/><text class="dg-lab" x="846" y="122" text-anchor="end">bundled demo</text>
-        <path class="dg-edge" d="M840 240 H852 V180 H865" marker-end="url(#arr)"/>
-        <path class="dg-edge write" d="M910 220 V345 H535 V322" marker-end="url(#arr)"/><text class="dg-lab" x="722" y="360" text-anchor="middle">onboarding writes, each to its owning tab: Kitty · Goals · Settings</text>
+        <rect class="dg-box" x="10" y="40" width="160" height="78" rx="12"/><text class="dg-t" x="90" y="70" text-anchor="middle">Your files</text><text class="dg-s" x="90" y="90" text-anchor="middle">bank exports, statements,</text><text class="dg-s" x="90" y="106" text-anchor="middle">payslips, as delivered</text>
+        <rect class="dg-box" x="10" y="200" width="160" height="96" rx="12"/><text class="dg-t" x="90" y="228" text-anchor="middle">Claude or Codex</text><text class="dg-s" x="90" y="248" text-anchor="middle">with the Kitty skill</text><text class="dg-s" x="90" y="264" text-anchor="middle">reads, reconciles,</text><text class="dg-s" x="90" y="280" text-anchor="middle">asks what it can't settle</text>
+        <rect class="dg-box owner" x="230" y="20" width="420" height="300" rx="16"/><text class="dg-t" x="440" y="46" text-anchor="middle">One Google Sheet, the owner of every number</text>
+        <rect class="dg-box" x="245" y="62" width="390" height="56" rx="10"/><text class="dg-t" x="440" y="84" text-anchor="middle">Raw data</text><text class="dg-s" x="440" y="102" text-anchor="middle">Entries (every bank line and valuation) · Payslips · Decisions</text>
+        <rect class="dg-box" x="245" y="128" width="390" height="56" rx="10"/><text class="dg-t" x="440" y="150" text-anchor="middle">Inputs</text><text class="dg-s" x="440" y="168" text-anchor="middle">Accounts · Categories · Goals · Contracts · Rules · Settings · Kitty</text>
+        <rect class="dg-box" x="245" y="194" width="390" height="56" rx="10"/><text class="dg-t" x="440" y="216" text-anchor="middle">Views, formulas only</text><text class="dg-s" x="440" y="234" text-anchor="middle">Transactions · Balances · Cash Flow · Budget · Tax · Checks</text>
+        <rect class="dg-box" x="245" y="260" width="390" height="44" rx="10"/><text class="dg-t" x="440" y="287" text-anchor="middle">Metrics: one row per headline</text>
+        <rect class="dg-box" x="720" y="40" width="120" height="64" rx="12"/><text class="dg-t" x="780" y="66" text-anchor="middle">Snapshot</text><text class="dg-s" x="780" y="84" text-anchor="middle">the demo only</text>
+        <rect class="dg-box" x="720" y="200" width="120" height="64" rx="12"/><text class="dg-t" x="780" y="226" text-anchor="middle">Sheets</text><text class="dg-s" x="780" y="244" text-anchor="middle">your connector</text>
+        <rect class="dg-box page" x="865" y="110" width="90" height="110" rx="16"/><text class="dg-t dg-page" x="910" y="150" text-anchor="middle">The Kitty</text><text class="dg-s dg-page" x="910" y="170" text-anchor="middle" opacity=".8">this page</text><text class="dg-s dg-page" x="910" y="188" text-anchor="middle" opacity=".8">any screen</text>
+        <path class="dg-edge" d="M90 118 V200" marker-end="url(#arr)"/><text class="dg-lab" x="98" y="164">one sentence</text>
+        <path class="dg-edge write" d="M170 248 H200 V90 H245" marker-end="url(#arr)"/><text class="dg-lab" x="191" y="160" text-anchor="middle" transform="rotate(-90 191 160)">writes rows</text>
+        <path class="dg-edge" d="M440 118 V128"/><path class="dg-edge" d="M440 184 V194" marker-end="url(#arr)"/><path class="dg-edge" d="M440 250 V260" marker-end="url(#arr)"/>
+        <path class="dg-edge" d="M650 72 H720" marker-end="url(#arr)"/><text class="dg-lab" x="685" y="64" text-anchor="middle">read once</text>
+        <path class="dg-edge" d="M650 232 H720" marker-end="url(#arr)"/><text class="dg-lab" x="685" y="224" text-anchor="middle">reads live</text>
+        <path class="dg-edge" d="M840 72 H852 V150 H865" marker-end="url(#arr)"/>
+        <path class="dg-edge" d="M840 232 H852 V180 H865" marker-end="url(#arr)"/>
+        <path class="dg-edge write" d="M910 220 V352 H440 V320" marker-end="url(#arr)"/><text class="dg-lab" x="676" y="368" text-anchor="middle">for the owner only: the few cells under What this page writes</text>
       </g></svg>`;
   }
   function appearanceCard(m) {
@@ -1106,29 +1165,40 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const country = SOURCES.countries.find((c) => c.code === cc) || SOURCES.countries[0];
     const sheetLink = `https://docs.google.com/spreadsheets/d/${sheetId()}/edit`;
     const onNow = WID(m).filter((w) => !w.core).map((w) => w.title);
+    const prompt = "This Google Sheet is our Kitty: [link]. Read its README tab, then load everything in [folder].";
     v.innerHTML = `
-      <div class="card" style="--i:0"><div class="cardhead"><span class="q">Why Home looks the way it does</span></div>
-        <div class="prose"><p>Home is made of widgets, and what's in your sheet switches them on, not a setting. Add a property to Accounts and its widgets appear once, with a note and an undo. A widget with nothing to say stays off, so you never see an empty tile. Arrange moves, resizes and hides them, and that layout is yours, kept with you and never in the sheet. Anything marked beta stays off until you make it active.</p>
-        <p class="sub">${onNow.length ? `On for this household: ${esc(onNow.join(", "))}.` : "Nothing beyond the everyday set is on yet."}</p></div>
+      <div class="card" style="--i:0" id="yours"><div class="cardhead"><span class="q">Make it yours</span><span class="sub">two steps, then one sentence a month</span></div>
+        <div class="clone">
+          <div class="st"><div><b>Copy the template.</b><span><a href="${TEMPLATE}" target="_blank" rel="noopener">Make a copy of the blank Kitty template</a> (Google asks you to confirm). It has 26 tabs, the formulas and the checks, and no household rows. The Davies are only the example; never copy their sheet.</span></div></div>
+          <div class="st"><div><b>Give your files to Claude or Codex, with one sentence.</b><span>Put your bank exports, statements and payslips in one folder, in whatever format the bank gives you. In Claude Code or Codex, with Google Sheets connected, say:</span><blockquote class="say">${esc(prompt)}</blockquote><span>The Kitty skill (<a href="${REPO}/blob/main/skills/kitty/SKILL.md" target="_blank" rel="noopener">skills/kitty/SKILL.md</a>) does the rest: it reads every file, ties each balance, writes one batch to the Entries tab, records each judgement on Decisions and reads the checks. It asks only what it cannot settle.</span></div></div>
+          <div class="st"><div><b>Next month, say "Bring my Kitty up to date."</b><span>The same skill picks up from the Decisions and Balances tabs. Compliance Checks says when the month is whole.</span></div></div>
+          <div class="st"><div><b>Read it here.</b><span>Add the Google Sheets connector in claude.ai (Settings, Connectors, Google Sheets, with the Google account that owns your copy), then paste your sheet's link below. It is remembered on this device${S.dbDoc ? " and in your Claude account" : ""}. The page reads it live and goes back to the demo if it can't.</span></div></div>
+        </div>
+        <div class="sheetform"><input id="sheetinput" type="text" inputmode="text" placeholder="Paste your sheet's link or ID" value="${esc(S.prefs.sheet || "")}" aria-label="Your Google Sheet link or ID"><button class="btn sm" id="sheetgo">${S.mcp ? "Read it live" : "Save for when connectors are available"}</button>${S.prefs.sheet ? `<button class="btn sm ghost" id="sheetdemo">Back to the demo</button>` : ""}</div>
+        <p class="sub" style="margin-top:8px">${S.mode === "live" ? `Reading <a href="${sheetLink}" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> live.` : S.mcp ? (S.liveErr ? `Last live read failed: ${errText(S.liveErr)}` : isDemoSheet() ? "Showing the bundled demo. Paste your own sheet's link to read yours." : "") : "Connectors aren't available in this view, so the page shows the bundled demo household."} <button class="linkbtn" id="rerunonb">Name, lead goal and colour: run the setup screens</button></p>
       </div>
-      <div class="card" style="--i:0"><div class="cardhead"><span class="q">How The Kitty is built</span><span class="sub">and why, so you can keep it or copy it</span></div>
-        <div class="statline"><div class="stat"><div class="k">Source of truth</div><div class="v">1 sheet</div></div><div class="stat"><div class="k">Servers</div><div class="v">0</div></div><div class="stat"><div class="k">Page</div><div class="v">1 file</div></div><div class="stat"><div class="k">Monthly upkeep</div><div class="v">~20 min</div></div></div>
-        <div class="prose"><p>The whole system is <b>one Google Sheet</b> that does every calculation, and <b>one page</b> (this one) that reads it and never computes a number the sheet already owns. Bank files are appended as raw rows; formulas turn them into views; a Metrics tab names each headline figure; the page draws those and says where each came from. There is no database, no server, no account to keep alive. If this page vanished tomorrow the household would still have everything, in a format their accountant can open.</p></div>
-        <figure class="diagram">${diagramSVG()}<figcaption>Solid arrows are reads and appends. The one dashed arrow is the only thing this page writes: the settings it owns, a goal's target or date, and the safety-net target, each to the tab that owns it.</figcaption></figure>
+      <div class="card" style="--i:1"><div class="cardhead"><span class="q">How The Kitty is built</span><span class="sub">and why, so you can keep it or copy it</span></div>
+        <div class="statline"><div class="stat"><div class="k">Source of truth</div><div class="v">1 sheet</div></div><div class="stat"><div class="k">Servers</div><div class="v">0</div></div><div class="stat"><div class="k">Page</div><div class="v">1 file</div></div><div class="stat"><div class="k">Upkeep, a month</div><div class="v">~40 min</div></div></div>
+        <div class="prose"><p>The whole system is <b>one Google Sheet</b> that does every calculation, and <b>one page</b> (this one) that reads it. Claude or Codex reads your bank files and writes them as rows on the Entries tab; formulas turn those rows into views; a Metrics tab names each headline figure; the page draws those and says where each came from. There is no importer to install, no database, no server and no account to keep alive. If this page vanished tomorrow the household would still have everything, in a format their accountant can open.</p></div>
+        <figure class="diagram"><div class="dscroll">${diagramSVG()}</div><figcaption><span class="phoneonly">Swipe the diagram sideways to see all of it. </span>Solid arrows are reads. The dashed arrows are the only writes: Claude or Codex writes rows, and for the owner of a live sheet this page writes the few cells listed below.</figcaption></figure>
       </div>
-      <div class="card" style="--i:1"><div class="cardhead"><span class="q">One owner per number</span></div>
-        <div class="prose"><p>Every figure on this page has exactly one home. The Goals tab owns targets and pace. Settings owns the as-of date and the safety-net target. Subscriptions owns prices and decisions. Metrics owns the headlines. The page re-derives nothing it can read, and when it must derive (a search, a window of spending) it checks itself against the sheet: the trust drawer shows those reconciliations live. Estimates are labelled as estimates, never published as fact.</p>
-        <ul><li><b>Raw tabs are append-only.</b> A mistake is fixed with a new row, not by editing history.</li><li><b>Views are formulas only.</b> Nobody types into them, so nothing silently drifts.</li><li><b>The page follows the sheet.</b> Change a target in Goals and the page's dates move; change them here and the sheet gets the write.</li><li><b>Agents append, people decide.</b> An importer proposes categories and a review list; a person settles it before anything lands.</li></ul></div>
+      <div class="card" style="--i:2" id="writes"><div class="cardhead"><span class="q">What this page writes</span><span class="sub">for the owner of a live sheet only, each behind a click</span></div>
+        <div class="prose"><p>The demo writes nothing. On your own sheet, these are the only cells the page changes. Each goes to the tab that owns the value, and the page reads the sheet again afterwards.</p></div>
+        <div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th>What</th><th>From</th></tr></thead><tbody>${WRITES.map(([t, w, f]) => `<tr><td><b>${esc(t)}</b></td><td>${esc(w)}</td><td class="muted">${esc(f)}</td></tr>`).join("")}</tbody></table></div>
       </div>
-      <div class="card" style="--i:2"><div class="cardhead"><span class="q">Why this, not that</span></div>
+      <div class="card" style="--i:2"><div class="cardhead"><span class="q">One owner per number</span></div>
+        <div class="prose"><p>Every figure on this page has one home. The Goals tab owns targets and pace. Settings owns the as-of date and the emergency fund target. Subscriptions owns prices and decisions. Metrics owns the headlines. When the page must derive a figure (a search, a window of spending) it checks itself against the sheet, and the trust drawer shows those checks. Where a sheet column reads the wrong rows, the page says so beside the figure and reads the rows instead. Estimates are labelled as estimates.</p>
+        <ul><li><b>Raw data is append-only.</b> A mistake is fixed with a new row, not by editing history.</li><li><b>Views are formulas only.</b> Nobody types into them, so nothing silently drifts.</li><li><b>The page follows the sheet.</b> Change a target in Goals and the page's dates move.</li><li><b>The harness writes, people decide.</b> Claude or Codex proposes a category and asks what it cannot settle; each call is a row on Decisions, with who made it and why.</li></ul></div>
+      </div>
+      <div class="card" style="--i:3"><div class="cardhead"><span class="q">Why this, not that</span></div>
         <div class="why">${[
           ["A sheet as the store", "<b>Google Sheets.</b> Readable by a person, an accountant and an agent; formulas are the business logic; free; survives any app.", "<b>A database or SaaS budgeting app.</b> Faster at scale a household never reaches; locks the data in; needs a server or a subscription."],
           ["A Claude artifact as the app", "<b>One published page.</b> Installs on a phone, reads the viewer's own connectors with their consent, can ask Claude questions about the data, costs nothing to host.", "<b>A native app or a hosted web app.</b> App-store review, a backend, auth, hosting bills, and the data would have to leave the sheet."],
-          ["How data gets in", "<b>Monthly CSV exports, filed as delivered.</b> Works at every bank in every country today; an agent can drive the browser while the person signs in.", "<b>Screen-scraping aggregators.</b> Hold your password and break on bank changes. Open banking is better where you can reach it as an individual (Up, Monzo, Akahu) and is listed as the first choice there."],
-          ["Reading the sheet", "<b>The viewer's Google Sheets connector</b>, with a 30-minute cache and a read-age indicator. The viewer's credentials, never ours.", "<b>A service account or API key in the page.</b> Would make the sheet readable by anyone with the page."],
+          ["How data gets in", "<b>The bank's own files, read by Claude or Codex.</b> CSV, PDF or a screenshot, from every bank in every country today. The harness keeps no code, so a bank that changes its format changes nothing here.", "<b>Screen-scraping aggregators.</b> Hold your password and break on bank changes. Open banking is better where you can reach it as an individual (Up, Monzo, Akahu) and is listed as the first choice there."],
+          ["Reading the sheet", "<b>The viewer's Google Sheets connector</b>, with a 30-minute cache and a read-age line. The viewer's credentials, never ours.", "<b>A service account or API key in the page.</b> Would make the sheet readable by anyone with the page."],
           ["The demo data", "<b>Bundled snapshot.</b> Fictional, so bundling is safe; the page opens instantly for anyone and still goes live for the owner.", "<b>Fetch at runtime.</b> Blocked by the artifact sandbox for outside hosts, and a demo should never wait on a connector."],
           ["Charts", "<b>Hand-drawn SVG, with d3 only for layout maths</b> (circle packing, the flow). Small, themeable, no runtime fetches.", "<b>A charting library.</b> Hundreds of kilobytes for a dozen charts, each with its own look."],
-          ["Writes from the page", "<b>Three narrow writes</b>, each to the tab that owns the value, each behind a click, each reread afterwards.", "<b>A general editor.</b> Would make the page a second place where numbers get typed, and the sheet's checks would stop being the last word."],
+          ["Writes from the page", "<b>A short list of narrow writes</b> for the owner, each to the tab that owns the value, each behind a click, each read back afterwards.", "<b>A general editor.</b> Would make the page a second place where numbers get typed, and the sheet's checks would stop being the last word."],
           ["Where the logic lives", "<b>engine.js, pure functions with tests</b> that use the sheet as the oracle (transactions must add up to the Cash Flow tab, every month).", "<b>Logic in the templates.</b> Untestable, and two copies of every rule."]].map(([k, a, b]) => `<div class="whyrow"><div class="k">${k}</div><div class="pick">${a}</div><div class="alt">${b}</div></div>`).join("")}</div>
       </div>
       <div class="card" style="--i:3"><div class="cardhead"><span class="q">Getting your data in</span><span class="cardtools"><span class="seg mini" role="group" aria-label="Country">${SOURCES.countries.map((c) => `<button data-cc="${c.code}" aria-pressed="${c.code === country.code}">${c.code}</button>`).join("")}</span></span></div>
@@ -1136,25 +1206,17 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <h3 style="margin:16px 0 8px;font-size:15px">Options, ranked</h3>
         <div class="verdicts">${country.verdict.map(([a, b, c]) => `<div class="vrow"><span class="a">${esc(a)}</span><span class="b">${esc(b)}</span><span class="tag ${/recommended|best/i.test(c) ? "good" : /avoid/i.test(c) ? "warn" : ""}">${esc(c)}</span></div>`).join("")}</div>
         <h3 style="margin:16px 0 8px;font-size:15px">Where the export lives, bank by bank</h3>
-        <div class="inst">${country.institutions.map((i) => `<div class="instrow"><span class="n">${esc(i.name)}</span><span class="p">${esc(i.path)}</span><span class="f">${esc(i.formats)}${i.app ? ` · app: ${esc(i.app)}` : ""} · ${i.verified ? `verified ${esc(i.verified)}` : `documented ${esc(i.documented)}, not yet verified in a browser`}</span><span class="c">Columns: ${esc(i.columns)}${i.notes ? ` · ${esc(i.notes)}` : ""}</span></div>`).join("")}</div>
-        <p class="sub" style="margin-top:10px">Paths move. Each row says when it was written down and whether an agent has since confirmed it on the bank's own site; the skill below confirms before trusting one and records the date.</p>
+        <div class="inst">${country.institutions.map((i) => `<div class="instrow"><span class="n">${esc(i.name)}</span><span class="p">${esc(i.path)}</span><span class="f">${esc(i.formats)}${i.app ? ` · app: ${esc(i.app)}` : ""} · ${i.verified ? `checked ${esc(i.verified)}` : `written down ${esc(i.documented)}, not yet checked in a browser`}</span><span class="c">Columns: ${esc(i.columns)}${i.notes ? ` · ${esc(i.notes)}` : ""}</span></div>`).join("")}</div>
+        <p class="sub" style="margin-top:10px">Paths move. Each row says when it was written down and whether anyone has since checked it on the bank's own site.</p>
         <h3 style="margin:16px 0 8px;font-size:15px">If an agent does the download</h3>
-        <div class="prose"><p>${esc(country.agent)}</p><p>The repo ships this as a skill (<code>kitty/skills/bank-export/SKILL.md</code>) that Claude Code or Codex follows: pick the country and bank from this list, open the export page in a supervised browser, let the person or their password manager sign in, never touch a credential or a one-time code, save the file as delivered into <code>sources/&lt;account&gt;/&lt;date&gt;/</code>, run the importer, and hand back the review list. Banks and payments are high-risk sites: the browser asks the person before every click there, and that is the point.</p></div>
+        <div class="prose"><p>${esc(country.agent)}</p><p>Banks and payments are high-risk sites: the browser asks the person before every click there, and that is the point. Once the files are saved, hand them to the harness with the sentence above.</p></div>
         <h3 style="margin:16px 0 8px;font-size:15px">How a file lands in the sheet</h3>
         <div class="prose"><p>${esc(SOURCES.landing.rule)}</p></div>
-        <div class="tablewrap"><table class="t"><thead><tr><th>Transactions column</th><th>From the file</th></tr></thead><tbody>${SOURCES.landing.map.map(([a, b]) => `<tr><td><b>${esc(a)}</b></td><td>${esc(b)}</td></tr>`).join("")}</tbody></table></div>
+        <div class="tablewrap"><table class="t"><thead><tr><th>Entries column</th><th>From the file</th></tr></thead><tbody>${SOURCES.landing.map.map(([a, b]) => `<tr><td><b>${esc(a)}</b></td><td>${esc(b)}</td></tr>`).join("")}</tbody></table></div>
       </div>
-      <div class="card" style="--i:4" id="yours"><div class="cardhead"><span class="q">Make it yours</span><span class="sub">about an hour, once</span></div>
-        <div class="clone">
-          <div class="st"><div><b>Copy the sheet.</b><span><a href="https://docs.google.com/spreadsheets/d/${DEMO_SHEET}/copy" target="_blank" rel="noopener">Make a copy of the Davies demo sheet</a> (Google asks you to confirm). The Kitty tab, the formulas and the bound script copy with it. Clear the three raw tabs (Transactions, Payslips, Valuations) and fill Accounts, Categories, Goals and Settings for your household.</span></div></div>
-          <div class="st"><div><b>Add the Google Sheets connector in claude.ai</b><span>Settings → Connectors → Google Sheets, with the Google account that owns your copy. This page reads through it with your consent; nothing else ever sees the sheet.</span></div></div>
-          <div class="st"><div><b>Point this page at your sheet.</b><span>Paste the sheet's ID (the long part of its URL) below. It is remembered on this device${S.dbDoc ? " and in your Claude account" : ""}. The page will read it live and go back to the demo if it can't.</span></div></div>
-          <div class="st"><div><b>Bring in the first files.</b><span>Export the last three months from each account using the guide above, run <code>period-close/import_month.py</code> (or ask your agent to), settle the review list, append. Move the As-of date in Settings. The Compliance Checks tab tells you when the month is whole.</span></div></div>
-          <div class="st"><div><b>Run the setup here.</b><span>Name, country, lead goal, safety net, colour, phone. Five screens; it writes to the Kitty tab.</span></div></div>
-          <div class="st"><div><b>Optional: your own copy of the page.</b><span>The source is in the repo (<code>kitty/</code>: engine, page, build, tests). <code>python3 kitty/build.py --no-snapshot</code> gives a page with no data in it, which you publish privately from Claude with the Google Sheets connector declared. Use that one for real money; this demo page stays public.</span></div></div>
-        </div>
-        <div class="sheetform"><input id="sheetinput" type="text" inputmode="text" placeholder="Paste your sheet ID or its URL" value="${esc(S.prefs.sheet || "")}" aria-label="Your Google Sheet ID"><button class="btn sm" id="sheetgo">${S.mcp ? "Read it live" : "Save for when connectors are available"}</button>${S.prefs.sheet ? `<button class="btn sm ghost" id="sheetdemo">Back to the demo</button>` : ""}</div>
-        <p class="sub" style="margin-top:8px">${S.mode === "live" ? `Reading <a href="${sheetLink}" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> live.` : S.mcp ? (S.liveErr ? `Last live read failed: ${errText(S.liveErr)}` : isDemoSheet() ? "Showing the bundled demo. The owner's view reads the demo sheet live; paste your own ID to read yours." : "") : "Connectors aren't available in this view, so the page shows the bundled demo household."} <button class="linkbtn" id="rerunonb">Run the setup again</button></p>
+      <div class="card" style="--i:4"><div class="cardhead"><span class="q">Why Home looks the way it does</span></div>
+        <div class="prose"><p>Home is made of widgets, and what's in your sheet switches them on, not a setting. Add a property to Accounts and its widgets appear once, with a note and an undo. A widget with nothing to say stays off, so you never see an empty tile. Arrange moves, resizes and hides them, and that layout is yours, kept on this device and never in the sheet. Anything marked beta stays off until you make it active.</p>
+        <p class="sub">${onNow.length ? `On for this household: ${esc(onNow.join(", "))}.` : "Nothing beyond the everyday set is on yet."}</p></div>
       </div>
       ${appearanceCard(m)}
       <div class="card" style="--i:5" id="phonecard"><div class="cardhead"><span class="q">On your phone</span><span class="sub">it installs like an app</span></div>
@@ -1162,23 +1224,23 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       <div class="card" style="--i:6"><div class="cardhead"><span class="q">What it costs to keep</span><span class="sub">realistic, not aspirational</span></div>
         <div class="cost">
-          <div class="c"><b>20 min</b><span>a month: export each account, run the importer, settle 5 to 15 review items, move the as-of date. The agent can do all but the sign-ins.</span></div>
-          <div class="c"><b>1 hour</b><span>a quarter: add a valuation per asset, check Subscriptions decisions, read Compliance Checks, update work-from-home hours.</span></div>
+          <div class="c"><b>20 min</b><span>a month: download each account's file, give the folder to the harness with one sentence, answer what it asks, read the checks.</span></div>
+          <div class="c"><b>1 hour</b><span>a quarter: add a valuation per asset, check the Subscriptions decisions, read Compliance Checks, update work-from-home hours. With the monthly 20 minutes, about 40 minutes a month.</span></div>
           <div class="c"><b>$0</b><span>to run. Google Sheets and a Claude plan you already have. No hosting, no database, no key to rotate.</span></div>
-          <div class="c"><b>What breaks</b><span>A bank changes its CSV columns (fix the adapter, a 10-minute job), a connector needs re-consent (one click), a new merchant needs a rule (one row). Nothing breaks silently: the Checks tab and the trust drawer say so.</span></div>
+          <div class="c"><b>What breaks</b><span>A connector needs re-consent (one click), or a new merchant needs a rule (the harness asks, then adds one row). A bank that changes its file format changes nothing: the harness reads the new shape. Nothing breaks silently: the Checks tab and the trust drawer say so.</span></div>
         </div>
       </div>
       <div class="card" style="--i:7"><div class="cardhead"><span class="q">Where this goes</span><span class="sub">what the design already allows for</span></div>
         <div class="roadmap">
           <div class="road"><span class="when">Now</span><div><b>Ask the Kitty.</b><span>The page can hand Claude your numbers with tools (spending, search, goals, bills) and answer in plain words: “what did we spend on dining in October?”. It runs with your consent, in the page, and remembers nothing between questions.</span></div></div>
-          <div class="road"><span class="when">Next</span><div><b>The month-end close as an agent job.</b><span>A scheduled agent opens each bank in a supervised browser, waits for the sign-in, exports, imports, writes the review list, and emails three questions instead of thirty rows. The Compliance Checks tab is its definition of done.</span></div></div>
-          <div class="road"><span class="when">Soon</span><div><b>Open banking as the feed.</b><span>Where an individual can hold a token over their own accounts (Up, Monzo, Akahu, GoCardless) the importer reads JSON instead of CSV and the chore disappears. The sheet does not change at all.</span></div></div>
-          <div class="road"><span class="when">Later</span><div><b>Two people, one page.</b><span>Presence (“Mia is looking at Goals”), a shared what-if slider, and a decision log in the sheet, so a couple settles a cancellation or a target together and the record shows who decided what.</span></div></div>
+          <div class="road"><span class="when">Next</span><div><b>The month-end close as an agent job.</b><span>A scheduled agent opens each bank in a supervised browser, waits for the sign-in, saves the files, brings the Kitty up to date, and sends three questions instead of thirty rows. The Compliance Checks tab is its definition of done.</span></div></div>
+          <div class="road"><span class="when">Soon</span><div><b>Open banking as the feed.</b><span>Where an individual can hold a token over their own accounts (Up, Monzo, Akahu, GoCardless) the harness reads JSON instead of a file and the chore disappears. The sheet does not change at all.</span></div></div>
+          <div class="road"><span class="when">Later</span><div><b>Two people, one page.</b><span>Presence (“Mia is looking at Goals”), a shared what-if slider, and the Decisions tab as the record, so a couple settles a cancellation or a target together and the sheet shows who decided what.</span></div></div>
           <div class="road"><span class="when">Always</span><div><b>The sheet outlives the page.</b><span>Every improvement is judged by one test: could the household walk away from this page and still have everything? Yes today; yes after each step above.</span></div></div>
         </div>
       </div>
       <div class="card" style="--i:7.5"><div class="cardhead"><span class="q">Privacy, plainly</span></div>
-        <div class="prose"><ul style="margin:0"><li><b>Nothing is collected.</b> No analytics, no tracking, no server of ours. This page is a file served by claude.ai.</li><li><b>Your sheet is read with your own Google connector,</b> through claude.ai, only after you allow it, and only the tabs listed in the trust drawer. The demo household is fictional and bundled in the page.</li><li><b>Ask the Kitty sends numbers to Claude only when you ask a question,</b> after you allow "Use Claude". It keeps nothing between questions.</li><li><b>Your preferences</b> (name, country, lead goal, colours, theme, your own sheet ID) stay on this device and, when available, in your Claude account's private store for this page. Nothing else is written anywhere except the three sheet cells described above, by your click.</li></ul></div>
+        <div class="prose"><ul style="margin:0"><li><b>Nothing is collected.</b> No analytics, no tracking, no server of ours. This page is a file served by claude.ai.</li><li><b>Your sheet is read with your own Google connector,</b> through claude.ai, only after you allow it, and only the tabs listed in the trust drawer. The demo household is fictional and bundled in the page.</li><li><b>The harness reads your bank lines,</b> and they go to its model provider (Anthropic for Claude, OpenAI for Codex). Say so to anyone whose money is in the files.</li><li><b>Ask the Kitty sends numbers to Claude only when you ask a question,</b> after you allow "Use Claude". It keeps nothing between questions.</li><li><b>Your preferences</b> (name, country, lead goal, colours, theme, your own sheet's ID) stay on this device and, when available, in your Claude account's private store for this page. The sheet is written only as listed under What this page writes, by your click, on a sheet you own.</li></ul></div>
       </div>
       <p class="sub" style="--i:8;padding:0 6px">The Kitty ${VERSION} · fictional household · <button class="linkbtn" data-open="trust">Where the numbers come from</button> · <a href="${sheetLink}" target="_blank" rel="noopener">open the sheet</a> · <a href="${REPO}" target="_blank" rel="noopener">source on GitHub</a> · <a href="${REPO}/issues/new" target="_blank" rel="noopener">report a problem</a></p>`;
     $$("[data-cc]", v).forEach((b) => b.addEventListener("click", () => { S.setupCountry = b.dataset.cc; renderSetup(); }));
@@ -1191,17 +1253,119 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
 
   // ----- Records -----
   // the standard's generated view, drawn by the kit; the page holds the picked year and binds the clicks
+  const recOpts = () => ({ asOf: S.m && S.m.asOf, catName: (id) => (S.m && S.m.catById[id] || {}).name || Kit.idWords(id) });
   function renderRecords() {
     const v = $("#v-records");
-    v.innerHTML = Kit.Records(STANDARD, { fy: S.recordsFy });
-    const pick = $("#recfy", v); if (pick) pick.addEventListener("change", () => { S.recordsFy = pick.value; $("#recyear", v).innerHTML = Kit.RecordsYear(STANDARD, S.recordsFy); });
+    const ro = recOpts(); v.innerHTML = Kit.Records(STANDARD, Object.assign({ fy: S.recordsFy }, ro));
+    const pick = $("#recfy", v); if (pick) pick.addEventListener("change", () => { S.recordsFy = pick.value; $("#recyear", v).innerHTML = Kit.RecordsYear(STANDARD, S.recordsFy, ro); });
     bindCommon(v);
   }
 
+  // ----- sheet version 3: Things, Tax, What moves the date, Groceries. src/kit/v3.js maps the tabs onto the modules' inputs. -----
+  const V3 = Kit.V3, KIT_ART = window.KITTY_KIT_ART || {};
+  let V3C = null;
+  // the five tabs, from the live read or the bundled snapshot; read again whenever the model or the grids change
+  const v3 = () => { if (V3C && V3C.m === S.m && V3C.g === S.grids) return V3C.t; const t = S.mode === "live" && S.grids ? V3.fromGrids(S.grids) : V3.fromSnapshot(SNAP); V3C = { m: S.m, g: S.grids, t }; return t; };
+  const v3Day = (iso) => (iso ? E.fmtDay(iso, { year: true }) : "");
+  const v3Month = (iso) => (/^\d{4}-\d{2}/.test(iso || "") ? E.fmtMonth(iso) : "never");
+  const kitDrawer = (html) => openDrawer(`<div class="kx-dr">${html}</div>`);
+  // a view whose module or tab is missing has no tab button; one that comes back gets it again
+  function setTabLit(tab, on) {
+    const b = $(`nav.tabs button[data-tab="${tab}"]`); if (!b) return;
+    if (b.hidden === on) { b.hidden = !on; requestAnimationFrame(moveGlow); }
+    if (!on && S.tab === tab) switchTab("home", true);
+  }
+  const S3 = { pick: {}, tax: {}, leverGoal: null, flips: {} };   // this visit only: the option looked at, the tax view, the goal shown, demo switches
+  function thingsModel() { if (!Kit.Things) return null; const inp = V3.thingsInput(S.m, v3(), KIT_ART); return inp ? Kit.Things.model(inp) : null; }
+  function renderThings() {
+    const v = $("#v-things"), tm = thingsModel(); setTabLit("things", !!tm);
+    if (!tm) { v.innerHTML = ""; return; }
+    const t = v3();
+    v.innerHTML = `<div class="kxhost" id="thingshost">${Kit.Things.render(tm, { state: S3.pick })}</div>
+      <p class="sub v3foot">From the Contracts tab${t.decision_options ? " and the quotes on Decision Options" : ""}, as of ${esc(v3Day(S.m.asOf))}. Choosing an option compares the costs; ${S.mode === "live" ? "record the choice on the Decisions tab." : "nothing is saved."}</p>`;
+    Kit.Things.bind($("#thingshost"), tm, { state: S3.pick, onOpen: kitDrawer });
+  }
+  function taxModel() { if (!Kit.TaxView) return null; const inp = V3.taxInput(S.m, v3()); return inp ? Kit.TaxView.model(inp) : null; }
+  function renderTax() {
+    const host = $("#v-taxview"), tv = taxModel(), rec = !!STANDARD, g = (STANDARD && STANDARD.generated) || {};
+    setTabLit("tax", !!tv || rec);
+    // The record is the standard's own replay of the household's files, so its figures are not the sheet's estimates: it gets its own page
+    $("#v-recentry").innerHTML = rec ? `<div class="card v3rec"><div class="cardhead"><span class="q">The record behind a return</span><span class="tag accent">Preview</span></div>
+      <p class="say">The standard rebuilds a household's tax record from its files${typeof g.files === "number" ? `, here ${g.files.toLocaleString("en-AU")} of them` : ""}: what each year holds, how each number is known, and what is still missing.</p>
+      <p class="sub">It runs on its own copy of the Davies files${g.as_of ? ` up to ${esc(v3Day(String(g.as_of).slice(0, 10)))}` : ""}, not on this sheet, so its figures differ from the estimates above.</p>
+      <button class="btn sm" data-go="records">Open the record</button></div>` : "";
+    bindCommon($("#v-recentry"));
+    if (!tv) { host.innerHTML = ""; return; }
+    host.innerHTML = Kit.TaxView.render(tv, S3.tax);
+    Kit.TaxView.bind(host, tv, Object.assign({}, S3.tax, { onOpen: kitDrawer, onView: (s) => { S3.tax = s; } }));
+  }
+  // in the demo, a switch is worked out here with the sheet's own formulas; live, the sheet works it out
+  function leverInput(name) {
+    const live = S.mode === "live", inp = V3.leversInput(S.m, v3(), name, { writable: live ? canWriteSheet() : true });
+    if (!inp || live || !inp.levers.some((l) => l.id in S3.flips)) return inp;
+    const levers = V3.leverDates(S.m.goals.find((g) => g.name === name), inp.levers.map((l) => (l.id in S3.flips ? { ...l, on: S3.flips[l.id] } : l)), S.m.asOf);
+    return { ...inp, levers, goal: { ...inp.goal, planDate: V3.planDate(levers) } };
+  }
+  function renderLevers() {
+    const host = $("#leverhost"); if (!host) return;
+    const lead = leadGoal(), names = Kit.Levers ? V3.leverGoals(S.m, v3(), lead && lead.name) : [];
+    if (!names.length) { host.hidden = true; host.innerHTML = ""; return; }
+    const name = names.includes(S3.leverGoal) ? S3.leverGoal : names[0], demo = S.mode !== "live";
+    const lm = Kit.Levers.model(leverInput(name));
+    const note = demo ? "Demo household: a switch is worked out on this page with the sheet's formulas. Nothing is saved." : canWriteSheet() ? "A switch writes the lever's On box on the Goal Levers tab, after you confirm. The sheet works out the dates." : "Read only here. Switch a lever on the Goal Levers tab of the sheet.";
+    host.hidden = false;
+    host.innerHTML = `<div class="cardhead"><span class="q">What moves the date</span>${names.length > 1 ? `<span class="seg mini" role="group" aria-label="Goal">${names.map((n) => `<button data-lgoal="${esc(n)}" aria-pressed="${n === name}">${esc(n)}</button>`).join("")}</span>` : ""}</div>
+      <p class="sub v3lead">${esc(note)}</p><div class="kxhost" id="leverboard">${Kit.Levers.render(lm, { demo })}</div>`;
+    $$("[data-lgoal]", host).forEach((b) => b.addEventListener("click", () => { S3.leverGoal = b.dataset.lgoal; renderLevers(); const n = $(`[data-lgoal="${CSS.escape(S3.leverGoal)}"]`); if (n) n.focus(); }));
+    Kit.Levers.bind($("#leverboard"), lm, { demo, onWrite: (ch) => switchLever(name, ch) });
+  }
+  const focusSwitch = (id) => { const sw = $(`#leverboard [data-switch="${CSS.escape(id)}"]`); if (sw) sw.focus({ preventScroll: true }); };
+  async function switchLever(goal, ch) {
+    if (S.mode !== "live") {
+      S3.flips[ch.id] = ch.on; renderLevers(); focusSwitch(ch.id);
+      toast(`Demo: switched ${ch.on ? "on" : "off"}, so ${goal} lands ${v3Month(leverInput(goal).goal.planDate)}. Nothing was saved.`, 4200);
+      return;
+    }
+    if (!canWriteSheet()) throw { message: "this sheet is read only here" };
+    // find the lever's row by its ID on a fresh read, write the On box, then read the tab back: the sheet's formulas move the dates
+    const read = { host: S.mcp, id: sheetId(), storedAt: null, unknownAge: false, current: () => S.mode === "live" };
+    const ids = await values("'Goal Levers'!A1:A", true, read);
+    const i = ids.findIndex((r) => r && String(r[0]).trim() === ch.id);
+    if (i < 1) throw { message: `${ch.id} is not on the Goal Levers tab` };
+    await writeCells(`'Goal Levers'!D${i + 1}`, [[!!ch.on]]);
+    try {
+      const grid = await values(V3.range("goal_levers"), true, read), row = (V3.fromGrid(grid, "Lever ID") || []).find((r) => r.lever_id === ch.id);
+      S.grids.goal_levers = grid; V3C = null;
+      renderLevers(); focusSwitch(ch.id);
+      if (row && V3.bool(row.on) === !!ch.on) toast(`Switched ${ch.on ? "on" : "off"} in the sheet. ${goal} now lands ${v3Month(leverInput(goal).goal.planDate)}.`, 4200);
+      else toast("Written to the sheet, but the read back did not show it yet. Refresh to check the dates.", 6000);
+    } catch (e) { toast("Written to the sheet. Refresh to see the new dates: " + errText(e, "the Goal Levers tab"), 6000); }
+  }
+  function groceriesModel() { if (!Kit.Groceries) return null; const inp = V3.groceriesInput(S.m, v3()); return inp ? Kit.Groceries.model(inp) : null; }
+  const grocOpts = (gm) => { const o = { onGo: (target) => go(target), onOpen: (html) => { kitDrawer(html); Kit.Groceries.bindDrawer($("#drawer"), gm, o); } }; return o; };
+  function renderGroceries() {
+    const host = $("#grochost"); if (!host) return;
+    const gm = groceriesModel(); host.hidden = !gm;
+    if (!gm) { host.innerHTML = ""; return; }
+    host.innerHTML = Kit.Groceries.render(gm, {});
+    Kit.Groceries.bind(host, gm, grocOpts(gm));
+  }
+  // Home: the nearest decision and this week's shop. One that can't be drawn is left off; the rest of Home still draws.
+  let HOMEG = null;
+  function v3HomeParts() {
+    const out = { decide: null, shop: null }; HOMEG = null;
+    try { const tm = thingsModel(); if (tm && tm.decisions.length) out.decide = `<div class="card kx-homecard">${Kit.Things.renderHome(tm)}</div>`; } catch (e) { console.error("home: decision", e); }
+    try { const gm = groceriesModel(); if (gm) { out.shop = Kit.Groceries.renderHome(gm, {}); HOMEG = gm; } } catch (e) { console.error("home: shop", e); }
+    return out;
+  }
+  function bindV3Home(v) { const el = $('.wcell[data-wid="shop"]', v); if (el && HOMEG) Kit.Groceries.bind(el, HOMEG, grocOpts(HOMEG)); }
+
   // ---------- drawers ----------
-  let lastFocus = null;
+  // focus goes back to what opened the drawer; if a re-render replaced it, to the element that does the same thing now
+  let lastFocus = null, lastFocusKey = null;
+  const focusKey = (el) => { if (!el || !el.getAttribute) return null; for (const a of ["id", "data-open", "data-go", "data-need", "data-up", "data-entry", "data-merchant", "data-editgoal", "data-cat"]) { const v = el.getAttribute(a); if (v) return a === "id" ? `#${CSS.escape(v)}` : `[${a}="${CSS.escape(v)}"]`; } return null; };
   function openDrawer(html, focusFirst = true) {
-    if (!$("#drawer").classList.contains("on")) lastFocus = document.activeElement;
+    if (!$("#drawer").classList.contains("on")) { lastFocus = document.activeElement; lastFocusKey = focusKey(lastFocus); }
     const d = $("#drawer"); d.inert = false; d.removeAttribute("aria-hidden"); d.setAttribute("aria-modal", "true"); d.innerHTML = `<div class="grab" id="grab"></div><button class="close" id="dclose" aria-label="Close">${ico("i-x")}</button>${html}`;
     d.classList.add("on"); $("#scrim").classList.add("on"); d.scrollTop = 0;
     $("#dclose").addEventListener("click", closeDrawer); bindCommon(d); bindTables(d);
@@ -1218,7 +1382,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const d = $("#drawer"); const was = d.classList.contains("on");
     d.removeAttribute("aria-modal"); d.inert = true; d.setAttribute("aria-hidden", "true");
     $("#drawer").classList.remove("on"); $("#scrim").classList.remove("on"); $("#app").removeAttribute("aria-hidden"); $("header.top").removeAttribute("aria-hidden");
-    if (was && lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (e) { /* gone */ } }
+    if (was) { const back = lastFocus && lastFocus.isConnected ? lastFocus : lastFocusKey ? $(`#app ${lastFocusKey}, header.top ${lastFocusKey}`) : null; if (back && back.focus) { try { back.focus({ preventScroll: true }); } catch (e) { /* gone */ } } }
   }
   const h2 = (t, s) => `<h2>${esc(t)}</h2>${s ? `<p class="sub">${s}</p>` : ""}`;
   function openTx(id) { openEntry(id); }
@@ -1229,13 +1393,20 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const total12 = series.reduce((a, s) => a + s.v, 0); const canJudge = canWriteSheet() || S.mode !== "live"; const rv = review(); const item = rv.items.find((i) => i.id === id);
     const mates = e.flow === "Transfer" && !e.transferId && !e.matchedWith ? E.transferMates(m, e).slice(0, 4) : [];
     const decs = (e.decisions || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1));
+    // a decision in words: its kind, and its value as a category name, an entry or an account, never an ID
+    const DEC = { categorise: "Category", confirm: "Confirmed", merge_duplicate: "Marked as a double", match_transfer: "Matched as a transfer", split: "Split", worth_it: "Worth it?" };
+    const decValue = (d) => d.decision === "categorise" || d.decision === "confirm" ? catName(d.value) : d.decision === "merge_duplicate" ? `of ${entryLine(m.entryById[d.value])}` : d.decision === "match_transfer" ? (() => { const x = m.entryById[d.value]; return x ? `${(m.acctById[x.acct] || {}).name || "another account"}, ${day(x.date)}` : "another row"; })() : d.decision === "split" ? (E.parseSplit(d.value).map((p) => `${catName(p.cat)} ${fmt(p.amount, { cents: true })}`).join(" · ")) : d.value;
+    const decNote = (n) => String(n || "").replace(/\brule [A-Z]\d{4}\b/g, "from a rule");
+    const rowNo = S.grids && entryRowNumber(e.id);
+    const sheetDetails = [`<dt>Entry ID</dt><dd>${esc(e.id)} on the ${m.sheetVersion >= 2 ? "Entries" : "Transactions"} tab${rowNo ? `, row ${rowNo}` : ""}</dd>`, e.mer && e.mer.rule ? `<dt>Rule</dt><dd>${esc(e.mer.rule.id)} on the Rules tab</dd>` : "", e.transferId ? `<dt>Transfer ID</dt><dd>${esc(e.transferId)}</dd>` : "", cat ? `<dt>Category ID</dt><dd>${esc(cat.id)}</dd>` : ""].join("");
     openDrawer(`<div style="display:flex;gap:14px;align-items:center;margin-top:4px">${Kit.monogram(e, c, "lg")}<div style="min-width:0"><h2 style="margin:0">${e.kind === "trade" ? Kit.title(e, c) : esc(name)}</h2><p class="sub">${E.weekday(e.date)} ${E.fmtDay(e.date, { year: true })}${e.kind !== "transaction" ? ` · ${Kit.subtitle(e, c)}` : ""}</p></div></div>
       <p style="font-family:var(--display);font-size:40px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px" class="num ${e.amount > 0 && e.kind !== "valuation" ? "amt in" : ""}">${e.kind === "valuation" ? fmt0(e.amount) : (e.amount > 0 ? "+" : "−") + fmt(Math.abs(e.amount))}</p>
       <div class="chips" style="margin:8px 0 4px">${e.kind === "transaction" ? `<button class="tag" data-pickfor="${esc(e.id)}" style="--ch:${esc(E.catHue(e.cat, m))};background:color-mix(in srgb,var(--ch) 16%,var(--surface));color:color-mix(in oklab,var(--ch) 58%,var(--ink))" ${canJudge ? "" : "disabled"}>${ico("i-" + E.catIcon(e.cat, m))} ${esc(cat ? cat.name : "Uncategorised")}${canJudge ? " ✎" : ""}</button><span class="tag">${esc(cat ? cat.group : "")}</span>` : ""}${e.person && e.person !== "Joint" ? `<span class="tag">${esc(e.person)}</span>` : ""}${e.receipt ? `<span class="tag ${e.receipt === "Y" ? "good" : "warn"}">receipt ${e.receipt === "Y" ? "held" : "missing"}</span>` : ""}${cat && cat.tax ? `<span class="tag amber">${esc(cat.tax)}</span>` : ""}${e.status !== "settled" ? `<span class="tag">${esc(e.status)}</span>` : ""}${Kit.badges(e, c)}</div>
-      <dl class="kv">${e.raw ? `<dt>Bank said</dt><dd><code style="font-size:12.5px">${esc(e.raw)}</code>${e.mer ? ` <span class="sub">· ${e.mer.source === "rule" ? `rule ${esc(e.mer.rule.id)}` : e.mer.source === "dictionary" ? "merchant dictionary" : "no rule knows this descriptor"}</span>` : ""}</dd>` : ""}<dt>Account</dt><dd>${acct ? `${esc(acct.name)}${acct.bank ? ` · ${esc(acct.bank)}` : ""}` : esc(e.acct)}</dd>${e.transferAcct ? `<dt>Other side</dt><dd>${esc((m.acctById[e.transferAcct] || {}).name || e.transferAcct)}${e.transferId ? ` · ${esc(e.transferId)}` : ""}</dd>` : ""}<dt>Row</dt><dd>${esc(e.id)} on the ${m.sheetVersion >= 2 ? "Entries" : "Transactions"} tab${S.grids && entryRowNumber(e.id) ? `, row ${entryRowNumber(e.id)}` : ""}</dd>${e.note ? `<dt>Note</dt><dd>${esc(e.note)}</dd>` : ""}${e.source ? `<dt>Source</dt><dd>${esc(e.source)}</dd>` : ""}${e.units != null ? `<dt>Units</dt><dd>${esc(e.units)} at ${fmt(e.price)}</dd>` : ""}${cat && cat.ato ? `<dt>Tax return</dt><dd>${esc(cat.ato)}</dd>` : ""}${cat && cat.budget ? `<dt>Budget</dt><dd>${fmt0(cat.budget)} a month for ${esc(cat.name)}</dd>` : ""}${e.split && e.split.length ? `<dt>Split</dt><dd>${e.split.map((p) => `${esc(catName(p.cat))} ${fmt(p.amount)}`).join(" · ")}</dd>` : ""}${e.dupOf ? `<dt>Merged</dt><dd>into ${esc(e.dupOf)}</dd>` : ""}${e.matchedWith ? `<dt>Matched</dt><dd>with ${esc(e.matchedWith)}</dd>` : ""}</dl>
+      <dl class="kv">${e.raw ? `<dt>Bank said</dt><dd><code style="font-size:13px">${esc(e.raw)}</code>${e.mer ? ` <span class="sub">· ${e.mer.source === "rule" ? "named by a rule on the Rules tab" : e.mer.source === "dictionary" ? "named by the merchant dictionary" : "no rule knows this merchant yet"}</span>` : ""}</dd>` : ""}<dt>Account</dt><dd>${acct ? `${esc(acct.name)}${acct.bank ? ` · ${esc(acct.bank)}` : ""}` : esc(e.acct)}</dd>${e.transferAcct ? `<dt>Other side</dt><dd>${esc((m.acctById[e.transferAcct] || {}).name || "another account")}</dd>` : ""}${e.note ? `<dt>Note</dt><dd>${esc(e.note)}</dd>` : ""}${e.source ? `<dt>Source</dt><dd>${esc(e.source)}</dd>` : ""}${e.units != null ? `<dt>Units</dt><dd>${esc(e.units)} at ${fmt(e.price)}</dd>` : ""}${cat && cat.ato ? `<dt>Tax return</dt><dd>${esc(cat.ato)}</dd>` : ""}${cat && cat.budget ? `<dt>Budget</dt><dd>${fmt0(cat.budget)} a month for ${esc(cat.name)}</dd>` : ""}${e.split && e.split.length ? `<dt>Split</dt><dd>${e.split.map((p) => `${esc(catName(p.cat))} ${fmt(p.amount)}`).join(" · ")}</dd>` : ""}${e.dupOf ? `<dt>Double</dt><dd>of ${esc(entryLine(m.entryById[e.dupOf]))}</dd>` : ""}${e.matchedWith ? `<dt>Matched</dt><dd>with ${esc(entryLine(m.entryById[e.matchedWith]))}</dd>` : ""}</dl>
+      <details class="sheetdetails"><summary>Sheet details</summary><dl class="kv">${sheetDetails}</dl></details>
       ${item ? `<div class="note accent" style="margin-bottom:8px">${ico("i-review")} ${esc(E.cap(item.why))}</div>` : ""}
-      ${e.kind === "transaction" && canJudge ? `<div class="dacts"><button class="btn sm ghost" data-act="cat">${ico("i-edit")} Categorise</button>${!e.reviewed ? `<button class="btn sm ghost" data-act="confirm">${ico("i-check")} Looks right</button>` : ""}<button class="btn sm ghost" data-act="split">${ico("i-split")} Split</button>${item && item.dupOf ? `<button class="btn sm ghost" data-act="merge">${ico("i-duplicate")} Merge into ${esc(item.dupOf)}</button>` : ""}${E.discretionary(e, m) && !e.worth ? `<span class="wbtns" style="margin-left:4px">${[["yes", "Worth it"], ["meh", "Meh"], ["no", "Not worth it"]].map(([v, l]) => `<button class="chip w-${v}" data-act="worth" data-v="${v}">${l}</button>`).join("")}</span>` : ""}</div>${mates.length ? `<h3>Could be the other side of</h3><div class="chips">${mates.map((x) => `<button class="chip" data-act="mate" data-mate="${esc(x.id)}">${ico("i-transfer")} ${esc((m.acctById[x.acct] || {}).name || x.acct)} · ${E.fmtDay(x.date)} · ${esc(x.id)}</button>`).join("")}</div>` : ""}` : ""}
-      ${decs.length ? `<h3>Decisions on this row</h3><div class="dlist">${decs.map((d) => `<div class="d"><b>${esc(d.decision.replace(/_/g, " "))}</b><span>${esc(d.value)}</span><span class="muted">· ${esc(d.by || "")} ${d.at ? E.fmtDay(d.at, { year: true }) : ""}${d.note ? ` · ${esc(d.note)}` : ""}</span></div>`).join("")}</div>` : ""}
+      ${e.kind === "transaction" && canJudge ? `<div class="dacts"><button class="btn sm ghost" data-act="cat">${ico("i-edit")} Categorise</button>${!e.reviewed ? `<button class="btn sm ghost" data-act="confirm">${ico("i-check")} Looks right</button>` : ""}<button class="btn sm ghost" data-act="split">${ico("i-split")} Split</button>${item && item.dupOf ? `<button class="btn sm ghost" data-act="merge">${ico("i-duplicate")} Mark as a double</button>` : ""}${E.discretionary(e, m) && !e.worth ? `<span class="wbtns" style="margin-left:4px">${[["yes", "Worth it"], ["meh", "Meh"], ["no", "Not worth it"]].map(([v, l]) => `<button class="chip w-${v}" data-act="worth" data-v="${v}">${l}</button>`).join("")}</span>` : ""}</div>${mates.length ? `<h3>Could be the other side of</h3><div class="chips">${mates.map((x) => `<button class="chip" data-act="mate" data-mate="${esc(x.id)}">${ico("i-transfer")} ${esc((m.acctById[x.acct] || {}).name || "another account")} · ${esc(day(x.date))} · ${fmt(Math.abs(x.amount), { cents: true })}</button>`).join("")}</div>` : ""}` : ""}
+      ${decs.length ? `<h3>Decisions on this row</h3><div class="dlist">${decs.map((d) => `<div class="d"><b>${esc(DEC[d.decision] || E.cap(d.decision.replace(/_/g, " ")))}</b><span>${esc(decValue(d))}</span><span class="muted">· ${esc(d.by || "")} ${d.at ? E.fmtDay(d.at, { year: true }) : ""}${d.note ? ` · ${esc(decNote(d.note))}` : ""}</span></div>`).join("")}</div>` : ""}
       ${total12 > 0 && e.flow === "Expense" ? `<h3>${esc(name)}, last 12 months</h3><div style="display:flex;gap:14px;align-items:center">${sparkSVG(series.map((s) => s.v), 160, 44, "var(--accent)")}<div><b class="num">${fmt0(total12)}</b> <span class="sub">in 12 months · ${fmt0(total12 / 12)} a month</span></div></div>` : ""}
       ${others.length ? `<h3>Other times</h3>${others.map((x) => txRow(x, { date: true, acct: false })).join("")}` : ""}
       ${t ? `<div style="margin-top:14px"><button class="btn ghost sm" data-merchant="${esc(t.merchant)}">Everything from ${esc(t.merchant)}</button></div>` : ""}`);
@@ -1244,8 +1415,10 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   }
   function openMerchant(name) {
     const m = S.m; const rows = m.tx.filter((t) => t.merchant === name); const series = E.merchantSeries(m, name, 12);
+    // the count and the sum cover the same window: the last 12 months, with any older rows counted apart
+    const w12 = E.window("year", m.asOf), in12 = rows.filter((t) => E.inWin(t, w12)).length;
     const total12 = series.reduce((a, s) => a + s.v, 0);
-    openDrawer(`${h2(name, `${rows.length} transactions · ${fmt0(total12)} in the last 12 months`)}${total12 > 0 ? `<div style="margin:8px 0">${sparkSVG(series.map((s) => s.v), 320, 60, "var(--accent)")}</div>` : ""}${rows.slice(0, 60).map((t) => txRow(t, { date: true })).join("")}`);
+    openDrawer(`${h2(name, `${in12} transaction${in12 === 1 ? "" : "s"} in the last 12 months, ${fmt0(total12)} spent${rows.length > in12 ? ` · ${rows.length - in12} older` : ""}`)}${total12 > 0 ? `<div style="margin:8px 0">${sparkSVG(series.map((s) => s.v), 320, 60, "var(--accent)")}</div>` : ""}${rows.slice(0, 60).map((t) => txRow(t, { date: true })).join("")}`);
   }
   function openCategory(cat, w) {
     const m = S.m, c = m.catById[cat] || { name: cat, group: "" }; w = w || period();
@@ -1261,40 +1434,46 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       <h3>${rows.length} transactions</h3>${rows.slice(0, 80).map((t) => txRow(t, { date: true })).join("") || '<div class="empty">None in this period.</div>'}`);
   }
   function openGoal(name) {
-    const m = S.m, g = m.goals.find((x) => x.name === name); if (!g) return; const acct = m.acctById[g.acct]; const eta = E.goalEta(g, 0, m.asOf);
+    const m = S.m, g = m.goals.find((x) => x.name === name); if (!g) return; const acct = m.acctById[g.acct]; const eta = E.goalEta(g, 0, m.asOf), st = E.goalState(g, m.asOf);
     const ins = m.tx.filter((t) => t.acct === g.acct && t.amount > 0).slice(0, 10);
     openDrawer(`${h2(`${E.goalIcon(g.name)} ${g.name}`, `${esc(acct ? acct.name + " · " + acct.bank : g.acct)}`)}
-      <div style="display:flex;gap:18px;align-items:center;margin:12px 0">${ringSVG(g.progress, E.goalColor(g.name), ofFmt(g.balance || 0), `of ${ofFmt(g.target || 0)}`, 120)}<div><p><b class="num" style="font-family:var(--display);font-size:22px">${toGo(g.balance, g.target) === "done" ? "Target met" : toGo(g.balance, g.target)}</b></p><p class="sub">${g.date ? `Target ${E.fmtDay(g.date, { year: true })} · ${g.monthsLeft} month${g.monthsLeft === 1 ? "" : "s"} left` : "No target date"}</p></div></div>
-      <dl class="kv"><dt>Needed</dt><dd><b>${fmt0(g.needPm)}</b> a month to hit the date</dd><dt>Going in</dt><dd><b>${fmt0(g.savedPm)}</b> a month, last 3 months</dd><dt>At this pace</dt><dd>${g.status === "Reached" ? "Reached" : eta.date ? `${E.fmtMonth(eta.date)}${eta.late ? `, after the target` : ", before the target"}` : "won't get there without deposits"}</dd><dt>Status</dt><dd><span class="tag ${g.status === "Behind" ? "warn" : g.status === "Reached" ? "lime" : "good"}">${esc(g.status)}</span> (the sheet's word)</dd></dl>
+      <div style="display:flex;gap:18px;align-items:center;margin:12px 0">${ringSVG(g.progress, E.goalColor(g.name), ofFmt(g.balance || 0), `of ${ofFmt(g.target || 0)}`, 120)}<div><p><b class="num" style="font-family:var(--display);font-size:22px">${toGo(g.balance, g.target) === "done" ? "Target met" : toGo(g.balance, g.target)}</b></p><p class="sub">${!g.date ? "No target date" : st.passed ? `Target ${E.fmtDay(g.date, { year: true })} · passed` : st.reached ? `Target ${E.fmtDay(g.date, { year: true })}` : `Target ${E.fmtDay(g.date, { year: true })} · ${g.monthsLeft} month${g.monthsLeft === 1 ? "" : "s"} left`}</p></div></div>
+      <dl class="kv">${st.reached ? "" : st.passed ? `<dt>Target date</dt><dd>Passed. Pick a new date to see what a month would need.</dd>` : `<dt>Needed</dt><dd><b>${fmt0(g.needPm)}</b> a month to hit the date</dd>`}<dt>Going in</dt><dd><b>${fmt0(g.savedPm)}</b> a month, last 3 months</dd><dt>At this pace</dt><dd>${st.reached ? "Reached" : eta.date ? `${E.fmtMonth(eta.date)}${st.passed ? "" : eta.late ? ", after the target" : ", before the target"}` : "won't get there without deposits"}</dd><dt>Status</dt><dd>${goalTag(g, st)}${st.passed ? ` <span class="sub">(the sheet says ${esc(g.status)})</span>` : ` <span class="sub">(the sheet's word)</span>`}</dd></dl>
       ${canWriteSheet() || S.mode !== "live" ? `<button class="btn sm" data-editgoal2="${esc(g.name)}">Change target or date</button>` : ""}
       ${ins.length ? `<h3>Recent deposits</h3>${ins.map((t) => txRow(t, { date: true, acct: false })).join("")}` : ""}`);
     $$("[data-editgoal2]").forEach((b) => b.addEventListener("click", () => openGoalEditor(g)));
-    if (g.status === "Reached") celebrate();
+    if (g.status === "Reached" && !isDemo()) celebrate();
   }
   function openSub(service) {
     const m = S.m, s = m.subs.find((x) => x.service === service); if (!s) return;
-    const charges = m.tx.filter((t) => t.merchant === s.merchant).slice(0, 12); const series = E.merchantSeries(m, s.merchant, 12);
+    // the rows this service is made of: its merchant and its category, so a travel policy never lands on the car policy
+    const rows = E.subRows(m, s), charges = rows.slice(0, 12); const series = E.monthly(m, 12).map((mo) => ({ month: mo.month, v: E.spend(rows, mo).out }));
+    const cancelled = /^cancelled/i.test(s.flag), still = /still charging/i.test(s.flag);
+    const FIELD = { latest: ["latest charge", (v) => fmt(v, { cents: true })], lastCharged: ["last charged", day], lowest: ["lowest charge in the look-back", (v) => fmt(v, { cents: true })], riseYear: ["price rise a year", fmt0], annual: ["annual cost", fmt0] };
+    const differs = (s.fixed || []).filter((k) => FIELD[k]);
     const row = S.grids ? (S.grids.subscriptions || []).findIndex((r) => r && r[0] === service) + 1 : 0;
     openDrawer(`<div style="display:flex;gap:12px;align-items:center;margin-top:4px"><span class="ava lg" style="${catSwatch(s.cat)}">${esc(initials(s.service))}</span><div><h2 style="margin:0">${esc(s.service)}</h2><p class="sub">${esc(s.cadence)} · ${esc(s.owner)} · <span class="tag ${/still charging/i.test(s.flag) ? "warn" : /unused|never/i.test(s.flag) ? "amber" : /cancelled/i.test(s.flag) ? "" : "good"}">${esc(s.flag)}</span></p></div></div>
-      <p style="font-family:var(--display);font-size:36px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px" class="num">${fmt(s.latest)}<span class="sub" style="font-size:14px;font-family:var(--body);font-weight:600;letter-spacing:0"> ${String(s.cadence).toLowerCase() === "annual" ? "a year" : "a month"} · ${fmt0(s.annual)} a year</span></p>
-      <dl class="kv"><dt>Last charged</dt><dd>${E.fmtDay(s.lastCharged, { year: true })}</dd><dt>Next charge</dt><dd>${(() => { const d = E.nextCharge(s, m.asOf); return d ? `${E.fmtDay(d, { year: true })} · ${E.rel(m.asOf, d)}` : "—"; })()}</dd><dt>Last used</dt><dd>${s.lastUsed ? `${E.fmtDay(s.lastUsed, { year: true })} · ${s.daysSince} days ago` : esc(s.lastUsedRaw || "not tracked")}</dd>${s.riseEach ? `<dt>Price rise</dt><dd>${fmt(s.lowest)} → ${fmt(s.latest)} a charge · ${fmt0(s.riseYear)} a year more</dd>` : ""}<dt>Decision</dt><dd><b>${esc(s.decision || "none yet")}</b> <span class="sub">(the Subscriptions tab's word)</span></dd></dl>
+      <p style="font-family:var(--display);font-size:36px;font-weight:800;letter-spacing:-.03em;margin:10px 0 2px" class="num">${fmt(Math.abs(s.latest || 0), { cents: true })}<span class="sub" style="font-size:14px;font-family:var(--body);font-weight:600;letter-spacing:0"> ${String(s.cadence).toLowerCase() === "annual" ? "a year" : "a month"} · ${fmt0(Math.max(0, s.annual || 0))} a year</span></p>
+      <dl class="kv"><dt>Last charged</dt><dd>${day(s.lastCharged)}${s.refundedOn ? ` · refunded ${fmt(s.refund, { cents: true })} on ${day(s.refundedOn)}` : ""}</dd><dt>Next charge</dt><dd>${cancelled ? "None expected, it is cancelled" : (() => { const d = E.nextCharge(s, m.asOf); return d ? `${day(d)} · ${E.rel(m.asOf, d)}${still ? ", if it keeps charging" : ""}` : "—"; })()}</dd><dt>Last used</dt><dd>${s.lastUsed ? `${day(s.lastUsed)} · ${s.daysSince} days ago` : /^n\/?a$/i.test(String(s.lastUsedRaw || "")) ? "Not tracked for this kind of bill" : esc(s.lastUsedRaw || "Not tracked")}</dd>${s.riseCheck ? `<dt>Price</dt><dd>Jumped from ${fmt(s.lowest, { cents: true })} to ${fmt(s.latest, { cents: true })}. Check it before treating it as a rise: a jump this big is usually a different plan or a one-off.</dd>` : s.riseEach ? `<dt>Price rise</dt><dd>${fmt(s.lowest, { cents: true })} to ${fmt(s.latest, { cents: true })} a charge · ${fmt0(s.riseYear)} a year more</dd>` : ""}${(s.adjustments || []).length ? `<dt>Adjustments</dt><dd>${s.adjustments.map((a) => `${fmt(a.amount, { cents: true })} on ${day(a.date)}`).join(" · ")}, not counted as a price</dd>` : ""}<dt>Decision</dt><dd><b>${esc(s.decision || "none yet")}</b> <span class="sub">(the Subscriptions tab's word)</span></dd></dl>
+      ${differs.length ? `<div class="note" style="margin:8px 0">The Subscriptions tab says ${differs.map((k) => `${FIELD[k][0]} ${FIELD[k][1](s.sheet[k])}`).join(", ")}. The page reads ${differs.map((k) => FIELD[k][1](s[k])).join(", ")} from the rows: ${s.adjustments && s.adjustments.length && differs.includes("lowest") ? "an adjustment is not a price" : s.refundedOn && differs.includes("annual") ? "a refund is not a charge" : "only rows in this service's category count"}.</div>` : ""}
       ${canWriteSheet() && row > 1 ? `<div class="note accent"><b>Record a decision in the sheet</b><div class="chips" style="margin-top:8px">${["Keep", "Review", "Cancel"].map((d) => `<button class="chip" data-decide="${d}" aria-pressed="${s.decision === d}">${d}</button>`).join("")}</div></div>` : ""}
-      <h3>Charges</h3>${sparkSVG(series.map((x) => x.v), 320, 56, "var(--accent)")}${charges.map((t) => txRow(t, { date: true, acct: false })).join("") || '<div class="empty">No charges found under this merchant name.</div>'}`);
+      <h3>Charges</h3>${sparkSVG(series.map((x) => x.v), 320, 56, "var(--accent)")}${charges.map((t) => txRow(t, { date: true, acct: false })).join("") || '<div class="empty">No charges found under this merchant and category.</div>'}`);
     $$("[data-decide]").forEach((b) => b.addEventListener("click", async () => { try { await writeCells(`Subscriptions!G${row}`, [[b.dataset.decide]]); toast(`${s.service}: ${b.dataset.decide}, written to the sheet`); await loadLive(true); openSub(service); } catch (e) { toast("Couldn't write: " + errText(e, "Subscriptions")); } }));
   }
   function openCheck(name) {
     const m = S.m, c = m.checks.find((x) => x.name === name); if (!c) return;
-    const map = { "Work expenses without a receipt": (t) => /^WORK-/.test(t.cat) && t.receipt !== "Y", "Work equipment over the immediate-deduction limit": (t) => t.cat === "WORK-EQUIP" && Math.abs(t.amount) > 300, "Large rental repairs": (t) => t.cat === "RENT-REPAIR" && Math.abs(t.amount) >= 5000, "Donations without a receipt": (t) => t.cat === "DONATION" && t.receipt !== "Y", "Uncategorised transactions": (t) => t.cat === "UNCAT", "Card interest charged (last 12 months)": (t) => t.cat === "FEES" && /interest/i.test(t.desc) };
-    const f = map[name]; const rows = f ? m.tx.filter(f) : [];
+    const rows = E.checkRows(m, c) || [];
     openDrawer(`${h2(c.name, `${esc(c.type)} check · <span class="tag ${c.status === "OK" ? "good" : c.status === "Review" ? "amber" : ""}">${esc(c.status)}</span> · ${c.items} item${c.items === 1 ? "" : "s"}${c.amount ? ` · ${fmt0(c.amount)}` : ""}`)}
-      <p style="margin-top:10px">${esc(c.why)}</p><p class="sub" style="margin-top:6px">Where to look: ${esc(c.where)}</p>
+      <p style="margin-top:10px">${esc(c.why)}</p><p class="sub" style="margin-top:6px">Where to look: ${esc(whereText(c.where))}</p>
+      ${c.sheet ? `<div class="note" style="margin-top:8px">The sheet's own check says ${c.sheet.items} item${c.sheet.items === 1 ? "" : "s"}, ${fmt0(c.sheet.amount)}. ${(c.explained || []).map((p) => `${esc(Kit.nameOf(p.b))} on ${esc(day(p.b.date))} is two charges of ${fmt(-p.b.amount, { cents: true })}, each with ${/^y/i.test(p.b.receipt) && /^y/i.test(p.a.receipt) ? "a receipt" : "a note"}, so the page keeps them as two purchases.`).join(" ")}</div>` : ""}
       ${rows.length ? `<h3>The rows</h3>${rows.slice(0, 20).map((t) => txRow(t, { date: true })).join("")}` : ""}
       <p class="sub" style="margin-top:12px">Fixing it means a new row or a changed cell in the sheet (a receipt mark, a category), never an edit here.</p>`);
   }
   function openDupes() {
-    const m = S.m; const seen = new Map(), pairs = [];
-    for (const t of m.tx) { if (t.flow !== "Expense") continue; const k = `${t.date}|${t.acct}|${t.merchant}|${t.amount}`; if (seen.has(k)) pairs.push([seen.get(k), t]); else seen.set(k, t); }
-    openDrawer(`${h2("Charges that look doubled", "Same merchant, amount, account and day. Usually worth a dispute, sometimes two real coffees.")}${pairs.map(([a, b]) => `<div class="note" style="margin-top:10px"><b>${esc(a.merchant)}</b> · ${E.fmtDay(a.date, { year: true })} · ${fmt(-a.amount)} twice${txRow(a, { acct: false })}${txRow(b, { acct: false })}</div>`).join("") || '<div class="empty">None found.</div>'}`);
+    const m = S.m, pairs = E.dupePairs(m), explained = E.dupePairs(m, m.dupesExplained);
+    const pair = ([a, b], note) => `<div class="note" style="margin-top:10px"><b>${esc(Kit.nameOf(a))}</b> · ${esc(day(a.date))} · ${fmt(-a.amount, { cents: true })} twice${note ? `<p class="sub" style="margin:4px 0 0">${note}</p>` : ""}${txRow(a, { acct: false })}${txRow(b, { acct: false })}</div>`;
+    openDrawer(`${h2("Charges that look doubled", "Same merchant, amount, account and day, with no receipt or note on each. Check whether these are two purchases before you dispute one.")}${pairs.map((p) => pair([p.a, p.b])).join("") || '<div class="empty">None found.</div>'}
+      ${explained.length ? `<h3>Kept as two purchases</h3>${explained.map((p) => pair([p.a, p.b], `Each row ${/^y/i.test(p.a.receipt) && /^y/i.test(p.b.receipt) ? "holds a receipt" : "carries a note"}${p.b.note ? ` ("${esc(p.b.note)}")` : ""}, so this is not counted as a double.`)).join("")}` : ""}`);
   }
   function openChecks() {
     const m = S.m;
@@ -1302,7 +1481,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   }
   function openSubs() {
     const m = S.m; const groups = [["Still charging after cancel", (s) => /still charging/i.test(s.flag)], ["Unused", (s) => /unused|never/i.test(s.flag) && !/still/i.test(s.flag)], ["In use", (s) => /in use/i.test(s.flag)], ["Cancelled", (s) => /^cancelled/i.test(s.flag)]];
-    openDrawer(`${h2("Subscriptions and bills", `${m.subs.length} tracked on the Subscriptions tab · usage, price and decision live there`)}${groups.map(([t, f]) => { const xs = m.subs.filter(f); return xs.length ? `<h3>${t} · ${fmt0(xs.reduce((a, s) => a + (s.annual || 0), 0))} a year</h3>${xs.map((s) => subRow(s, /still/i.test(s.flag) ? "warn" : /unused|never/i.test(s.flag) ? "amber" : "", `${esc(s.cadence)} · last charged ${E.fmtDay(s.lastCharged)}${s.decision ? ` · decision: ${esc(s.decision)}` : ""}`)).join("")}` : ""; }).join("")}`);
+    openDrawer(`${h2("Bills and subscriptions", `${m.subs.length} tracked on the Subscriptions tab, insurance included · usage, price and decision live there`)}${groups.map(([t, f]) => { const xs = m.subs.filter(f); return xs.length ? `<h3>${t} · ${fmt0(xs.reduce((a, s) => a + Math.max(0, s.annual || 0), 0))} a year</h3>${xs.map((s) => subRow(s, /still/i.test(s.flag) ? "warn" : /unused|never/i.test(s.flag) ? "amber" : "", `${esc(s.cadence)} · last charged ${esc(day(s.lastCharged))}${s.refundedOn ? `, refunded ${esc(E.fmtDay(s.refundedOn))}` : ""}${s.decision ? ` · decision: ${esc(s.decision)}` : ""}`)).join("")}` : ""; }).join("")}`);
   }
   function openUpcoming() {
     const m = S.m; const up = E.upcoming(m); const ahead = E.num(m.kitty.look_ahead_days) || 35; const out = up.filter((u) => u.amount != null && u.amount < 0).reduce((a, u) => a - u.amount, 0), inc = up.filter((u) => u.amount > 0).reduce((a, u) => a + u.amount, 0);
@@ -1317,7 +1496,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $$("#drawer [data-pack]").forEach((b) => b.addEventListener("click", () => saveTaxPack(b.dataset.pack)));
   }
   async function saveTaxPack(person) {
-    const pack = Kit.taxPack(STANDARD, S.recordsFy, person); if (!pack || !S.downloads) return;
+    const pack = Kit.taxPack(STANDARD, S.recordsFy, person, recOpts()); if (!pack || !S.downloads) return;
     try { const r = await S.downloads.save({ filename: pack.filename, data: new Blob([pack.csv], { type: "text/csv" }) }); if (r && r.status === "saved") toast("Saved the tax pack"); } catch (e) { if (e && e.code !== "cancelled") toast("Couldn't save the file here"); }
   }
   function openNeeds() { const nd = E.needs(S.m); openDrawer(`${h2(nd.verdict, nd.line)}<div class="nlist" style="margin-top:10px;grid-template-columns:1fr">${nd.all.map(needHTML).join("")}</div>`); }
@@ -1325,13 +1504,22 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   function openPay(person) { const m = S.m; const p = E.payday(m).find((x) => x.person === person); const slips = m.payslips.filter((x) => x.person === person).slice(-6).reverse(); openDrawer(`${h2(`${person}'s pay`, p ? `${esc(p.employer)} · next ${E.fmtDay(p.next, { year: true })} (${E.rel(m.asOf, p.next)})` : "")}<h3>Recent payslips</h3><div class="tablewrap"><table class="t"><thead><tr><th>Paid</th><th class="n">Gross</th><th class="n">Tax</th><th class="n">Super</th><th class="n">Net</th></tr></thead><tbody>${slips.map((s) => `<tr><td>${E.fmtDay(s.date, { year: true })}</td><td class="n">${fmt0(s.gross)}</td><td class="n">${fmt0(s.tax)}</td><td class="n">${fmt0(s.super)}</td><td class="n"><b>${fmt0(s.net)}</b></td></tr>`).join("")}</tbody></table></div>`); }
   function openTrust() {
     const m = S.m; const rec = E.reconcile(m);
-    const tabs = S.mode === "live" ? Object.entries(RANGES).map(([k, r]) => [k, r.split("!")[0].replace(/'/g, ""), (S.grids[k] || []).length, S.err[k]]) : [["snapshot", "Apps Script JSON", m.tx.length + " transactions", null]];
+    // how the bundled snapshot was read: the v2 one came through the Google Sheets connector, the 1.1 one from the sheet's own script
+    const viaConnector = /connector/i.test((m.source && m.source.kind) || "");
+    const tabs = S.mode === "live" ? Object.entries(RANGES).map(([k, r]) => [k, r.split("!")[0].replace(/'/g, ""), (S.grids[k] || []).length, S.err[k]]) : [["snapshot", viaConnector ? "Snapshot, read through the connector" : "Snapshot, from the sheet's script", m.tx.length + " transactions", null]];
     const liquid = m.accounts.filter((a) => a.liquid);
-    openDrawer(`${h2("Where the numbers come from", S.mode === "live" ? `Live from <a href="https://docs.google.com/spreadsheets/d/${sheetId()}/edit" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> through your Google Sheets connector. ${esc(readAgeText())}` : S.mode === "local" ? "A local test copy of the bundled data." : `A bundled snapshot of the fictional Davies household, read from the demo sheet's own script${m.fetchedAt ? ` on ${E.fmtDay(m.fetchedAt.slice(0, 10), { year: true })}` : ""}. The sheet's as-of date is ${E.fmtDay(m.asOf, { year: true })}; the page treats that as today.`)}
+    // every place the page reads a figure from the rows because the sheet's own column read the wrong ones
+    const diffs = [].concat(
+      m.subs.filter((s) => s.fixed && s.fixed.length).map((s) => `${s.service}: the Subscriptions tab's ${s.fixed.includes("lowest") && s.adjustments && s.adjustments.length ? "price rise counts a premium adjustment" : s.refundedOn && s.fixed.includes("annual") ? "latest charge is a refund" : "rows include another product from the same merchant"}`),
+      m.checks.filter((c) => c.sheet).map((c) => `${c.name}: the sheet counts ${c.sheet.items}, the page ${c.items}, because a pair with a receipt on each row is two purchases`),
+      m.savings.filter((s) => s.sheet).map((s) => `${s.title}: ${fmt0(s.sheet.amount)} on Savings Finder, ${fmt0(s.amount)} from the rows`));
+    openDrawer(`${h2("Where the numbers come from", S.mode === "live" ? `Live from <a href="https://docs.google.com/spreadsheets/d/${sheetId()}/edit" target="_blank" rel="noopener">${isDemoSheet() ? "the demo sheet" : "your sheet"}</a> through your Google Sheets connector. ${esc(readAgeText())}` : S.mode === "local" ? "A local test copy of the bundled data." : `A bundled snapshot of the fictional Davies household, read from the demo sheet ${viaConnector ? "through the Google Sheets connector" : "by its own script"}${m.fetchedAt ? ` on ${E.fmtDay(m.fetchedAt.slice(0, 10), { year: true })}` : ""}. The sheet's as-of date is ${E.fmtDay(m.asOf, { year: true })}; the page treats that as today.`)}
       <div class="chips" style="margin:10px 0">${S.mcp ? `<button class="btn sm" id="refreshbtn">${ico("i-refresh")} ${S.mode === "live" ? "Refresh" : "Read the sheet live"}</button>` : ""}${S.mode === "live" && SNAP ? `<button class="btn sm ghost" id="demobtn">Show the bundled snapshot instead</button>` : ""}</div>
       ${S.liveErr ? `<div class="secterr">${errText(S.liveErr)}</div>` : ""}
       <h3>Cash and offset, account by account</h3><div class="tablewrap"><table class="t"><thead><tr><th>Account</th><th>Bank</th><th class="n">Balance</th></tr></thead><tbody>${liquid.map((a) => `<tr><td>${esc(a.name)}</td><td class="muted">${esc(a.bank)}</td><td class="n">${fmt(a.balance)}</td></tr>`).join("")}<tr><td><b>Together</b></td><td></td><td class="n"><b>${fmt(liquid.reduce((s, a) => s + a.balance, 0))}</b></td></tr></tbody></table></div>
       <h3>Does the page agree with the sheet?</h3><p class="sub">${rec.filter((r) => r.account).length ? `${rec.filter((r) => r.account && r.ok).length} of ${rec.filter((r) => r.account).length} accounts reconcile to the sheet at ${E.fmtDay(m.asOf, { year: true })}${m.sheetVersion >= 2 ? "; the ledger's own invariants follow" : ""}.` : ""}</p>${rec.map((r) => `<div class="row" style="cursor:default"><span class="tick" style="${r.ok ? "" : "background:var(--warn)"}">${ico(r.ok ? "i-check" : "i-x")}</span><span class="mid"><span class="t" style="white-space:normal">${esc(r.what)}</span><span class="s">${r.count ? `${r.a} found` : `${fmt(r.a)} here · ${fmt(r.b)} in the sheet`}</span></span></div>`).join("")}
+      ${diffs.length ? `<h3>Where the page reads the rows instead of the sheet</h3><p class="sub">Each of these sheet columns read the wrong rows. The page shows the figure from the rows, and the drawer for each shows both. CHANGES.md in the repository has the formula fixes.</p><ul class="difflist">${diffs.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>` : ""}
+      ${(m.unreadable || []).length ? `<div class="secterr">These tabs could not be read and are shown as empty: ${esc(m.unreadable.join(", "))}.</div>` : ""}
       <h3>What was read</h3><div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th class="n">Rows</th><th>Feeds</th></tr></thead><tbody>${tabs.map(([k, name, n, err]) => `<tr><td>${esc(name)}</td><td class="n">${err ? (OPTIONAL.has(k) ? `<span class="tag">not in this sheet</span>` : `<span class="tag warn">error</span>`) : esc(String(n))}</td><td class="muted">${esc({ settings: "as-of date, targets", accounts: "every store of value", category_list: "names, groups, budgets", goals: "Goals, Home", subscriptions: "bills, leaks, upcoming", loans: "loan card, upcoming", assets: "the rental", metrics: "hero facts, tax", compliance: "what needs you", networth: "net worth chart", cashflow: "12-month bars, kept", budget: "budget pace", savings: "ways to save", mortgage: "rate scenarios", tax: "tax card", transactions: "activity, jar, flow, search", payslips: "pay day", kitty: "your settings", entries: "the ledger: balances, transfers", balances: "balance by month, the oracle", contracts: "subscriptions, leases, loan terms", decisions: "your judgments: review, worth it", rules: "descriptor to merchant and category; the cookie adds rows here", snapshot: "everything" }[k] || "")}</td></tr>`).join("")}</tbody></table></div>
       <p class="sub" style="margin-top:12px">Nothing is cached in the sheet and nothing is stored by this page except your own preferences${S.dbDoc && !NATIVE ? " (on this device and in your Claude account)" : " (on this device)"}.</p>`);
     const rb = $("#refreshbtn"); if (rb) rb.addEventListener("click", async () => { rb.disabled = true; const ok = await loadLive(true); toast(ok ? "Fresh read done" : "Couldn't read live: " + errText(S.liveErr || {})); if (ok) openTrust(); else rb.disabled = false; });
@@ -1369,10 +1557,10 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   }
   function openSafetyEditor() {
     const m = S.m, sf = E.safety(m); const label = "Emergency fund target (months of essential spending)";
-    openDrawer(`${h2("Safety net target", "Months of essential spending you want in cash and offset. The sheet's emergency metric and the Home verdict both read it.")}
+    openDrawer(`${h2("Safety net target", `Months of essential spending you want in the emergency fund.${sf.essentialPm ? ` Essential spending is about ${fmt0(sf.essentialPm)} a month over the last three months.` : ""} The sheet's emergency metric and the Home verdict both read this target.`)}
       <div class="slide" style="margin-top:14px"><div class="val num"><span id="sfv">${sf.target}</span><small>months</small></div><input id="sfr" type="range" min="1" max="12" step="1" value="${sf.target}" aria-label="Months of safety net"><div class="marks"><span>1</span><span>3</span><span>6</span><span>9</span><span>12</span></div><p class="sub" id="sft"></p></div>
       <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" id="sfsave">${canWriteSheet() ? "Write to Settings" : "Save here"}</button><button class="btn ghost" id="sfcancel">Cancel</button></div>`);
-    const r = $("#sfr"), upd = () => { const t = +r.value; $("#sfv").textContent = t; $("#sft").textContent = sf.months != null && sf.essentialPm ? (sf.months >= t ? `Covered: cash would last ${sf.months.toFixed(1)} months.` : `About ${fmtS((t - sf.months) * sf.essentialPm)} more in cash would reach ${t} months.`) : ""; }; r.addEventListener("input", upd); upd();
+    const r = $("#sfr"), upd = () => { const t = +r.value; $("#sfv").textContent = t; $("#sft").textContent = sf.months != null && sf.essentialPm ? (sf.months >= t ? `Covered: the emergency fund would last ${sf.months.toFixed(1)} months.` : `About ${fmtS((t - sf.months) * sf.essentialPm)} more in the emergency fund would reach ${t} months.`) : ""; }; r.addEventListener("input", upd); upd();
     $("#sfcancel").addEventListener("click", closeDrawer);
     $("#sfsave").addEventListener("click", async () => { const t = +r.value; if (canWriteSheet()) { const row = rowOf(S.settingsRows, label); if (!row) { toast("Couldn't find the setting's row in the sheet"); return; } try { await writeCells(`Settings!B${row}`, [[t]]); toast(`Safety net target: ${t} months, written to Settings`); closeDrawer(); await loadLive(true); } catch (e) { toast("Couldn't write: " + errText(e, "Settings")); } } else { m.settings[label] = t; savePrefs({ safetyMonths: t }); toast("Saved on this device"); closeDrawer(); renderAll(); } });
   }
@@ -1499,18 +1687,19 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     if (NATIVE) { go("setup"); return; }
     const m = S.m; if (!m) return;
     OB.step = 0; OB.greeting = greeting() === m.householdName.replace(/^The /, "") ? "" : greeting(); OB.country = pref("country", m.kitty.country || "AU"); OB.lead = (leadGoal() || {}).name || ""; OB.safety = E.safety(m).target; OB.accent = pref("accent", m.kitty.accent) || "violet"; OB.again = !!again;
-    $("#onb").hidden = false; document.body.style.overflow = "hidden"; renderOnb();
+    const el = $("#onb"); el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Set up The Kitty");
+    OB.lastFocus = document.activeElement; el.hidden = false; document.body.style.overflow = "hidden"; $("#app").setAttribute("aria-hidden", "true"); renderOnb();
   }
-  function endOnboarding() { $("#onb").hidden = true; document.body.style.overflow = ""; }
+  function endOnboarding() { $("#onb").hidden = true; document.body.style.overflow = ""; $("#app").removeAttribute("aria-hidden"); if (OB.lastFocus && OB.lastFocus.isConnected && OB.lastFocus.focus) OB.lastFocus.focus({ preventScroll: true }); }
   const OB_STEPS = ["welcome", "who", "goal", "safety", "look", "phone"];
   function renderOnb() {
     const m = S.m, k = OB_STEPS[OB.step], el = $("#onb"); const sf = E.safety(m); const p = platform();
     const dots = `<div class="dots" aria-hidden="true">${OB_STEPS.map((s, i) => `<i class="${i === OB.step ? "on" : ""}"></i>`).join("")}</div>`;
     let body = "";
     if (k === "welcome") body = `<div class="pawbig" aria-hidden="true">${ico("i-paw")}</div><div class="eyebrow">Meet The Kitty</div><h1>One page that answers one question: are we on track?</h1><p class="lede">It reads a Google Sheet that owns every number, says what needs a person, and shows where the money went without a single chart you have to decode. ${OB.again ? "Let's run through your setup again." : `It already knows <b>${esc(m.householdName)}</b>. Five quick screens make it yours.`}</p>`;
-    if (k === "who") body = `<div class="eyebrow">Step 1 of 5</div><h1>Who's reading?</h1><p class="lede">The page greets you by name and formats money for your country. ${esc(m.householdName)} is the household on the sheet.</p><div class="fields2"><div class="field"><label for="obname">Call you</label><input id="obname" value="${esc(OB.greeting)}" placeholder="${esc(m.people[0] || "your name")}" autocomplete="given-name"></div><div class="field"><label for="obcountry">Where you bank</label><select id="obcountry">${SOURCES.countries.map((c) => `<option value="${c.code}" ${c.code === OB.country ? "selected" : ""}>${esc(c.name)} · ${c.currency}</option>`).join("")}</select></div></div><p class="lede" style="font-size:14px">${esc((SOURCES.countries.find((c) => c.code === OB.country) || {}).best || "")}</p>`;
+    if (k === "who") body = `<div class="eyebrow">Step 1 of 5</div><h1>Who's reading?</h1><p class="lede">The page greets you by name and formats money for your country. The household on the sheet: ${esc(m.householdName)}.</p><div class="fields2"><div class="field"><label for="obname">Call you</label><input id="obname" value="${esc(OB.greeting)}" placeholder="${esc(m.people[0] || "your name")}" autocomplete="given-name"></div><div class="field"><label for="obcountry">Where you bank</label><select id="obcountry">${SOURCES.countries.map((c) => `<option value="${c.code}" ${c.code === OB.country ? "selected" : ""}>${esc(c.name)} · ${c.currency}</option>`).join("")}</select></div></div><p class="lede" style="font-size:14px">${esc((SOURCES.countries.find((c) => c.code === OB.country) || {}).best || "")}</p>`;
     if (k === "goal") body = `<div class="eyebrow">Step 2 of 5</div><h1>What are you saving for?</h1><p class="lede">Pick the goal the Home page leads with. Tap again to change its target or date${canWriteSheet() ? "; that writes to the Goals tab" : ""}.</p><div class="opts">${m.goals.map((g) => { const on = OB.lead === g.name; const ed = OB.goalEdits[g.name] || {}; return `<div><button class="opt" data-oblead="${esc(g.name)}" aria-pressed="${on}"><span class="em" aria-hidden="true">${E.goalIcon(g.name)}</span><span class="mid"><span class="t">${esc(g.name)}</span><span class="s">${fmt0(g.balance)} of ${fmt0(ed.target || g.target)} · by ${E.fmtMonth(ed.date || g.date, true)} · ${esc(g.status)}</span><span class="gbar"><span style="width:${((g.progress || 0) * 100).toFixed(0)}%"></span></span></span><span class="r">${ofFmt(g.balance || 0)}<small> of ${ofFmt(ed.target || g.target || 0)}</small></span></button>${on ? `<div class="edit opt" style="border-color:transparent;margin-top:-6px;border-radius:0 0 18px 18px"><div class="field"><label for="obt">Target</label><input id="obt" type="number" inputmode="decimal" step="100" value="${ed.target || g.target}"></div><div class="field"><label for="obd">By</label><input id="obd" type="date" value="${ed.date || g.date}"></div></div>` : ""}</div>`; }).join("")}</div>`;
-    if (k === "safety") body = `<div class="eyebrow">Step 3 of 5</div><h1>How safe do you want to feel?</h1><p class="lede">Months of essential spending to keep in cash and offset. Right now you have <b>${sf.months != null ? sf.months.toFixed(1) : "—"} months</b>.</p><div class="slide"><div class="val num"><span id="obsv">${OB.safety}</span><small>months</small></div><input id="obsr" type="range" min="1" max="12" step="1" value="${OB.safety}" aria-label="Months of safety net"><div class="marks"><span>1 · tight</span><span>3</span><span>6 · classic</span><span>9</span><span>12 · relaxed</span></div><p class="lede" style="font-size:15px" id="obst"></p></div>`;
+    if (k === "safety") body = `<div class="eyebrow">Step 3 of 5</div><h1>How safe do you want to feel?</h1><p class="lede">Months of essential spending to keep in the emergency fund. Right now it holds <b>${sf.months != null ? sf.months.toFixed(1) : "—"} months</b>${sf.essentialPm ? `, at about ${fmt0(sf.essentialPm)} a month of essentials` : ""}.</p><div class="slide"><div class="val num"><span id="obsv">${OB.safety}</span><small>months</small></div><input id="obsr" type="range" min="1" max="12" step="1" value="${OB.safety}" aria-label="Months of safety net"><div class="marks"><span>1 · tight</span><span>3</span><span>6 · classic</span><span>9</span><span>12 · relaxed</span></div><p class="lede" style="font-size:15px" id="obst"></p></div>`;
     if (k === "look") body = `<div class="eyebrow">Step 4 of 5</div><h1>Make it yours.</h1><p class="lede">One accent colour runs through the page. The rest stays calm so the numbers speak.</p><div class="swatches">${["violet", "coral", "teal", "lime"].map((n) => `<button class="swatch" data-obacc="${n}" aria-pressed="${OB.accent === n}" aria-label="${n}" style="background:var(--swatch-${n})"></button>`).join("")}</div><div class="opts" style="margin-top:6px">${[["system", "Match my device", "Light by day, dark by night, as your phone decides"], ["light", "Always light", ""], ["dark", "Always dark", ""]].map(([k, t, sub]) => `<button class="opt" data-obtheme="${k}" aria-pressed="${(OB.theme || S.prefs.theme || "system") === k}"><span class="mid"><span class="t">${t}</span>${sub ? `<span class="s">${sub}</span>` : ""}</span></button>`).join("")}</div><div style="margin-top:8px"><div class="pawbig" style="animation:none;width:64px;height:64px;border-radius:20px" aria-hidden="true">${ico("i-paw")}</div></div>`;
     if (k === "phone") body = `<div class="eyebrow">Step 5 of 5</div><h1>${p.standalone ? "You're on the home screen." : "Put it on your phone."}</h1><p class="lede">${p.standalone ? "This is the app now: full screen, your icon, live numbers." : p.mobile ? "Thirty seconds, then it opens full screen from your home screen with its own icon, like any app." : "On a phone this page installs like an app. Open it there (scan the code on the Setup tab) and follow three taps."}</p><div class="phone"><div class="phoneimg" aria-hidden="true"><div class="notch"></div><div class="apps"><i></i><i></i><i></i><i></i><i></i><i class="kit">${ico("i-paw")}</i><i></i><i></i></div><div class="lbl" style="top:112px;left:46px;right:auto;width:30px">Kitty</div></div><div>${installStepsHTML()}</div></div>`;
     const last = OB.step === OB_STEPS.length - 1;
@@ -1519,13 +1708,14 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     const cI = $("#obcountry"); if (cI) cI.addEventListener("change", () => { OB.country = cI.value; renderOnb(); });
     $$("[data-oblead]", el).forEach((b) => b.addEventListener("click", () => { OB.lead = b.dataset.oblead; buzz(); renderOnb(); }));
     const obt = $("#obt"), obd = $("#obd"); if (obt) obt.addEventListener("input", () => { OB.goalEdits[OB.lead] = { ...(OB.goalEdits[OB.lead] || {}), target: +obt.value }; }); if (obd) obd.addEventListener("input", () => { OB.goalEdits[OB.lead] = { ...(OB.goalEdits[OB.lead] || {}), date: obd.value }; });
-    const sr = $("#obsr"); if (sr) { const upd = () => { OB.safety = +sr.value; $("#obsv").textContent = OB.safety; $("#obst").textContent = sf.months != null && sf.essentialPm ? (sf.months >= OB.safety ? "Already covered." : `About ${fmtS((OB.safety - sf.months) * sf.essentialPm)} more in cash would get there.`) : ""; }; sr.addEventListener("input", upd); upd(); }
+    const sr = $("#obsr"); if (sr) { const upd = () => { OB.safety = +sr.value; $("#obsv").textContent = OB.safety; $("#obst").textContent = sf.months != null && sf.essentialPm ? (sf.months >= OB.safety ? "Already covered." : `About ${fmtS((OB.safety - sf.months) * sf.essentialPm)} more in the emergency fund would get there.`) : ""; }; sr.addEventListener("input", upd); upd(); }
     $$("[data-obtheme]", el).forEach((b) => b.addEventListener("click", () => { OB.theme = b.dataset.obtheme; savePrefs({ theme: OB.theme }); applyTheme(); renderOnb(); }));
     $$("[data-obacc]", el).forEach((b) => b.addEventListener("click", () => { OB.accent = b.dataset.obacc; if (OB.accent === "violet") document.documentElement.removeAttribute("data-accent"); else document.documentElement.setAttribute("data-accent", OB.accent); buzz(); renderOnb(); }));
     $("#obskip").addEventListener("click", () => finishOnboarding(true));
     const bb = $("#obback"); if (bb) bb.addEventListener("click", () => { OB.dir = -1; OB.step--; renderOnb(); });
     $("#obnext").addEventListener("click", () => { buzz(); if (last) finishOnboarding(false); else { OB.dir = 1; OB.step++; renderOnb(); } });
     if (nameI && !phone()) setTimeout(() => nameI.focus(), 300);
+    else if (!el.contains(document.activeElement)) setTimeout(() => { const n = $("#obnext"); if (n && !el.hidden) n.focus({ preventScroll: true }); }, 60);
   }
   async function finishOnboarding(skipped) {
     const m = S.m;
@@ -1533,7 +1723,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
       savePrefs({ onboarded: true, greeting: OB.greeting, country: OB.country, leadGoal: OB.lead, accent: OB.accent, safetyMonths: OB.safety, installed: platform().standalone });
       const label = "Emergency fund target (months of essential spending)";
       if (!canWriteSheet()) { const ed = { ...(S.prefs.goalEdits || {}) }; for (const [name, e] of Object.entries(OB.goalEdits)) ed[name] = { ...(ed[name] || {}), ...e }; savePrefs({ goalEdits: ed }); applyLocalGoals(m); }
-      endOnboarding(); applyAccent(); renderAll(); celebrate(); toast(canWriteSheet() ? "You're set. Writing your choices to the sheet…" : "You're set. Saved on this device.");
+      endOnboarding(); applyAccent(); renderAll(); if (!isDemo()) celebrate(); toast(canWriteSheet() ? "You're set. Writing your choices to the sheet…" : "You're set. Saved on this device.");
       if (canWriteSheet()) {
         try {
           await writeKitty("greeting_name", OB.greeting); await writeKitty("country", OB.country); await writeKitty("lead_goal", OB.lead); await writeKitty("accent", OB.accent); await writeKitty("onboarded_at", new Date().toISOString());
@@ -1546,7 +1736,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   }
   // The local page forbids blob workers. Draw with the same library on its main canvas.
   let nativeCelebration;
-  function celebrate() { if (reduced() || !window.confetti) return; try { const fire = NATIVE ? (nativeCelebration || (nativeCelebration = window.confetti.create(null, { resize: true, useWorker: false }))) : window.confetti; const colors = ["#5B3DF5", "#FF5CC8", "#D9F94B", "#0E9F9E"]; fire({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, zIndex: 90, disableForReducedMotion: true }); setTimeout(() => fire({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors, zIndex: 90 }), 200); setTimeout(() => fire({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors, zIndex: 90 }), 350); } catch (e) { /* ignore */ } }
+  function celebrate() { if (reduced() || !window.confetti || isDemo()) return; try { const fire = NATIVE ? (nativeCelebration || (nativeCelebration = window.confetti.create(null, { resize: true, useWorker: false }))) : window.confetti; const colors = ["#5B3DF5", "#FF5CC8", "#D9F94B", "#0E9F9E"]; fire({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, zIndex: 90, disableForReducedMotion: true }); setTimeout(() => fire({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors, zIndex: 90 }), 200); setTimeout(() => fire({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors, zIndex: 90 }), 350); } catch (e) { /* ignore */ } }
 
   // ---------- wiring ----------
   // Native deep links may select a public section, never an arbitrary drawer,
@@ -1559,10 +1749,10 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   function go(target) {
     const [kind, ...rest] = String(target).split(":"); const key = rest.join(":");
     switch (kind) {
-      case "insights": case "goals": case "records": case "setup": case "home": case "activity": switchTab(kind); if (key === "save") setTimeout(() => { const el = $("#savecard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
+      case "insights": case "goals": case "things": case "tax": case "records": case "setup": case "home": case "activity": switchTab(kind); if (key === "save") setTimeout(() => { const el = $("#savecard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       case "cat": openCategory(key); break;
       case "entry": openEntry(key); break;
-      case "review": S.focusReview = true; switchTab("activity"); setTimeout(() => { const el = $("#reviewcard"); if (el) el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); const first = $("#rcards .rcard"); if (first && !phone()) first.focus({ preventScroll: true }); }, 80); break;
+      case "review": S.focusReview = true; S.reviewOpen = true; switchTab("activity"); renderActivity(); setTimeout(() => { const el = $("#reviewcard"); if (el) el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); const first = $("#rcards .rcard"); if (first && !phone()) first.focus({ preventScroll: true }); }, 80); break;
       case "merchant": openMerchant(key); break;
       case "sub": openSub(key); break;
       case "goal": openGoal(key); break;
@@ -1578,7 +1768,8 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
       case "law": openLaw(key); break;
       case "trace": openTrace(key); break;
       case "xp": openAction(key); break;
-      case "safety": switchTab("goals"); break;
+      case "safety": switchTab("goals"); setTimeout(() => { const el = $("#safetycard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
+      case "groceries": case "levers": switchTab(kind === "groceries" ? "insights" : "goals"); setTimeout(() => { const el = $(kind === "groceries" ? "#grochost" : "#leverhost"); el && !el.hidden && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       case "budget": case "networth": switchTab("insights"); setTimeout(() => { const el = $(kind === "networth" ? "#nwchart" : "#v-insights .grid"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       default: break;
     }
@@ -1591,19 +1782,22 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $$("[data-need]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.need)));
     $$("[data-up]", root).forEach((b) => b.addEventListener("click", () => go(b.dataset.up)));
     $$("[data-merchant]", root).forEach((b) => b.addEventListener("click", () => openMerchant(b.dataset.merchant)));
-    $$("[data-where]", root).forEach((b) => b.addEventListener("click", () => toast("In the sheet: " + b.dataset.where, 3600)));
+    $$("[data-where]", root).forEach((b) => b.addEventListener("click", () => toast("In the sheet: " + whereText(b.dataset.where), 3600)));
     $$("[data-hide]", root).forEach((b) => b.addEventListener("click", () => { const h = new Set(S.prefs.hidden || []); if (h.has(b.dataset.hide)) h.delete(b.dataset.hide); else h.add(b.dataset.hide); savePrefs({ hidden: [...h] }); renderHome(); renderGoals(); }));
     $$(".gbar span[data-w]", root).forEach((s) => requestAnimationFrame(() => requestAnimationFrame(() => (s.style.width = s.dataset.w + "%"))));
     bindTips(root);
   }
-  function moveGlow() { const nav = $("nav.tabs"), on = $('nav.tabs button[aria-selected="true"]'), g = $(".tabglow"); if (!nav || !on || !g) return; g.style.left = on.offsetLeft + "px"; g.style.width = on.offsetWidth + "px"; }
+  function moveGlow() { const nav = $("nav.tabs"), on = $('nav.tabs button[aria-selected="true"]'), g = $(".tabglow"); if (g && !on) g.style.width = "0px"; if (!nav || !on || !g) return; g.style.left = on.offsetLeft + "px"; g.style.width = on.offsetWidth + "px"; }
   function switchTab(t, quiet) {
+    if (t === "records") t = "rec";   // the record is a page under Tax: the Tax tab stays lit while it shows
+    if (S.m && $(`nav.tabs button[data-tab="${t}"]`)?.hidden) t = "home";   // a dark view has no tab
+    $("#setupbtn")?.setAttribute("aria-pressed", String(t === "setup"));
     if (!$(`#v-${t}`)) return;
     const was = S.tab; S.tab = t;
-    $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+    $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === (t === "rec" ? "tax" : t))));
     $$("section.view").forEach((s) => s.classList.toggle("on", s.id === `v-${t}`));
     moveGlow(); closeDrawer(); showArrange();
-    if (t === "home" && was !== "home" && S.m) { mountCanvas(); const lead = leadGoal(); if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name)) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 400); } }
+    if (t === "home" && was !== "home" && S.m) { mountCanvas(); const lead = leadGoal(); if (!isDemo() && lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name)) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 400); } }
     if (!quiet) { window.scrollTo({ top: 0, behavior: "auto" }); if (was !== t) buzz(); }
     store.set("tab", t);
   }
@@ -1613,7 +1807,8 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   async function boot() {
     PHONE.addEventListener("change", () => { if (S.m) renderHome(); });
     const saved = window.__KIT_GALLERY__ ? "home" : store.get("tab", "home"); if (saved && $(`#v-${saved}`)) switchTab(saved, true);
-    if (SNAP) { setModel(demoModel()); renderAll(); }
+    // the model is built inside a boundary too: unreadable bundled data says so instead of leaving a blank page
+    if (SNAP) { try { setModel(demoModel()); renderAll(); } catch (e) { console.error("model", e); gate("The bundled data could not be read", esc(e && e.message ? e.message : String(e))); } }
     if (SNAP && LOCAL_HOST && FLAGS.get("open") === "trust") setTimeout(openTrust, 50);
     else if (!SNAP) gate("Opening your sheet…", "This copy bundles no data. It reads your Google Sheet through your connector.");
     $$("nav.tabs button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
@@ -1621,14 +1816,17 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $("#trustpill").addEventListener("click", () => S.m && openTrust());
     $("#askbtn").addEventListener("click", () => S.m && openAsk());
     $("#topsearch").addEventListener("click", openSearch);
+    $("#setupbtn").addEventListener("click", () => switchTab("setup"));
+    $$(".v3back [data-go]").forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
     $("#scrim").addEventListener("click", closeDrawer);
     window.addEventListener("scroll", () => $("header.top").classList.toggle("scrolled", window.scrollY > 6), { passive: true });
     window.addEventListener("resize", () => { moveGlow(); if (S.grid && !moving()) { clearTimeout(S.resizeTm); S.resizeTm = setTimeout(renderHome, 150); } });   // heights changed: remount on the new geometry
     $("#arrangebtn").addEventListener("click", () => setArrange(!S.arrange));
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") { if (!$("#onb").hidden) return; if (moving()) return; if (S.arrange && !$("#drawer").classList.contains("on")) setArrange(false); closeDrawer(); }
+      if (e.key === "Escape") { if (!$("#onb").hidden) { e.preventDefault(); finishOnboarding(true); return; } if (moving()) return; if (S.arrange && !$("#drawer").classList.contains("on")) setArrange(false); closeDrawer(); }
       if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
-      if (e.key === "Tab" && $("#drawer").classList.contains("on")) { const f = $$("#drawer a[href], #drawer button:not([disabled]), #drawer input, #drawer select, #drawer [tabindex='0']").filter((x) => x.offsetParent !== null); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
+      if (e.key === "Tab" && !$("#onb").hidden) { const f = $$("#onb button:not([disabled]), #onb input, #onb select").filter((x) => x.offsetParent !== null); if (f.length) { const a = f[0], z = f[f.length - 1]; if (!$("#onb").contains(document.activeElement)) { e.preventDefault(); a.focus(); } else if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } } return; }
+      if (e.key === "Tab" && $("#drawer").classList.contains("on")) { const f =$$("#drawer a[href], #drawer button:not([disabled]), #drawer input, #drawer select, #drawer [tabindex='0']").filter((x) => x.offsetParent !== null); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
     });
     requestAnimationFrame(moveGlow); setTimeout(moveGlow, 400); if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveGlow);
     const use = (n) => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
@@ -1643,7 +1841,8 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     S.settled = true; if (S.m) renderHome();
-    if (!NATIVE && S.m && !S.prefs.onboarded && !FLAGS.has("noonb")) setTimeout(() => startOnboarding(false), 700);
+    // a stranger on the public demo gets the answer first: setup screens start only for a household's own sheet (or ?onb)
+    if (!NATIVE && S.m && !S.prefs.onboarded && !FLAGS.has("noonb") && !isDemo()) setTimeout(() => startOnboarding(false), 700);
     if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true);
     if (FLAGS.has("onb")) startOnboarding(true);
     if (NATIVE && S.m) document.dispatchEvent(new CustomEvent("kitty:app-ready"));

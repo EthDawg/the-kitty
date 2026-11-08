@@ -1,0 +1,95 @@
+Receipt ID,Date,Time,Merchant,Merchant ID,Store,Channel,Person,Items,Total,GST,Savings,Paid with,Entry ID,Account ID,Source,Source kind,Read by,Check,Note
+R0001,2025-07-02,16:53,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,58,336.31,8.27,4.30,Card,T0009,ACC-CC,IMG_6167.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0002,2025-07-09,13:21,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,73,407.44,10.76,5.00,Card,T0018,ACC-CC,eReceipt 090725-362.pdf,Email,"Fixture (generated, the truth)",OK,
+R0003,2025-07-17,10:26,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,67,304.12,6.10,0.00,Card,T0027,ACC-CC,IMG_1261.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0004,2025-07-23,18:36,Woolworths,MER-WOOLWORTHS,online,Online pickup,Joint,69,348.96,7.82,17.50,Card,T0038,ACC-CC,Tax invoice 144396215.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0005,2025-08-03,13:43,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,49,309.27,5.77,0.00,Card,T0055,ACC-CC,Tax invoice 166995561.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0006,2025-08-09,10:20,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,61,375.81,12.65,5.60,Card,T0064,ACC-CC,IMG_6838.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0007,2025-08-16,14:17,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,70,340.71,9.30,0.00,Card,T0077,ACC-CC,IMG_1636.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0008,2025-08-24,18:05,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,72,376.31,9.15,7.00,Card,T0088,ACC-CC,Tax invoice 172874850.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0009,2025-09-02,17:52,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,50,251.86,4.09,6.00,Card,T0105,ACC-CC,IMG_6465.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0010,2025-09-09,10:27,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,67,383.87,9.73,7.90,Card,T0113,ACC-CC,eReceipt 090925-163.pdf,Email,"Fixture (generated, the truth)",OK,
+R0011,2025-09-13,10:53,Merri Growers Market,,Stall 14 Fruit & Veg,In-store,Joint,5,42.65,0.00,0.00,Cash,,ACC-CASH,IMG_2443.jpg,Photo,"Fixture (generated, the truth)",OK,Paid in cash at the market. Real spending the bank never shows.
+R0012,2025-09-16,18:15,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,75,362.57,10.27,0.00,Card,T0122,ACC-CC,IMG_8783.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0013,2025-09-24,10:36,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,61,342.06,6.96,2.00,Card,T0132,ACC-CC,IMG_8276.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0014,2025-10-03,12:04,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,63,349.58,5.75,6.30,Card,T0152,ACC-CC,Tax invoice 140052756.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0015,2025-10-10,18:19,Coles Supermarkets,MER-COLES,online,Online delivery,Joint,57,336.74,8.09,2.00,Card,T0162,ACC-CC,Tax invoice 199817520.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0016,2025-10-16,11:18,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,57,266.90,6.39,0.00,Card,T0172,ACC-CC,IMG_3215.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0017,2025-10-23,11:18,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,68,362.79,10.84,10.30,Card,T0184,ACC-CC,IMG_4640.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0018,2025-11-02,12:26,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,52,286.37,6.06,7.00,Card,T0200,ACC-CC,Tax invoice 147809576.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0019,2025-11-09,18:42,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,47,240.60,5.55,4.50,Card,T0208,ACC-CC,IMG_1326.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0020,2025-11-16,12:51,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,60,291.11,7.65,0.00,Card,T0219,ACC-CC,IMG_4453.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0021,2025-11-23,16:57,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,48,267.72,7.12,8.30,Card,T0231,ACC-CC,IMG_6879.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0022,2025-12-02,16:24,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,53,296.88,9.65,2.00,Card,T0248,ACC-CC,eReceipt 021225-110.pdf,Email,"Fixture (generated, the truth)",OK,
+R0023,2025-12-09,15:08,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,54,371.00,9.34,0.00,Card,T0257,ACC-CC,IMG_2317.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0024,2025-12-13,10:41,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,1,-25.90,-2.35,0.00,Card,TG004,ACC-CC,IMG_6452.jpg,Photo,"Fixture (generated, the truth)",OK,"Refund: money back to the card, so negative spending. Total and line are negative."
+R0025,2025-12-17,10:31,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,54,271.57,6.01,0.00,Card,T0267,ACC-CC,IMG_9738.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0026,2025-12-23,11:10,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,74,427.89,9.67,7.70,Card,T0278,ACC-CC,Tax invoice 177431137.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0027,2026-01-02,17:27,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,71,378.64,11.55,16.90,Card,T0295,ACC-CC,IMG_2518.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0028,2026-01-07,14:09,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,11,64.85,3.51,0.00,Gift card,,ACC-GC-1,IMG_4590.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-1. Real spending the bank never shows.
+R0029,2026-01-10,18:08,Coles Supermarkets,MER-COLES,online,Online delivery,Joint,54,322.36,7.90,5.30,Card,T0305,ACC-CC,Tax invoice 156885459.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0030,2026-01-16,17:53,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,65,318.12,8.87,0.00,Card,T0314,ACC-CC,IMG_8119.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0031,2026-01-20,18:59,Coles Supermarkets,MER-COLES,Coburg,In-store,Jordan,8,58.30,0.68,0.00,Gift card,,ACC-GC-2,IMG_4140.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-2. Real spending the bank never shows.
+R0032,2026-01-23,08:46,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,45,246.31,9.13,15.10,Card,T0325,ACC-CC,IMG_4780.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0033,2026-01-29,10:07,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,18,92.40,1.52,0.00,Gift card,,ACC-GC-1,IMG_7336.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-1. Real spending the bank never shows.
+R0034,2026-02-03,08:34,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,51,261.15,5.65,5.20,Card,T0343,ACC-CC,eReceipt 030226-886.pdf,Email,"Fixture (generated, the truth)",OK,
+R0035,2026-02-09,13:27,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,71,399.93,13.01,2.00,Card,T0353,ACC-CC,IMG_7167.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0036,2026-02-14,08:43,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,22,134.60,2.16,3.70,Mixed,TG001,ACC-CC,IMG_9085.jpg,Photo,"Fixture (generated, the truth)",OK,"Split: gift card ACC-GC-1 paid 42.75 (emptied it), the card paid 91.85. The bank shows only the card part."
+R0037,2026-02-16,08:49,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,82,398.47,12.06,0.00,Card,T0365,ACC-CC,IMG_4645.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0038,2026-02-21,11:36,Merri Growers Market,,Stall 3 Bakery,In-store,Joint,4,21.50,1.18,0.00,Cash,,ACC-CASH,IMG_5277.jpg,Photo,"Fixture (generated, the truth)",OK,Paid in cash at the market. Real spending the bank never shows.
+R0039,2026-02-23,09:31,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,71,357.10,7.99,9.90,Card,T0377,ACC-CC,IMG_3308.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0040,2026-03-02,10:16,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,61,327.20,9.29,27.60,Card,T0396,ACC-CC,Tax invoice 183194938.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0041,2026-03-05,10:20,Coles Supermarkets,MER-COLES,Coburg,In-store,Jordan,6,36.10,0.33,6.60,Gift card,,ACC-GC-2,eReceipt 050326-762.pdf,Email,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-2. Real spending the bank never shows.
+R0042,2026-03-10,11:55,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,65,398.14,10.69,6.80,Card,T0405,ACC-CC,IMG_7205.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0043,2026-03-16,08:11,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,77,378.66,10.33,0.00,Card,T0416,ACC-CC,IMG_9585.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0044,2026-03-24,09:15,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,65,349.17,7.51,19.10,Card,T0427,ACC-CC,Tax invoice 164845610.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0045,2026-04-02,15:24,Woolworths,MER-WOOLWORTHS,online,Online pickup,Joint,61,286.84,4.61,23.10,Card,T0442,ACC-CC,Tax invoice 176803621.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0046,2026-04-10,10:56,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,66,357.24,9.70,11.00,Card,T0452,ACC-CC,IMG_3166.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0047,2026-04-17,19:50,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,78,389.47,11.26,0.00,Card,T0462,ACC-CC,IMG_7202.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0048,2026-04-19,15:07,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Mia,18,87.65,0.64,0.00,Gift card,,ACC-GC-3,IMG_9045.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-3. Real spending the bank never shows.
+R0049,2026-04-24,11:59,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,61,291.33,4.22,9.80,Card,T0474,ACC-CC,Tax invoice 146315015.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0050,2026-05-02,12:39,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,66,384.86,11.43,2.90,Card,T0490,ACC-CC,IMG_7495.jpg,Photo,"Fixture (generated, the truth)",OK,The printed total includes three reusable bags.
+R0051,2026-05-09,09:45,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,64,359.03,10.24,23.50,Card,T0498,ACC-CC,IMG_3727.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0052,2026-05-15,11:26,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,31,171.20,2.35,10.80,Mixed,TG002,ACC-CC,IMG_3627.jpg,Photo,"Fixture (generated, the truth)",OK,"Split: gift card ACC-GC-3 paid 62.35 (emptied it), the card paid 108.85. The bank shows only the card part."
+R0053,2026-05-16,14:15,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,62,294.89,4.89,0.00,Card,T0509,ACC-CC,IMG_1591.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0054,2026-05-24,17:23,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,63,387.26,9.15,3.20,Card,T0522,ACC-CC,eReceipt 240526-847.pdf,Email,"Fixture (generated, the truth)",OK,
+R0055,2026-06-02,14:11,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,69,404.30,9.88,6.10,Card,T0541,ACC-CC,Tax invoice 166418185.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0056,2026-06-06,09:50,Merri Growers Market,,Stall 14 Fruit & Veg,In-store,Joint,5,36.85,0.00,0.00,Cash,,ACC-CASH,IMG_6688.jpg,Photo,"Fixture (generated, the truth)",OK,Paid in cash at the market. Real spending the bank never shows.
+R0057,2026-06-10,11:31,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,66,369.07,11.16,16.30,Card,T0549,ACC-CC,eReceipt 100626-250.pdf,Email,"Fixture (generated, the truth)",OK,
+R0058,2026-06-16,10:23,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,62,316.50,6.01,0.00,Card,T0558,ACC-CC,IMG_6409.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0059,2026-06-23,11:00,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,62,299.95,8.54,8.80,Card,T0570,ACC-CC,Tax invoice 178858135.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0060,2026-07-03,08:17,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,49,252.64,4.10,2.20,Card,T0588,ACC-CC,IMG_2557.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0061,2026-07-09,19:19,Coles Supermarkets,MER-COLES,online,Online delivery,Joint,70,375.67,7.75,16.30,Card,T0599,ACC-CC,Tax invoice 162830889.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0062,2026-07-16,17:35,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,59,272.70,4.45,0.00,Card,T0608,ACC-CC,IMG_3394.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0063,2026-07-24,13:35,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,59,330.47,7.62,20.50,Card,T0620,ACC-CC,Tax invoice 148745912.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0064,2026-08-02,15:59,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,63,378.04,12.38,11.50,Card,T0636,ACC-CC,Tax invoice 181972456.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0065,2026-08-08,10:06,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,9,96.20,2.57,0.00,Gift card,,ACC-GC-4,IMG_1816.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-4. Real spending the bank never shows.
+R0066,2026-08-09,10:20,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,54,337.77,7.27,2.70,Card,T0645,ACC-CC,IMG_3088.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0067,2026-08-16,16:15,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,62,309.09,8.35,0.00,Card,T0658,ACC-CC,IMG_6547.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0068,2026-08-23,14:08,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,61,359.86,11.16,20.70,Card,T0670,ACC-CC,Tax invoice 152364947.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0069,2026-09-01,13:16,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,14,71.15,1.24,0.00,Gift card,,ACC-GC-4,eReceipt 010926-103.pdf,Email,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-4. Real spending the bank never shows.
+R0070,2026-09-03,19:27,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,52,248.50,4.68,19.20,Card,T0688,ACC-CC,eReceipt 030926-544.pdf,Email,"Fixture (generated, the truth)",OK,Rewards points redeemed for $10 off; the card paid the printed total.
+R0071,2026-09-09,11:35,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,54,344.72,7.09,3.30,Card,T0696,ACC-CC,IMG_4008.jpg,Photo,"Fixture (generated, the truth)",OK,Deli ham weighed in a container; the scale took off the tare.
+R0072,2026-09-16,17:20,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,72,383.77,10.84,0.00,Card,T0705,ACC-CC,IMG_2365.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0073,2026-09-23,13:57,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,48,280.76,7.05,7.10,Card,T0716,ACC-CC,IMG_5368.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0074,2026-10-02,11:45,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,68,395.04,8.38,15.70,Card,T0733,ACC-CC,IMG_8559.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0075,2026-10-05,15:06,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,6,49.90,0.85,0.00,Gift card,,ACC-GC-4,IMG_8693.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-4. Real spending the bank never shows.
+R0076,2026-10-09,13:56,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,41,250.45,5.93,11.50,Card,T0743,ACC-CC,IMG_8773.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0077,2026-10-16,13:33,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,60,318.81,6.69,0.00,Card,T0754,ACC-CC,IMG_8499.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0078,2026-10-23,10:34,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,61,347.17,6.21,6.80,Card,T0767,ACC-CC,IMG_7377.jpg,Photo,"Fixture (generated, the truth)",OK, Second photo of the same receipt: IMG_7378.jpg.
+R0079,2026-10-24,08:03,Merri Growers Market,,Stall 14 Fruit & Veg,In-store,Joint,5,47.30,0.00,0.00,Cash,,ACC-CASH,IMG_2433.jpg,Photo,"Fixture (generated, the truth)",OK,Paid in cash at the market. Real spending the bank never shows.
+R0080,2026-11-03,09:32,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,50,264.11,6.48,8.30,Card,T0783,ACC-CC,eReceipt 031126-675.pdf,Email,"Fixture (generated, the truth)",OK,
+R0081,2026-11-09,13:19,Coles Supermarkets,MER-COLES,online,Online delivery,Joint,60,404.42,11.33,3.30,Card,T0792,ACC-CC,Tax invoice 159308498.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0082,2026-11-15,17:57,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,23,118.45,4.56,9.50,Mixed,TG003,ACC-CC,IMG_2588.jpg,Photo,"Fixture (generated, the truth)",OK,"Split: gift card ACC-GC-4 paid 32.75 (emptied it), the card paid 85.70. The bank shows only the card part."
+R0083,2026-11-16,12:22,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,52,265.31,5.43,0.00,Card,T0803,ACC-CC,IMG_6869.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0084,2026-11-24,13:47,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,55,272.84,4.82,13.50,Card,T0815,ACC-CC,IMG_8999.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0085,2026-12-02,16:18,Woolworths,MER-WOOLWORTHS,online,Online delivery,Joint,41,267.09,10.16,8.90,Card,T0834,ACC-CC,Tax invoice 140536868.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0086,2026-12-10,17:43,Coles Supermarkets,MER-COLES,Coburg,In-store,Joint,66,375.09,9.55,0.00,Card,T0844,ACC-CC,IMG_2693.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0087,2026-12-16,16:49,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,75,373.76,11.55,0.00,Card,T0853,ACC-CC,IMG_8274.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0088,2026-12-22,13:20,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,67,413.11,10.23,1.90,Card,T0866,ACC-CC,IMG_4351.jpg,Photo,"Fixture (generated, the truth)",OK,Printed two days before the card settled.
+R0089,2026-12-22,17:45,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,4,44.30,2.46,0.00,Gift card,,ACC-GC-5,IMG_5558.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-5. Real spending the bank never shows.
+R0090,2027-01-02,16:20,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,45,257.81,7.27,0.00,Card,T0885,ACC-CC,eReceipt 020127-564.pdf,Email,"Fixture (generated, the truth)",OK,
+R0091,2027-01-09,15:10,Coles Supermarkets,MER-COLES,online,Online delivery,Joint,48,320.49,7.16,2.90,Card,T0897,ACC-CC,Tax invoice 171788081.pdf,PDF,"Fixture (generated, the truth)",OK,
+R0092,2027-01-12,15:25,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,6,38.95,0.00,0.00,Gift card,,ACC-GC-5,IMG_1417.jpg,Photo,"Fixture (generated, the truth)",OK,Paid wholly by gift card ACC-GC-5. Real spending the bank never shows.
+R0093,2027-01-16,08:34,ALDI Stores,MER-ALDI,Coburg,In-store,Joint,53,260.44,7.25,0.00,Card,T0905,ACC-CC,IMG_1319.jpg,Photo,"Fixture (generated, the truth)",OK,
+R0094,2027-01-23,11:26,Woolworths,MER-WOOLWORTHS,Brunswick,In-store,Joint,66,403.95,8.82,6.50,Card,T0919,ACC-CC,IMG_6112.jpg,Photo,"Fixture (generated, the truth)",OK,

@@ -1,0 +1,7 @@
+Decision ID,Question,Ref,Option,Upfront,Per month,Months,Extra,Total,Recommended,Decide by,Status,Source,Note
+DQ-001,Home and contents renews on 3 March. Stay with Youi or switch?,C0012,Renew with Youi as quoted,1980,0,12,0,1980,False,2027-02-24,Open,"Youi renewal notice, 20 Jan 2027",Up $160 (8.8%) on last year. $500 excess.
+DQ-001,,C0012,"Renew with Youi, $1,000 excess",1760,0,12,0,1760,True,2027-02-24,Open,"Youi online quote, 27 Jan 2027","Same cover; pay the first $1,000 of a claim instead of $500. Budget Direct is $120 cheaper but insures contents for $20,000 less."
+DQ-001,,C0012,Switch to Budget Direct,1640,0,12,0,1640,False,2027-02-24,Open,"Budget Direct quote, 28 Jan 2027","$750 excess; contents sum insured $20,000 lower. Check before choosing."
+DQ-002,"Dropbox Plus renews on 6 February. Keep it, or move the files to iCloud?",C0007,Renew Dropbox Plus,174,0,12,0,174,False,2027-02-05,Open,"Dropbox renewal email, 7 Jan 2027",The Decisions tab has Dropbox marked Review since November.
+DQ-002,,C0007,Move the files to iCloud and cancel,0,0,12,0,0,True,2027-02-05,Open,"iCloud+ storage page, 30 Jan 2027",iCloud+ 2 TB is already paid for and has 1.1 TB free. About two hours to move the folders.
+DQ-002,,C0007,Drop to Dropbox Basic (free),0,0,12,0,0,False,2027-02-05,Open,Dropbox plans page,"Free, but only 2 GB: anything over that stops syncing."

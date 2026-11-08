@@ -1,0 +1,38 @@
+/* The page around the sheet-version-3 views: tabs that light when their tab exists, Setup in the header, and the seams where a
+   kit module (kx-*) sits inside the page's own cards. The modules' own styles live in src/kit/*.css. */
+nav.tabs button[hidden]{display:none}
+#setupbtn .lbl{display:none}
+@media (min-width:820px){#setupbtn{order:3}}
+#setupbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+/* six tabs, the data-date pill, three tools and Setup share one 1,120px bar. Setup and Search stay icons
+   (their names are in the tooltip and for screen readers) and the tabs tighten, so nothing runs past the column. */
+@media (min-width:1060px){nav.tabs button{padding:8px 10px}.topbar{gap:8px}}
+@media (min-width:1280px){#topsearch kbd{display:none}#topsearch:has(kbd){width:40px;padding:0}}
+.v3foot{padding:0 6px;margin:0}
+.v3lead{margin:-8px 0 14px}
+/* the lever board is a card of its own in the module; on Goals it sits inside the page's card */
+.v3levers .kx-lv{background:none;box-shadow:none;padding:0;border-radius:0}
+.v3levers .cardhead .seg{flex-wrap:wrap}
+/* Tax: the module, then a way into the record, which is a page of its own under the Tax tab */
+#v-taxview:empty,#v-recentry:empty{display:none}
+#v-records{display:flex;flex-direction:column;gap:16px}
+.v3rec .say{max-width:68ch}
+.v3rec .sub{margin:0 0 14px;max-width:68ch}
+.v3back{display:flex;align-items:center;gap:12px;padding:0 4px}
+.v3back .linkbtn{display:inline-flex;align-items:center;gap:4px;font-size:15px;min-height:40px}
+.v3back .ic{width:18px;height:18px}
+/* a module's drawer content keeps the page drawer's padding and type */
+.kx-dr{display:grid;gap:14px}
+#grochost[hidden],#leverhost[hidden]{display:none}
+/* The accent palettes (brand/tokens.json "accents") carry light values only, so in dark a lime, teal or coral household gets a
+   light --accent-soft under light ink, and dark accent text on the dark ground. Until the brand tokens gain dark accents, the
+   version-3 views (and their drawers) use these dark values: a light accent for text, switches and buttons, a dark soft accent
+   for tinted panels. The older views keep the brand's values, so their screenshots stay as they are. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"])[data-accent="lime"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#A6DA4E;--accent-soft:#273514;--accent-ink:#0F0C1B}
+  :root:not([data-theme="light"])[data-accent="teal"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#4DCAC1;--accent-soft:#123130;--accent-ink:#0F0C1B}
+  :root:not([data-theme="light"])[data-accent="coral"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#FF8C78;--accent-soft:#3A1F1B;--accent-ink:#0F0C1B}
+}
+:root[data-theme="dark"][data-accent="lime"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#A6DA4E;--accent-soft:#273514;--accent-ink:#0F0C1B}
+:root[data-theme="dark"][data-accent="teal"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#4DCAC1;--accent-soft:#123130;--accent-ink:#0F0C1B}
+:root[data-theme="dark"][data-accent="coral"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#FF8C78;--accent-soft:#3A1F1B;--accent-ink:#0F0C1B}

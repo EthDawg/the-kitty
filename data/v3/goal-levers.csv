@@ -1,0 +1,9 @@
+Lever ID,Goal,Lever,On,Per month,One-off,Date if on,Date if off,Months moved,Source
+GL-001,Offset buffer,"The $800 monthly transfer to the offset, starting February",True,800,0,2028-05-01,2031-05-01,36,Standing transfer set up 28 Jan 2027
+GL-008,Offset buffer,Tax refunds go to the offset each October,True,0,5684.7,2028-05-01,2028-10-01,5,"Tax Forecast: household refund, FY27"
+GL-002,Offset buffer,"Mia's pay rise from March (about $4,200 a year)",True,245,0,2028-05-01,2028-09-01,4,"Mia's offer letter, Dec 2026"
+GL-003,Offset buffer,Drop YouTube Premium and Dropbox Plus,False,37.49,0,2028-04-01,2028-05-01,1,"Decisions marked Review, and DQ-002"
+GL-004,Offset buffer,"Geelong rent review to $2,560 in March",True,90,0,2028-05-01,2028-06-01,1,Property manager's market note
+GL-005,Offset buffer,Halve the holiday budget for a year,False,300,0,2028-02-01,2028-05-01,3,"Budget tab, Holidays"
+GL-006,Offset buffer,Sweep the Japan saver's leftover after the trip,True,0,90.25,2028-05-01,2028-05-01,0,Goals: Japan trip balance less target
+GL-007,Emergency fund,Keep the $700 a month going,True,0,0,2027-06-01,2027-06-01,0,Last three months

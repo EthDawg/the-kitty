@@ -287,9 +287,11 @@ test('a subscription refund is never projected as a new recurring income payment
   const contract = snapshot.contracts.find(row => row.name === 'Paramount+');
   const lastCharge = snapshot.entries.find(row => row.entry_id === 'T0917');
   assert.ok(lastCharge.amount > 0 && /REFUND/.test(lastCharge.raw_text));
+  // the next charge rolls from the last real charge (19 Jan), never from the refund's date (24 Jan)
+  const charge = snapshot.entries.filter(row => row.description === 'Paramount+' && row.amount < 0).sort((a, b) => a.settled_at.localeCompare(b.settled_at)).pop();
   const event = Engine.upcoming(model, 35).find(row => row.kind === 'bill' && row.ref.key === contract.name);
-  assert.ok(event); assert.equal(event.date, contract.next_date);
-  assert.equal(cents(event.amount), -cents(contract.amount));
+  assert.ok(event); assert.equal(event.date, Engine.addMonths(charge.settled_at, 1));
+  assert.ok(event.amount < 0); assert.equal(cents(event.amount), cents(charge.amount));
 });
 
 test('the review queue links real flagged entries and distinguishes a suspected double from a confirmed one', () => {
@@ -298,13 +300,17 @@ test('the review queue links real flagged entries and distinguishes a suspected 
     .sort((a, b) => a.settled_at.localeCompare(b.settled_at) || a.entry_id.localeCompare(b.entry_id));
   for (const row of entries) {
     if (row.category_id === 'UNCAT') flags.set(row.entry_id, { category: 'UNCAT' });
-    if (row.flow === 'Expense') {
+    if (row.flow === 'Expense' && row.amount < 0) {
       const identity = JSON.stringify([row.settled_at, row.account_id, row.description, cents(row.amount)]);
-      if (seen.has(identity)) flags.set(row.entry_id, { possibleDuplicate: seen.get(identity) });
-      else seen.set(identity, row.entry_id);
+      if (seen.has(identity)) {
+        // a pair where each row holds its own receipt, or each carries a note, is two purchases
+        const first = entries.find(other => other.entry_id === seen.get(identity));
+        const explained = (first.receipt_held === 'Y' && row.receipt_held === 'Y') || (first.note && row.note);
+        if (!explained) flags.set(row.entry_id, { possibleDuplicate: seen.get(identity), merchant: row.description });
+      } else seen.set(identity, row.entry_id);
     }
   }
-  assert.deepEqual([...flags.keys()].sort(), ['T0413', 'T0596', 'T0687', 'T0746', 'T0761', 'T0858']);
+  assert.deepEqual([...flags.keys()].sort(), ['T0413', 'T0596', 'T0687', 'T0746', 'T0761']);
   const result = answer('What needs a look?');
   assert.equal(Number(result.title.match(/\d+/)[0]), flags.size);
   assert.ok(result.links.some(link => link.go === 'review'));
@@ -313,7 +319,8 @@ test('the review queue links real flagged entries and distinguishes a suspected 
   for (const link of links) {
     const flag = flags.get(link.go.slice('entry:'.length));
     assert.ok(flag, 'every review receipt must link a source candidate');
-    if (flag.possibleDuplicate) assert.ok(link.label.includes(flag.possibleDuplicate), 'possible doubles must identify their matching entry');
+    assert.ok(!/\b[TDR]\d{4}\b/.test(link.label), 'a reader never sees an internal ID: ' + link.label);
+    if (flag.possibleDuplicate) assert.ok(link.label.includes(flag.merchant) && /same merchant, amount, account and day/.test(link.label), 'possible doubles say what they match');
   }
   assert.equal(snapshot.decisions.filter(row => row.ref_kind === 'entry' && row.decision === 'merge_duplicate').length, 0);
 });

@@ -12,8 +12,12 @@
   const COLS = 12;
   const active = (m, f) => m.accounts.filter((a) => a.status === "active" && f(String(a.type || "").toLowerCase(), a));
   const held = (m, f) => { const rows = active(m, f).map((a) => ({ id: a.id, name: a.name, sub: a.purpose || a.bank || "", value: E.balanceAt(a, m.asOf) })); return rows.length ? { rows, total: rows.reduce((s, r) => s + (r.value || 0), 0) } : null; };
-  const list = (rows, size) => `<div class="wlist${size === "wide" ? " two" : ""}">${rows.slice(0, size === "wide" ? 8 : 4).map((r) => `<div class="whrow"><span class="mid"><span class="t">${esc(r.name)}</span>${r.sub ? `<span class="s">${esc(r.sub)}</span>` : ""}</span><b class="num">${E.fmt0(r.value)}</b></div>`).join("")}</div>`;
-  const heldCard = (q, drill) => (p, size) => `<div class="cardhead"><span class="q">${esc(q)}</span><button class="linkbtn" data-open="${esc(drill)}">Net worth →</button></div><div class="wtotal num">${E.fmt0(p.total)}</div>${list(p.rows, size)}`;
+  const list = (rows, size) => `<div class="wlist${size === "wide" ? " two" : ""}">${rows.slice(0, size === "wide" ? 8 : 4).map((r) => `<div class="whrow"><span class="mid"><span class="t">${esc(r.name)}</span>${r.sub ? `<span class="s">${esc(r.sub)}</span>` : ""}</span><b class="num${r.income ? " in" : ""}">${r.income ? "+" : ""}${E.fmt0(r.value)}</b></div>`).join("")}</div>`;
+  // a tile shortens its total ($2.04m); the rows under it keep whole dollars
+  const heldCard = (q, drill) => (p, size) => `<div class="cardhead"><span class="q">${esc(q)}</span><button class="linkbtn" data-open="${esc(drill)}">Net worth →</button></div><div class="wtotal num">${E.fmtS(p.total)}</div>${list(p.rows, size)}`;
+  const KIND = { subscription: "Subscription", insurance: "Insurance", loan: "Loan", lease: "Lease", bill: "Bill" };
+  // a contract with a Cancel decision has ended for the household, even while the sheet still lists it
+  const live = (c) => c.status === "active" && !/cancel/i.test(c.decision || "");
   const nextDue = (c, asOf) => (c.next && c.next >= asOf ? c.next : null);
 
   // The core widgets' markup needs the page (its hero, its charts), so the page hands them over with Kit.bindCore. The rest live here.
@@ -21,6 +25,9 @@
     { id: "hero", domain: "everyday", title: "Where you stand", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }], drill: "trust" },
     { id: "review", domain: "everyday", title: "Review", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }, { w: 6, variant: "half" }], drill: "review" },
     { id: "needs", domain: "everyday", title: "What needs you", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }, { w: 6, variant: "half" }], drill: "needs" },
+    // sheet version 3: the page hands these over only when Decision Options or Receipts have something to say
+    { id: "decide", domain: "things", title: "Decision waiting", requires: [], core: true, sizes: [{ w: 7, variant: "half" }, { w: 12, variant: "wide" }], drill: "things" },
+    { id: "shop", domain: "everyday", title: "This week's shop", requires: [], core: true, sizes: [{ w: 5, variant: "half" }, { w: 7, variant: "half" }, { w: 12, variant: "wide" }], drill: "groceries" },
     { id: "upcoming", domain: "everyday", title: "What's coming up", requires: [], core: true, sizes: [{ w: 5, variant: "half" }, { w: 7, variant: "half" }, { w: 12, variant: "wide" }], drill: "upcoming" },
     { id: "months", domain: "everyday", title: "The last 12 months", requires: [], core: true, sizes: [{ w: 7, variant: "half" }, { w: 5, variant: "half" }, { w: 12, variant: "wide" }], drill: "insights" },
     { id: "goals", domain: "everyday", title: "Saving for", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }, { w: 6, variant: "half" }], drill: "goals" },
@@ -32,11 +39,12 @@
     { id: "things", domain: "things", title: "Things", requires: ["has_things"], sizes: [{ w: 6, variant: "half" }, { w: 12, variant: "wide" }], drill: "networth", data: (m) => held(m, (t) => t === "vehicle" || t === "device"), render: heldCard("Things", "networth") },
     { id: "contracts", domain: "contracts", title: "Contracts", requires: ["has_contracts"], sizes: [{ w: 6, variant: "half" }, { w: 12, variant: "wide" }], drill: "upcoming",
       data: (m) => {
-        const rows = m.contracts.filter((c) => c.status === "active"); if (!rows.length) return null;
+        const rows = m.contracts.filter(live); if (!rows.length) return null;
         const due = rows.filter((c) => nextDue(c, m.asOf)).sort((a, b) => (a.next < b.next ? -1 : 1));
-        return { count: rows.length, due: due.map((c) => ({ name: c.name, sub: `${c.kind} · ${E.fmtMonth(c.next, true)}`, value: c.amount })) };
+        const ended = m.contracts.filter((c) => c.status === "active" && !live(c)).length;
+        return { count: rows.length, ended, due: due.map((c) => ({ name: c.name, sub: `${KIND[c.kind] || E.cap(c.kind)} · next ${E.fmtDay(c.next, { year: true })}`, value: c.amount, income: c.kind === "lease" })) };
       },
-      render: (p, size) => `<div class="cardhead"><span class="q">Contracts</span><button class="linkbtn" data-open="upcoming">Upcoming →</button></div><div class="wtotal num">${p.count} active</div>${p.due.length ? list(p.due, size) : `<div class="empty">Nothing dated ahead of the as-of date.</div>`}` },
+      render: (p, size) => `<div class="cardhead"><span class="q">Contracts</span><button class="linkbtn" data-open="upcoming">Upcoming →</button></div><div class="wtotal num">${p.count} active</div>${p.ended ? `<p class="sub">${p.ended} more ${p.ended === 1 ? "has" : "have"} a Cancel decision and ${p.ended === 1 ? "is" : "are"} left out.</p>` : ""}${p.due.length ? list(p.due, size) : `<div class="empty">Nothing dated ahead of the as-of date.</div>`}` },
   ];
   const byId = new Map(K.WIDGETS.map((w) => [w.id, w]));
   K.widget = (id) => byId.get(id);

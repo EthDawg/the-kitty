@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 
 DATE_KEYS = {'date', 'settled_at', 'created_at', 'month_end', 'start_date', 'end_date', 'next_date', 'at', 'opening_date',
-             'pay_date', 'last_charged', 'target_date', 'last_used', 'loan_end_date'}
+             'pay_date', 'last_charged', 'target_date', 'last_used', 'loan_end_date', 'decide_by', 'date_if_on', 'date_if_off', 'lodged', 'notice'}
 EPOCH = dt.date(1899, 12, 30)
 
 
@@ -116,6 +116,11 @@ def main():
             d['value'] = serial_to_iso(d['value'])
     snap['rules'] = table(g, 'Rules', 1, 10)
     snap['valuations'] = table(g, 'Valuations', 1, 5)
+    # sheet_version 3 (CHANGES.md version 3): carried when the grids cover them; an older sheet has none
+    for k, name, cols in (('receipts', 'Receipts', 20), ('receipt_lines', 'Receipt Lines', 16), ('decision_options', 'Decision Options', 14),
+                          ('goal_levers', 'Goal Levers', 10), ('tax_returns', 'Tax Returns', 14)):
+        if name in g:
+            snap[k] = table(g, name, 1, cols)
 
     # the oracle for this script: tabs whose values must not have moved
     def same(a_, b_, keys, tol=0.005):

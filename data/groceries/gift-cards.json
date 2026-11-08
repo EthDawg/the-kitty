@@ -1,0 +1,135 @@
+{
+ "_about": "Gift cards the Davies were given. Paying with one is spending (programme decision D3): each use is a Receipts row with Paid with = Gift card (or Mixed) and Account ID = the card.",
+ "cards": [
+  {
+   "account_id": "ACC-GC-1",
+   "merchant": "Woolworths",
+   "card_last4": "8812",
+   "load_date": "2025-12-20",
+   "value": 200.0,
+   "source": "gift",
+   "from": "Mia's parents, Christmas",
+   "owner": "Joint",
+   "uses": [
+    {
+     "receipt_id": "R0028",
+     "date": "2026-01-07",
+     "amount": 64.85
+    },
+    {
+     "receipt_id": "R0033",
+     "date": "2026-01-29",
+     "amount": 92.4
+    },
+    {
+     "receipt_id": "R0036",
+     "date": "2026-02-14",
+     "amount": 42.75
+    }
+   ],
+   "balance_at_as_of": 0.0
+  },
+  {
+   "account_id": "ACC-GC-2",
+   "merchant": "Coles Supermarkets",
+   "card_last4": "3307",
+   "load_date": "2025-12-23",
+   "value": 100.0,
+   "source": "gift",
+   "from": "Jordan's work, Christmas",
+   "owner": "Jordan",
+   "uses": [
+    {
+     "receipt_id": "R0031",
+     "date": "2026-01-20",
+     "amount": 58.3
+    },
+    {
+     "receipt_id": "R0041",
+     "date": "2026-03-05",
+     "amount": 36.1
+    }
+   ],
+   "balance_at_as_of": 5.6
+  },
+  {
+   "account_id": "ACC-GC-3",
+   "merchant": "Woolworths",
+   "card_last4": "5129",
+   "load_date": "2026-04-12",
+   "value": 150.0,
+   "source": "gift",
+   "from": "Mia's sister, Mia's birthday",
+   "owner": "Mia",
+   "uses": [
+    {
+     "receipt_id": "R0048",
+     "date": "2026-04-19",
+     "amount": 87.65
+    },
+    {
+     "receipt_id": "R0052",
+     "date": "2026-05-15",
+     "amount": 62.35
+    }
+   ],
+   "balance_at_as_of": 0.0
+  },
+  {
+   "account_id": "ACC-GC-4",
+   "merchant": "Coles Supermarkets",
+   "card_last4": "7741",
+   "load_date": "2026-08-02",
+   "value": 250.0,
+   "source": "gift",
+   "from": "Jordan's parents, for Ava's second birthday",
+   "owner": "Joint",
+   "uses": [
+    {
+     "receipt_id": "R0065",
+     "date": "2026-08-08",
+     "amount": 96.2
+    },
+    {
+     "receipt_id": "R0069",
+     "date": "2026-09-01",
+     "amount": 71.15
+    },
+    {
+     "receipt_id": "R0075",
+     "date": "2026-10-05",
+     "amount": 49.9
+    },
+    {
+     "receipt_id": "R0082",
+     "date": "2026-11-15",
+     "amount": 32.75
+    }
+   ],
+   "balance_at_as_of": 0.0
+  },
+  {
+   "account_id": "ACC-GC-5",
+   "merchant": "Woolworths",
+   "card_last4": "2290",
+   "load_date": "2026-12-20",
+   "value": 100.0,
+   "source": "gift",
+   "from": "Neighbours, Christmas",
+   "owner": "Joint",
+   "uses": [
+    {
+     "receipt_id": "R0089",
+     "date": "2026-12-22",
+     "amount": 44.3
+    },
+    {
+     "receipt_id": "R0092",
+     "date": "2027-01-12",
+     "amount": 38.95
+    }
+   ],
+   "balance_at_as_of": 16.75
+  }
+ ]
+}

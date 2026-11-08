@@ -131,5 +131,12 @@ function getData() {
     decisions: table('Decisions', 1, 8),
     rules: table('Rules', 1, 10),
     valuations: table('Valuations', 1, 5),
+    // sheet_version 3: five more tabs (CHANGES.md version 3). On an older sheet they do not exist and come back as empty
+    // lists, and the page keeps their views dark.
+    receipts: table('Receipts', 1, 20),
+    receipt_lines: table('Receipt Lines', 1, 16),
+    decision_options: table('Decision Options', 1, 14),
+    goal_levers: table('Goal Levers', 1, 10),
+    tax_returns: table('Tax Returns', 1, 14),
   };
 }

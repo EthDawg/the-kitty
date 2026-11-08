@@ -1,6 +1,6 @@
 ---
 name: kitty
-description: Keep a household's Kitty Sheet up to date. Use for any bank file, statement, payslip or screenshot, and for "do the banking", "bring my Kitty up to date", "reconcile the card" or "tax time".
+description: Keep a household's Kitty Sheet up to date. Use for any bank file, statement, payslip, receipt, quote or screenshot, and for "do the banking", "do the receipts", "bring my Kitty up to date", "reconcile the card", "cost this decision", "tax time" or "build the tax pack".
 ---
 
 The Sheet's README tab is the contract. Read it first and follow it. A text copy is in `template/README-tab.md`; the tab wins if they differ.
@@ -15,6 +15,10 @@ The Sheet's README tab is the contract. Read it first and follow it. A text copy
 8. Move originals to `Sources/<account>/<month>/`. Report in three lines: what landed, what ties, what needs a person.
 
 Moving in from elsewhere, or getting a tax year ready: work through `coverage.md` before you use any number, and report what's missing and where to get it.
+
+Receipts and dockets: `receipts.md` (nothing is written unless it ties). Quotes for a decision: `choices.md`. A tax pack for the accountant: `tax-pack.md`.
+
+A Sheet on an older version: read `CHANGES.md` since its `Kitty!sheet_version`, show the plan, keep every tailoring, then write.
 
 Asked for a page: meet every line of `page-bar.md`.
 

@@ -24,6 +24,13 @@ def read_brand(root=ROOT):
     for name, theme in data["accents"].items():
         if not re.fullmatch(r"[a-z]+", name) or not set(theme) <= set(data["light"]):
             raise ValueError("Invalid accent: " + name)
+    # an accent may carry its own dark values, so a dark page keeps its links and buttons readable
+    for name, theme in data.get("accents-dark", {}).items():
+        if name not in data["accents"] or not set(theme) <= set(data["light"]):
+            raise ValueError("Invalid dark accent: " + name)
+        for key, value in theme.items():
+            if not isinstance(value, str) or not value or re.search(r"[;{}<>\r\n]|url\s*\(", value, re.I):
+                raise ValueError("Invalid CSS token: " + key)
     for key in NATIVE.values():
         for mode in ("light", "dark"):
             if not re.fullmatch(r"#[a-fA-F0-9]{6}", data[mode][key]):
@@ -42,7 +49,11 @@ def css(data):
     text += block(":root", {**data["light"], **swatches})
     text += '@media (prefers-color-scheme: dark) {\n' + block(':root:not([data-theme="light"])', data["dark"], True) + '}\n'
     text += block(':root[data-theme="dark"]', data["dark"], True)
-    return text + "".join(block(f':root[data-accent="{k}"]', v) for k, v in data["accents"].items())
+    text += "".join(block(f':root[data-accent="{k}"]', v) for k, v in data["accents"].items())
+    for k, v in data.get("accents-dark", {}).items():
+        text += '@media (prefers-color-scheme: dark) {\n' + block(f':root:not([data-theme="light"])[data-accent="{k}"]', v) + '}\n'
+        text += block(f':root[data-theme="dark"][data-accent="{k}"]', v)
+    return text
 
 
 def swift(data):
