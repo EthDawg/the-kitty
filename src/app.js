@@ -47,7 +47,7 @@
     sessionDecisions: [], sessionCats: {}, cookie: null, perf: {}, recordsFy: null,
   };
   if (window.__LOCAL__) S.mode = "local";
-  // test flags for local checks: ?noonb skips the tour, ?noanim freezes motion, ?tab=insights opens a tab
+  // test flags for local checks: ?noonb skips the tour, ?noanim freezes motion, ?tab=insights opens a tab, ?signals shows the demo's "new on Home" note
   const FLAGS = new URLSearchParams((location.search || "") + "&" + (location.hash || "").replace(/^#/, ""));
   if (FLAGS.has("noanim")) document.documentElement.setAttribute("data-noanim", "");
   if (FLAGS.get("theme")) S.prefs.theme = FLAGS.get("theme");   // local checks only: ?theme=dark
@@ -417,8 +417,8 @@
       const was = S.prefs.layout || {}; const hidden = was.hidden || [], seen = (was.seen || []).concat(lay.added), added = lay.added;
       writeLayout({ items: lay.items, hidden, seen });
       const names = added.map((id) => Kit.widget(id).title);
-      // the public demo arrives with its widgets in place: no "new on Home" note over the needs list
-      if (!isDemo()) toast(`New on Home: ${names.join(", ")}, because this household has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
+      // the public demo arrives with its widgets in place: no "new on Home" note over the needs list (?signals shows it, for tests)
+      if (!isDemo() || FLAGS.has("signals")) toast(`New on Home: ${names.join(", ")}, because this household has them`, 7000, { label: "Undo", fn: () => { const l = S.prefs.layout; writeLayout({ items: l.items.filter((i) => !added.includes(i.id)), hidden: l.hidden.concat(added), seen: l.seen }); renderHome(); mountCanvas(); } });
     }
     return lay;
   }
