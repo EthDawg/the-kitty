@@ -1,7 +1,7 @@
 """Reference implementation of CHANGES.md version 3 as one Sheets batchUpdate request list.
 Usage: python3 tools/v3_apply.py OUT.json [--data] [--checks-row N] [--version-row N]
   --data         also write the Davies rows from data/v3/*.csv (and data/groceries/*.csv if present)
-  --checks-row   1-based row of the first blank row after the last Compliance Checks check (default 24, the template's)
+  --checks-row   1-based row for the first new check: two below "Checks needing review" (default 27, the template's)
   --version-row  1-based row of sheet_version on the Kitty tab (default 14)
 The new tabs get sheetIds 3001-3005. Typed cells keep codes and text exactly; dates are serials formatted as dates."""
 import csv, datetime, json, os, sys
@@ -10,7 +10,7 @@ args = sys.argv[1:]; out = args[0]
 DATA = "--data" in args
 def opt(name, d):
     return int(args[args.index(name) + 1]) if name in args else d
-CHECKS_ROW, VERSION_ROW = opt("--checks-row", 24), opt("--version-row", 14)
+CHECKS_ROW, VERSION_ROW = opt("--checks-row", 27), opt("--version-row", 14)
 ASOF = "Settings!$B$6"
 
 def serial(iso):
@@ -89,7 +89,6 @@ for title, sid, headers, formulas, lists, kinds in TABS:
 
 # Compliance Checks: six rows inserted before the first blank row after the checks (sheetId 7 in the template)
 CC = 7; r0 = CHECKS_ROW - 1
-req.append({"insertDimension": {"range": {"sheetId": CC, "dimension": "ROWS", "startIndex": r0, "endIndex": r0 + 6}, "inheritFromBefore": True}})
 def crow(n, name, typ, items, amount, status, why, where):
     R = CHECKS_ROW + n
     st = status.replace("{C}", f"C{R}")
@@ -98,8 +97,8 @@ checks = [
   ("Receipts that don't add up", "Data", "=COUNTIF(Receipts!S:S,\"Lines*\")+COUNTIF(Receipts!S:S,\"One line*\")", "", "=IF({C}>0,\"Review\",\"OK\")", "A receipt whose lines don't sum to its total was read wrongly or is missing a line.", "Receipts, Check"),
   ("Card receipts with no bank row", "Data", "=COUNTIFS(Receipts!M:M,\"Card\",Receipts!N:N,\"\",Receipts!A:A,\"<>\")", "=SUMIFS(Receipts!J:J,Receipts!M:M,\"Card\",Receipts!N:N,\"\")", "=IF({C}>0,\"Review\",\"OK\")", "A card payment should appear on a bank line; if it doesn't, the bank import is missing or the receipt is a duplicate.", "Receipts, Entry ID"),
   ("Spending outside the bank, latest month", "Data", "=COUNTIFS(Receipts!M:M,\"<>Card\",Receipts!M:M,\"<>\",Receipts!B:B,\">\"&EOMONTH(" + ASOF + ",-1),Receipts!B:B,\"<=\"&EOMONTH(" + ASOF + ",0))", "=SUMIFS(Receipts!J:J,Receipts!M:M,\"<>Card\",Receipts!M:M,\"<>\",Receipts!B:B,\">\"&EOMONTH(" + ASOF + ",-1),Receipts!B:B,\"<=\"&EOMONTH(" + ASOF + ",0))", "=IF({C}>0,\"Note\",\"OK\")", "Gift cards, cash and points are still spending. The bank never shows them, so they need a row on their own account.", "Receipts, Paid with"),
-  ("Decisions with more than one pick", "Data", "=SUMPRODUCT(('Decision Options'!J2:J=TRUE)*(COUNTIFS('Decision Options'!A2:A,'Decision Options'!A2:A,'Decision Options'!J2:J,TRUE)>1))", "", "=IF({C}>0,\"Review\",\"OK\")", "One decision, one recommended option, or the page can't say which it would pick.", "Decision Options, Recommended"),
-  ("Decisions past their decide-by date", "Data", "=COUNTIFS('Decision Options'!L:L,\"Open\",'Decision Options'!K:K,\"<\"&" + ASOF + ",'Decision Options'!J:J,TRUE)", "", "=IF({C}>0,\"Review\",\"OK\")", "A choice left open past its date usually costs money; decide it or move the date.", "Decision Options, Decide by"),
+  ("Decisions with more than one pick", "Data", "=IFERROR(ROWS(UNIQUE(FILTER('Decision Options'!A2:A,'Decision Options'!J2:J=TRUE,COUNTIFS('Decision Options'!A2:A,'Decision Options'!A2:A,'Decision Options'!J2:J,TRUE)>1))),0)", "", "=IF({C}>0,\"Review\",\"OK\")", "One decision, one recommended option, or the page can't say which it would pick.", "Decision Options, Recommended"),
+  ("Decisions past their decide-by date", "Data", "=IFERROR(ROWS(UNIQUE(FILTER('Decision Options'!A2:A,'Decision Options'!L2:L=\"Open\",'Decision Options'!K2:K<>\"\",'Decision Options'!K2:K<" + ASOF + "))),0)", "", "=IF({C}>0,\"Review\",\"OK\")", "A choice left open past its date usually costs money; decide it or move the date.", "Decision Options, Decide by"),
   ("Lodged years without a tax pack", "Tax", "=COUNTIFS('Tax Returns'!C:C,\"<>Estimate\",'Tax Returns'!A:A,\"<>\",'Tax Returns'!L:L,\"\")", "", "=IF({C}>0,\"Note\",\"OK\")", "Keep five years of records. A pack puts the return and every source in one folder.", "Tax Returns, Pack"),
 ]
 req.append({"updateCells": {"start": {"sheetId": CC, "rowIndex": r0, "columnIndex": 0}, "fields": "userEnteredValue", "rows": [crow(i, *c) for i, c in enumerate(checks)]}})

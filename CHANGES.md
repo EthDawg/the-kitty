@@ -42,15 +42,15 @@ Write each tab with typed cells (`update_spreadsheet`, `updateCells`) so codes l
 - How to fill: from each notice of assessment; an amended year keeps one row with Status `Amended` and a Note. Pack links the year's tax pack folder (an index document and copies of every source, made by the harness on request).
 
 ### Compliance Checks
-Insert six rows directly above the blank row that sits before "Checks needing review", so that total keeps counting them. Columns as the existing rows: Check, Type, Items, Amount, Status, Why it matters, Where to look. `<as-of>` is `Settings!$B$6`; `<n>` is the row's own number.
+Write six rows below the "Checks needing review" row, leaving one blank row between. Do not insert rows: inserting moves that row and rewrites the references Metrics holds to it. Its open range (`E5:E`) and Metrics' open ranges count the new rows where they are. Columns as the existing rows: Check, Type, Items, Amount, Status, Why it matters, Where to look. `<as-of>` is `Settings!$B$6`; `<n>` is the row's own number.
 
 | Check | Type | Items | Amount | Status | Why it matters | Where to look |
 |---|---|---|---|---|---|---|
 | Receipts that don't add up | Data | `=COUNTIF(Receipts!S:S,"Lines*")+COUNTIF(Receipts!S:S,"One line*")` | | `=IF(C<n>>0,"Review","OK")` | A receipt whose lines don't sum to its total was read wrongly or is missing a line. | Receipts, Check |
 | Card receipts with no bank row | Data | `=COUNTIFS(Receipts!M:M,"Card",Receipts!N:N,"",Receipts!A:A,"<>")` | `=SUMIFS(Receipts!J:J,Receipts!M:M,"Card",Receipts!N:N,"")` | `=IF(C<n>>0,"Review","OK")` | A card payment should appear on a bank line; if it doesn't, the import is missing or the receipt is a duplicate. | Receipts, Entry ID |
 | Spending outside the bank, latest month | Data | `=COUNTIFS(Receipts!M:M,"<>Card",Receipts!M:M,"<>",Receipts!B:B,">"&EOMONTH(<as-of>,-1),Receipts!B:B,"<="&EOMONTH(<as-of>,0))` | `=SUMIFS(Receipts!J:J,Receipts!M:M,"<>Card",Receipts!M:M,"<>",Receipts!B:B,">"&EOMONTH(<as-of>,-1),Receipts!B:B,"<="&EOMONTH(<as-of>,0))` | `=IF(C<n>>0,"Note","OK")` | Gift cards, cash and points are still spending. The bank never shows them, so each needs a row on its own account. | Receipts, Paid with |
-| Decisions with more than one pick | Data | `=SUMPRODUCT(('Decision Options'!J2:J=TRUE)*(COUNTIFS('Decision Options'!A2:A,'Decision Options'!A2:A,'Decision Options'!J2:J,TRUE)>1))` | | `=IF(C<n>>0,"Review","OK")` | One decision, one recommended option, or the page can't say which it would pick. | Decision Options, Recommended |
-| Decisions past their decide-by date | Data | `=COUNTIFS('Decision Options'!L:L,"Open",'Decision Options'!K:K,"<"&<as-of>,'Decision Options'!J:J,TRUE)` | | `=IF(C<n>>0,"Review","OK")` | A choice left open past its date usually costs money; decide it or move the date. | Decision Options, Decide by |
+| Decisions with more than one pick | Data | `=IFERROR(ROWS(UNIQUE(FILTER('Decision Options'!A2:A,'Decision Options'!J2:J=TRUE,COUNTIFS('Decision Options'!A2:A,'Decision Options'!A2:A,'Decision Options'!J2:J,TRUE)>1))),0)` | | `=IF(C<n>>0,"Review","OK")` | One decision, one recommended option, or the page can't say which it would pick. | Decision Options, Recommended |
+| Decisions past their decide-by date | Data | `=IFERROR(ROWS(UNIQUE(FILTER('Decision Options'!A2:A,'Decision Options'!L2:L="Open",'Decision Options'!K2:K<>"",'Decision Options'!K2:K<<as-of>))),0)` | | `=IF(C<n>>0,"Review","OK")` | A choice left open past its date usually costs money; decide it or move the date. | Decision Options, Decide by |
 | Lodged years without a tax pack | Tax | `=COUNTIFS('Tax Returns'!C:C,"<>Estimate",'Tax Returns'!A:A,"<>",'Tax Returns'!L:L,"")` | | `=IF(C<n>>0,"Note","OK")` | Keep five years of records. A pack puts the return and every source in one folder. | Tax Returns, Pack |
 
 ### The README tab
@@ -62,7 +62,8 @@ Insert six rows directly above the blank row that sits before "Checks needing re
 
 ### Tailoring
 - A household that already keeps receipts, quotes or returns in its own tab keeps that tab. Map it rather than copying it: either add the version 3 tab as formulas over theirs, or record on Decisions that their tab is the source and leave the version 3 tab out. Ask before either.
-- Never rename, reorder or rewrite an existing tab, header or formula. A name collision (the household already has a tab called `Receipts`) is a question, not an overwrite.
+- Never rename, reorder or rewrite an existing tab, header or formula. A name collision (the household already has a tab called `Receipts`) is a question, not an overwrite. A page reads a version 3 tab only when its headers match, so a household's own tab of the same name is never mistaken for it.
+- If the household renamed a tab the formulas use (Goals, say), use their name in the new formulas and record it on Decisions.
 - Good is: every cell that existed before the upgrade reads the same afterwards, except `sheet_version` and the new Compliance Checks rows.
 
 ## 2.1, 7 November 2026: the blank template
