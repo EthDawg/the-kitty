@@ -77,8 +77,10 @@ img.kx-th-img,img.kx-th-dimg{background:color-mix(in srgb,var(--hero-ink) 20%,va
 .kx-th-h3{font-size:15px;font-weight:700;margin:4px 0 0}
 .kx-th-clist{display:grid;gap:8px}
 .kx-th-crow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
-.kx-th-cmain{display:grid;gap:3px;min-width:0;justify-items:start}
+.kx-th-cmain{min-width:0}
+.kx-th-cmain .sub,.kx-th-cmain .kx-th-src{display:block;margin-top:3px}
 .kx-th-cmain .sub{font-size:13px}
+.kx-th-cmain .kx-th-chip{margin-left:4px}
 .kx-th-cnum{display:grid;justify-items:end;gap:2px;font-size:13px;color:var(--ink2);text-align:right}
 .kx-th-cnum small{color:var(--muted);margin-left:3px}
 /* home card */
