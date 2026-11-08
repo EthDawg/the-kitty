@@ -60,6 +60,14 @@ Write six rows below the "Checks needing review" row, leaving one blank row betw
 ### The Kitty tab
 - `sheet_version` becomes 3 only when all five tabs are present or mapped to the household's own. If any part waits on the household's answer (a name collision, say), leave it at 2, apply the rest, and record "version 3 in part: <what waits>" on Decisions. The page reads each tab on its own, so nothing is lost while it waits.
 
+### Test before you finish
+Empty tabs hide formula mistakes: in a trial of nine runs, two wrote Date if off wrongly and every check still read OK. So before moving `sheet_version`, write one temporary row on each new tab, read the results, then clear the rows:
+- Goal Levers: a lever with Per month 200, On ticked, on a goal with money still to save. Date if off must be later than Date if on, and Months moved must equal the difference. Untick it: Date if on must move later instead.
+- Decision Options: Upfront 100, Per month 25, Months 5, Extra 0. Total must read 225. Tick Recommended on two rows of one decision: "Decisions with more than one pick" must read 1.
+- Tax Returns: Withheld 10,000, Tax on income 8,000, Medicare 500, Offsets 0. Result must read 1,500.
+- Receipts and Receipt Lines: one receipt with Total 10.00 and two lines of 4.00 and 6.00. Check must read OK; change one line to 5.00 and it must read "Lines 9.00 vs 10.00".
+Clear every test cell and untick the boxes. Report what each test read.
+
 ### Tailoring
 - A household that already keeps receipts, quotes or returns in its own tab keeps that tab. Map it rather than copying it: either add the version 3 tab as formulas over theirs, or record on Decisions that their tab is the source and leave the version 3 tab out. Ask before either.
 - Never rename, reorder or rewrite an existing tab, header or formula. A name collision (the household already has a tab called `Receipts`) is a question, not an overwrite. A page reads a version 3 tab only when its headers match, so a household's own tab of the same name is never mistaken for it.
