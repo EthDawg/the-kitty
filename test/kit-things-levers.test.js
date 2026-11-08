@@ -10,9 +10,10 @@ test("things: decisions are costed on one horizon and compared with the pick", (
   assert.equal(home.rec.option, "Renew with Youi, $1,000 excess");
   assert.deepEqual(home.options.map((o) => o.total), [1980, 1760, 1640]);
   assert.deepEqual(home.options.map((o) => o.delta), [220, 0, -120]);
-  const kayo = m.decisions.find((d) => d.id === "DQ-002");
-  assert.equal(kayo.horizon, 12);
-  assert.equal(kayo.options[1].total, 175);
+  const box = m.decisions.find((d) => d.id === "DQ-002");
+  assert.equal(box.horizon, 12);
+  assert.deepEqual(box.options.map((o) => o.total), [174, 0, 0]);
+  assert.equal(box.rec.option, "Move the files to iCloud and cancel");
   assert.ok(Things.render(m, {}).includes("over the next 12 months"));
 });
 test("things: cancelled contracts are gone, monthly sums tie to the contracts", () => {

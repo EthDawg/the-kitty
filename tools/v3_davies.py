@@ -67,9 +67,9 @@ DEC = [
     ["DQ-001", "Home and contents renews on 3 March. Stay with Youi or switch?", "C0012", "Renew with Youi as quoted", 1980, 0, 12, 0, None, False, "2027-02-24", "Open", "Youi renewal notice, 20 Jan 2027", "Up $160 (8.8%) on last year. $500 excess."],
     ["DQ-001", "", "C0012", "Renew with Youi, $1,000 excess", 1760, 0, 12, 0, None, True, "2027-02-24", "Open", "Youi online quote, 27 Jan 2027", "Same cover; pay the first $1,000 of a claim instead of $500."],
     ["DQ-001", "", "C0012", "Switch to Budget Direct", 1640, 0, 12, 0, None, False, "2027-02-24", "Open", "Budget Direct quote, 28 Jan 2027", "$750 excess; contents sum insured $20,000 lower. Check before choosing."],
-    ["DQ-002", "Kayo Sports: keep it, pause it for winter, or cancel?", "C0004", "Keep all year", 0, 35, 12, 0, None, False, "2027-03-01", "Open", "Kayo price list, Jan 2027", "Used 6 of the last 12 months, all in the cricket season."],
-    ["DQ-002", "", "C0004", "Pause April to October", 0, 35, 5, 0, None, True, "2027-03-01", "Open", "Kayo pause terms", "Pays for the five cricket months only."],
-    ["DQ-002", "", "C0004", "Cancel now", 0, 0, 12, 0, None, False, "2027-03-01", "Open", "", "Rejoin at the full price if wanted later."],
+    ["DQ-002", "Dropbox Plus renews on 6 February. Keep it, or move the files to iCloud?", "C0007", "Renew Dropbox Plus", 174, 0, 12, 0, None, False, "2027-02-05", "Open", "Dropbox renewal email, 7 Jan 2027", "The Decisions tab has Dropbox marked Review since November."],
+    ["DQ-002", "", "C0007", "Move the files to iCloud and cancel", 0, 0, 12, 0, None, True, "2027-02-05", "Open", "iCloud+ storage page, 30 Jan 2027", "iCloud+ 2 TB is already paid for and has 1.1 TB free. About two hours to move the folders."],
+    ["DQ-002", "", "C0007", "Drop to Dropbox Basic (free)", 0, 0, 12, 0, None, False, "2027-02-05", "Open", "Dropbox plans page", "Free, but only 2 GB: anything over that stops syncing."],
 ]
 for d in DEC: d[8] = round(d[4] + d[5] * d[6] + d[7], 2)
 
@@ -80,7 +80,7 @@ LEV = [
     ["GL-001", "Offset buffer", "The $800 monthly transfer to the offset, starting February", True, 800, 0, "Standing transfer set up 28 Jan 2027"],
     ["GL-008", "Offset buffer", "Tax refunds go to the offset each October", True, 0, 5684.70, "Tax Forecast: household refund, FY27"],
     ["GL-002", "Offset buffer", "Mia's pay rise from March (about $4,200 a year)", True, 245, 0, "Mia's offer letter, Dec 2026"],
-    ["GL-003", "Offset buffer", "Pause Kayo and cancel Paramount+", False, 34.58, 0, "Decision DQ-002 and Subscriptions"],
+    ["GL-003", "Offset buffer", "Drop YouTube Premium and Dropbox Plus", False, 37.49, 0, "Decisions marked Review, and DQ-002"],
     ["GL-004", "Offset buffer", "Geelong rent review to $2,560 in March", True, 90, 0, "Property manager's market note"],
     ["GL-005", "Offset buffer", "Halve the holiday budget for a year", False, 300, 0, "Budget tab, Holidays"],
     ["GL-006", "Offset buffer", "Sweep the Japan saver's leftover after the trip", True, 0, 90.25, "Goals: Japan trip balance less target"],
