@@ -382,21 +382,21 @@ const clean = (html) => { assert.ok(!/undefined|NaN|\bnull\b|\[object |\$0(\.00)
 
 test("Records: a full view says what it is, and names the preview and its limit", () => {
   const out = text(Records.Records(fullView()));
-  assert.match(out, /The household's record, rebuilt from its files: 1,124 files and 4,656 events, up to 31 Mar 2027\./);
-  assert.match(out, /preview of the standard running on the fictional Davies household/);
-  assert.match(out, /not read from the sheet yet/);
-  for (const name of ["This year", "How we know", "Where a number comes from", "Things", "What's missing", "Experimental"]) assert.ok(out.includes(name), name);
+  assert.match(out, /A separate dataset/); assert.match(out, /Its numbers will not match the other tabs\./);
+  assert.match(out, /A record rebuilt from a fictional household's files: 1,124 files and 4,656 events, up to 31 Mar 2027\./);
+  assert.match(out, /It is not read from the sheet\./);
+  for (const name of ["This year", "How we know", "Where a number comes from", "When things need replacing", "What's missing", "Experimental"]) assert.ok(out.includes(name), name);
   clean(Records.Records(fullView()));
 });
 
 test("Records: a lodged year calls the lodged figure the record, with the derived figure and the tie's own gap", () => {
   const out = text(Records.RecordsYear(fullView(), "FY2025"));
-  assert.match(out, /The record Derived Gap/);
+  assert.match(out, /Lodged From the rows Difference/);
   assert.match(out, /Taxable income \$145,230 \$145,353 \+\$123\.00/);
   assert.match(out, /Result \$845\.00 to pay \$601\.00 to pay/);
   assert.match(out, /The lodged figure is the record/);
-  assert.match(out, /Label 1 \$152,000\.00 annual tax statement Held/);
-  assert.match(out, /Label D5 not held yet work log At risk/);
+  assert.match(out, /Salary or wages, item 1 \$152,000\.00 annual tax statement Held/);
+  assert.match(out, /Other work expenses, D5 not held yet work log At risk/);
   assert.match(out, /Rental statements Yet to go/);
   assert.ok(!/advice/i.test(out));
 });
@@ -430,8 +430,9 @@ test("Records: a trace runs from the number to the exact line of the exact file,
   assert.ok(row.includes('data-open="trace:0"')); assert.ok(row.includes("Harbour-2027-03.csv")); assert.ok(row.includes("line 10"));
   assert.ok(drawer.includes("SALARY &lt;NORTHWIND&gt;")); assert.ok(!drawer.includes("<NORTHWIND>"));
   assert.match(out, /\$3,925\.62/); assert.match(out, /ACC-EVD \+\$3,925\.62/); assert.match(out, /clearing:payroll:NORTHWIND −\$3,925\.62/);
-  assert.match(out, /Pass Every event's postings sum to zero\./);
-  assert.match(out, /Harbour-2027-03\.csv line 10 Transaction line Clears against this event sha256 db8ef6837d69/);
+  assert.match(out, /Pass Each event's money in and money out add to zero\./);
+  assert.match(out, /Harbour-2027-03\.csv line 10 Bank line Settles this event File fingerprint SHA-256 db8ef6837d69/);
+  assert.ok(!/witness|postings|oracle/i.test(text(Records.Records(v)) + out), "no engine words");
 });
 
 test("Records: things and coverage read as held, with absent facts left out or named", () => {
@@ -441,17 +442,18 @@ test("Records: things and coverage read as held, with absent facts left out or n
   assert.match(out, /Offset export Missing August 2026, November 2026 93 of 97 1 more, nothing missing Everyday export 97 of 97/);   // what is short comes first
 });
 
-test("Records: experimental actions are labelled, mocks say so, and baselines stay real", () => {
+test("Records: the public page shows only the experimental actions that work today, with no builders' open questions", () => {
   const v = fullView(), html = Records.Records(v), xp = html.slice(html.indexOf("rec-xpwrap"));
-  assert.equal(xp.match(/rec-pill">Experimental/g).length, 4);
-  for (const a of v.experimental) assert.ok(xp.includes(`data-open="xp:${a.id}"`) && xp.includes(a.button), a.id);
-  const collect = text(Records.RecordAction(Records.recordAction(v, "collect"), v)), advice = text(Records.RecordAction(Records.recordAction(v, "advice"), v));
-  assert.match(collect, /This is a mock\. Start computer use runs nothing/); assert.match(collect, /Offset export Missing August 2026/); assert.match(collect, /Which browser and whose session/);
-  assert.match(advice, /This is a mock\. Run tax return advice runs nothing/); assert.match(advice, /Connect a tax capability/);
+  assert.equal(xp.match(/rec-pill">Experimental/g).length, 2);
+  for (const a of v.experimental) assert.equal(xp.includes(`data-open="xp:${a.id}"`), a.status !== "Mock", a.id);
+  assert.equal(Records.recordAction(v, "collect"), null); assert.equal(Records.recordAction(v, "advice"), null);
+  assert.ok(!/Which browser|Connect a tax capability|Open questions/.test(text(html)));
+  // a mock handed in directly still says it is one, and carries no open questions
+  const collect = text(Records.RecordAction(v.experimental[0], v)); assert.match(collect, /This is a mock\. Start computer use runs nothing/); assert.ok(!/Which browser/.test(collect));
   const pack = Records.RecordAction(Records.recordAction(v, "tax_pack"), v, { fy: "FY2025", canSave: true });
   assert.ok(pack.includes('data-pack="JORDAN"') && pack.includes('data-pack="MIA"')); assert.ok(!/This is a mock/.test(pack));
   assert.match(text(Records.RecordAction(Records.recordAction(v, "tax_pack"), v, { fy: "FY2025", canSave: false })), /Saving a file is not available in this view/);
-  assert.match(text(Records.RecordAction(Records.recordAction(v, "reconcile"), v)), /Clearing Open 2946 days\. Fail Payslip Payslips are missing\. Gap/);
+  assert.match(text(Records.RecordAction(Records.recordAction(v, "reconcile"), v)), /Nothing left waiting Open 2946 days\. Fail Payslips add up Payslips are missing\. Gap/);
 });
 
 test("Records: the tax pack is one person's year as CSV, and an absent amount stays blank", () => {
@@ -460,15 +462,15 @@ test("Records: the tax pack is one person's year as CSV, and an absent amount st
   assert.equal(lines[0], "Year,Person,Section,Line,State,Amount,Method");
   assert.ok(lines.includes("FY2025,Jordan,Readiness,Income statements,Held,,"));
   assert.ok(lines.includes("FY2025,Jordan,The record,Taxable income,Lodged,145230.00,"));
-  assert.ok(lines.includes("FY2025,Jordan,Tax item,Label 1,Held,152000.00,annual tax statement"));
-  assert.ok(lines.includes("FY2025,Jordan,Tax item,Label D5,At risk,,work log"));
+  assert.ok(lines.includes('FY2025,Jordan,Tax item,"Salary or wages, item 1",Held,152000.00,annual tax statement'));
+  assert.ok(lines.includes('FY2025,Jordan,Tax item,"Other work expenses, D5",At risk,,work log'));
   assert.ok(lines.some((l) => /fictional Davies household/.test(l)));
   assert.equal(Records.taxPack(v, "FY2025", "NOBODY"), null); assert.equal(Records.taxPack({}, "FY2025", "JORDAN"), null);
 });
 
 test("Records: an empty view keeps the preview line, says not held yet, and draws no zero", () => {
   const html = Records.Records({}), out = text(html); clean(html);
-  assert.match(out, /The household's record, rebuilt from its files\./); assert.match(out, /fictional Davies household/);
+  assert.match(out, /A record rebuilt from a fictional household's files\./); assert.match(out, /A separate dataset/); assert.match(out, /Davies sheet/);
   for (const what of ["This year is", "Proof is", "Examples are", "Things are", "Coverage is"]) assert.ok(out.includes(`${what} not held yet.`), what);
   assert.ok(!html.includes("recfy"));
   assert.equal(Records.taxPack({}, null, "JORDAN"), null);
@@ -493,6 +495,13 @@ test("Records: the generated view draws clean, every year and every trace", () =
   for (const key of ["generated", "proof", "years", "coverage", "things", "traces", "experimental"]) assert.ok(key in v, key);
   for (const y of v.years) clean(Records.RecordsYear(v, y.fy));
   for (const t of v.traces) clean(Records.RecordTrace(t, v));
+  // PAYG and SG are not return labels, 21X is never printed, and a category ID reads as its name
+  const names = { "RENT-INC": "Rent received", "RENT-INT": "Investment loan interest" }, catName = (id) => names[id] || "Rental costs";
+  const all = v.years.map((y) => text(Records.RecordsYear(v, y.fy, { catName }))).join(" ");
+  assert.ok(!/RENT-[A-Z]+/.test(v.years.map((y) => text(Records.RecordsYear(v, y.fy))).join(" ")), "no category ID even without names");
+  assert.ok(!/Label (PAYG|SG)|21X|RENT-[A-Z]+/.test(all)); assert.match(all, /Tax withheld \(not a return label\)/); assert.match(all, /Other rental deductions, item 21 /);
+  const named = text(Records.Records(v, { catName: (id) => ({ "RENT-MGMT": "Property management fees" }[id] || id) }));
+  assert.ok(named.includes("Property management fees"));
 });
 
 // ---------- the public page audit (8 November 2026): each engine fix, on the Davies ledger ----------
