@@ -24,7 +24,7 @@ Write each tab with typed cells (`update_spreadsheet`, `updateCells`) so codes l
 - Why: a decision is easier when every option is costed on the same horizon and someone has said which they would pick.
 - Change: add `Decision Options` with `Decision ID, Question, Ref, Option, Upfront, Per month, Months, Extra, Total, Recommended, Decide by, Status, Source, Note`. Recommended is a checkbox; Status `Open, Decided, Dropped`.
 - Formula: `I2`: `=MAP(A2:A,E2:E,F2:F,G2:G,H2:H,LAMBDA(id,e,f,g,h,IF(id="","",N(e)+N(f)*N(g)+N(h))))`
-- How to fill: one row per option. Repeat the Decision ID; the question may sit on the first row only. Use the same Months for every option of one decision. When decided, set every row's Status and record the choice on Decisions.
+- How to fill: one row per option. Repeat the Decision ID; the question may sit on the first row only. Months is how long the per-month cost runs under that option (0 when there is none); the page compares every option over the longest of them, so totals line up. Anything still owed at the end of that horizon goes in Extra. When decided, set every row's Status and record the choice on Decisions.
 
 ### Goal Levers (input)
 - Why: "when do we get there" is one date; "what moves it" is the useful question.
