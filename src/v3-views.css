@@ -21,3 +21,15 @@ nav.tabs button[hidden]{display:none}
 /* a module's drawer content keeps the page drawer's padding and type */
 .kx-dr{display:grid;gap:14px}
 #grochost[hidden],#leverhost[hidden]{display:none}
+/* The accent palettes (brand/tokens.json "accents") carry light values only, so in dark a lime, teal or coral household gets a
+   light --accent-soft under light ink, and dark accent text on the dark ground. Until the brand tokens gain dark accents, the
+   version-3 views (and their drawers) use these dark values: a light accent for text, switches and buttons, a dark soft accent
+   for tinted panels. The older views keep the brand's values, so their screenshots stay as they are. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"])[data-accent="lime"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#A6DA4E;--accent-soft:#273514;--accent-ink:#0F0C1B}
+  :root:not([data-theme="light"])[data-accent="teal"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#4DCAC1;--accent-soft:#123130;--accent-ink:#0F0C1B}
+  :root:not([data-theme="light"])[data-accent="coral"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#FF8C78;--accent-soft:#3A1F1B;--accent-ink:#0F0C1B}
+}
+:root[data-theme="dark"][data-accent="lime"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#A6DA4E;--accent-soft:#273514;--accent-ink:#0F0C1B}
+:root[data-theme="dark"][data-accent="teal"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#4DCAC1;--accent-soft:#123130;--accent-ink:#0F0C1B}
+:root[data-theme="dark"][data-accent="coral"] :is(#v-things,#v-tax,#v-rec,#leverhost,#grochost,.wcell[data-wid="decide"],.wcell[data-wid="shop"],.kx-dr){--accent:#FF8C78;--accent-soft:#3A1F1B;--accent-ink:#0F0C1B}

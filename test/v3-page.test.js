@@ -38,8 +38,10 @@ test("the bundled snapshot carries the five v3 tabs with the sheet's field names
 test("Things: the page's input is the demo harness's input", () => {
   const demo = require("../tools/kit-demo/things.data.js")();
   const page = V.thingsInput(m, t, {});
-  for (const x of demo.things) x.image = null;   // the page hands images from the bundle; the harness reads the files
-  assert.equal(same(page), same(demo));
+  // the page hands images from the bundle (the harness reads the files), and names the tab where the harness shows contract IDs
+  const plain = (inp) => ({ ...inp, things: inp.things.map((x) => ({ ...x, image: null, source: null, contracts: x.contracts.map((c) => ({ ...c, source: null })) })) });
+  assert.equal(same(plain(page)), same(plain(demo)));
+  assert.ok(!JSON.stringify(page.things).includes("Contracts C0"), "no contract ID reaches a reader");
   const tm = Things.model(page);
   assert.equal(tm.decisions.length, 2);
   assert.ok(Things.render(tm, {}).includes("Home and contents renews on 3 March"));

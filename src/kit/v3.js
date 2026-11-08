@@ -85,11 +85,11 @@
       const p = place(c, m); if (!p || c.status !== "active") continue;
       thingOf[c.id] = p.id;
       if (decided.get(c.id) === "Cancel") continue;   // decided and gone; the Decisions tab keeps the history
-      if (!things.has(p.id)) things.set(p.id, { id: p.id, name: p.name, group: p.group, owner: c.owner, image: (p.image && pics[p.image]) || null, monthly: 0, owed: 0, exit: 0, nextDate: null, nextLabel: "", confidence: "Measured", contracts: [], source: "Contracts tab" });
+      if (!things.has(p.id)) things.set(p.id, { id: p.id, name: p.name, group: p.group, owner: c.owner, image: (p.image && pics[p.image]) || null, monthly: 0, owed: 0, exit: 0, nextDate: null, nextLabel: "", confidence: "Measured", contracts: [], source: `From the Contracts tab, as of ${E.fmtDay(asOf, { year: true })}` });
       const th = things.get(p.id), mo = Math.round(perMonth(c) * 100) / 100;
       th.monthly = Math.round((th.monthly + mo) * 100) / 100;
       if (th.owner !== c.owner) th.owner = "Joint";
-      th.contracts.push({ id: c.id, product: c.name, provider: c.provider, monthly: mo, cost: c.amount, cadence: (c.cadence || "").toLowerCase(), start: c.start, end: c.end, nextDate: c.next, exit: 0, decision: decided.get(c.id) || "", confidence: "Measured", source: `Contracts ${c.id}` });
+      th.contracts.push({ id: c.id, product: c.name, provider: c.provider, monthly: mo, cost: c.amount, cadence: (c.cadence || "").toLowerCase(), start: c.start, end: c.end, nextDate: c.next, exit: 0, decision: decided.get(c.id) || "", confidence: "Measured", source: "" });   // a reader never sees a contract ID; the thing names its tab
       if (c.next && c.next >= asOf && (!th.nextDate || c.next < th.nextDate)) { th.nextDate = c.next; th.nextLabel = `${p.next || "Next charge"}: ${c.name}`; }
     }
     // one card per Decision ID, options in sheet order; the ref is a contract, so it points at that contract's thing
