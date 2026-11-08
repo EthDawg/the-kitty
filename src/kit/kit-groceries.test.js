@@ -1,12 +1,12 @@
 // node --test test/kit-groceries.test.js
-// The groceries module's model numbers, on the fictional Davies sample (test/fixtures/groceries-sample.json) and on small made-up inputs.
+// The groceries module's model numbers, on the fictional Davies sample (fixtures/groceries-sample.json) and on small made-up inputs.
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
-const G = require("../src/kit/groceries.js");
-const sample = require(path.join(__dirname, "fixtures", "groceries-sample.json"));
-const input = require("../tools/kit-demo/groceries.data.js");
+const G = require("./groceries.js");
+const sample = require(path.join(__dirname, "..", "..", "fixtures", "groceries-sample.json"));
+const input = require("../../tools/kit-demo/groceries.data.js");
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const median = (a) => { const s = a.slice().sort((x, y) => x - y), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };

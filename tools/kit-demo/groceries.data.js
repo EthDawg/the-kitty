@@ -1,7 +1,7 @@
 // Input for the groceries demo: { asOf, receipts, lines, people } in the shape src/kit/MODULES.md gives.
 // Reads the Davies Receipts and Receipt Lines CSVs (contract v3 headers) from the first folder that holds receipts.csv and
 // receipt-lines.csv: $KITTY_GROCERIES_DIR, this repo's data/groceries, then the groceries-data worktree beside it.
-// Otherwise the fictional sample in test/fixtures/groceries-sample.json. KITTY_GROCERIES=sample forces the sample.
+// Otherwise the fictional sample in fixtures/groceries-sample.json. KITTY_GROCERIES=sample forces the sample.
 "use strict";
 const fs = require("fs"), path = require("path"), os = require("os");
 const ROOT = path.join(__dirname, "..", "..");

@@ -16,7 +16,7 @@ Each module is written once. Two pages use it: the public Kitty, which reads the
   - Estimates say "about" and carry a chip.
 - **Empty and partial data.** A module whose tab is missing returns `null` from `model` and the page leaves the view dark. One bad row is shown as a problem row; it never blanks the view.
 - **Tests.**
-  - `test/kit-<module>.test.js` uses the node test runner and asserts model numbers on the Davies data in `data/v3/`.
+  - `src/kit/kit-<module>.test.js` uses the node test runner and asserts model numbers on the Davies data in `data/v3/`.
   - A demo harness `tools/kit-demo/<module>.html` is built by `tools/kit-demo/build.js <module>`. It inlines `src/tokens.css`, the module CSS and JS, and the Davies data, so Playwright can screenshot it at 1280x900 and 390x844 in light and dark.
 
 ## things.js — Things and decisions waiting (Claude writes this one)
@@ -61,4 +61,4 @@ Controls: "This year so far | Last year | History" and "Together | <person a> | 
 Always shown: "Estimates use published resident rates. Not tax advice."
 
 ## v3.js — the public page's adapter (not a view)
-`Kit.V3` reads the five version-3 tabs from the snapshot (`fromSnapshot`) or connector grids (`fromGrids`, rows keep `_row` for writes) and maps them onto the inputs above over the engine's model: `thingsInput`, `leverGoals` and `leversInput`, `taxInput`, `groceriesInput`. A missing or empty tab maps to null. `leverDates` is the Goal Levers formulas, for a demo switch. `test/v3-page.test.js` checks each mapping gives the same input as its demo harness. Decisions behind the page layout are in `docs/v3-notes.md`.
+`Kit.V3` reads the five version-3 tabs from the snapshot (`fromSnapshot`) or connector grids (`fromGrids`, rows keep `_row` for writes) and maps them onto the inputs above over the engine's model: `thingsInput`, `leverGoals` and `leversInput`, `taxInput`, `groceriesInput`. A missing or empty tab maps to null. `leverDates` is the Goal Levers formulas, for a demo switch. `src/kit/v3-page.test.js` checks each mapping gives the same input as its demo harness. Decisions behind the page layout are in `docs/v3-notes.md`.

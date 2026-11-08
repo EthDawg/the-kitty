@@ -3,9 +3,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
-const T = require("../src/kit/taxview.js");
-const input = require("../tools/kit-demo/taxview.data.js");
-const snap = require("../data/snapshot-v2.json");
+const T = require("./taxview.js");
+const input = require("../../tools/kit-demo/taxview.data.js");
+const snap = require("../../data/snapshot-v2.json");
 
 const near = (a, b, msg, tol = 0.005) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} is not ${b}`);
 const forecast = (label, col) => snap.tax.find((r) => r.label === label)[col];
@@ -238,6 +238,6 @@ test("a person's own view and a tax payable read the right way round", () => {
 });
 
 test("the module carries no household names", () => {
-  const src = require("fs").readFileSync(path.join(__dirname, "../src/kit/taxview.js"), "utf8");
+  const src = require("fs").readFileSync(path.join(__dirname, "./taxview.js"), "utf8");
   assert.ok(!/Jordan|Mia|Davies|Bupa|Northwind/.test(src));
 });

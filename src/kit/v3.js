@@ -2,7 +2,7 @@
    Decision Options, Goal Levers, Tax Returns), read from the bundled snapshot in demo mode or from connector grids in live
    mode, and mapped onto the inputs of the shared view modules (things.js, levers.js, taxview.js, groceries.js).
    The mappings are the ones tools/kit-demo/*.data.js use for the Davies, written over the engine's model so they read a
-   live sheet the same way; test/v3-page.test.js keeps them in step. A tab that is missing or empty maps to null, and the
+   live sheet the same way; src/kit/v3-page.test.js keeps them in step. A tab that is missing or empty maps to null, and the
    page keeps that view dark. Nothing here computes a number the sheet computes, except the lever dates in demo mode,
    which follow the Goal Levers formulas exactly. Runs in the page (window.Kit.V3) and in node (module.exports). */
 (function (root, factory) {
@@ -90,7 +90,7 @@
       th.monthly = Math.round((th.monthly + mo) * 100) / 100;
       if (th.owner !== c.owner) th.owner = "Joint";
       th.contracts.push({ id: c.id, product: c.name, provider: c.provider, monthly: mo, cost: c.amount, cadence: (c.cadence || "").toLowerCase(), start: c.start, end: c.end, nextDate: c.next, exit: 0, decision: decided.get(c.id) || "", confidence: "Measured", source: "" });   // a reader never sees a contract ID; the thing names its tab
-      if (c.next && c.next >= asOf && (!th.nextDate || c.next < th.nextDate)) { th.nextDate = c.next; th.nextLabel = `${p.next || "Next charge"}: ${c.name}`; }
+      // each thing's next date is left to the module, which puts a renewal before a routine monthly charge
     }
     // one card per Decision ID, options in sheet order; the ref is a contract, so it points at that contract's thing
     const byId = new Map();

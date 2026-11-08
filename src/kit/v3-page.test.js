@@ -4,10 +4,10 @@
 "use strict";
 const test = require("node:test"), assert = require("node:assert/strict");
 const fs = require("fs"), path = require("path");
-const ROOT = path.join(__dirname, "..");
-const E = require("../src/engine.js");
-const V = require("../src/kit/v3.js");
-const Things = require("../src/kit/things.js"), Levers = require("../src/kit/levers.js"), TaxView = require("../src/kit/taxview.js"), Groceries = require("../src/kit/groceries.js");
+const ROOT = path.join(__dirname, "..", "..");
+const E = require("../engine.js");
+const V = require("./v3.js");
+const Things = require("./things.js"), Levers = require("./levers.js"), TaxView = require("./taxview.js"), Groceries = require("./groceries.js");
 const load = (p) => JSON.parse(fs.readFileSync(path.join(ROOT, p), "utf8"));
 const snap = load("data/snapshot-v2.json");
 const m = E.model(snap), t = V.fromSnapshot(snap);
@@ -36,7 +36,7 @@ test("the bundled snapshot carries the five v3 tabs with the sheet's field names
 });
 
 test("Things: the page's input is the demo harness's input", () => {
-  const demo = require("../tools/kit-demo/things.data.js")();
+  const demo = require("../../tools/kit-demo/things.data.js")();
   const page = V.thingsInput(m, t, {});
   // the page hands images from the bundle (the harness reads the files), and names the tab where the harness shows contract IDs
   const plain = (inp) => ({ ...inp, things: inp.things.map((x) => ({ ...x, image: null, source: null, contracts: x.contracts.map((c) => ({ ...c, source: null })) })) });
@@ -49,7 +49,7 @@ test("Things: the page's input is the demo harness's input", () => {
 });
 
 test("What moves the date: Offset buffer leads, its input is the demo harness's, and the formulas give the sheet's dates", () => {
-  const demo = require("../tools/kit-demo/levers.data.js")();
+  const demo = require("../../tools/kit-demo/levers.data.js")();
   const lead = (m.goals.find((g) => g.name === m.kitty.lead_goal) || {}).name;
   const goals = V.leverGoals(m, t, lead);
   assert.equal(goals[0], "Offset buffer");
@@ -69,7 +69,7 @@ test("What moves the date: Offset buffer leads, its input is the demo harness's,
 });
 
 test("Tax: the page's input is the demo harness's input, and FY26 ties to the Tax Forecast", () => {
-  const demo = require("../tools/kit-demo/taxview.data.js")();
+  const demo = require("../../tools/kit-demo/taxview.data.js")();
   const page = V.taxInput(m, t);
   assert.equal(same(page), same(demo));
   const tm = TaxView.model(page);

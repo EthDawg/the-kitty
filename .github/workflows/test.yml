@@ -23,7 +23,7 @@ jobs:
           python3 brand/build_brand.py --icons-only
           git diff --exit-code -- brand/icons
           python3 -m unittest discover -s tools -p 'test_brand_pipeline.py' -v
-      - run: node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js test/*.test.js
+      - run: node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js src/kit/*.test.js
       - name: the bundled snapshot carries the sheet-version-3 rows from data/v3 and data/groceries
         run: python3 tools/v3_snapshot.py --check
       - name: the life generator, and its world read by the Standard (under a minute)

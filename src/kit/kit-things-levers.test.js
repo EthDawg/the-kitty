@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test"), assert = require("node:assert");
-const Things = require("../src/kit/things.js"), Levers = require("../src/kit/levers.js");
-const thingsIn = require("../tools/kit-demo/things.data.js")(), leversIn = require("../tools/kit-demo/levers.data.js")();
+const Things = require("./things.js"), Levers = require("./levers.js");
+const thingsIn = require("../../tools/kit-demo/things.data.js")(), leversIn = require("../../tools/kit-demo/levers.data.js")();
 
 test("things: decisions are costed on one horizon and compared with the pick", () => {
   const m = Things.model(thingsIn);

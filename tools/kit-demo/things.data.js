@@ -1,5 +1,5 @@
 // Davies input for the Things module: Contracts, Assets and Decision Options mapped onto things.
-// The same mapping lives in the page (src/kit/v3.js thingsInput, over the engine model); test/v3-page.test.js keeps them in step.
+// The same mapping lives in the page (src/kit/v3.js thingsInput, over the engine model); src/kit/v3-page.test.js keeps them in step.
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..", "..");
@@ -10,7 +10,9 @@ function csv(p) {
 }
 module.exports = function () {
   const snap = JSON.parse(fs.readFileSync(path.join(ROOT, "data/snapshot-v2.json"), "utf8"));
-  const input = thingsInput(snap, csv("data/v3/decision-options.csv"));
+  // the page's own mapping over the engine's model, so the harness can never drift from what readers see
+  const E = require(path.join(ROOT, "src/engine.js")), V = require(path.join(ROOT, "src/kit/v3.js"));
+  const input = snap.decision_options ? V.thingsInput(E.model(snap), V.fromSnapshot(snap), {}) : thingsInput(snap, csv("data/v3/decision-options.csv"));
   const IMG = { HOME: "house", RENTAL: "townhouse", CAR: "car-wagon", PHONES: "sim", HEALTH: "health", STREAM: "streaming", CLOUD: "cloud", AI: "ai", ACTIVE: "active" };
   for (const t of input.things) { const f = path.join(ROOT, "src/kit/art", (IMG[t.id] || "") + ".svg"); if (IMG[t.id] && fs.existsSync(f)) t.image = "data:image/svg+xml;base64," + fs.readFileSync(f).toString("base64"); }
   return input;

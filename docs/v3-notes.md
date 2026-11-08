@@ -21,7 +21,7 @@ Goals gains the lever board under the lead goal. The goal shown first is the lea
 
 - **Live, owner:** a switch asks first (the module's confirm step), then finds the lever's row by Lever ID on a fresh read, writes only `'Goal Levers'!D{row}` with `update_values`, and reads the tab back. The sheet's formulas move the dates; the page only redraws.
 - **Live, read only:** the switches show On or Off and the board says to switch levers on the sheet.
-- **Demo:** the confirm step says it is the demo household; the date is worked out on the page with the Goal Levers formulas (the same rules as columns G, H and I) and a toast says nothing was saved. test/v3-page.test.js proves the page's formulas give every date in data/v3/goal-levers.csv.
+- **Demo:** the confirm step says it is the demo household; the date is worked out on the page with the Goal Levers formulas (the same rules as columns G, H and I) and a toast says nothing was saved. src/kit/v3-page.test.js proves the page's formulas give every date in data/v3/goal-levers.csv.
 
 ## Home
 
@@ -29,7 +29,7 @@ Two more cards after "What needs you": the nearest decision (its options to one 
 
 ## Data plumbing
 
-- `src/kit/v3.js` reads the five tabs from the bundled snapshot (demo) or connector grids (live), and maps them onto each module's input over the engine's model. The mappings are the ones `tools/kit-demo/*.data.js` use; test/v3-page.test.js checks the page gives each module the same input as its demo harness.
+- `src/kit/v3.js` reads the five tabs from the bundled snapshot (demo) or connector grids (live), and maps them onto each module's input over the engine's model. The mappings are the ones `tools/kit-demo/*.data.js` use; src/kit/v3-page.test.js checks the page gives each module the same input as its demo harness.
 - Live mode reads `Receipts`, `Receipt Lines` (in 2,500-row chunks, like Entries), `Decision Options`, `Goal Levers` and `Tax Returns`. All five are optional: a missing tab reads as nothing and its view stays dark. The ledger check accepts `sheet_version` 2 or 3.
 - The snapshot carries the keys `receipts`, `receipt_lines`, `decision_options`, `goal_levers`, `tax_returns`, built by `tools/v3_snapshot.py` from data/v3 and data/groceries with the feed's keys and typing (`--check` runs in CI). The Apps Script feed and `tools/grid_to_snapshot.py` carry the same tabs. The snapshot's `sheet_version` stays 2 until the demo sheet itself is upgraded and snapshotted again; the page keys each view on its tab, never on the version. The ledger fixtures drop the five keys, so they stay version 2 households.
 - **Dark means no tab button, no card, no section.** Things lights from Contracts alone (a version 2 household keeps its things) and shows decision cards only with Decision Options. Tax lights with Tax Returns, or with the record when one is bundled.
@@ -92,7 +92,7 @@ Each drawer shows the sheet's figure beside the page's, and the trust drawer lis
 
 ## How it was checked
 
-- `node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js test/kit-things-levers.test.js`: 113 pass. New tests cover the safety net, subscriptions, savings ideas, duplicates, needs order, formats and the rental one-off.
+- `node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js src/kit/kit-things-levers.test.js`: 113 pass. New tests cover the safety net, subscriptions, savings ideas, duplicates, needs order, formats and the rental one-off.
 - The page's Playwright specs (`portals/test/canvas.spec.js`, `ledger-read.spec.js`, `kit.spec.js`): 25 pass locally. The canvas tests now move other widgets, since Review is a line in What needs you, and open the demo with `?signals` to exercise the "new on Home" note the public demo no longer shows.
 - Every tab and 32 drawers and toggles screenshotted at 1280x900 and 390x844, light and dark: no console errors, no sideways scroll at 390px, no "Mon YY" date, no internal ID outside file names, nothing under 12px.
 - Light and dark contrast: no text element below AA on any tab (colours given as `color-mix` are not measured).
