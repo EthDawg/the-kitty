@@ -31,6 +31,14 @@ test("things: a missing record leaves the view dark, and the drawer draws", () =
   const m = Things.model(thingsIn);
   assert.ok(Things.renderThing(m, "HOME").includes("Home and contents insurance"));
 });
+test("things: a decision with no option costed yet still draws, on its first option", () => {
+  const d = JSON.parse(JSON.stringify(thingsIn));
+  d.decisions[0].options = d.decisions[0].options.map((o) => ({ option: o.option, label: o.label }));
+  const m = Things.model(d);
+  const html = Things.render(m, {});
+  assert.ok(html.includes(d.decisions[0].options[0].option || d.decisions[0].options[0].label));
+});
+
 test("levers: rows sorted by months moved, signs say which way", () => {
   const m = Levers.model(leversIn);
   assert.equal(m.plan, "2028-05-01");

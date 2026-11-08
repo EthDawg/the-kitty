@@ -99,7 +99,9 @@
       ${o.source ? `<p class="kx-th-src">Source: ${esc(o.source)}</p>` : ""}</div>`;
   }
   function decisionCard(d, pick) {
-    const sel = d.options[pick == null ? (d.rec || d.cheapest).i : pick] || d.options[0];
+    // no recommended or costed option (every option uncosted) opens on the first one
+    const start = d.rec || d.cheapest;
+    const sel = d.options[pick == null ? (start ? start.i : 0) : pick] || d.options[0];
     const bars = d.options.filter((o) => !o.noCost).map((o) => `<div class="kx-th-bar${o === sel ? " on" : ""}"><span class="kx-th-bl">${esc(o.option)}${o === d.rec ? ` <em>our pick</em>` : ""}</span><span class="kx-th-bt"><i style="width:${Math.max(2, (o.total / d.max) * 100).toFixed(1)}%"></i></span><b class="num">${smart(o.total)}</b></div>`).join("");
     return `<article class="card kx-th-dec" data-dec="${esc(d.id)}">
       <div class="kx-th-dhead"><h3>${esc(d.question)}</h3>${dueChip(d)}</div>
