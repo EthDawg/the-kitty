@@ -42,16 +42,19 @@ Write each tab with typed cells (`update_spreadsheet`, `updateCells`) so codes l
 - How to fill: from each notice of assessment; an amended year keeps one row with Status `Amended` and a Note. Pack links the year's tax pack folder (an index document and copies of every source, made by the harness on request).
 
 ### Compliance Checks
-Add six rows, in the same columns as the existing ones:
-- `Receipts that don't add up` (Data): items `=COUNTIF(Receipts!S:S,"Lines*")`, Review when above zero.
-- `Card receipts with no bank row` (Data): items `=COUNTIFS(Receipts!M:M,"Card",Receipts!N:N,"",Receipts!A:A,"<>")`, amount `=SUMIFS(Receipts!J:J,Receipts!M:M,"Card",Receipts!N:N,"")`.
-- `Spending outside the bank, latest month` (Note): amount `=SUMPRODUCT((Receipts!M2:M<>"Card")*(Receipts!M2:M<>"")*(TEXT(Receipts!B2:B,"yyyy-mm")=TEXT(<as-of>,"yyyy-mm"))*N(+Receipts!J2:J))`.
-- `Decisions with more than one pick` (Data): items `=SUMPRODUCT(--(COUNTIFS('Decision Options'!A2:A,'Decision Options'!A2:A,'Decision Options'!J2:J,TRUE)>1)*('Decision Options'!J2:J=TRUE))`.
-- `Decisions past their decide-by date` (Review): items `=COUNTIFS('Decision Options'!L:L,"Open",'Decision Options'!K:K,"<"&<as-of>,'Decision Options'!J:J,TRUE)`.
-- `Lodged years without a tax pack` (Tax, Note): items `=COUNTIFS('Tax Returns'!C:C,"<>Estimate",'Tax Returns'!A:A,"<>",'Tax Returns'!L:L,"")`.
+Insert six rows directly above the blank row that sits before "Checks needing review", so that total keeps counting them. Columns as the existing rows: Check, Type, Items, Amount, Status, Why it matters, Where to look. `<as-of>` is `Settings!$B$6`; `<n>` is the row's own number.
+
+| Check | Type | Items | Amount | Status | Why it matters | Where to look |
+|---|---|---|---|---|---|---|
+| Receipts that don't add up | Data | `=COUNTIF(Receipts!S:S,"Lines*")+COUNTIF(Receipts!S:S,"One line*")` | | `=IF(C<n>>0,"Review","OK")` | A receipt whose lines don't sum to its total was read wrongly or is missing a line. | Receipts, Check |
+| Card receipts with no bank row | Data | `=COUNTIFS(Receipts!M:M,"Card",Receipts!N:N,"",Receipts!A:A,"<>")` | `=SUMIFS(Receipts!J:J,Receipts!M:M,"Card",Receipts!N:N,"")` | `=IF(C<n>>0,"Review","OK")` | A card payment should appear on a bank line; if it doesn't, the import is missing or the receipt is a duplicate. | Receipts, Entry ID |
+| Spending outside the bank, latest month | Data | `=COUNTIFS(Receipts!M:M,"<>Card",Receipts!M:M,"<>",Receipts!B:B,">"&EOMONTH(<as-of>,-1),Receipts!B:B,"<="&EOMONTH(<as-of>,0))` | `=SUMIFS(Receipts!J:J,Receipts!M:M,"<>Card",Receipts!M:M,"<>",Receipts!B:B,">"&EOMONTH(<as-of>,-1),Receipts!B:B,"<="&EOMONTH(<as-of>,0))` | `=IF(C<n>>0,"Note","OK")` | Gift cards, cash and points are still spending. The bank never shows them, so each needs a row on its own account. | Receipts, Paid with |
+| Decisions with more than one pick | Data | `=SUMPRODUCT(('Decision Options'!J2:J=TRUE)*(COUNTIFS('Decision Options'!A2:A,'Decision Options'!A2:A,'Decision Options'!J2:J,TRUE)>1))` | | `=IF(C<n>>0,"Review","OK")` | One decision, one recommended option, or the page can't say which it would pick. | Decision Options, Recommended |
+| Decisions past their decide-by date | Data | `=COUNTIFS('Decision Options'!L:L,"Open",'Decision Options'!K:K,"<"&<as-of>,'Decision Options'!J:J,TRUE)` | | `=IF(C<n>>0,"Review","OK")` | A choice left open past its date usually costs money; decide it or move the date. | Decision Options, Decide by |
+| Lodged years without a tax pack | Tax | `=COUNTIFS('Tax Returns'!C:C,"<>Estimate",'Tax Returns'!A:A,"<>",'Tax Returns'!L:L,"")` | | `=IF(C<n>>0,"Note","OK")` | Keep five years of records. A pack puts the return and every source in one folder. | Tax Returns, Pack |
 
 ### The Kitty tab
-- `sheet_version` becomes 3.
+- `sheet_version` becomes 3 only when all five tabs are present or mapped to the household's own. If any part waits on the household's answer (a name collision, say), leave it at 2, apply the rest, and record "version 3 in part: <what waits>" on Decisions. The page reads each tab on its own, so nothing is lost while it waits.
 
 ### Tailoring
 - A household that already keeps receipts, quotes or returns in its own tab keeps that tab. Map it rather than copying it: either add the version 3 tab as formulas over theirs, or record on Decisions that their tab is the source and leave the version 3 tab out. Ask before either.
