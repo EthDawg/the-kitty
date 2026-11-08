@@ -26,7 +26,7 @@ def cell(v, kind=None):
 
 TABS = [
   ("Receipts", 3001, ["Receipt ID","Date","Time","Merchant","Merchant ID","Store","Channel","Person","Items","Total","GST","Savings","Paid with","Entry ID","Account ID","Source","Source kind","Read by","Check","Note"],
-   {"S": "=MAP(A2:A,J2:J,I2:I,LAMBDA(id,tot,items,IF(id=\"\",\"\",LET(sum,SUMIFS('Receipt Lines'!K:K,'Receipt Lines'!A:A,id),n,COUNTIFS('Receipt Lines'!A:A,id,'Receipt Lines'!G:G,\"Item\"),IF(ABS(sum-tot)>0.05,\"Lines \"&TEXT(sum,\"0.00\")&\" vs \"&TEXT(tot,\"0.00\"),IF(AND(N(items)>3,n<=1),\"One line for \"&items&\" items\",\"OK\"))))))"},
+   {"S": "=MAP(A2:A,J2:J,I2:I,LAMBDA(id,tot,items,IF(id=\"\",\"\",LET(lsum,SUMIFS('Receipt Lines'!K:K,'Receipt Lines'!A:A,id),lcount,COUNTIFS('Receipt Lines'!A:A,id,'Receipt Lines'!G:G,\"Item\"),IF(ABS(lsum-tot)>0.05,\"Lines \"&TEXT(lsum,\"0.00\")&\" vs \"&TEXT(tot,\"0.00\"),IF(AND(N(items)>3,lcount<=1),\"One line for \"&items&\" items\",\"OK\"))))))"},
    {"G": ["In-store","Online delivery","Online pickup","Online"], "M": ["Card","Gift card","Cash","Mixed","Points"], "Q": ["Photo","PDF","Email","Export","Screenshot"]},
    {"B": "date", "I": "num", "J": "money", "K": "money", "L": "money"}),
   ("Receipt Lines", 3002, ["Receipt ID","Line","Printed text","Product","Brand","Group","Kind","Qty","Unit","Unit price","Amount","GST","Pack size","Price per kg or L","Retailer code","Note"],
