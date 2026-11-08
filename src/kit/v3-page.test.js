@@ -83,8 +83,12 @@ test("Groceries: every receipt and line reaches the view, and a card receipt nam
   assert.equal(page.receipts.length, 94); assert.equal(page.lines.length, 4082);
   const r = page.receipts.find((x) => x.id === "R0001");
   assert.equal(r.entryId, "T0009"); assert.equal(r.entryAccount, "Rewards credit card"); assert.equal(r.entryAmount, -336.31); assert.equal(r.entryDate, "2025-07-03");   // the bank settled it the next day
+  // R0036 names TG001, the card part of a split payment that the next bank import brings: never "Matched" until that row exists
+  const split = page.receipts.find((x) => x.id === "R0036");
+  assert.equal(split.entryId, ""); assert.equal(split.entryAmount, null);
   const gm = Groceries.model(page);
   assert.ok(gm);
+  assert.equal(gm.receiptsList.find((x) => x.id === "R0036").match, "waiting");
   assert.ok(Groceries.render(gm, {}).length > 1000);
   assert.ok(Groceries.renderHome(gm, {}).length > 100);
 });

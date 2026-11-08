@@ -243,7 +243,8 @@
     const receipts = t.receipts.map((r) => {
       const id = text(r.entry_id), e = entry(id), a = e && m.acctById[e.acct];
       return { id: text(r.receipt_id), date: date(r.date), time: text(r.time), merchant: text(r.merchant), store: text(r.store), channel: text(r.channel), person: text(r.person), items: num(r.items), total: num(r.total), gst: num(r.gst), savings: num(r.savings), paidWith: text(r.paid_with),
-        entryId: id, entryDate: e ? e.date : "", entryAccount: a ? a.name : "", entryAmount: e ? e.amount : null, accountId: text(r.account_id), source: text(r.source), sourceKind: text(r.source_kind), check: text(r.check), note: text(r.note) };
+        // a receipt is matched only when the row it names is in the data; a row still to come from the next import reads "not matched yet"
+        entryId: e ? id : "", entryDate: e ? e.date : "", entryAccount: a ? a.name : "", entryAmount: e ? e.amount : null, accountId: text(r.account_id), source: text(r.source), sourceKind: text(r.source_kind), check: text(r.check), note: text(r.note) };
     });
     const lines = (t.receipt_lines || []).map((l) => ({ receiptId: text(l.receipt_id), line: num(l.line), text: text(l.printed_text), product: text(l.product), brand: text(l.brand), group: text(l.group), kind: text(l.kind), qty: num(l.qty), unit: text(l.unit), unitPrice: num(l.unit_price), amount: num(l.amount), gst: text(l.gst), pack: text(l.pack_size), ppu: num(l.price_per_kg_or_l), code: text(l.retailer_code), note: text(l.note) }));
     return { asOf: m.asOf, receipts, lines, people: m.people.slice() };
