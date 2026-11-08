@@ -1609,6 +1609,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     const bb = $("#obback"); if (bb) bb.addEventListener("click", () => { OB.dir = -1; OB.step--; renderOnb(); });
     $("#obnext").addEventListener("click", () => { buzz(); if (last) finishOnboarding(false); else { OB.dir = 1; OB.step++; renderOnb(); } });
     if (nameI && !phone()) setTimeout(() => nameI.focus(), 300);
+    else if (!el.contains(document.activeElement)) setTimeout(() => { const n = $("#obnext"); if (n && !el.hidden) n.focus({ preventScroll: true }); }, 60);
   }
   async function finishOnboarding(skipped) {
     const m = S.m;
@@ -1712,7 +1713,8 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") { if (!$("#onb").hidden) { e.preventDefault(); finishOnboarding(true); return; } if (moving()) return; if (S.arrange && !$("#drawer").classList.contains("on")) setArrange(false); closeDrawer(); }
       if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
-      if (e.key === "Tab" && $("#drawer").classList.contains("on")) { const f = $$("#drawer a[href], #drawer button:not([disabled]), #drawer input, #drawer select, #drawer [tabindex='0']").filter((x) => x.offsetParent !== null); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
+      if (e.key === "Tab" && !$("#onb").hidden) { const f = $$("#onb button:not([disabled]), #onb input, #onb select").filter((x) => x.offsetParent !== null); if (f.length) { const a = f[0], z = f[f.length - 1]; if (!$("#onb").contains(document.activeElement)) { e.preventDefault(); a.focus(); } else if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } } return; }
+      if (e.key === "Tab" && $("#drawer").classList.contains("on")) { const f =$$("#drawer a[href], #drawer button:not([disabled]), #drawer input, #drawer select, #drawer [tabindex='0']").filter((x) => x.offsetParent !== null); if (!f.length) return; const a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
     });
     requestAnimationFrame(moveGlow); setTimeout(moveGlow, 400); if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveGlow);
     const use = (n) => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
