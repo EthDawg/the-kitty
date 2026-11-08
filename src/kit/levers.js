@@ -56,11 +56,11 @@
     if (!m) return `<div class="card"><div class="empty">No levers recorded for this goal yet.</div></div>`;
     const g = m.goal, pend = opts && opts.pending;
     let vsT = "";
-    if (isDate(m.plan) && isDate(g.targetDate)) { const d = idx(m.plan) - idx(g.targetDate); vsT = d > 0 ? `, ${span(d)} after the ${mon(g.targetDate)} target` : d < 0 ? `, ${span(-d)} ahead of the ${mon(g.targetDate)} target` : `, right on the target`; }
+    if (isDate(m.plan) && isDate(g.targetDate)) { const d = idx(m.plan) - idx(g.targetDate); const tl = g.targetLabel || "target"; vsT = d > 0 ? `, ${span(d)} after the ${mon(g.targetDate)} ${tl}` : d < 0 ? `, ${span(-d)} ahead of the ${mon(g.targetDate)} ${tl}` : `, right on the ${tl}`; }
     const help = isDate(m.plan) ? `On plan for ${mon(m.plan)}${vsT}` : `At the current pace this goal never arrives`;
     const big = m.rows.find((r) => r.on && (r.never || (r.moved || 0) > 0));
     const off = (m.allOff ? ` Without any levers it would be ${mon(m.allOff)}.` : "") + (big ? ` The lever doing the most: ${big.lever.charAt(0).toLowerCase() + big.lever.slice(1)}.` : "");
-    const marks = [{ label: g.name, date: m.plan, main: true }, ...(g.targetDate ? [{ label: "Target", date: g.targetDate }] : []), ...m.extraDates].filter((x) => isDate(x.date));
+    const marks = [{ label: g.name, date: m.plan, main: true }, ...(g.targetDate ? [{ label: g.targetLabel ? g.targetLabel.charAt(0).toUpperCase() + g.targetLabel.slice(1) : "Target", date: g.targetDate }] : []), ...m.extraDates].filter((x) => isDate(x.date));
     let tl = "";
     if (marks.length > 1 || m.asOf) {
       const pts = [...marks.map((x) => idx(x.date)), ...(m.asOf ? [idx(m.asOf)] : [])], lo = Math.min(...pts), hi = Math.max(...pts, lo + 1);
