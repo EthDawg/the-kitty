@@ -173,12 +173,13 @@ test("every historical row resolves: the sheet's Rules first (name and category 
   assert.ok(dt.filter((e) => !e.mer.unresolved && e.mer.cat === e.cat).length >= 870, "the dictionary's category agrees with the sheet on most rows");
 });
 
-for (const [name, sn, expect] of [["fixture everyday-only", everyday, { uncategorised: 3, duplicate: 3 }], ["fixture everyday+property", property, { uncategorised: 3, duplicate: 3 }], ["live v2 snapshot", live, { uncategorised: 3, duplicate: 3 }]]) {
-  test(`${name}: the review queue holds the sheet's three uncategorised rows and three possible doubles, nothing unpaired, nothing unknown`, () => {
+for (const [name, sn, expect] of [["fixture everyday-only", everyday, { uncategorised: 3, duplicate: 2 }], ["fixture everyday+property", property, { uncategorised: 3, duplicate: 2 }], ["live v2 snapshot", live, { uncategorised: 3, duplicate: 2 }]]) {
+  test(`${name}: the review queue holds the sheet's three uncategorised rows and two possible doubles (two receipted Qantas fares are two tickets), nothing unpaired, nothing unknown`, () => {
     const m = E.model(sn); const rv = E.review(m);
     assert.deepEqual(rv.counts, { uncategorised: expect.uncategorised, unresolved: 0, duplicate: expect.duplicate, unpaired: 0, first_big: 0 });
-    assert.deepEqual(rv.items.map((i) => i.id).sort(), ["T0413", "T0596", "T0687", "T0746", "T0761", "T0858"]);
-    assert.equal(rv.items.find((i) => i.id === "T0858").dupOf, "T0857");
+    assert.deepEqual(rv.items.map((i) => i.id).sort(), ["T0413", "T0596", "T0687", "T0746", "T0761"]);
+    assert.equal(rv.items.find((i) => i.id === "T0413").dupOf, "T0412");
+    assert.equal(m.dupesExplained.get("T0858"), "T0857", "the Qantas pair is kept as explained, not dropped");
     const uncat = rv.items.find((i) => i.id === "T0761"); assert.deepEqual(uncat.reasons, ["uncategorised"]); assert.ok(/needs a category/.test(uncat.why));
     const af = m.entries.filter((e) => e.desc === "Anytime Fitness"); assert.ok(m.firstSeen.has(af[0].id) && af.slice(1).every((e) => !m.firstSeen.has(e.id)), "the first visit to a merchant is marked once");
   });
@@ -221,12 +222,13 @@ test("EntryRow renders every kind: monogram letters in the brand hue, the catego
   const t5 = Kit.EntryRow(m.entryById.T0005, ctx); assert.match(t5, /bdg pair/); assert.match(t5, /Japan 2027 saver/); assert.match(t5, /amt num mv/);
   const trade = Kit.EntryRow(m.entries.find((e) => e.kind === "trade"), ctx); assert.match(trade, /25 units at \$48\.20/); assert.match(trade, /#i-shares/); assert.match(trade, /\+\$1,205/);
   const val = Kit.EntryRow(m.entryById.V0001, ctx); assert.match(val, /Family home, Brunswick/); assert.match(val, /value from an appraisal/); assert.match(val, /#i-property/); assert.match(val, /\$1,185,000/);
-  const dup = Kit.EntryRow(m.entryById.T0858, ctx); assert.match(dup, /possible double/); assert.match(dup, /needs review/);
+  const dup = Kit.EntryRow(m.entryById.T0413, ctx); assert.match(dup, /possible double/); assert.match(dup, /needs review/);
+  assert.ok(!/possible double/.test(Kit.EntryRow(m.entryById.T0858, ctx)), "a receipted second fare is not a double");
   assert.match(Kit.EntryRow(m.entryById.T0925, ctx), /#i-/);
   const refund = m.entries.find((e) => /REFUND/.test(e.raw)); assert.match(Kit.EntryRow(refund, ctx), /bdg refund/);
   const list = Kit.EntryList(m.entries.slice(-40).reverse(), ctx); assert.ok((list.match(/class="dayg"/g) || []).length >= 2); assert.match(list, /class="day"/);
   const card = Kit.ReviewCard(rv.items.find((i) => i.id === "T0761"), ctx); assert.match(card, /data-ract="pick" data-cat="DINING"/); assert.match(card, /data-ract="cat"/); assert.match(card, /k-fortune/); assert.match(card, /SQ \*MARKET LANE/);
-  const dcard = Kit.ReviewCard(rv.items.find((i) => i.id === "T0858"), ctx); assert.match(dcard, /data-ract="merge"/); assert.ok(!/k-fortune/.test(dcard), "a double has a rule, so no cookie");
+  const dcard = Kit.ReviewCard(rv.items.find((i) => i.id === "T0413"), ctx); assert.match(dcard, /data-ract="merge"/); assert.ok(!/k-fortune/.test(dcard), "a double has a rule, so no cookie");
   for (const e of m.entries.slice(0, 200)) assert.ok(!/undefined|NaN/.test(Kit.EntryRow(e, ctx)), e.id);
 });
 
@@ -380,21 +382,21 @@ const clean = (html) => { assert.ok(!/undefined|NaN|\bnull\b|\[object |\$0(\.00)
 
 test("Records: a full view says what it is, and names the preview and its limit", () => {
   const out = text(Records.Records(fullView()));
-  assert.match(out, /The household's record, rebuilt from its files: 1,124 files and 4,656 events, up to 31 Mar 2027\./);
-  assert.match(out, /preview of the standard running on the fictional Davies household/);
-  assert.match(out, /not read from the sheet yet/);
-  for (const name of ["This year", "How we know", "Where a number comes from", "Things", "What's missing", "Experimental"]) assert.ok(out.includes(name), name);
+  assert.match(out, /A separate dataset/); assert.match(out, /Its numbers will not match the other tabs\./);
+  assert.match(out, /A record rebuilt from a fictional household's files: 1,124 files and 4,656 events, up to 31 Mar 2027\./);
+  assert.match(out, /It is not read from the sheet\./);
+  for (const name of ["This year", "How we know", "Where a number comes from", "When things need replacing", "What's missing", "Experimental"]) assert.ok(out.includes(name), name);
   clean(Records.Records(fullView()));
 });
 
 test("Records: a lodged year calls the lodged figure the record, with the derived figure and the tie's own gap", () => {
   const out = text(Records.RecordsYear(fullView(), "FY2025"));
-  assert.match(out, /The record Derived Gap/);
+  assert.match(out, /Lodged From the rows Difference/);
   assert.match(out, /Taxable income \$145,230 \$145,353 \+\$123\.00/);
   assert.match(out, /Result \$845\.00 to pay \$601\.00 to pay/);
   assert.match(out, /The lodged figure is the record/);
-  assert.match(out, /Label 1 \$152,000\.00 annual tax statement Held/);
-  assert.match(out, /Label D5 not held yet work log At risk/);
+  assert.match(out, /Salary or wages, item 1 \$152,000\.00 annual tax statement Held/);
+  assert.match(out, /Other work expenses, D5 not held yet work log At risk/);
   assert.match(out, /Rental statements Yet to go/);
   assert.ok(!/advice/i.test(out));
 });
@@ -428,8 +430,9 @@ test("Records: a trace runs from the number to the exact line of the exact file,
   assert.ok(row.includes('data-open="trace:0"')); assert.ok(row.includes("Harbour-2027-03.csv")); assert.ok(row.includes("line 10"));
   assert.ok(drawer.includes("SALARY &lt;NORTHWIND&gt;")); assert.ok(!drawer.includes("<NORTHWIND>"));
   assert.match(out, /\$3,925\.62/); assert.match(out, /ACC-EVD \+\$3,925\.62/); assert.match(out, /clearing:payroll:NORTHWIND −\$3,925\.62/);
-  assert.match(out, /Pass Every event's postings sum to zero\./);
-  assert.match(out, /Harbour-2027-03\.csv line 10 Transaction line Clears against this event sha256 db8ef6837d69/);
+  assert.match(out, /Pass Each event's money in and money out add to zero\./);
+  assert.match(out, /Harbour-2027-03\.csv line 10 Bank line Settles this event File fingerprint SHA-256 db8ef6837d69/);
+  assert.ok(!/witness|postings|oracle/i.test(text(Records.Records(v)) + out), "no engine words");
 });
 
 test("Records: things and coverage read as held, with absent facts left out or named", () => {
@@ -439,17 +442,18 @@ test("Records: things and coverage read as held, with absent facts left out or n
   assert.match(out, /Offset export Missing August 2026, November 2026 93 of 97 1 more, nothing missing Everyday export 97 of 97/);   // what is short comes first
 });
 
-test("Records: experimental actions are labelled, mocks say so, and baselines stay real", () => {
+test("Records: the public page shows only the experimental actions that work today, with no builders' open questions", () => {
   const v = fullView(), html = Records.Records(v), xp = html.slice(html.indexOf("rec-xpwrap"));
-  assert.equal(xp.match(/rec-pill">Experimental/g).length, 4);
-  for (const a of v.experimental) assert.ok(xp.includes(`data-open="xp:${a.id}"`) && xp.includes(a.button), a.id);
-  const collect = text(Records.RecordAction(Records.recordAction(v, "collect"), v)), advice = text(Records.RecordAction(Records.recordAction(v, "advice"), v));
-  assert.match(collect, /This is a mock\. Start computer use runs nothing/); assert.match(collect, /Offset export Missing August 2026/); assert.match(collect, /Which browser and whose session/);
-  assert.match(advice, /This is a mock\. Run tax return advice runs nothing/); assert.match(advice, /Connect a tax capability/);
+  assert.equal(xp.match(/rec-pill">Experimental/g).length, 2);
+  for (const a of v.experimental) assert.equal(xp.includes(`data-open="xp:${a.id}"`), a.status !== "Mock", a.id);
+  assert.equal(Records.recordAction(v, "collect"), null); assert.equal(Records.recordAction(v, "advice"), null);
+  assert.ok(!/Which browser|Connect a tax capability|Open questions/.test(text(html)));
+  // a mock handed in directly still says it is one, and carries no open questions
+  const collect = text(Records.RecordAction(v.experimental[0], v)); assert.match(collect, /This is a mock\. Start computer use runs nothing/); assert.ok(!/Which browser/.test(collect));
   const pack = Records.RecordAction(Records.recordAction(v, "tax_pack"), v, { fy: "FY2025", canSave: true });
   assert.ok(pack.includes('data-pack="JORDAN"') && pack.includes('data-pack="MIA"')); assert.ok(!/This is a mock/.test(pack));
   assert.match(text(Records.RecordAction(Records.recordAction(v, "tax_pack"), v, { fy: "FY2025", canSave: false })), /Saving a file is not available in this view/);
-  assert.match(text(Records.RecordAction(Records.recordAction(v, "reconcile"), v)), /Clearing Open 2946 days\. Fail Payslip Payslips are missing\. Gap/);
+  assert.match(text(Records.RecordAction(Records.recordAction(v, "reconcile"), v)), /Nothing left waiting Open 2946 days\. Fail Payslips add up Payslips are missing\. Gap/);
 });
 
 test("Records: the tax pack is one person's year as CSV, and an absent amount stays blank", () => {
@@ -458,15 +462,15 @@ test("Records: the tax pack is one person's year as CSV, and an absent amount st
   assert.equal(lines[0], "Year,Person,Section,Line,State,Amount,Method");
   assert.ok(lines.includes("FY2025,Jordan,Readiness,Income statements,Held,,"));
   assert.ok(lines.includes("FY2025,Jordan,The record,Taxable income,Lodged,145230.00,"));
-  assert.ok(lines.includes("FY2025,Jordan,Tax item,Label 1,Held,152000.00,annual tax statement"));
-  assert.ok(lines.includes("FY2025,Jordan,Tax item,Label D5,At risk,,work log"));
+  assert.ok(lines.includes('FY2025,Jordan,Tax item,"Salary or wages, item 1",Held,152000.00,annual tax statement'));
+  assert.ok(lines.includes('FY2025,Jordan,Tax item,"Other work expenses, D5",At risk,,work log'));
   assert.ok(lines.some((l) => /fictional Davies household/.test(l)));
   assert.equal(Records.taxPack(v, "FY2025", "NOBODY"), null); assert.equal(Records.taxPack({}, "FY2025", "JORDAN"), null);
 });
 
 test("Records: an empty view keeps the preview line, says not held yet, and draws no zero", () => {
   const html = Records.Records({}), out = text(html); clean(html);
-  assert.match(out, /The household's record, rebuilt from its files\./); assert.match(out, /fictional Davies household/);
+  assert.match(out, /A record rebuilt from a fictional household's files\./); assert.match(out, /A separate dataset/); assert.match(out, /Davies sheet/);
   for (const what of ["This year is", "Proof is", "Examples are", "Things are", "Coverage is"]) assert.ok(out.includes(`${what} not held yet.`), what);
   assert.ok(!html.includes("recfy"));
   assert.equal(Records.taxPack({}, null, "JORDAN"), null);
@@ -491,4 +495,97 @@ test("Records: the generated view draws clean, every year and every trace", () =
   for (const key of ["generated", "proof", "years", "coverage", "things", "traces", "experimental"]) assert.ok(key in v, key);
   for (const y of v.years) clean(Records.RecordsYear(v, y.fy));
   for (const t of v.traces) clean(Records.RecordTrace(t, v));
+  // PAYG and SG are not return labels, 21X is never printed, and a category ID reads as its name
+  const names = { "RENT-INC": "Rent received", "RENT-INT": "Investment loan interest" }, catName = (id) => names[id] || "Rental costs";
+  const all = v.years.map((y) => text(Records.RecordsYear(v, y.fy, { catName }))).join(" ");
+  assert.ok(!/RENT-[A-Z]+/.test(v.years.map((y) => text(Records.RecordsYear(v, y.fy))).join(" ")), "no category ID even without names");
+  assert.ok(!/Label (PAYG|SG)|21X|RENT-[A-Z]+/.test(all)); assert.match(all, /Tax withheld \(not a return label\)/); assert.match(all, /Other rental deductions, item 21 /);
+  const named = text(Records.Records(v, { catName: (id) => ({ "RENT-MGMT": "Property management fees" }[id] || id) }));
+  assert.ok(named.includes("Property management fees"));
+});
+
+// ---------- the public page audit (8 November 2026): each engine fix, on the Davies ledger ----------
+test("safety net: the Emergency fund goal over essential spending (the sheet's own metric), never all cash and offset", () => {
+  const m = E.model(live), sf = E.safety(m);
+  const ess = E.spend(m.tx, E.window("quarter", m.asOf), (t) => (m.catById[t.cat] || {}).essential).out / 3;
+  near(sf.essentialPm, ess, 0.01); near(sf.essentialPm, 7344.91, 0.01);
+  near(sf.months, m.metrics["emergency.months_covered"].num, 1e-9);
+  near(sf.months * sf.essentialPm, m.goals.find((g) => g.name === "Emergency fund").balance, 1);
+  assert.equal(sf.fund, "Emergency fund"); near(sf.held, 26902.84, 0.01);
+  near(sf.short, (6 - sf.months) * sf.essentialPm, 0.01); near(sf.short, 17166.60, 0.05);
+  assert.ok(sf.liquidMonths > 13 && sf.liquidMonths < 14, "cash and offset together cover far more than the fund alone");
+  assert.ok(sf.essentialPm < m.metrics["cashflow.spending.3m_avg"].num, "essential spending is less than all spending");
+});
+
+test("subscriptions: a premium adjustment is not a price, a refund is not a charge, and a travel policy is not the car policy", () => {
+  const m = E.model(live), by = (n) => m.subs.find((s) => s.service === n);
+  const bupa = by("Bupa health cover");
+  near(bupa.lowest, 398.2); near(bupa.latest, 419.35); near(bupa.riseEach, 21.15); near(bupa.riseYear, 253.8); assert.equal(bupa.riseCheck, false);
+  assert.equal(bupa.sheet.lowest, 31.2, "the sheet's figure is kept beside the page's"); assert.ok(bupa.adjustments.some((a) => a.amount === 31.2));
+  const pp = by("Paramount+");
+  near(pp.latest, 9.99); assert.equal(pp.lastCharged, "2027-01-19"); assert.equal(pp.refundedOn, "2027-01-24"); near(pp.annual, 119.88);
+  assert.ok(m.subs.every((s) => !(s.annual < 0) && !(s.latest < 0)), "no negative charge or annual cost anywhere");
+  const car = by("Car insurance");
+  near(car.latest, 1348); assert.equal(car.lastCharged, "2026-08-14"); near(car.annual, 1348);
+  const c11 = m.contracts.find((c) => c.name === "Car insurance"); near(c11.amount, 1348); assert.equal(c11.next, "2027-08-14"); assert.equal(c11.sheet.next, "2028-01-15");
+  const ctx = Kit.context(m), travel = m.entryById.T0903;
+  assert.equal(Kit.contractFor(travel, ctx), null, "ALLIANZ TRAVEL INSURANCE under Holidays matches no contract");
+  assert.equal(Kit.contractFor(m.entryById.T0654, ctx).name, "Car insurance");
+  // a jump of more than half is a question, not a saving
+  const jumped = E.model(Object.assign({}, live, { transactions: live.transactions.map((t) => (t.txn_id === "T0850" || /PREMIUM ADJ/.test(t.bank_description) ? { ...t, bank_description: "BUPA HEALTH INSURANCE" } : t)) }));
+  const b2 = jumped.subs.find((s) => s.service === "Bupa health cover"); assert.equal(b2.riseCheck, true); assert.equal(b2.riseYear, 0);
+  assert.ok(E.leaks(jumped).jumps.includes(b2) && !E.leaks(jumped).rises.includes(b2));
+});
+
+test("savings ideas: rebuilt from the checked rows, ranked by dollars, and the headline is their sum", () => {
+  const m = E.model(live), by = (re) => m.savings.find((s) => re.test(s.title)), lk = E.leaks(m);
+  near(by(/price rise/i).amount, 313.8); assert.equal(by(/price rise/i).sheet.amount, 4717.8);
+  assert.match(by(/price rise/i).shows, /Bupa health cover \$398\.20 to \$419\.35/);
+  near(by(/unused subscription/i).amount, 1349.16); near(by(/unused subscription/i).amount, lk.unusedYear + lk.stillYear);
+  near(lk.unusedYear, 1229.28); near(lk.stillYear, 119.88);
+  const d = by(/doubled/i); near(d.amount, 295.8); assert.equal(d.title, "Check charges that look doubled"); assert.equal(d.sheet.amount, 2713.8);
+  assert.ok(m.savings.every((s, i) => i === 0 || m.savings[i - 1].amount >= s.amount), "largest first");
+  near(m.savingsYear, m.savings.filter((s) => s.type === "Recurring").reduce((a, s) => a + s.amount, 0)); near(m.savingsYear, 7719.92, 0.01);
+  near(m.savingsOnce, 295.8);
+});
+
+test("duplicates: a same-day pair where each row holds a receipt or a note is two purchases; the check counts only the rest", () => {
+  const m = E.model(live);
+  assert.ok(!m.dupes.has("T0858")); assert.equal(m.dupesExplained.get("T0858"), "T0857");
+  const dc = m.checks.find((c) => /^Possible duplicate charges/.test(c.name));
+  assert.equal(dc.items, 2); near(dc.amount, 295.8); assert.deepEqual(dc.sheet, { items: 3, amount: 2713.8, status: "Review" });
+  assert.equal(dc.explained.length, 1); assert.equal(dc.explained[0].b.id, "T0858");
+  // a pair with one receipt and no notes is still a suspect
+  const one = E.model(Object.assign({}, live, { entries: live.entries.map((e) => (e.entry_id === "T0858" ? { ...e, receipt_held: null, note: null } : e)) }));
+  assert.equal(one.dupes.get("T0858"), "T0857");
+  assert.ok(E.review(m).items.every((i) => !/\b[TDR]\d{4}\b/.test(i.why)), "the reason names no internal ID");
+});
+
+test("needs: most serious first; a passed target date asks for no monthly amount; five distinct tax claims; the review queue is one need", () => {
+  const m = E.model(live), nd = E.needs(m);
+  assert.ok(nd.all.every((x, i) => i === 0 || nd.all[i - 1].rank <= x.rank));
+  const fund = nd.all[0]; assert.match(fund.t, /^Emergency fund passed its Dec 2026 target date$/); assert.equal(fund.amtNote, "to go"); near(fund.amt, 3097.16);
+  assert.match(fund.s, /Jun 2027/); assert.ok(!/a month until/.test(fund.s));
+  assert.equal(E.goalState(m.goals[0], m.asOf).passed, true);
+  const tax = nd.all.find((i) => /tax claim/.test(i.t)); assert.equal(tax.t, "Five tax claims to check before lodging");
+  assert.equal(E.taxClaims(m).rows.length, 5, "the laptop is one claim, not two");
+  assert.ok(nd.all.findIndex((i) => /Paramount/.test(i.t)) > 3, "a $120 leak is not in the first four");
+  assert.equal(nd.all.filter((i) => i.go === "review").length, 1);
+  assert.equal(nd.all.filter((i) => /safety|emergency fund covers/i.test(i.t)).length, 0, "the fund's months ride on its goal line, not a second need");
+  assert.ok(!nd.all.some((i) => /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{2}\b(?!\d)/.test(i.t + i.s)), "no Mon YY date");
+});
+
+test("formats: a month reads Jun 2027, never Jun 27; millions keep two decimals; lists keep cents", () => {
+  assert.equal(E.fmtMonth("2027-06-01", true), "Jun 2027"); assert.equal(E.fmtMonth("2027-06-01"), "June 2027");
+  assert.equal(E.fmtS(1454481.87), "$1.45m"); assert.equal(E.fmtS(2037000), "$2.04m"); assert.equal(E.fmtS(1100000), "$1.1m"); assert.equal(E.fmtS(354433.82), "$354k"); assert.equal(E.fmtS(26902.84), "$26.9k");
+  const m = E.model(live), ctx = Kit.context(m);
+  assert.match(Kit.EntryRow(m.entryById.T0857, ctx), /−\$2,418\.00/);
+  assert.match(Kit.EntryRow(m.entryById.T0297, ctx, { date: true }), /5 Jan 2026/, "a date outside the as-of year carries its year");
+});
+
+test("the rental: a repair at the review amount is a one-off line, not a monthly running cost", () => {
+  const m = E.model(live), p = E.property(m);
+  near(p.oneOffTotal, 12800); assert.equal(p.oneOffs[0].id, "T0518");
+  near(p.byCat.find((c) => c.cat === "RENT-REPAIR").pm, 2150 / 12, 0.01);
+  near(E.owed(m), 1111715.18); near(E.ownership(m).reduce((a, x) => a + x.v, 0) - E.owed(m), m.networth[m.networth.length - 1].total, 1);
 });

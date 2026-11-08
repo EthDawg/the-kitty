@@ -2,7 +2,8 @@
 const { test, expect } = require("@playwright/test");
 const path = require("path");
 const page_url = "file://" + path.join(__dirname, "..", "..", "dist", "local-v2.html");
-const open = (page, q = "") => page.goto(`${page_url}?noonb&noanim${q}`).then(() => page.waitForSelector("#canvas .wcell"));
+// ?signals: the public demo hides the "new on Home" note; these tests exercise it as a household would see it
+const open = (page, q = "") => page.goto(`${page_url}?noonb&noanim&signals${q}`).then(() => page.waitForSelector("#canvas .wcell"));
 const prefs = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("kitty:prefs") || "{}"));
 const cell = (page, id) => page.locator(`.wcell[data-wid="${id}"]`);
 const mounted = (page) => page.waitForSelector("#canvas.grid-stack .wcell[data-wid='hero'][gs-h]");
@@ -45,7 +46,7 @@ test("desktop: signals add widgets once with an undo; drag and resize survive a 
   await expect(cell(page, "things")).toHaveCount(1);
   // reset
   await page.getByRole("button", { name: "Back to the default" }).click();
-  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "review", "needs"]);
+  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "upcoming"]);
   expect(errors).toEqual([]);
 });
 
@@ -83,13 +84,13 @@ test.describe("phone", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const lefts = await page.locator(".wcell").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().left))); expect(new Set(lefts).size).toBe(1);
     await page.getByRole("button", { name: "Arrange this page" }).click();
-    await page.getByRole("button", { name: "Move What needs you up" }).click();
-    expect((await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "review"]);
-    await cell(page, "review").scrollIntoViewIfNeeded();
-    const h = await cell(page, "review").locator(".whandle").boundingBox(), t = await cell(page, "needs").boundingBox();
+    await page.getByRole("button", { name: "Move What's coming up up" }).click();
+    expect((await ids(page)).slice(0, 3)).toEqual(["hero", "upcoming", "needs"]);
+    await cell(page, "needs").scrollIntoViewIfNeeded();
+    const h = await cell(page, "needs").locator(".whandle").boundingBox(), t = await cell(page, "upcoming").boundingBox();
     await page.mouse.move(h.x + 6, h.y + 6); await page.mouse.down(); await page.mouse.move(h.x + 6, t.y + 10, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(150);
-    expect((await ids(page)).slice(0, 3)).toEqual(["hero", "review", "needs"]);
-    await open(page); expect((await ids(page)).slice(0, 3)).toEqual(["hero", "review", "needs"]);
+    expect((await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "upcoming"]);
+    await open(page); expect((await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "upcoming"]);
   });
 });
 
@@ -146,35 +147,35 @@ test("every icon the shell asks for exists in the brand sprite", async ({ page }
 
 test("the header fits the narrowest phone, live label included", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 }); await open(page);
-  await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live · demo sheet"; });
+  await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live demo · 30 Sep 2027"; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   const search = await page.locator("#topsearch").boundingBox(); expect(search.x + search.width).toBeLessThanOrEqual(308);
 });
 
 test("Narrower twice puts two neighbours side by side, and a reload keeps it", async ({ page }) => {
   await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
-  await page.getByRole("button", { name: "Make Review narrower" }).click();
+  await page.getByRole("button", { name: "Make Saving for narrower" }).click();
   await expect(page.locator("#toast")).toContainText("fills its row");
-  await expect(page.getByRole("button", { name: "Make Review wider" })).toBeFocused();
-  await page.getByRole("button", { name: "Make What needs you narrower" }).click();
+  await expect(page.getByRole("button", { name: "Make Saving for wider" })).toBeFocused();
+  await page.getByRole("button", { name: "Make Ways to get there faster narrower" }).click();
   const check = async () => {
-    const r = await cell(page, "review").boundingBox(), n = await cell(page, "needs").boundingBox();
+    const r = await cell(page, "goals").boundingBox(), n = await cell(page, "ideas").boundingBox();
     expect(Math.abs(r.y - n.y)).toBeLessThan(2); expect(n.x).toBeGreaterThan(r.x + r.width - 1);
     expect(Math.abs(r.width - n.width)).toBeLessThan(2);
   };
   await check(); await open(page); await check();
-  const items = (await prefs(page)).layout.items; expect(items.find((i) => i.id === "review").w).toBe(6); expect(items.find((i) => i.id === "needs").w).toBe(6);
+  const items = (await prefs(page)).layout.items; expect(items.find((i) => i.id === "goals").w).toBe(6); expect(items.find((i) => i.id === "ideas").w).toBe(6);
 });
 
 test("a drop keeps every other widget's chosen width", async ({ page }) => {
   await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
-  await page.getByRole("button", { name: "Make Review narrower" }).click(); await mounted(page);
+  await page.getByRole("button", { name: "Make Saving for narrower" }).click(); await mounted(page);
   await cell(page, "contracts").scrollIntoViewIfNeeded();
   const box = await cell(page, "contracts").boundingBox(), to = await cell(page, "shares").boundingBox();
   await page.mouse.move(box.x + 120, box.y + 80); await page.mouse.down();
   for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + 120, box.y + 80 + (to.y - box.y - 60) * i / 12);
   await page.mouse.up(); await mounted(page);
-  await expect.poll(async () => (await prefs(page)).layout.items.find((i) => i.id === "review").w).toBe(6);
+  await expect.poll(async () => (await prefs(page)).layout.items.find((i) => i.id === "goals").w).toBe(6);
 });
 
 test.describe("a phone on its side", () => {
@@ -202,21 +203,21 @@ test("Escape and a resize in mid-drag cost nothing, and leaving the arrange view
 test("a blocked GridStack offers no handle it cannot honour", async ({ page }) => {
   await page.route(/gridstack/, (r) => r.abort()); await open(page);
   await page.locator("#arrangebtn").click(); await expect(page.locator(".whandle").first()).toBeHidden();
-  await page.getByRole("button", { name: "Move What needs you up" }).click();
-  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "needs", "review"]);
+  await page.getByRole("button", { name: "Move What's coming up up" }).click();
+  await expect.poll(async () => (await ids(page)).slice(0, 3)).toEqual(["hero", "upcoming", "needs"]);
 });
 
 test("a card that already draws full width says so when it is widened", async ({ page }) => {
   await open(page); await page.locator("#arrangebtn").click(); await mounted(page);
-  await page.getByRole("button", { name: "Make Review narrower" }).click(); await page.waitForTimeout(100);
-  await page.getByRole("button", { name: "Make Review wider" }).click();
+  await page.getByRole("button", { name: "Make Saving for narrower" }).click(); await page.waitForTimeout(100);
+  await page.getByRole("button", { name: "Make Saving for wider" }).click();
   await expect(page.locator("#toast")).toContainText("stays full width");
 });
 
 test("the desktop header fits from 820px up, live label and Ask included", async ({ page }) => {
   for (const width of [820, 860, 900, 960, 1000, 1040, 1060, 1100, 1180, 1240, 1320]) {
     await page.setViewportSize({ width, height: 800 }); await open(page);
-    await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live · demo sheet"; document.querySelector("#askbtn").hidden = false; });
+    await page.evaluate(() => { document.querySelector("#trustpill .txt").textContent = "Live demo · 30 Sep 2027"; document.querySelector("#askbtn").hidden = false; });
     expect(await page.evaluate(() => document.documentElement.scrollWidth), `page at ${width}`).toBeLessThanOrEqual(width);
     const lines = await page.locator(".brand .bname").evaluateAll((e) => e.filter((x) => x.offsetParent).map((x) => x.getBoundingClientRect().height));
     for (const h of lines) expect(h, `wordmark at ${width}`).toBeLessThan(40);

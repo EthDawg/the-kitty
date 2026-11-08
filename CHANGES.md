@@ -74,6 +74,27 @@ Clear every test cell and untick the boxes. Report what each test read.
 - If the household renamed a tab the formulas use (Goals, say), use their name in the new formulas and record it on Decisions.
 - Good is: every cell that existed before the upgrade reads the same afterwards, except `sheet_version` and the new Compliance Checks rows.
 
+### Fixes
+A reader's audit of the public page (8 November 2026) found three of the sheet's own derived columns reading the wrong rows. The page now reads these from the rows and keeps the sheet's figure beside its own, so each drawer can say where they differ. These notes fix the sheet so the two agree again. They are the one exception to "nothing that exists changes" above: afterwards Subscriptions, the Next date on Contracts for subscriptions and insurance, the duplicate check and two Savings Finder lines read differently. Every formula below is written against the Transactions view's columns (A Txn ID, B Date, C Account ID, D Bank description, E Merchant, F Amount, G Category ID, H Person, I Receipt held, J Note). Adapt the ranges to the Sheet in front of you; if a household has rewritten one of these columns, show the plan and ask first.
+
+#### A duplicate with a receipt or a note on each row is two purchases
+- Why: two Qantas fares on 19 Dec 2026, $2,418 each, both with a receipt and the note "Japan flights, April 2027", were counted as a double charge "worth disputing". They are two tickets for two adults. The check, the Savings Finder line and the Metrics row `savings.one_off` all carried the $2,418.
+- Change: in Compliance Checks, `Possible duplicate charges` counts a same-day group (same Date, Account ID, Merchant and Amount, below zero) only when not every row in the group holds a receipt and not every row carries a note. Items, with the same body for the amount using `-amt*(n-1)/n` in place of `(n-1)/n`:
+  `=SUM(MAP(Transactions!A2:A,Transactions!B2:B,Transactions!C2:C,Transactions!E2:E,Transactions!F2:F,LAMBDA(id,d,a,mer,amt,IF(OR(id="",N(amt)>=0),0,LET(n,COUNTIFS(Transactions!B:B,d,Transactions!C:C,a,Transactions!E:E,mer,Transactions!F:F,amt),y,COUNTIFS(Transactions!B:B,d,Transactions!C:C,a,Transactions!E:E,mer,Transactions!F:F,amt,Transactions!I:I,"Y"),t,COUNTIFS(Transactions!B:B,d,Transactions!C:C,a,Transactions!E:E,mer,Transactions!F:F,amt,Transactions!J:J,"<>"),IF(AND(n>1,y<n,t<n),(n-1)/n,0))))))`
+  Savings Finder's duplicate line reads the same items and amount, and is renamed `Check charges that look doubled`; "Why it matters" says "Check whether these are two purchases before disputing".
+- Good is: on the Davies sheet the check reads 2 items, $295.80 (JB Hi-Fi on 14 Mar 2026 and Uber Eats on 9 Jul 2026), and the Qantas pair is not in it.
+
+#### A premium adjustment is not a price, and a refund is not a charge
+- Why: Bupa's lowest charge in the look-back was a $31.20 row, `BUPA HEALTH INSURANCE PREMIUM ADJ` on 30 Dec 2026, so the sheet read a $388.15 price rise and $4,657.80 a year to push back on. The premium went from $398.20 to $419.35, which is $253.80 a year. Paramount+'s latest charge was the +$9.99 refund on 24 Jan 2027, so its annual cost read −$119.88 and the cancel saving shrank by $239.76.
+- Change: in Subscriptions, Last charged, Latest charge and Lowest charge in look-back read only rows with an Amount below zero whose Bank description is not an adjustment or refund. The test for that is `NOT(REGEXMATCH(UPPER(Transactions!D:D),"\b(ADJ|ADJUSTMENT|REFUND|REVERSAL|REVERSED)\b"))`, added to each `FILTER` or `SUMIFS`-style lookup beside the merchant test. Annual cost is `MAX(0, …)`. When Price rise per charge is more than half the lowest charge, Annual cost of price rise is 0 and the row's Usage flag gains `· check the price`; such a jump is usually a different product or a one-off, not a rise.
+- Good is: Bupa reads $398.20 to $419.35 and $253.80 a year; Paramount+ reads last charged 19 Jan 2027, $9.99, annual $119.88; Savings Finder's price-rise line reads $313.80 and the unused-subscriptions line $1,349.16.
+
+#### A merchant's rows are matched on category too
+- Why: Allianz sells car and travel insurance. The 15 Jan 2027 row `ALLIANZ TRAVEL INSURANCE` ($312, Holidays, note "Japan trip") became the car policy's latest charge, so Subscriptions showed car insurance at $312 a year and Contracts dated its renewal 15 Jan 2028. The car policy renewed at $1,348 on 14 Aug 2026.
+- Change: every Subscriptions lookup above also requires `Transactions!G:G` to equal the row's Category ID. On Contracts, a subscription or insurance row's Next date and Amount follow its Subscriptions row: the latest charge and its date plus one cadence.
+- Good is: Car insurance reads $1,348, last charged 14 Aug 2026, next 14 Aug 2027.
+- Tailoring: a household that files one provider's two products under one category keeps its rows; ask whether to split the category or add a Rules row that tells the products apart.
+
 ## 2.1, 7 November 2026: the blank template
 
 The v2 Sheet was emptied into a blank template and tested from it. These changes let a household that is not the Davies use it.

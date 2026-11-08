@@ -36,7 +36,7 @@ for (const broken of [false, true]) {
         ? { isOwner: async () => true, me: async () => ({ name: "Fictional editor" }) } : null };
     }, { broken });
     await page.goto(url + "?noonb&noanim");
-    await expect(page.locator("#trustpill")).toHaveText(broken ? "Sheet unreadable" : "Live · demo sheet");
+    await expect(page.locator("#trustpill")).toHaveText(broken ? "Sheet unreadable" : "Live demo · 31 Jan 2027");
     const calls = await page.evaluate(() => window.kittyReadCheck.calls);
     expect(calls).toContain("get_spreadsheet");
     expect(calls).toContain("get_values");
