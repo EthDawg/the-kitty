@@ -18,7 +18,10 @@ Write a receipt only when both of these hold:
 1. The lines add to the printed total, within 5 cents.
 2. The printed GST equals the taxable lines divided by 11, within 2 cents. If the docket prints no GST, use the retailer's GST mark on each line instead.
 
-If either fails, read it again. If it still fails, queue it for a person with the file. Never adjust a line to make it tie.
+If either fails, read it again. If it still fails, queue it for a person with the file. Never adjust a line to make it tie, and never write one line for the whole docket: a docket that prints 40 items needs its 40 lines. When a long docket is hard to read, read it in halves (top and bottom crops) before giving up.
+
+## Refunds
+A refund or return is its own receipt with a negative Total and negative lines, so it comes off spending. Match it to the bank's credit.
 
 ## Pay
 - **Card.** Match the receipt to one Entries row with the same amount, dated the same day to 3 days later, on a likely account. Put that row's ID in Entry ID.
