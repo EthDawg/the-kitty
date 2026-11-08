@@ -500,7 +500,7 @@
         <div class="facts">
           <button class="fact" data-open="networth"><b class="num">${fmtS(nw ? nw.num : null)}</b><span class="k">net worth</span>${nwDelta != null ? `<span class="d ${nwDelta >= 0 ? "gain" : "loss"}">${nwDelta >= 0 ? "▲" : "▼"} ${fmtS(Math.abs(nwDelta))} on a year ago</span>` : ""}</button>
           <button class="fact" data-go="insights"><b class="num">${E.fmtPct(sr ? sr.num : null, 1)}</b><span class="k">savings rate, 3 months</span>${sr && sr.comp != null ? `<span class="d ${sr.num >= sr.comp ? "gain" : "loss"}">${E.fmtPct(sr.comp, 1)} this time last year</span>` : ""}</button>
-          <button class="fact" data-go="safety"><b class="num">${sf.months != null ? sf.months.toFixed(1) : "—"} of ${sf.target}</b><span class="k">months of essentials in the emergency fund</span>${sf.months != null ? `<span class="d ${sf.months >= sf.target ? "gain" : "loss"}">${sf.months >= sf.target ? "covered" : `${fmtS(sf.short)} short`}</span>` : ""}</button>
+          <button class="fact" data-go="safety"><b class="num">${sf.months != null ? sf.months.toFixed(1) : "—"} of ${sf.target}</b><span class="k">months of essentials in the emergency fund</span>${sf.months != null && (sf.months >= sf.target || sf.short != null) ? `<span class="d ${sf.months >= sf.target ? "gain" : "loss"}">${sf.months >= sf.target ? "covered" : `${fmtS(sf.short)} short`}</span>` : ""}</button>
           <button class="fact" data-go="goals:save"><b class="num">${fmtS(m.savingsYear)}</b><span class="k">a year in ways to save</span><span class="d">${m.savings.length} ideas</span></button>
         </div>
       </div>`,
@@ -531,6 +531,7 @@
     Kit.bindCore(Object.fromEntries(Object.entries(parts).map(([id, html]) => [id, { data: () => html, render: (p) => p }])));
     const lay = homeLayout();
     v.innerHTML = `${canvasHTML(lay)}
+      ${(m.unreadable || []).length ? `<div class="secterr" style="margin:0 6px 10px">Some tabs could not be read, so the parts that use them are empty: ${esc(m.unreadable.join(", "))}. Check those tabs' headers and rows. <button class="linkbtn" data-open="trust">Details</button></div>` : ""}
       <p class="sub" style="padding:0 6px">${S.mode === "live" ? `Live from ${isDemoSheet() ? "the demo sheet" : "your sheet"}. ${esc(readAgeText())}` : "Demo household: the Davies, a fictional family in Melbourne, numbers made up to tell a story."} <button class="linkbtn" data-open="trust">Where the numbers come from</button></p>`;
     const hv = $("#heroval"); if (hv && cash) countUp(hv, cash.num, (x) => fmt0(x), "hero");
     bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending }))); bindCanvas(v); mountCanvas();
@@ -607,7 +608,7 @@
           ${[["", "Spending & income"], ["out", "Spending"], ["in", "Income"], ["move", "Transfers"]].concat(m.sheetVersion >= 2 && m.entries.some((e) => e.kind !== "transaction") ? [["bal", "Balances & trades"]] : []).map(([k, l]) => `<button class="chip" data-ff="${k}" aria-pressed="${f.flow === k}">${l}</button>`).join("")}
         </div>
         <div class="periodbar" id="feedperiod" style="margin-top:10px"><span class="seg mini" role="group" aria-label="Window">${[["all", "All time"], ["month", "Month"], ["quarter", "3 months"], ["year", "12 months"], ["fy", "This FY"]].map(([k, l]) => `<button data-fpk="${k}" aria-pressed="${pk.kind === k}">${l}</button>`).join("")}</span>${pk.kind !== "all" ? `<span class="nav"><button data-fpn="-1" aria-label="Earlier">${ico("i-back")}</button><button data-fpn="1" aria-label="Later" ${atEnd ? "disabled" : ""}>${ico("i-chev")}</button></span><span class="label" style="font-size:16px">${esc(w.label)}</span>` : ""}</div>
-        <div class="sumbar"><span><b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}</span><span>${f.flow !== "bal" ? `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
+        <div class="sumbar"><span><b class="num">${rows.length}</b> ${f.flow === "bal" ? "valuations and trades" : "transactions"}${f.q ? ` for “${esc(f.q)}”` : quiet && rows.length ? " since " + E.fmtMonth(rows[rows.length - 1].date, true) : w ? ` in ${esc(w.label)}` : ""}</span><span>${f.flow !== "bal" && rows.length ? `out <b class="num" style="color:var(--c-out)">${fmt0(sumOut)}</b>${sumIn ? ` · in <b class="num" style="color:var(--c-in)">${fmt0(sumIn)}</b>` : ""}` : ""}${S.downloads ? ` · <button class="linkbtn" id="csvbtn">${ico("i-dl")} CSV</button>` : ""}</span></div>
       </div>
       ${quiet ? `<div class="grid" style="--i:2">
         ${biggest ? `<button class="card span-4 erow" data-entry="${esc(biggest.id)}" style="align-items:center">${avatar(biggest, "lg")}<span class="mid"><span class="s">Biggest buy this month, outside housing</span><span class="t">${esc(biggest.merchant)}</span><span class="s">${esc(biggest.catName)} · ${E.fmtDay(biggest.date)}</span></span><span class="amt num">${fmt0(-biggest.amount)}</span></button>` : ""}
@@ -871,12 +872,13 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       </div>
       <div class="grid" style="--i:3">
         <div class="card span-6">
-          <div class="cardhead"><span class="q">Bills and subscriptions</span><span class="sub"><b class="num">${fmt0(lk.total)}</b> a year across ${m.subs.filter((s) => !/cancel/i.test(s.decision)).length}, insurance included</span></div>
+          <div class="cardhead"><span class="q">Bills and subscriptions</span><span class="sub"><b class="num">${fmt0(lk.total)}</b> a year across ${m.subs.filter((s) => !/cancel/i.test(s.decision) || /still charging/i.test(s.flag)).length}, insurance included</span></div>
+          ${(m.unreadable || []).includes("subscriptions") ? `<div class="secterr" style="margin-bottom:10px">The Subscriptions tab could not be read, so this card is empty.</div>` : ""}
           ${lk.stillCharging.map((s) => subRow(s, "warn", `Still charging after you cancelled${s.refundedOn ? ` · refunded ${E.fmtDay(s.refundedOn)}` : ""}`)).join("")}
           ${lk.unused.map((s) => subRow(s, "amber", s.daysSince != null ? `Unused for ${s.daysSince} days` : "Never used")).join("")}
           ${lk.rises.map((s) => subRow(s, "", `Price rose ${fmt(s.lowest, { cents: true })} to ${fmt(s.latest, { cents: true })} · ${fmt0(s.riseYear)} a year more`)).join("")}
           ${lk.jumps.map((s) => subRow(s, "amber", `Price jumped ${fmt(s.lowest, { cents: true })} to ${fmt(s.latest, { cents: true })}: check it before treating it as a rise`)).join("")}
-          <button class="linkbtn" data-open="subs">All subscriptions and bills →</button>
+          <button class="linkbtn" data-open="subs">All bills and subscriptions →</button>
         </div>
         <div class="card span-6">
           <div class="cardhead"><span class="q">Net worth</span><span class="sub"><b class="num">${fmtS(nwSeries.length ? nwSeries[nwSeries.length - 1].v : null)}</b> at ${E.fmtDay(m.asOf, { year: true })}, what you own less what you owe</span></div>
@@ -936,9 +938,10 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="card span-5" id="safetycard"><div class="cardhead"><span class="q">Safety net</span><span class="sub">the emergency fund, in months of essentials</span></div>
           <div class="goalrow">${ringSVG(sf.pct, "var(--c-in)", sf.months != null ? sf.months.toFixed(1) : "—", `of ${sf.target} months`)}<div class="txt">${(() => {
             if (sf.months == null) return `<p>The sheet has no emergency-cover figure yet. It needs a Goals row named Emergency fund.</p>`;
+            if (!sf.essentialPm) return `<p>The sheet says the emergency fund covers <b>${sf.months.toFixed(1)} months</b>. The page cannot show the essential spending behind that until the Entries tab has rows.</p>`;
             const fund = m.goals.find((g) => g.name === sf.fund), acct = fund && m.acctById[fund.acct];
             return `<p>The emergency fund${acct ? ` (${esc(acct.name)})` : ""} holds <b>${fmt0(sf.held)}</b>. That covers <b>${sf.months.toFixed(1)} months</b> of essential spending, about ${fmt0(sf.essentialPm)} a month over the last three months.</p>
-            <p class="sub" style="margin-top:6px">${sf.short ? `About ${fmtS(sf.short)} more would reach the ${sf.target} months you set. ` : `That meets the ${sf.target} months you set. `}${fund && fund.target && sf.essentialPm ? `The Emergency fund goal's own target, ${fmt0(fund.target)}, is ${(fund.target / sf.essentialPm).toFixed(1)} months. ` : ""}Essential means the categories marked Essential on the Categories tab. Cash and offset together, ${fmtS(sf.liquid)}, would cover ${sf.liquidMonths.toFixed(1)} months.</p>`; })()}${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" id="editsafety">Change the target</button>` : ""}</div></div>
+            <p class="sub" style="margin-top:6px">${sf.short ? `About ${fmtS(sf.short)} more would reach the ${sf.target} months you set. ` : `That meets the ${sf.target} months you set. `}${fund && fund.target && sf.essentialPm ? `The Emergency fund goal's own target, ${fmt0(fund.target)}, is ${(fund.target / sf.essentialPm).toFixed(1)} months. ` : ""}Essential means the categories marked Essential on the Categories tab. ${sf.liquidMonths != null ? `Cash and offset together, ${fmtS(sf.liquid)}, would cover ${sf.liquidMonths.toFixed(1)} months.` : ""}</p>`; })()}${canWriteSheet() || S.mode !== "live" ? `<button class="linkbtn" id="editsafety">Change the target</button>` : ""}</div></div>
         </div>
         ${(() => { const ws = E.worthSummary(m); if (ws.count < 5) return ""; return `<div class="card span-12" id="yescard"><div class="cardhead"><span class="q">${ico("i-worth")} Spend that earned a yes</span><span class="sub"><b class="num">${fmt0(ws.yesTotal)}</b> of ${fmt0(ws.total)} you were asked about · ${ws.yes} yes, ${ws.meh} meh, ${ws.no} no</span></div>
           <div class="yesblock"><div><h3 style="font-size:15px;margin-bottom:6px">By category</h3>${barsHTML(ws.byCat.slice(0, 6).map(([k, v]) => ({ k, v })))}</div><div><h3 style="font-size:15px;margin-bottom:6px">By merchant</h3>${barsHTML(ws.byMerchant.slice(0, 6).map(([k, v]) => ({ k, v, go: "merchant:" + k })))}</div></div>
@@ -1448,7 +1451,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   }
   function openSafetyEditor() {
     const m = S.m, sf = E.safety(m); const label = "Emergency fund target (months of essential spending)";
-    openDrawer(`${h2("Safety net target", `Months of essential spending you want in the emergency fund. Essential spending is about ${fmt0(sf.essentialPm)} a month over the last three months. The sheet's emergency metric and the Home verdict both read this target.`)}
+    openDrawer(`${h2("Safety net target", `Months of essential spending you want in the emergency fund.${sf.essentialPm ? ` Essential spending is about ${fmt0(sf.essentialPm)} a month over the last three months.` : ""} The sheet's emergency metric and the Home verdict both read this target.`)}
       <div class="slide" style="margin-top:14px"><div class="val num"><span id="sfv">${sf.target}</span><small>months</small></div><input id="sfr" type="range" min="1" max="12" step="1" value="${sf.target}" aria-label="Months of safety net"><div class="marks"><span>1</span><span>3</span><span>6</span><span>9</span><span>12</span></div><p class="sub" id="sft"></p></div>
       <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" id="sfsave">${canWriteSheet() ? "Write to Settings" : "Save here"}</button><button class="btn ghost" id="sfcancel">Cancel</button></div>`);
     const r = $("#sfr"), upd = () => { const t = +r.value; $("#sfv").textContent = t; $("#sft").textContent = sf.months != null && sf.essentialPm ? (sf.months >= t ? `Covered: the emergency fund would last ${sf.months.toFixed(1)} months.` : `About ${fmtS((t - sf.months) * sf.essentialPm)} more in the emergency fund would reach ${t} months.`) : ""; }; r.addEventListener("input", upd); upd();
