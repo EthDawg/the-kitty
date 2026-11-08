@@ -134,9 +134,9 @@
     </div>`;
     const dec = m.decisions.length ? `<section class="kx-th-sec"><div class="kx-th-sh"><h2>${m.decisions.length === 1 ? "A decision waiting" : `${m.decisions.length} decisions waiting`}</h2><p class="sub">Each option is costed from the quotes on the record. Choose one to see what it costs against our pick.</p></div>
       <div class="kx-th-decs">${m.decisions.map((d) => decisionCard(d, st[d.id])).join("")}</div></section>` : "";
-    const groups = m.groups.map((g) => `<section class="kx-th-grp"><div class="kx-th-gh"><h3>${esc(g.group)}</h3><span class="num">${whole(g.monthly)} a month</span></div>
+    const groups = m.groups.map((g) => `<section class="kx-th-grp card"><div class="kx-th-gh"><h3>${esc(g.group)}</h3><span class="num">${whole(g.monthly)} a month</span></div>
       <div class="kx-th-grid">${g.things.map((t) => thingCard(t, m)).join("")}</div></section>`).join("");
-    return `<div class="kx-th">${facts}${dec}<section class="kx-th-sec"><div class="kx-th-sh"><h2>What we own and pay for</h2><p class="sub">Tap a thing for every contract behind it, its timeline and what leaving today would cost.</p></div>${groups || `<div class="empty">No things on the record yet.</div>`}</section></div>`;
+    return `<div class="kx-th">${facts}${dec}<section class="kx-th-sec"><div class="kx-th-sh"><h2>What we own and pay for</h2><p class="sub">Tap a thing for every contract behind it, its timeline and what leaving today would cost.</p></div>${groups ? `<div class="kx-th-groups">${groups}</div>` : `<div class="empty">No things on the record yet.</div>`}</section></div>`;
   }
 
   // ---------- drawer ----------

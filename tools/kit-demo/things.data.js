@@ -10,7 +10,10 @@ function csv(p) {
 }
 module.exports = function () {
   const snap = JSON.parse(fs.readFileSync(path.join(ROOT, "data/snapshot-v2.json"), "utf8"));
-  return thingsInput(snap, csv("data/v3/decision-options.csv"));
+  const input = thingsInput(snap, csv("data/v3/decision-options.csv"));
+  const IMG = { HOME: "house", RENTAL: "townhouse", CAR: "car-wagon", PHONES: "sim", HEALTH: "health", STREAM: "streaming", CLOUD: "cloud", AI: "ai", ACTIVE: "active" };
+  for (const t of input.things) { const f = path.join(ROOT, "src/kit/art", (IMG[t.id] || "") + ".svg"); if (IMG[t.id] && fs.existsSync(f)) t.image = "data:image/svg+xml;base64," + fs.readFileSync(f).toString("base64"); }
+  return input;
 };
 // Which thing each contract belongs to, and the group each thing sits in. Loans and the lease live on Property and Goals.
 const PLACE = {
