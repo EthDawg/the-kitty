@@ -1,0 +1,3654 @@
+{
+ "meta": {
+  "revisionId": "APfK_pB5n6n992eo-yiPCY1booaCe8QsSzoo2iS_ozhbqiFER8Ykmm8uDQXeFC7oBmXMgorXPp_WHAJvUaTgqzffl3rVhff_Bnf-O1rzQKE",
+  "sheets": [
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 20,
+      "rowCount": 50
+     },
+     "index": 0,
+     "sheetId": 100,
+     "title": "Dashboard"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 6,
+      "frozenRowCount": 4,
+      "rowCount": 40
+     },
+     "index": 1,
+     "sheetId": 20,
+     "title": "Kitty"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "rowCount": 1001
+     },
+     "index": 2,
+     "sheetId": 0,
+     "title": "README"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 4,
+      "rowCount": 1000
+     },
+     "index": 3,
+     "sheetId": 1,
+     "title": "Metrics"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenColumnCount": 1,
+      "frozenRowCount": 4,
+      "rowCount": 1000
+     },
+     "index": 4,
+     "sheetId": 2,
+     "title": "Cash Flow"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 5,
+      "rowCount": 1000
+     },
+     "index": 5,
+     "sheetId": 3,
+     "title": "Budget"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 4,
+      "rowCount": 1000
+     },
+     "index": 6,
+     "sheetId": 4,
+     "title": "Savings Finder"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "rowCount": 1000
+     },
+     "index": 7,
+     "sheetId": 5,
+     "title": "Mortgage Scenarios"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenColumnCount": 1,
+      "frozenRowCount": 5,
+      "rowCount": 1000
+     },
+     "index": 8,
+     "sheetId": 6,
+     "title": "Tax Forecast"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 4,
+      "rowCount": 1007
+     },
+     "index": 9,
+     "sheetId": 7,
+     "title": "Compliance Checks"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenColumnCount": 1,
+      "frozenRowCount": 4,
+      "rowCount": 1000
+     },
+     "index": 10,
+     "sheetId": 8,
+     "title": "Net Worth"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 24,
+      "frozenRowCount": 1,
+      "rowCount": 2000
+     },
+     "index": 11,
+     "sheetId": 301,
+     "title": "Entries"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 6,
+      "frozenRowCount": 1,
+      "rowCount": 1000
+     },
+     "index": 12,
+     "sheetId": 302,
+     "title": "Balances"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 17,
+      "frozenRowCount": 1,
+      "rowCount": 200
+     },
+     "index": 13,
+     "sheetId": 303,
+     "title": "Contracts"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 10,
+      "frozenRowCount": 1,
+      "rowCount": 501
+     },
+     "index": 14,
+     "sheetId": 304,
+     "title": "Decisions"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 10,
+      "frozenRowCount": 1,
+      "rowCount": 500
+     },
+     "index": 15,
+     "sheetId": 305,
+     "title": "Rules"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 17,
+      "frozenRowCount": 1,
+      "rowCount": 1201
+     },
+     "index": 16,
+     "sheetId": 10,
+     "title": "Transactions"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 8,
+      "frozenRowCount": 1,
+      "rowCount": 300
+     },
+     "index": 17,
+     "sheetId": 11,
+     "title": "Payslips"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 5,
+      "frozenRowCount": 1,
+      "rowCount": 500
+     },
+     "index": 18,
+     "sheetId": 12,
+     "title": "Valuations"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenColumnCount": 1,
+      "frozenRowCount": 1,
+      "rowCount": 1000
+     },
+     "index": 19,
+     "sheetId": 14,
+     "title": "Subscriptions"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 1,
+      "rowCount": 1000
+     },
+     "index": 20,
+     "sheetId": 13,
+     "title": "Goals"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 1,
+      "rowCount": 1000
+     },
+     "index": 21,
+     "sheetId": 15,
+     "title": "Accounts"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 1,
+      "rowCount": 1000
+     },
+     "index": 22,
+     "sheetId": 16,
+     "title": "Categories"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 1,
+      "rowCount": 1000
+     },
+     "index": 23,
+     "sheetId": 17,
+     "title": "Loans"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "frozenRowCount": 1,
+      "rowCount": 1000
+     },
+     "index": 24,
+     "sheetId": 18,
+     "title": "Assets"
+    }
+   },
+   {
+    "properties": {
+     "gridProperties": {
+      "columnCount": 26,
+      "rowCount": 1000
+     },
+     "index": 25,
+     "sheetId": 19,
+     "title": "Settings"
+    }
+   }
+  ]
+ },
+ "ranges": {
+  "revisionId": "APfK_pB5n6n992eo-yiPCY1booaCe8QsSzoo2iS_ozhbqiFER8Ykmm8uDQXeFC7oBmXMgorXPp_WHAJvUaTgqzffl3rVhff_Bnf-O1rzQKE",
+  "sheets": [
+   {
+    "data": [
+     {
+      "rowData": [
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Kitty settings"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "What The Kitty page needs that no other tab owns. Blue values are inputs; the page may also write them when its reader can edit this sheet. Numbers stay with their owning tabs (Goals, Settings, Accounts)."
+          }
+         }
+        ]
+       },
+       {},
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Key"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Value"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Note"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "household_name"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "The Davies"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Shown in greetings and under the page name"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "people"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan, Mia"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "First names, comma separated; the Activity tab filters by them"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "country"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "AU"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "ISO 3166 code. Sets the currency format, the financial year and which data-source guide is shown"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "currency"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "AUD"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "ISO 4217 code"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "lead_goal"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Japan trip, April 2027"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "The goal the Home page leads with; must match a name on the Goals tab"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "greeting_name"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan and Mia"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "What the page calls the person reading it; blank uses the household name"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "pay_cycle"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Fortnightly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Weekly, Fortnightly or Monthly; with the latest payslip it gives the pay-day countdown"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "onboarded_at"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "2026-11-04T17:10:42.487Z"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Written by the page when setup finishes (ISO date and time)"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "accent"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "lime"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "violet, coral, teal or lime"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "sheet_version"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 2
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "The page refuses to write to a sheet whose version it does not know"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "big_bill_amount"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 500
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A bill at or above this (in the household currency) within two weeks joins the Home page's needs list"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "look_ahead_days"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 35
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "How far ahead What's coming up looks"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "public_feed"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "yes"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "yes lets the bound Apps Script serve every tab as JSON to anyone with its URL (fine for a fictional sheet, never for real money). Anything else and the feed answers with a refusal."
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "worth_it_min"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 40
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "properties": {
+     "title": "Kitty"
+    }
+   },
+   {
+    "data": [
+     {
+      "rowData": [
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Compliance checks"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax and data-quality checks over the raw data. Review means look at the rows before relying on the tax forecast."
+          }
+         }
+        ]
+       },
+       {},
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Check"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Type"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Items"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Amount ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Status"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Why it matters"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Where to look"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work expenses without a receipt"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!P:P,\"Work deduction\",Transactions!I:I,\"<>Y\",Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-SUMIFS(Transactions!F:F,Transactions!P:P,\"Work deduction\",Transactions!I:I,\"<>Y\",Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C5>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A claim can be denied without written evidence."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, Receipt held"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work equipment over the immediate-deduction limit"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!G:G,\"WORK-EQUIP\",Transactions!F:F,\"<\"&-Settings!B24,Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-SUMIFS(Transactions!F:F,Transactions!G:G,\"WORK-EQUIP\",Transactions!F:F,\"<\"&-Settings!B24,Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C6>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Items over the limit are depreciated over their effective life, and only the work-use share counts."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, category WORK-EQUIP"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Large rental repairs"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!G:G,\"RENT-REPAIR\",Transactions!F:F,\"<\"&-Settings!B25,Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-SUMIFS(Transactions!F:F,Transactions!G:G,\"RENT-REPAIR\",Transactions!F:F,\"<\"&-Settings!B25,Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C7>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Renovating or replacing a whole asset is usually a capital improvement, not a deductible repair."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, category RENT-REPAIR"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Donations without a receipt"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!P:P,\"Gift deduction\",Transactions!I:I,\"<>Y\",Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-SUMIFS(Transactions!F:F,Transactions!P:P,\"Gift deduction\",Transactions!I:I,\"<>Y\",Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">=\"&Settings!B34)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C8>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Only gifts to registered charities, with a receipt, are deductible. Crowdfunding for a person usually is not."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, category DONATION"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Rental property ran at a loss (prior year)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF('Tax Forecast'!B14+'Tax Forecast'!C14<0,1,0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-('Tax Forecast'!B14+'Tax Forecast'!C14)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C9>0,\"Note\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A rental loss is allowed, but keep every record that supports it."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax Forecast, net rental"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Salary deposits match payslips (prior year)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(ABS(D10)>1,1,0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=ROUND(SUMIFS(Payslips!G:G,Payslips!H:H,Settings!B9)-SUMIFS(Transactions!F:F,Transactions!G:G,\"SALARY\",Transactions!L:L,Settings!B9),2)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C10>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A gap means a missing pay or a deposit in the wrong category."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Payslips, Transactions"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Uncategorised transactions"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!G:G,\"UNCAT\",Transactions!B:B,\"<=\"&Settings!B6)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMIFS(Transactions!F:F,Transactions!G:G,\"UNCAT\",Transactions!F:F,\">0\",Transactions!B:B,\"<=\"&Settings!B6)-SUMIFS(Transactions!F:F,Transactions!G:G,\"UNCAT\",Transactions!F:F,\"<0\",Transactions!B:B,\"<=\"&Settings!B6)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C11>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "They are left out of budgets and tax totals until categorised."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, category UNCAT"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Unknown category IDs"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!M:M,\"Unknown category\",Transactions!B:B,\"<=\"&Settings!B6)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-SUMIFS(Transactions!F:F,Transactions!M:M,\"Unknown category\",Transactions!B:B,\"<=\"&Settings!B6)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C12>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A typo in a category ID drops the row from every view."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, Category"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Possible duplicate charges"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!Q:Q,\">1\",Transactions!O:O,\"Expense\",Transactions!B:B,\"<=\"&Settings!B6)/2"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-SUMIFS(Transactions!F:F,Transactions!Q:Q,\">1\",Transactions!O:O,\"Expense\",Transactions!B:B,\"<=\"&Settings!B6)/2"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C13>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Same merchant, amount, account and day. Usually a double charge worth disputing."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, Same-day matches"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Transfers that do not net to zero"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(ABS(D14)>0.01,1,0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMIFS(Transactions!F:F,Transactions!O:O,\"Transfer\",Transactions!B:B,\"<=\"&Settings!B6)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C14>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A one-sided transfer means an account feed is missing."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, Flow = Transfer"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Card interest charged (last 12 months)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Cash"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Transactions!G:G,\"FEES\",Transactions!D:D,\"*INTEREST*\",Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">\"&EDATE(Settings!B6,-12))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=-SUMIFS(Transactions!F:F,Transactions!G:G,\"FEES\",Transactions!D:D,\"*INTEREST*\",Transactions!B:B,\"<=\"&Settings!B6,Transactions!B:B,\">\"&EDATE(Settings!B6,-12))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C15>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Interest means the card was not paid in full that month."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, category FEES"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions after the as-of date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIF(Transactions!B:B,\">\"&Settings!B6)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMIFS(Transactions!F:F,Transactions!B:B,\">\"&Settings!B6)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C16>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Rows dated after the as-of date are left out of every view."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Settings, As-of date"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Valuations missing for the as-of date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Close"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMPRODUCT((Assets!A2:A<>\"\")*(COUNTIFS(Valuations!B:B,Assets!A2:A,Valuations!A:A,Settings!B6)=0))"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C17>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Property, super, shares, the car and both loans read as zero until their month-end values are entered, so net worth and the mortgage are wrong."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Valuations, one row per item in Assets"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Salary deposits without a payslip (current year)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Close"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(ABS(D18)>1,1,0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=ROUND(SUMIFS(Transactions!F:F,Transactions!G:G,\"SALARY\",Transactions!L:L,Settings!B8,Transactions!B:B,\"<=\"&Settings!B6)-SUMIFS(Payslips!G:G,Payslips!H:H,Settings!B8,Payslips!A:A,\"<=\"&Settings!B6),2)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C18>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Gross pay and tax withheld come from payslips, so the tax forecast is wrong until every pay has one."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Payslips, Transactions"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Bank import missing for the latest month"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Close"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMPRODUCT(((Accounts!D2:D=\"Transaction\")+(Accounts!D2:D=\"Credit card\"))*(COUNTIFS(Transactions!C:C,Accounts!A2:A,Transactions!K:K,Settings!B7)=0))"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C19>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "An everyday account or card with no rows this month usually means its statement was not imported."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Accounts, Transactions"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Subscriptions charged but not on the list"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IFERROR(LET(seen,UNIQUE(FILTER(Transactions!E2:E,Transactions!G2:G=\"SUBS\",Transactions!B2:B>EDATE(Settings!B6,-2),Transactions!B2:B<=Settings!B6)),ROWS(FILTER(seen,COUNTIF(Subscriptions!B2:B,seen)=0))),0)"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C20>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A new subscription, often a free trial that rolled into a paid plan, is invisible to the usage and price checks until it is on the list."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, category SUBS, against Subscriptions"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Repeated transaction IDs"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTA(Transactions!A2:A)-COUNTUNIQUE(Transactions!A2:A)"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C21>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Usually the same statement imported twice. Views look rows up by ID, so every ID must be used once."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Transactions, Txn ID"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Transfers without a mate"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIFS(Entries!U2:U,\"Transfer\",Entries!N2:N,\"\")+COUNTIFS(Entries!N2:N,\"<>\",Entries!W2:W,\"<>2\")+COUNTIFS(Entries!N2:N,\"<>\",Entries!V2:V,\"<>0\")+COUNTIFS(Entries!N2:N,\"<>\",Entries!X2:X,\">4\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMIFS(Entries!G2:G,Entries!U2:U,\"Transfer\",Entries!N2:N,\"\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C22>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "A transfer needs a mate of the opposite amount on another account within four days; one without means a feed is missing or a payment was categorised as a transfer. Paired transfers never count as spending."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Entries, Transfer ID"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Balance change explained (latest month)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Data"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(ABS(D23)>0.01,1,0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=ROUND((SUMIFS(Balances!$C:$C,Balances!$A:$A,EOMONTH(Settings!$B$6,0),Balances!$F:$F,\"active\")-SUMIFS(Balances!$C:$C,Balances!$A:$A,EOMONTH(Settings!$B$6,-1),Balances!$F:$F,\"active\"))-'Cash Flow'!Q18-(SUMIFS(Balances!$C:$C,Balances!$A:$A,EOMONTH(Settings!$B$6,0),Balances!$E:$E,\"<>ledger\",Balances!$F:$F,\"active\")-SUMIFS(Balances!$C:$C,Balances!$A:$A,EOMONTH(Settings!$B$6,-1),Balances!$E:$E,\"<>ledger\",Balances!$F:$F,\"active\")),2)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C23>0,\"Review\",\"OK\")"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "The month's change across every balance must equal income less spending plus valuation changes. Anything left over is a transfer with no mate, a row on the wrong account or a missing statement."
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Balances, Cash Flow, Entries"
+          }
+         }
+        ]
+       },
+       {},
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Checks needing review"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=COUNTIF(E5:E,\"Review\")"
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "properties": {
+     "title": "Compliance Checks"
+    }
+   },
+   {
+    "data": [
+     {
+      "rowData": [
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Contract ID"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Kind"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Name"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Provider"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Owner"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Account ID"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Category ID"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Cadence"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Amount ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Rate"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Start date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "End date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Next date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Last used"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Cover"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Status"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Note"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0001"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Netflix"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Netflix"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Mia"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 28.99
+          }
+         },
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=MAP(A2:A,B2:B,C2:C,G2:G,H2:H,LAMBDA(id,kind,name,cat,cad,IF(LEN(id),IF(kind=\"loan\",IFERROR(IF(AND(cad=\"Monthly\",cat<>\"\",COUNTIFS($B$2:$B,\"loan\",$G$2:$G,cat)=1,ISNUMBER(Settings!$B$6)),LET(asOfDay,INT(Settings!$B$6),paidDates,SORT(FILTER(Entries!$C$2:$C,Entries!$B$2:$B=\"transaction\",Entries!$H$2:$H=cat,ISNUMBER(Entries!$G$2:$G),Entries!$G$2:$G<0,ISNUMBER(Entries!$C$2:$C),Entries!$C$2:$C>0,Entries!$C$2:$C<=asOfDay),1,FALSE),lastPaid,INDEX(paidDates,1,1),priorPaid,INDEX(paidDates,2,1),payDay,MAX(DAY(lastPaid),DAY(priorPaid)),monthEnd,EOMONTH(asOfDay,0),thisDue,MIN(monthEnd,EOMONTH(asOfDay,-1)+payDay),IF(AND(EOMONTH(priorPaid,1)=EOMONTH(lastPaid,0),EOMONTH(lastPaid,0)>=EOMONTH(asOfDay,-1),SUMPRODUCT(--(paidDates>EOMONTH(priorPaid,-1)))=2,DAY(lastPaid)=MIN(payDay,DAY(EOMONTH(lastPaid,0))),DAY(priorPaid)=MIN(payDay,DAY(EOMONTH(priorPaid,0)))),IF(thisDue>asOfDay,thisDue,MIN(EOMONTH(asOfDay,1),monthEnd+payDay)),\"\")),\"\"),\"\"),IF(kind=\"lease\",EDATE(MAXIFS(Transactions!$B:$B,Transactions!$G:$G,cat,Transactions!$B:$B,\"<=\"&Settings!$B$6),1),IFERROR(IF(REGEXMATCH(VLOOKUP(name,Subscriptions!$A:$P,16,FALSE),\"Cancelled|Stopped\"),\"\",EDATE(VLOOKUP(name,Subscriptions!$A:$H,8,FALSE),12/VLOOKUP(cad,Settings!$J:$K,2,FALSE))),\"\"))),)))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 46414
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Standard plan"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0002"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Spotify Family"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Spotify"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 27.99
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46417
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Family plan"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0003"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Disney+"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Disney+"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 15.99
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46187
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0004"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Kayo Sports"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Kayo Sports"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 35
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46110
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0005"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Paramount+"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Paramount+"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 9.99
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Free trial rolled into a paid plan"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0006"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "iCloud+ 2TB"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "iCloud+"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Mia"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 15.99
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46418
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "2 TB"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0007"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Dropbox Plus"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Dropbox"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Annual"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 174
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46073
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Plus plan"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0008"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "ChatGPT Plus"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "ChatGPT Plus"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 32.46
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46416
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Plus plan"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Billed in USD"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0009"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Anytime Fitness"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Anytime Fitness"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 64.95
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46223
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Membership, Coburg"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0010"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Bupa health cover"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Bupa"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "HEALTH"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 419.35
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Hospital and extras, couple"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0011"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Car insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Allianz"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "CAR"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "CAR"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Annual"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 312
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Comprehensive, family car"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0012"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Home and contents insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Youi"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "HOME"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "HOME-INS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Annual"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 1820
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Home and contents, Brunswick"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0013"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Landlord insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "EBM Insurance"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "RENTAL"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "RENT-INS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Annual"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 1702
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Landlord cover, Geelong townhouse"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0014"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Internet"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Aussie Broadband"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "TELCO"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 99
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "NBN plan"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0015"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Mobile plans"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Belong"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "TELCO"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 70
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Two SIM plans"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0016"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Swim school"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Splash Swim School"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "KIDS-ACT"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 96
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46409
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Weekly lessons, billed monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0017"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "subscription"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "YouTube Premium"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "YouTube Premium"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "SUBS"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 22.99
+          }
+         },
+         {},
+         {},
+         {},
+         {},
+         {},
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0018"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "loan"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Home loan terms"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Harbour Bank"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "LN-HOME"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "MORTGAGE"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=Loans!K2"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=Loans!F2"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=Loans!G2"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Principal and interest, offset account ACC-OFF"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Terms owned by the Loans tab"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0019"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "loan"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Investment loan terms"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Harbour Bank"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "LN-INV"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "RENT-INT"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=Loans!K3"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=Loans!F3"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "formulaValue": "=Loans!G3"
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Interest only, secured on the Geelong townhouse"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Terms owned by the Loans tab"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "C0020"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "lease"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Lease, Geelong townhouse"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Bayside Property Mgmt"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Joint"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "RENTAL"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "RENT-INC"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Monthly"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 2470
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "numberValue": 46082
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 46446
+          }
+         },
+         {},
+         {
+          "userEnteredValue": {
+           "stringValue": "n/a"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "12-month residential lease, rent $2,470 a month, managed (RENT-MGMT)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "active"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Rent rose from $2,340 in March 2026"
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "properties": {
+     "title": "Contracts"
+    }
+   },
+   {
+    "data": [
+     {
+      "rowData": [
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Goal"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Target amount ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Target date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Linked account"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Balance now ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Progress"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Months left"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Needed per month ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Saved per month, last 3 months ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Status"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Emergency fund"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 30000
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 46387
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "ACC-SAV"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IFERROR(VLOOKUP(D2,Accounts!$A:$H,8,FALSE),0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(B2=0,0,MIN(1,E2/B2))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C2<=Settings!$B$6,0,DATEDIF(Settings!$B$6,C2,\"M\"))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(G2=0,MAX(0,B2-E2),MAX(0,B2-E2)/G2)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMIFS(Transactions!$F:$F,Transactions!$C:$C,D2,Transactions!$B:$B,\">\"&EDATE(Settings!$B$6,-3),Transactions!$B:$B,\"<=\"&Settings!$B$6)/3"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(E2>=B2,\"Reached\",IF(I2>=H2,\"On track\",\"Behind\"))"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Japan trip, April 2027"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 12000
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 46477
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "ACC-HOL"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IFERROR(VLOOKUP(D3,Accounts!$A:$H,8,FALSE),0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(B3=0,0,MIN(1,E3/B3))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C3<=Settings!$B$6,0,DATEDIF(Settings!$B$6,C3,\"M\"))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(G3=0,MAX(0,B3-E3),MAX(0,B3-E3)/G3)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMIFS(Transactions!$F:$F,Transactions!$C:$C,D3,Transactions!$B:$B,\">\"&EDATE(Settings!$B$6,-3),Transactions!$B:$B,\"<=\"&Settings!$B$6)/3"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(E3>=B3,\"Reached\",IF(I3>=H3,\"On track\",\"Behind\"))"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Offset buffer"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 75000
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 46752
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "ACC-OFF"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IFERROR(VLOOKUP(D4,Accounts!$A:$H,8,FALSE),0)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(B4=0,0,MIN(1,E4/B4))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(C4<=Settings!$B$6,0,DATEDIF(Settings!$B$6,C4,\"M\"))"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(G4=0,MAX(0,B4-E4),MAX(0,B4-E4)/G4)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=SUMIFS(Transactions!$F:$F,Transactions!$C:$C,D4,Transactions!$B:$B,\">\"&EDATE(Settings!$B$6,-3),Transactions!$B:$B,\"<=\"&Settings!$B$6)/3"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=IF(E4>=B4,\"Reached\",IF(I4>=H4,\"On track\",\"Behind\"))"
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "properties": {
+     "title": "Goals"
+    }
+   },
+   {
+    "data": [
+     {
+      "rowData": [
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Settings and assumptions"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Blue values are inputs. Change them and every view recalculates. Black values are formulas."
+          }
+         }
+        ]
+       },
+       {},
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Setting"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Value"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Note"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Household"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Davies household (fictional)"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "As-of date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 46418
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Last day of the latest complete month. Every view rolls forward from this date."
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Latest month (first day)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=EOMONTH(B6,-1)+1"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Current financial year"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=\"FY\"&RIGHT(YEAR(B6)+(MONTH(B6)>=7),2)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Australian financial year, July to June"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Prior financial year"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=\"FY\"&RIGHT(YEAR(B6)+(MONTH(B6)>=7)-1,2)"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Months elapsed in current financial year"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=MOD(MONTH(B6)-7,12)+1"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Jordan's share of joint income and the rental property"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.5
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Mia's share of joint income and the rental property"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=1-B11"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work-from-home rate per hour ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.7
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Source: ATO fixed rate method, 70 cents per hour from 1 July 2024"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work-from-home hours, Jordan, prior year"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 760
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work-from-home hours, Mia, prior year"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work-from-home hours, Jordan, current year to date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 440
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work-from-home hours, Mia, current year to date"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Capital works deduction per year, Div 43 ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 4200
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Source: fictional quantity surveyor schedule"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Plant and equipment depreciation per year, Div 40 ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 1150
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Source: fictional quantity surveyor schedule"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Medicare levy rate"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.02
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Source: ATO"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Savings account interest rate"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.046
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Illustrative"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Comparison home loan rate for refinancing"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.0539
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Illustrative"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Days without use before a subscription is flagged"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 60
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Work items above this amount are depreciated, not claimed outright ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 300
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Source: ATO, work items costing more than $300"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Rental repair amount that triggers a repair-or-improvement review ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 5000
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Illustrative threshold"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Emergency fund target (months of essential spending)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 6
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Rate rise used for the stress test"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.005
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Look-back for subscription price rises (months)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 15
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Long enough to see last year's annual renewals"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Interest rate step in the mortgage table"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.0025
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Smallest price change counted as a rise"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.03
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Ignores currency conversion noise on foreign-currency subscriptions"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Budget tolerance before a category is marked Over"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.1
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Over budget by more than this share"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Smallest monthly spend for the growth ranking ($)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 100
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Stops tiny categories topping the fastest-growing list"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Capital works deduction rate for improvements"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "numberValue": 0.025
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Source: ATO, 2.5% a year for capital works on residential rental property"
+          }
+         }
+        ]
+       },
+       {
+        "values": [
+         {
+          "userEnteredValue": {
+           "stringValue": "Prior financial year starts"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "formulaValue": "=DATE(YEAR(B6)-IF(MONTH(B6)>=7,1,2),7,1)"
+          }
+         },
+         {
+          "userEnteredValue": {
+           "stringValue": "Tax checks look at the prior and current financial years only, so lodged years drop off"
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "properties": {
+     "title": "Settings"
+    }
+   }
+  ]
+ },
+ "entries_rows": 1083
+}

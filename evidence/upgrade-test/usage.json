@@ -1,0 +1,47 @@
+{
+ "H3-sonnet": {
+  "tokens": 129323,
+  "tool_uses": 38,
+  "ms": 154569
+ },
+ "H1-haiku": {
+  "tokens": 141590,
+  "tool_uses": 36,
+  "ms": 156353
+ },
+ "H3-haiku": {
+  "tokens": 167788,
+  "tool_uses": 27,
+  "ms": 156882
+ },
+ "H1-sonnet": {
+  "tokens": 134978,
+  "tool_uses": 36,
+  "ms": 169559
+ },
+ "H2-sonnet": {
+  "tokens": 157128,
+  "tool_uses": 30,
+  "ms": 172053
+ },
+ "H2-haiku": {
+  "tokens": 186446,
+  "tool_uses": 50,
+  "ms": 242485
+ },
+ "H1-opus": {
+  "tokens": 258338,
+  "tool_uses": 35,
+  "ms": 615861
+ },
+ "H3-opus": {
+  "tokens": 215220,
+  "tool_uses": 45,
+  "ms": 639753
+ },
+ "H2-opus": {
+  "tokens": 262297,
+  "tool_uses": 44,
+  "ms": 676862
+ }
+}
