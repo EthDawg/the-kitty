@@ -208,7 +208,8 @@ final class OfflinePageTests: XCTestCase {
         _ = try await js(page, "document.querySelector('#dclose').click(); return true")
         try await wait(page, for: "document.querySelector('#drawer[inert][aria-hidden=true]:not([aria-modal])')")
 
-        _ = try await js(page, "document.querySelector('[data-tab=setup]').click(); return true")
+        // Setup is the header's Setup button since the page gained the Things and Tax tabs
+        _ = try await js(page, "document.querySelector('#setupbtn').click(); return true")
         let setup = try await js(page, "return document.querySelector('#v-setup').innerText") as? String ?? ""
         XCTAssertTrue(setup.localizedCaseInsensitiveContains("demo"))
         XCTAssertFalse(setup.contains("Safari"))
