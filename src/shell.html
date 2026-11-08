@@ -11,8 +11,8 @@
     <button data-tab="activity" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>Activity</span></button>
     <button data-tab="insights" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-insights"/></svg><span>Insights</span></button>
     <button data-tab="goals" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-goal"/></svg><span>Goals</span></button>
-    <button data-tab="records" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg><span>Records</span></button>
-    <button data-tab="setup" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-setup"/></svg><span>Setup</span></button>
+    <button data-tab="things" aria-selected="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-things"/></svg><span>Things</span></button>
+    <button data-tab="tax" aria-selected="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-tax"/></svg><span>Tax</span></button>
     <span class="tabglow" aria-hidden="true"></span>
   </nav>
   <span class="spacer"></span>
@@ -20,6 +20,7 @@
   <button class="iconbtn" id="arrangebtn" aria-label="Arrange Home" aria-pressed="false" title="Arrange Home" hidden><svg aria-hidden="true"><use href="#i-edit"/></svg></button>
   <button class="iconbtn" id="askbtn" aria-label="Ask the Kitty" hidden><svg aria-hidden="true"><use href="#i-spark"/></svg></button>
   <button class="iconbtn" id="topsearch" aria-label="Search transactions"><svg aria-hidden="true"><use href="#i-search"/></svg><kbd>/</kbd></button>
+  <button class="iconbtn" id="setupbtn" aria-label="Setup" title="Setup: your sheet, your data, this page"><svg aria-hidden="true"><use href="#i-setup"/></svg><span class="lbl">Setup</span></button>
 </div></header>
 <main class="wrap">
   <div id="app">
@@ -27,7 +28,9 @@
     <section class="view" id="v-activity"></section>
     <section class="view" id="v-insights"></section>
     <section class="view" id="v-goals"></section>
-    <section class="view" id="v-records"></section>
+    <section class="view" id="v-things"></section>
+    <section class="view" id="v-tax"><div id="v-taxview"></div><div id="v-recentry"></div></section>
+    <section class="view" id="v-rec"><div class="v3back"><button class="linkbtn" data-go="tax"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg>Tax</button><span class="sub">The record, a preview</span></div><div id="v-records"></div></section>
     <section class="view" id="v-setup"></section>
   </div>
 </main>

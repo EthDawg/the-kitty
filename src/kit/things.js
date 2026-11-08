@@ -19,6 +19,7 @@
   const days = (a, b) => Math.round((toDate(b) - toDate(a)) / 864e5);
   const monthsBetween = (a, b) => { const A = toDate(a), B = toDate(b); return (B.getUTCFullYear() - A.getUTCFullYear()) * 12 + (B.getUTCMonth() - A.getUTCMonth()) - (B.getUTCDate() < A.getUTCDate() ? 1 : 0); };
   const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const lc = (s) => { const x = String(s == null ? "" : s); return x.charAt(0).toLowerCase() + x.slice(1); };   // first letter only: names keep their capitals
   const GROUP_ORDER = ["Home & property", "Wheels", "Phones & devices", "Plans", "Storage", "Insurance", "Subscriptions"];
   // What a confidence word means, so a chip can explain itself. Records use their own words; unknown words pass through.
   const CONF = {
@@ -206,8 +207,14 @@
   function renderHome(m) {
     if (!m) return "";
     const d = m.decisions[0];
-    if (d) return `<button type="button" class="kx-th-home" data-go="things"><span class="kx-th-hk">${m.decisions.length === 1 ? "Decision waiting" : `${m.decisions.length} decisions waiting`}</span><span class="kx-th-hq">${esc(d.question)}</span>${dueChip(d)}<span class="kx-th-hs">${d.rec ? `Our pick: ${esc(d.rec.option)}, ${smart(d.rec.total)}` : `Cheapest: ${esc(d.cheapest.option)}, ${smart(d.cheapest.total)}`}</span></button>`;
-    return m.next ? `<button type="button" class="kx-th-home" data-go="things"><span class="kx-th-hk">Next renewal</span><span class="kx-th-hq">${esc(m.next.name)}</span><span class="kx-th-hs">${nextText(m.next, m.today)}</span></button>` : "";
+    const n = m.decisions.length;
+    // the nearest decision, its options to one scale, and the way to the rest; the page wraps it in a card
+    if (d) return `<div class="kx-th-home">
+      <div class="cardhead"><span class="q">${n === 1 ? "A decision waiting" : `${n} decisions waiting`}</span><button type="button" class="linkbtn" data-go="things">${n === 1 ? "Open" : `All ${n}`} →</button></div>
+      <button type="button" class="kx-th-hq" data-go="things">${esc(d.question)}</button>${dueChip(d)}
+      <div class="kx-th-hopts" role="img" aria-label="${esc(d.options.map((o) => `${o.option} ${smart(o.total)}${o === d.rec ? ", our pick" : ""}`).join("; "))}">${d.options.map((o) => `<div class="kx-th-hopt${o === d.rec ? " on" : ""}"><span class="kx-th-hon">${esc(o.option)}${o === d.rec ? ` <em>our pick</em>` : ""}</span><b class="num">${smart(o.total)}</b><span class="kx-th-bt"><i style="width:${Math.max(2, (o.total / d.max) * 100).toFixed(1)}%"></i></span></div>`).join("")}</div>
+      <p class="kx-th-hs">${d.horizon ? `Each over the next ${plural(d.horizon, "month")}. ` : ""}${d.rec ? `Our pick: ${esc(lc(d.rec.option))}.` : `Cheapest: ${esc(lc(d.cheapest.option))}.`}</p></div>`;
+    return m.next ? `<div class="kx-th-home"><div class="cardhead"><span class="q">Next renewal</span><button type="button" class="linkbtn" data-go="things">Things →</button></div><button type="button" class="kx-th-hq" data-go="things">${esc(m.next.name)}</button><p class="kx-th-hs">${nextText(m.next, m.today)}</p></div>` : "";
   }
   return { model, render, renderHome, renderThing, bind, _: { days, monthsBetween } };
 });

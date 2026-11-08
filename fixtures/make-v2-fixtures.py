@@ -27,6 +27,8 @@ def cut(name, keep_accounts, keep_contract_kinds, note):
     s['decisions'] = [d for d in snap['decisions'] if d['ref_kind'] != 'account' or d['ref_id'] in ids]
     s['networth'] = []   # the Net Worth tab is derived from every active account; a subset has no tab of its own
     s['metrics'] = [m for m in snap['metrics'] if not m['metric_id'].startswith('networth.') or m['metric_id'] == 'networth.cash']
+    for k in ('receipts', 'receipt_lines', 'decision_options', 'goal_levers', 'tax_returns'):
+        s.pop(k, None)   # sheet-version-3 tabs: the fixtures stay version 2 households, so a page's v3 views stay dark on them
     s['fixture'] = {'name': name, 'cut_from': snap.get('fetchedAt'), 'note': note}
     out = ROOT / 'fixtures' / f'{name}.json'
     out.write_text(json.dumps(s, separators=(',', ':'), ensure_ascii=False))

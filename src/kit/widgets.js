@@ -21,6 +21,9 @@
     { id: "hero", domain: "everyday", title: "Where you stand", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }], drill: "trust" },
     { id: "review", domain: "everyday", title: "Review", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }, { w: 6, variant: "half" }], drill: "review" },
     { id: "needs", domain: "everyday", title: "What needs you", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }, { w: 6, variant: "half" }], drill: "needs" },
+    // sheet version 3: the page hands these over only when Decision Options or Receipts have something to say
+    { id: "decide", domain: "things", title: "Decision waiting", requires: [], core: true, sizes: [{ w: 7, variant: "half" }, { w: 12, variant: "wide" }], drill: "things" },
+    { id: "shop", domain: "everyday", title: "This week's shop", requires: [], core: true, sizes: [{ w: 5, variant: "half" }, { w: 7, variant: "half" }, { w: 12, variant: "wide" }], drill: "groceries" },
     { id: "upcoming", domain: "everyday", title: "What's coming up", requires: [], core: true, sizes: [{ w: 5, variant: "half" }, { w: 7, variant: "half" }, { w: 12, variant: "wide" }], drill: "upcoming" },
     { id: "months", domain: "everyday", title: "The last 12 months", requires: [], core: true, sizes: [{ w: 7, variant: "half" }, { w: 5, variant: "half" }, { w: 12, variant: "wide" }], drill: "insights" },
     { id: "goals", domain: "everyday", title: "Saving for", requires: [], core: true, sizes: [{ w: 12, variant: "wide" }, { w: 6, variant: "half" }], drill: "goals" },

@@ -1,5 +1,5 @@
 // Davies input for the Things module: Contracts, Assets and Decision Options mapped onto things.
-// The same mapping lives in the page (src/app.js thingsInput); keep them in step.
+// The same mapping lives in the page (src/kit/v3.js thingsInput, over the engine model); test/v3-page.test.js keeps them in step.
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..", "..");

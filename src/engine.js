@@ -120,7 +120,7 @@
     const versions = kitty.filter(r => r && r[0] === "sheet_version");
     if (!requireV2 && !g.entries?.length && versions.every(r => ["1", "1.1"].includes(String(r[1])))) return;
     if (!kitty.some(r => r?.[0] === "Key" && r[1] === "Value") ||
-        versions.length !== 1 || String(versions[0][1]) !== "2") invalidLedger("The Kitty tab needs one sheet_version 2 setting.");
+        versions.length !== 1 || !["2", "3"].includes(String(versions[0][1]))) invalidLedger("The Kitty tab needs one sheet_version 2 or 3 setting.");   // 3 adds tabs and changes none
     for (const [k, name] of Object.entries({ accounts: "Accounts", category_list: "Categories", entries: "Entries",
                                              balances: "Balances", contracts: "Contracts", decisions: "Decisions", rules: "Rules" })) {
       if (g[k]?.[0]?.[0] !== HEAD[k]) invalidLedger(`Check the ${name} tab and its ${HEAD[k]} header.`);

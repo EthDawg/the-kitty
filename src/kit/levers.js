@@ -38,12 +38,12 @@
     const to = r.never ? "the goal would never arrive at this pace" : r.moved === 0 ? "the date would not move" : `the date moves ${span(Math.abs(r.moved))} ${r.moved > 0 ? "later" : "earlier"}, to ${mon(r.flipped)}`;
     return `${r.on ? "On now. Switching it off" : "Off now. Switching it on"}: ${to}.`;
   }
-  function row(r, m, pending) {
+  function row(r, m, pending, demo) {
     const W = 34; // percent of the track each side may use, leaving room for the label
     const w = r.never ? W : (r.size / m.maxAbs) * W;
     const later = r.never || (r.moved || 0) > 0;
     const effect = r.perMonth ? `${r.perMonth > 0 ? "+" : "−"}${money(r.perMonth)} a month` : r.oneOff ? `${r.oneOff > 0 ? "+" : "−"}${money(r.oneOff)} once` : "";
-    const ask = pending === r.id ? `<div class="kx-lv-ask" role="alert"><span>${r.on ? "Switch this off" : "Switch this on"} in the sheet? The plan date will be worked out again.</span><button type="button" class="kx-lv-yes" data-yes="${esc(r.id)}">Switch it</button><button type="button" class="kx-lv-no" data-no="${esc(r.id)}">Cancel</button></div>` : "";
+    const ask = pending === r.id ? `<div class="kx-lv-ask" role="alert"><span>${demo ? `${r.on ? "Switch this off" : "Switch this on"}? This is the demo household, so the date is worked out on this page and nothing is saved.` : `${r.on ? "Switch this off" : "Switch this on"} in the sheet? The plan date will be worked out again.`}</span><button type="button" class="kx-lv-yes" data-yes="${esc(r.id)}">Switch it</button><button type="button" class="kx-lv-no" data-no="${esc(r.id)}">Cancel</button></div>` : "";
     return `<li class="kx-lv-row${r.on ? " on" : ""}" data-lever="${esc(r.id)}">
       <div class="kx-lv-txt"><span class="kx-lv-name">${esc(r.lever)}</span><span class="kx-lv-say">${esc(sentence(r))}</span>${effect || r.source ? `<span class="kx-lv-src">${esc([effect, r.source].filter(Boolean).join(" · "))}</span>` : ""}</div>
       <div class="kx-lv-track" role="img" aria-label="${esc(sentence(r))}"><span class="kx-lv-zero"></span>
@@ -75,7 +75,7 @@
         <p class="kx-lv-lede">${g.target ? `${money(g.have || 0)} of ${money(g.target)}. ` : ""}${help}.${off}${g.recentDate ? ` At the last few months' pace alone: ${mon(g.recentDate)}.` : ""}</p>${g.note ? `<p class="kx-lv-note">${esc(g.note)}</p>` : ""}</div>
       ${tl}
       <div class="kx-lv-head"><span>Lever</span><span class="kx-lv-hscale"><em>← earlier</em><em>if switched</em><em>later →</em></span><span>Now</span></div>
-      <ol class="kx-lv-rows">${m.rows.map((r) => row(r, m, pend)).join("")}</ol>
+      <ol class="kx-lv-rows">${m.rows.map((r) => row(r, m, pend, opts && opts.demo)).join("")}</ol>
       <p class="kx-lv-foot">Bars are drawn to one scale: the longest is ${span(m.maxAbs)}. The sheet works out every date; switching a lever here changes the sheet's input and nothing else.</p>
     </div>`;
   }

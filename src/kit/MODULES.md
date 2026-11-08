@@ -59,3 +59,6 @@ Controls: "This year so far | Last year | History" and "Together | <person a> | 
 - **History.** Small multiples per person, by year: taxable income bars and result bars, amended years marked. Tapping a year opens a drawer with that year's row.
 
 Always shown: "Estimates use published resident rates. Not tax advice."
+
+## v3.js — the public page's adapter (not a view)
+`Kit.V3` reads the five version-3 tabs from the snapshot (`fromSnapshot`) or connector grids (`fromGrids`, rows keep `_row` for writes) and maps them onto the inputs above over the engine's model: `thingsInput`, `leverGoals` and `leversInput`, `taxInput`, `groceriesInput`. A missing or empty tab maps to null. `leverDates` is the Goal Levers formulas, for a demo switch. `test/v3-page.test.js` checks each mapping gives the same input as its demo harness. Decisions behind the page layout are in `docs/v3-notes.md`.
