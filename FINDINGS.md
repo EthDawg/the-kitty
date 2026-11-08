@@ -272,6 +272,19 @@ Pull, never push. Upstream never writes to a household's Sheet.
 - The Sheet: CHANGES.md holds change notes (what changed, why, what good looks like, how to treat tailoring). The person says: "Read the Kitty changes since sheet version 2 and apply them to my Sheet. Show me the plan first." Their harness plans against their own Sheet, writes one batch, runs the checks, bumps Kitty!sheet_version.
 - Probed: copying a tab between Sheets in one call keeps formatting and formulas; formulas pointing at missing tabs show #REF! until rewired. Not tested: applying a change note to a tailored Sheet.
 
+## Upgrades, tested (8 November 2026)
+Three households (an empty template copy, the Davies Sheet, and a Davies Sheet the household had tailored: its own `Receipts` tab, Goals renamed, extra columns, its own check) × three models (Haiku, Sonnet, Opus 5.5 as Claude Code subagents with the Sheets connector). Each got one sentence and the version 3 note. Kit, snapshots, scorer and reports: `evidence/upgrade-test/`.
+- Every run kept every measured cell. On the tailored Sheet all three held back the clashing tab and asked, and all three followed the renamed Goals tab.
+- Two Haiku runs wrote one formula wrongly in a way empty tabs cannot show; every check still read OK. The note now ends with a self-test that has known answers.
+- The note was the weak point: eight of nine runs asked whether a bracket meant a type or a status, seven had to invent explanation text, five chose differently where new rows go. Each is now settled in `CHANGES.md`.
+- Opus took about four times as long as Sonnet for the same score; what its runs found is now in the note, so the cheaper run should match next time.
+
+## Receipts: what the bank never sees
+A bank line says where and how much. A receipt says what, whether it was GST-free, whether it was on special, and whether it was paid with a gift card the bank will never show. Paying with a gift card, cash or points is still spending, so it goes on its own account. Kit and runs: `evidence/receipts-test/` (94 fictional receipts as photos and PDFs, 7 planted traps).
+- Haiku, Sonnet and Opus each read a 24-receipt sample with every receipt exact and every trap caught, for $6.02 in all. The rendered receipts are cleaner than real dockets; treat this as a test of format, matching and traps, not of eyesight.
+- What the runs exposed was the contract: every model wrote a refund as positive (it said "printed total, positive"), and one smudged docket was made to tie with a single balancing line. Both rules are fixed: refunds are negative, and the Check says "One line for N items".
+- The tie gate (lines add to the total within 5 cents, GST equals taxable lines ÷ 11) is the reader's quality bar; a better reader matters less than refusing to write what doesn't tie.
+
 ## Principles
 
 1. The harness is the runtime. Ship a shape, checks, a page and a small skill. No importer.
