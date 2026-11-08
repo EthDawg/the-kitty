@@ -53,6 +53,10 @@ Insert six rows directly above the blank row that sits before "Checks needing re
 | Decisions past their decide-by date | Data | `=COUNTIFS('Decision Options'!L:L,"Open",'Decision Options'!K:K,"<"&<as-of>,'Decision Options'!J:J,TRUE)` | | `=IF(C<n>>0,"Review","OK")` | A choice left open past its date usually costs money; decide it or move the date. | Decision Options, Decide by |
 | Lodged years without a tax pack | Tax | `=COUNTIFS('Tax Returns'!C:C,"<>Estimate",'Tax Returns'!A:A,"<>",'Tax Returns'!L:L,"")` | | `=IF(C<n>>0,"Note","OK")` | Keep five years of records. A pack puts the return and every source in one folder. | Tax Returns, Pack |
 
+### The README tab
+- In its "How the workbook is organised" table, add Receipts, Receipt Lines and Tax Returns to Raw data, and Decision Options and Goal Levers to Inputs. This is the one existing tab the note edits.
+- Checkbox columns (Recommended, On) hold FALSE in every row once validated, so those tabs look full to an append: write their rows by explicit range.
+
 ### The Kitty tab
 - `sheet_version` becomes 3 only when all five tabs are present or mapped to the household's own. If any part waits on the household's answer (a name collision, say), leave it at 2, apply the rest, and record "version 3 in part: <what waits>" on Decisions. The page reads each tab on its own, so nothing is lost while it waits.
 
