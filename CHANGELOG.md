@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0 public page fixes
+- A cold reader's audit of the public page (47 defects) is fixed in the page's reading; the sheet formulas that read the wrong rows are written up in `CHANGES.md` (version 3, Fixes). `docs/v3-notes.md` lists what was fixed, what waits on a decision and how it was checked.
+- The numbers: the safety net is the Emergency fund over essential spending; a premium adjustment is not a price rise, a refund is not a charge, a travel policy is not the car policy; two receipted fares are two purchases; the savings ideas and their headline are rebuilt from those figures.
+- The page: an as-of date on Home, passed target dates said plainly, "Jun 2027" for months, no internal IDs, readable goal-form labels, light text at AA, money out in one colour, Records labelled as a separate household, and Setup built around the template and one sentence to Claude or Codex.
+
 ## The Digital Davies Standard, draft
 - `standard/`: the data model as a public standard: 41 tables, 39 observation kinds, 59 event kinds, 20 laws, generated SQL, MongoDB validators, ER diagram, Sheet tabs and a schema card.
 - A truth-first Davies world: 2,369 files in 59 families across 10 containers, including super, a broker, RSUs, crypto, a second rental, returns as lodged, bills and things.
