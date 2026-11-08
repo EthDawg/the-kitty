@@ -1,0 +1,193 @@
+/* The Kitty kit: Tax view. Shared tokens only (src/kit/MODULES.md); every class starts kx-taxview-. */
+.kx-taxview{display:grid;gap:16px;min-width:0}
+.kx-taxview-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.kx-taxview-titles{min-width:0}
+.kx-taxview-title{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0}
+.kx-taxview-titles .sub{margin:4px 0 0}
+.kx-taxview-controls{display:flex;flex-wrap:wrap;gap:10px}
+.kx-taxview-seg{display:inline-flex;background:var(--surface2);border-radius:999px;padding:4px;gap:2px}
+.kx-taxview-seg button{min-height:40px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap;transition:background .15s var(--ease),color .15s var(--ease)}
+.kx-taxview-seg button:hover{color:var(--ink)}
+.kx-taxview-seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent)}
+.kx-taxview button:focus-visible,.kx-taxview a:focus-visible,.kx-taxview-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kx-taxview [data-tv-section]:focus{outline:none}
+.kx-taxview-whonote{margin:-6px 0 0;font-size:13.5px;color:var(--muted)}
+.kx-taxview-body{display:grid;gap:16px;min-width:0}
+.kx-taxview-foot{margin:0;text-align:center;font-size:13.5px;color:var(--muted)}
+.kx-taxview-vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.kx-taxview-problems{background:var(--warn-soft);color:var(--ink);border-radius:var(--r-sm);padding:12px 14px;font-size:13.5px}
+.kx-taxview-problems ul{margin:6px 0 0;padding-left:18px}
+
+/* chips */
+.kx-taxview-chip{display:inline-flex;align-items:center;font-size:12px;font-weight:700;line-height:1.4;border-radius:999px;padding:3px 10px;background:var(--surface2);color:var(--ink2);white-space:nowrap}
+.kx-taxview-chip.est{background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted);color:var(--ink2)}
+.kx-taxview-chip.amber{background:var(--amber-soft);color:var(--amber)}
+.kx-taxview-chip.st-assessed{background:var(--good-soft);color:var(--good)}
+.kx-taxview-chip.st-lodged{background:var(--surface2);color:var(--ink2)}
+.kx-taxview-chip.st-amended{background:var(--accent-soft);color:var(--accent)}
+.kx-taxview-chip.st-estimate{background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted);color:var(--ink2)}
+.kx-taxview-who{display:inline-flex;font-size:12px;font-weight:700;line-height:1.5;background:var(--surface2);color:var(--ink2);border-radius:999px;padding:1px 8px;margin-right:8px;vertical-align:1px}
+
+/* the answer */
+.kx-taxview-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:20px 40px;align-items:end}
+.kx-taxview-hero.is-last{grid-template-columns:minmax(0,1fr)}
+.kx-taxview-eyebrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;color:var(--ink2);font-size:14px;font-weight:600}
+.kx-taxview-big{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:14px 0 10px;text-align:left;font-family:var(--display);font-weight:800;font-size:clamp(46px,7vw,66px);line-height:1;letter-spacing:-.035em;color:var(--ink);border-radius:12px}
+button.kx-taxview-big:hover{opacity:.88}
+.kx-taxview-about{font-family:var(--body);font-size:18px;font-weight:600;letter-spacing:0;color:var(--muted)}
+.kx-taxview-dir{font-family:var(--body);font-size:18px;font-weight:700;letter-spacing:0;color:var(--good)}
+.kx-taxview-dir.owe{color:var(--amber)}
+.kx-taxview-hero .say{max-width:60ch}
+.kx-taxview-hero .sub{margin:0}
+.kx-taxview-hero .linkbtn{min-height:40px;margin-top:2px}
+.kx-taxview-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kx-taxview-fact{display:grid;gap:2px;align-content:start;text-align:left;min-height:40px;background:var(--surface2);border-radius:var(--r-sm);padding:12px 14px;transition:background .15s var(--ease)}
+.kx-taxview-fact:hover{background:var(--line)}
+.kx-taxview-fact .k{font-size:12.5px;font-weight:600;color:var(--muted)}
+.kx-taxview-fact b{font-family:var(--display);font-size:21px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.kx-taxview-fact .d{font-size:12.5px;color:var(--ink2)}
+
+/* the waterfall */
+.kx-taxview-wf{margin:0;display:grid}
+.kx-taxview-wfgroup{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.kx-taxview-wfgroup:first-child{margin-top:0}
+.kx-taxview-wfrow{display:grid;grid-template-columns:minmax(190px,30%) minmax(0,1fr) 104px;grid-template-areas:"label bar val";align-items:center;gap:4px 18px;padding:9px 0;border-top:1px solid var(--line)}
+.kx-taxview-wflabel{grid-area:label;min-width:0}
+.kx-taxview-wflabel .t{display:block;font-weight:600}
+.kx-taxview-wflabel .s{display:block;font-size:12.5px;line-height:1.35;color:var(--muted)}
+.kx-taxview-wfbar{grid-area:bar;display:block;overflow:visible}
+.kx-taxview-wfval{grid-area:val;text-align:right;white-space:nowrap;font-family:var(--display);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.kx-taxview-wfrow.is-total .t,.kx-taxview-wfrow.is-total .kx-taxview-wfval{font-weight:800}
+.kx-taxview-wfrow.is-total{border-top-color:var(--ink2)}
+.kx-taxview-wfrow.is-good .kx-taxview-wfval,.kx-taxview-wfrow.is-good .t{color:var(--good);font-weight:800}
+.kx-taxview-wfrow.is-owe .kx-taxview-wfval,.kx-taxview-wfrow.is-owe .t{color:var(--amber);font-weight:800}
+.kx-taxview-wfbar .trk{fill:var(--surface2)}
+.kx-taxview-wfbar .bar{fill:var(--accent);stroke:var(--accent);stroke-width:1}
+.is-less .kx-taxview-wfbar .bar{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.is-total .kx-taxview-wfbar .bar{fill:var(--ink);stroke:var(--ink)}
+.is-paid .kx-taxview-wfbar .bar{fill:var(--muted);stroke:var(--muted)}
+.is-good .kx-taxview-wfbar .bar{fill:var(--good);stroke:var(--good);stroke-width:2}
+.is-owe .kx-taxview-wfbar .bar{fill:var(--amber);stroke:var(--amber);stroke-width:2}
+.kx-taxview-wfbar .guide{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:3 3}
+.kx-taxview-wfbar .zero{stroke:var(--ink2);stroke-width:1}
+.kx-taxview-wfkey{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.kx-taxview-wfkey span{display:inline-flex;align-items:center;gap:6px}
+.kx-taxview .sw,.kx-taxview-hnotes .sw{display:inline-block;flex:none;width:12px;height:12px;border-radius:3px;background:var(--surface2)}
+.kx-taxview .sw.add{background:var(--accent)}
+.kx-taxview .sw.less{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.kx-taxview .sw.total{background:var(--ink)}
+.kx-taxview .sw.paid{background:var(--muted)}
+.kx-taxview .sw.good{background:var(--good)}
+.kx-taxview .sw.owe{background:var(--amber)}
+.kx-taxview .sw.guide{width:0;border-radius:0;background:none;border-left:2px dashed var(--ink)}
+.kx-taxview .sw.est{background:transparent;border:1.5px dashed var(--ink2)}
+
+/* flagged claims and what's missing */
+.kx-taxview-pair{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+.kx-taxview-flags,.kx-taxview-checks,.kx-taxview-hnotes,.kx-taxview-dlist{list-style:none;margin:0;padding:0}
+.kx-taxview-flag{padding:12px 0;border-top:1px solid var(--line)}
+.kx-taxview-flag:first-child{border-top:0;padding-top:0}
+.kx-taxview-flag .t{font-weight:600}
+.kx-taxview-flag .s{margin-top:4px;font-size:13.5px;color:var(--ink2)}
+.kx-taxview-flag .src{margin-top:6px;font-size:12.5px;color:var(--muted)}
+.kx-taxview-calm{margin:0;color:var(--ink2)}
+.kx-taxview-checks li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"box mid when";gap:4px 12px;align-items:start;padding:11px 0;border-top:1px solid var(--line)}
+.kx-taxview-checks li:first-child{border-top:0;padding-top:0}
+.kx-taxview-checks .box{grid-area:box;width:18px;height:18px;margin-top:2px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--muted)}
+.kx-taxview-checks .mid{grid-area:mid;min-width:0}
+.kx-taxview-checks .t{font-weight:600}
+.kx-taxview-checks .s{margin-top:2px;font-size:13.5px;color:var(--ink2)}
+.kx-taxview-when{grid-area:when;justify-self:end;font-size:12px;font-weight:700;line-height:1.4;border-radius:999px;padding:3px 10px;white-space:nowrap;background:var(--surface2);color:var(--ink2)}
+.kx-taxview-when.now{background:var(--accent-soft);color:var(--accent)}
+.kx-taxview-when.soon{background:var(--amber-soft);color:var(--amber)}
+
+/* last year */
+.kx-taxview-rets{display:grid;gap:16px;align-items:start}
+.kx-taxview-rets.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kx-taxview-rets:not(.two){max-width:640px}
+.kx-taxview-cmpsay{margin:12px 0 0}
+.kx-taxview-mid{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;font-family:var(--display);font-weight:800;font-size:42px;line-height:1.05;letter-spacing:-.03em;margin-bottom:6px}
+.kx-taxview-kv{display:grid;grid-template-columns:minmax(0,1fr) auto;margin:14px 0;font-size:14.5px}
+.kx-taxview-kv dt,.kx-taxview-kv dd{padding:7px 0;border-top:1px solid var(--line)}
+.kx-taxview-kv dt{color:var(--ink2)}
+.kx-taxview-kv dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.kx-taxview-kv .tot{font-weight:800;color:var(--ink);border-top:2px solid var(--ink)}
+.kx-taxview-note{margin:0 0 10px;padding:10px 12px;border-radius:var(--r-sm);background:var(--surface2);color:var(--ink2);font-size:13.5px}
+.kx-taxview-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.kx-taxview-actions .linkbtn{min-height:40px}
+.kx-taxview-quiet{margin:0;font-size:13.5px;color:var(--muted)}
+.kx-taxview-btn{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border-radius:999px;background:var(--ink);color:var(--bg);font-weight:700;text-decoration:none}
+
+/* history */
+.kx-taxview-hists{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;align-items:start}
+.kx-taxview-hists.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kx-taxview-ctitle{font-size:13px;font-weight:700;color:var(--ink2);margin:6px 0 0}
+.kx-taxview-ctitle span{font-weight:500;color:var(--muted)}
+.kx-taxview-ctitle span::before{content:": "}
+.kx-taxview-hgrid{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr))}
+.kx-taxview-hcol{display:block;min-width:0;min-height:40px;padding:0;border-radius:var(--r-sm);transition:background .15s var(--ease)}
+button.kx-taxview-hcol:hover{background:var(--surface2)}
+.kx-taxview-hcell,.kx-taxview-hcell svg{display:block;overflow:visible}
+.kx-taxview-hcell .tbar{fill:var(--ink2)}
+.kx-taxview-hcell .rbar.good{fill:var(--good)}
+.kx-taxview-hcell .rbar.owe{fill:var(--amber)}
+.kx-taxview-hcell.is-est .tbar{fill:var(--surface2);stroke:var(--ink2);stroke-width:1.5;stroke-dasharray:4 3}
+.kx-taxview-hcell.is-est .rbar.good{fill:var(--good-soft);stroke:var(--good);stroke-width:1.5;stroke-dasharray:4 3}
+.kx-taxview-hcell.is-est .rbar.owe{fill:var(--amber-soft);stroke:var(--amber);stroke-width:1.5;stroke-dasharray:4 3}
+.kx-taxview-hcell .zero{stroke:var(--ink2);stroke-width:1}
+.kx-taxview-hcell .lbl{fill:var(--ink);font-family:var(--body);font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.kx-taxview-hcell .lbl.owe{fill:var(--amber)}
+.kx-taxview-hcell .lbl.muted{fill:var(--muted);font-weight:500}
+.kx-taxview-axis{margin-top:2px}
+.kx-taxview-fy{display:flex;flex-direction:column;align-items:center;font-size:12.5px;line-height:1.3}
+.kx-taxview-fy b{display:inline-flex;align-items:center;gap:4px;font-weight:700}
+.kx-taxview-fy small{font-size:11.5px;color:var(--muted)}
+.kx-taxview .dot,.kx-taxview-hnotes .dot{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.kx-taxview-hnotes{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:grid;gap:6px;font-size:13px;color:var(--ink2)}
+.kx-taxview-hnotes li{display:flex;gap:8px;align-items:baseline}
+.kx-taxview-tablewrap{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.kx-taxview-table{width:100%;border-collapse:collapse;font-size:14px}
+.kx-taxview-table th,.kx-taxview-table td{padding:8px 10px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}
+.kx-taxview-table th:first-child,.kx-taxview-table td:first-child{padding-left:0}
+.kx-taxview-table th:last-child,.kx-taxview-table td:last-child{padding-right:0}
+.kx-taxview-table thead th{border-top:0;font-size:12.5px;font-weight:600;color:var(--muted)}
+.kx-taxview-table tbody th{font-weight:700;white-space:nowrap}
+.kx-taxview-table tbody th small{display:block;font-size:11.5px;font-weight:500;color:var(--muted);line-height:1.1}
+.kx-taxview-table tbody th .linkbtn{min-height:40px;font-size:14px}
+.kx-taxview-table .n{text-align:right;white-space:nowrap}
+.kx-taxview-table .owe{color:var(--amber)}
+.kx-taxview-table .tot,.kx-taxview-table tr.tot th,.kx-taxview-table tr.tot td{font-weight:800}
+.kx-taxview-table tr.tot th,.kx-taxview-table tr.tot td{border-top:2px solid var(--ink)}
+.kx-taxview-table.working .how{min-width:170px;font-size:12.5px;color:var(--muted)}
+.kx-taxview-table .muted{color:var(--muted)}
+
+/* drawer pieces (rendered into the page's drawer, outside the section) */
+.kx-taxview-dtitle{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0 44px 8px 0}
+.kx-taxview-dmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:10px;font-size:13.5px;color:var(--ink2)}
+.kx-taxview-check{margin:12px 0;padding:10px 12px;border-radius:var(--r-sm);background:var(--good-soft);color:var(--ink);font-size:13.5px}
+.kx-taxview-check.bad{background:var(--warn-soft)}
+.kx-taxview-dh{font-family:var(--display);font-size:16px;margin:16px 0 6px}
+.kx-taxview-dlist li{padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.kx-taxview-dlist .sub{display:block}
+
+/* phones */
+@media (max-width:860px){
+  .kx-taxview-hero{grid-template-columns:minmax(0,1fr)}
+  .kx-taxview-pair,.kx-taxview-rets.two,.kx-taxview-hists,.kx-taxview-hists.two{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  .kx-taxview-top{align-items:stretch}
+  .kx-taxview-controls{flex-direction:column;width:100%}
+  .kx-taxview-seg{display:flex;width:100%}
+  .kx-taxview-seg button{flex:1 1 auto;padding:0 10px}
+  .kx-taxview-wfrow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"label val" "bar bar";gap:6px 12px}
+  .kx-taxview-wflabel .s{max-width:none}
+  .kx-taxview-checks li{grid-template-columns:22px minmax(0,1fr);grid-template-areas:"box mid" ". when"}
+  .kx-taxview-when{justify-self:start}
+  .kx-taxview-mid{font-size:36px}
+  .kx-taxview-table{font-size:13.5px}
+  .kx-taxview-table th,.kx-taxview-table td{padding:8px 6px}
+}
+@media (prefers-reduced-motion:reduce){
+  .kx-taxview *,.kx-taxview-btn{transition:none!important}
+}
