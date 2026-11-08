@@ -133,14 +133,16 @@
     mortgage: "'Mortgage Scenarios'!A1:H", tax: "'Tax Forecast'!A1:F", transactions: "Transactions!A1:J", payslips: "Payslips!A1:G", kitty: "Kitty!A1:C",
     // sheet_version 2: the ledger tabs. A 1.1 sheet has none of them and the page carries on without.
     entries: "Entries!A1:U", balances: "Balances!A1:F", contracts: "Contracts!A1:Q", decisions: "Decisions!A1:H", rules: "Rules!A1:J",
+    // sheet_version 3 (CHANGES.md version 3): five more tabs. A sheet without one keeps that view dark.
+    ...Object.fromEntries(Kit.V3.KEYS.map((k) => [k, Kit.V3.range(k)])),
   };
-  const OPTIONAL = new Set(["kitty", "payslips", "tax", "mortgage", "savings", "budget", "assets", "loans", "entries", "balances", "contracts", "decisions", "rules"]);
+  const OPTIONAL = new Set(["kitty", "payslips", "tax", "mortgage", "savings", "budget", "assets", "loans", "entries", "balances", "contracts", "decisions", "rules", ...Kit.V3.KEYS]);
   const CHUNK = 2500;
   async function loadBig(tab, lastCol, refresh, read) {
     // one read for a household-sized tab; chunks of 2,500 rows past that, three at a time, so a 20,000-row Transactions or Entries tab still opens
     read.metadata ||= call("get_spreadsheet", { spreadsheetId: read.id, fields: ["sheets.properties.title", "sheets.properties.gridProperties.rowCount", "properties.timeZone"] }, refresh, read);
     const meta = await read.metadata;
-    const sh = ((meta && meta.sheets) || []).find((x) => x.properties && x.properties.title === tab);
+    const sh = ((meta && meta.sheets) || []).find((x) => x.properties && x.properties.title === tab.replace(/^'(.*)'$/, "$1"));
     const rows = sh && sh.properties.gridProperties ? sh.properties.gridProperties.rowCount : 0;
     if (!rows || rows <= CHUNK) return values(`${tab}!A1:${lastCol}`, refresh, read);
     const header = await values(`${tab}!A1:${lastCol}1`, refresh, read);
@@ -163,7 +165,7 @@
     const errors = {}; S.loading = true;
     setPill("warn", refresh ? "Refreshing…" : "Reading your sheet…");
     const grids = {};
-    await Promise.all(Object.entries(RANGES).map(([k, r]) => (k === "transactions" || k === "entries" ? loadBig(r.split("!")[0], r.split(":")[1], refresh, read) : values(r, refresh, read)).then((v) => (grids[k] = v)).catch((e) => { grids[k] = []; errors[k] = e; })));
+    await Promise.all(Object.entries(RANGES).map(([k, r]) => (k === "transactions" || k === "entries" || k === "receipt_lines" ? loadBig(r.split("!")[0], r.split(":")[1], refresh, read) : values(r, refresh, read)).then((v) => (grids[k] = v)).catch((e) => { grids[k] = []; errors[k] = e; })));
     if (!read.current()) return false;
     S.loading = false; S.storedAt = read.storedAt; S.unknownReadAge = read.unknownAge; S.err = errors;
     const fatal = Object.entries(S.err).filter(([k]) => !OPTIONAL.has(k));
@@ -329,7 +331,7 @@
     if (!S.m) return;
     applyTheme(); applyAccent();
     // one broken card must never blank a tab: each view renders inside its own boundary
-    for (const [name, fn] of [["header", renderHeader], ["home", renderHome], ["activity", renderActivity], ["insights", renderInsights], ["goals", renderGoals], ["records", renderRecords], ["setup", renderSetup]]) {
+    for (const [name, fn] of [["header", renderHeader], ["home", renderHome], ["activity", renderActivity], ["insights", renderInsights], ["goals", renderGoals], ["things", renderThings], ["tax", renderTax], ["records", renderRecords], ["setup", renderSetup]]) {
       try { fn(); } catch (e) { console.error("render " + name, e); const v = $(`#v-${name}`); if (v) v.innerHTML = `<div class="card"><div class="cardhead"><span class="q">This part couldn't be drawn</span></div><p class="sub">${esc(e && e.message ? e.message : String(e))}. The other tabs still work. If it keeps happening, <a href="${REPO}/issues" target="_blank" rel="noopener">report it</a> with the sheet's tab names.</p></div>`; }
     }
     moveGlow();
@@ -504,12 +506,13 @@
         <div class="gtiles" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))">${m.savings.slice(0, 3).map(ideaTile).join("")}</div>
       </div>` : null,
     };
+    Object.assign(parts, v3HomeParts());
     Kit.bindCore(Object.fromEntries(Object.entries(parts).map(([id, html]) => [id, { data: () => html, render: (p) => p }])));
     const lay = homeLayout();
     v.innerHTML = `${canvasHTML(lay)}
       <p class="sub" style="padding:0 6px">${S.mode === "live" ? `Live from ${isDemoSheet() ? "the demo sheet" : "your sheet"}. ${esc(readAgeText())}` : "Demo household: the Davies, a fictional family in Melbourne, numbers made up to tell a story."} <button class="linkbtn" data-open="trust">Where the numbers come from</button></p>`;
     const hv = $("#heroval"); if (hv && cash) countUp(hv, cash.num, (x) => fmt0(x), "hero");
-    bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending }))); bindCanvas(v); mountCanvas();
+    bindCommon(v); bindMonthBars($("#homebars"), m.cashflow.slice(-12).map((c) => ({ month: c.month, in: c.income, out: c.spending }))); bindCanvas(v); mountCanvas(); bindV3Home(v);
     // confetti once per device, and only when the person is looking at Home
     if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name) && S.tab === "home" && document.visibilityState === "visible") { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 500); }
   }
@@ -859,7 +862,9 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         <div class="cardhead"><span class="q">Tax</span><span class="sub">estimates from the sheet, not advice</span></div>
         <div class="statline"><div class="stat"><div class="k">Refund expected · ${esc(refund ? refund.period : "")}</div><div class="v num">${fmt0(refund ? refund.num : null)}</div></div><div class="stat"><div class="k">If flagged claims are fixed</div><div class="v num">${fmt0(corrected ? corrected.num : null)}</div></div><div class="stat"><div class="k">Resting on flagged claims</div><div class="v num" style="color:var(--amber)">${fmt0(risk ? risk.num : null)}</div></div><div class="stat"><div class="k">Projected · ${esc(curRefund ? curRefund.period : "")}</div><div class="v num">${fmt0(curRefund ? curRefund.num : null)}</div></div></div>
         <div class="nlist">${taxItems.map((c) => `<button class="need" data-open="check:${esc(c.name)}"><span class="em" aria-hidden="true">🧾</span><span class="mid"><span class="t">${esc(c.name)}</span><span class="s">${esc(c.why)}</span></span><span class="amt num">${fmt0(c.amount)}<small>${c.items} item${c.items === 1 ? "" : "s"}</small></span>${ico("i-chev", "chev")}</button>`).join("")}</div>
-      </div>`;
+      </div>
+      <div id="grochost" style="--i:6" hidden></div>`;
+    renderGroceries();
     bindPeriod($("#pb1", v));
     $$("[data-mv]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ moneyView: b.dataset.mv }); renderInsights(); }));
     $$("[data-scope]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ scope: b.dataset.scope }); buzz(); renderInsights(); }));
@@ -883,6 +888,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
         ${lead.status === "Reached" ? `<div class="whatif"><div class="lab"><span>Done. Lead with the next one?</span></div><div class="chips" style="margin-top:6px">${m.goals.filter((g) => g !== lead && g.status !== "Reached").map((g) => `<button class="chip" data-lead="${esc(g.name)}">${E.goalIcon(g.name)} ${esc(g.name)}</button>`).join("") || '<span class="sub">Every goal is reached. Add one below.</span>'}</div><p class="sub" style="margin-top:8px">The ${fmt0(lead.savedPm)} a month that went to ${esc(lead.name)} could move to it.</p></div>` : `<div class="whatif"><div class="lab"><span>What if you added each month</span><b id="extraval2">${extra ? "+" + fmt0(extra) : "nothing extra"}</b></div><input id="goalextra" type="range" min="0" max="2000" step="50" value="${extra}" aria-label="Extra per month"><p class="sub" id="extraline">${extra && eta.date ? `${eta.months} month${eta.months === 1 ? "" : "s"} instead of ${E.goalEta(lead, 0, m.asOf).months || "—"}.` : "Slide to see the date move."}</p></div>`}
       </div></div></div>`; })() : `<div class="card" style="--i:0"><div class="empty">No goals yet. Add one below.</div></div>`;
     v.innerHTML = `${hero}
+      <div class="card v3levers" id="leverhost" style="--i:1" hidden></div>
       <div class="card" style="--i:1"><div class="cardhead"><span class="q">All goals</span><span class="cardtools">${canWriteSheet() || S.mode !== "live" ? `<button class="btn sm" id="addgoal">${ico("i-plus")} Add a goal</button>` : `<span class="sub">Edit goals on the Goals tab of the sheet</span>`}</span></div>
         <div class="gtiles" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))">${m.goals.map((g) => goalTile(g, false)).join("")}</div>
         <p class="sub" style="margin-top:10px">Each goal is a row on the sheet's Goals tab, linked to one saver account. The sheet works out progress and pace; this page only reads it${canWriteSheet() ? ", and writes a target or date back when you change one here" : ""}.</p>
@@ -906,6 +912,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     $$("[data-editgoal]", v).forEach((b) => b.addEventListener("click", () => openGoalEditor(m.goals.find((g) => g.name === b.dataset.editgoal))));
     const es = $("#editsafety"); if (es) es.addEventListener("click", openSafetyEditor);
     const ua = $("#unhideall"); if (ua) ua.addEventListener("click", () => { savePrefs({ hidden: [] }); renderGoals(); renderHome(); });
+    renderLevers();
     bindCommon(v);
   }
 
@@ -1197,6 +1204,105 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     const pick = $("#recfy", v); if (pick) pick.addEventListener("change", () => { S.recordsFy = pick.value; $("#recyear", v).innerHTML = Kit.RecordsYear(STANDARD, S.recordsFy); });
     bindCommon(v);
   }
+
+  // ----- sheet version 3: Things, Tax, What moves the date, Groceries. src/kit/v3.js maps the tabs onto the modules' inputs. -----
+  const V3 = Kit.V3, KIT_ART = window.KITTY_KIT_ART || {};
+  let V3C = null;
+  // the five tabs, from the live read or the bundled snapshot; read again whenever the model or the grids change
+  const v3 = () => { if (V3C && V3C.m === S.m && V3C.g === S.grids) return V3C.t; const t = S.mode === "live" && S.grids ? V3.fromGrids(S.grids) : V3.fromSnapshot(SNAP); V3C = { m: S.m, g: S.grids, t }; return t; };
+  const v3Day = (iso) => (iso ? E.fmtDay(iso, { year: true }) : "");
+  const v3Month = (iso) => (/^\d{4}-\d{2}/.test(iso || "") ? E.fmtMonth(iso) : "never");
+  const kitDrawer = (html) => openDrawer(`<div class="kx-dr">${html}</div>`);
+  // a view whose module or tab is missing has no tab button; one that comes back gets it again
+  function setTabLit(tab, on) {
+    const b = $(`nav.tabs button[data-tab="${tab}"]`); if (!b) return;
+    if (b.hidden === on) { b.hidden = !on; requestAnimationFrame(moveGlow); }
+    if (!on && S.tab === tab) switchTab("home", true);
+  }
+  const S3 = { pick: {}, tax: {}, leverGoal: null, flips: {} };   // this visit only: the option looked at, the tax view, the goal shown, demo switches
+  function thingsModel() { if (!Kit.Things) return null; const inp = V3.thingsInput(S.m, v3(), KIT_ART); return inp ? Kit.Things.model(inp) : null; }
+  function renderThings() {
+    const v = $("#v-things"), tm = thingsModel(); setTabLit("things", !!tm);
+    if (!tm) { v.innerHTML = ""; return; }
+    const t = v3();
+    v.innerHTML = `<div class="kxhost" id="thingshost">${Kit.Things.render(tm, { state: S3.pick })}</div>
+      <p class="sub v3foot">From the Contracts tab${t.decision_options ? " and the quotes on Decision Options" : ""}, as of ${esc(v3Day(S.m.asOf))}. Choosing an option compares the costs; ${S.mode === "live" ? "record the choice on the Decisions tab." : "nothing is saved."}</p>`;
+    Kit.Things.bind($("#thingshost"), tm, { state: S3.pick, onOpen: kitDrawer });
+  }
+  function taxModel() { if (!Kit.TaxView) return null; const inp = V3.taxInput(S.m, v3()); return inp ? Kit.TaxView.model(inp) : null; }
+  function renderTax() {
+    const host = $("#v-taxview"), tv = taxModel(), rec = !!STANDARD, g = (STANDARD && STANDARD.generated) || {};
+    setTabLit("tax", !!tv || rec);
+    // The record is the standard's own replay of the household's files, so its figures are not the sheet's estimates: it gets its own page
+    $("#v-recentry").innerHTML = rec ? `<div class="card v3rec"><div class="cardhead"><span class="q">The record behind a return</span><span class="tag accent">Preview</span></div>
+      <p class="say">The standard rebuilds a household's tax record from its files${typeof g.files === "number" ? `, here ${g.files.toLocaleString("en-AU")} of them` : ""}: what each year holds, how each number is known, and what is still missing.</p>
+      <p class="sub">It runs on its own copy of the Davies files${g.as_of ? ` up to ${esc(v3Day(String(g.as_of).slice(0, 10)))}` : ""}, not on this sheet, so its figures differ from the estimates above.</p>
+      <button class="btn sm" data-go="records">Open the record</button></div>` : "";
+    bindCommon($("#v-recentry"));
+    if (!tv) { host.innerHTML = ""; return; }
+    host.innerHTML = Kit.TaxView.render(tv, S3.tax);
+    Kit.TaxView.bind(host, tv, Object.assign({}, S3.tax, { onOpen: kitDrawer, onView: (s) => { S3.tax = s; } }));
+  }
+  // in the demo, a switch is worked out here with the sheet's own formulas; live, the sheet works it out
+  function leverInput(name) {
+    const live = S.mode === "live", inp = V3.leversInput(S.m, v3(), name, { writable: live ? canWriteSheet() : true });
+    if (!inp || live || !inp.levers.some((l) => l.id in S3.flips)) return inp;
+    const levers = V3.leverDates(S.m.goals.find((g) => g.name === name), inp.levers.map((l) => (l.id in S3.flips ? { ...l, on: S3.flips[l.id] } : l)), S.m.asOf);
+    return { ...inp, levers, goal: { ...inp.goal, planDate: V3.planDate(levers) } };
+  }
+  function renderLevers() {
+    const host = $("#leverhost"); if (!host) return;
+    const lead = leadGoal(), names = Kit.Levers ? V3.leverGoals(S.m, v3(), lead && lead.name) : [];
+    if (!names.length) { host.hidden = true; host.innerHTML = ""; return; }
+    const name = names.includes(S3.leverGoal) ? S3.leverGoal : names[0], demo = S.mode !== "live";
+    const lm = Kit.Levers.model(leverInput(name));
+    const note = demo ? "Demo household: a switch is worked out on this page with the sheet's formulas. Nothing is saved." : canWriteSheet() ? "A switch writes the lever's On box on the Goal Levers tab, after you confirm. The sheet works out the dates." : "Read only here. Switch a lever on the Goal Levers tab of the sheet.";
+    host.hidden = false;
+    host.innerHTML = `<div class="cardhead"><span class="q">What moves the date</span>${names.length > 1 ? `<span class="seg mini" role="group" aria-label="Goal">${names.map((n) => `<button data-lgoal="${esc(n)}" aria-pressed="${n === name}">${esc(n)}</button>`).join("")}</span>` : ""}</div>
+      <p class="sub v3lead">${esc(note)}</p><div class="kxhost" id="leverboard">${Kit.Levers.render(lm, { demo })}</div>`;
+    $$("[data-lgoal]", host).forEach((b) => b.addEventListener("click", () => { S3.leverGoal = b.dataset.lgoal; renderLevers(); const n = $(`[data-lgoal="${CSS.escape(S3.leverGoal)}"]`); if (n) n.focus(); }));
+    Kit.Levers.bind($("#leverboard"), lm, { demo, onWrite: (ch) => switchLever(name, ch) });
+  }
+  const focusSwitch = (id) => { const sw = $(`#leverboard [data-switch="${CSS.escape(id)}"]`); if (sw) sw.focus({ preventScroll: true }); };
+  async function switchLever(goal, ch) {
+    if (S.mode !== "live") {
+      S3.flips[ch.id] = ch.on; renderLevers(); focusSwitch(ch.id);
+      toast(`Demo: switched ${ch.on ? "on" : "off"}, so ${goal} lands ${v3Month(leverInput(goal).goal.planDate)}. Nothing was saved.`, 4200);
+      return;
+    }
+    if (!canWriteSheet()) throw { message: "this sheet is read only here" };
+    // find the lever's row by its ID on a fresh read, write the On box, then read the tab back: the sheet's formulas move the dates
+    const read = { host: S.mcp, id: sheetId(), storedAt: null, unknownAge: false, current: () => S.mode === "live" };
+    const ids = await values("'Goal Levers'!A1:A", true, read);
+    const i = ids.findIndex((r) => r && String(r[0]).trim() === ch.id);
+    if (i < 1) throw { message: `${ch.id} is not on the Goal Levers tab` };
+    await writeCells(`'Goal Levers'!D${i + 1}`, [[!!ch.on]]);
+    try {
+      const grid = await values(V3.range("goal_levers"), true, read), row = (V3.fromGrid(grid, "Lever ID") || []).find((r) => r.lever_id === ch.id);
+      S.grids.goal_levers = grid; V3C = null;
+      renderLevers(); focusSwitch(ch.id);
+      if (row && V3.bool(row.on) === !!ch.on) toast(`Switched ${ch.on ? "on" : "off"} in the sheet. ${goal} now lands ${v3Month(leverInput(goal).goal.planDate)}.`, 4200);
+      else toast("Written to the sheet, but the read back did not show it yet. Refresh to check the dates.", 6000);
+    } catch (e) { toast("Written to the sheet. Refresh to see the new dates: " + errText(e, "the Goal Levers tab"), 6000); }
+  }
+  function groceriesModel() { if (!Kit.Groceries) return null; const inp = V3.groceriesInput(S.m, v3()); return inp ? Kit.Groceries.model(inp) : null; }
+  const grocOpts = (gm) => { const o = { onGo: (target) => go(target), onOpen: (html) => { kitDrawer(html); Kit.Groceries.bindDrawer($("#drawer"), gm, o); } }; return o; };
+  function renderGroceries() {
+    const host = $("#grochost"); if (!host) return;
+    const gm = groceriesModel(); host.hidden = !gm;
+    if (!gm) { host.innerHTML = ""; return; }
+    host.innerHTML = Kit.Groceries.render(gm, {});
+    Kit.Groceries.bind(host, gm, grocOpts(gm));
+  }
+  // Home: the nearest decision and this week's shop. One that can't be drawn is left off; the rest of Home still draws.
+  let HOMEG = null;
+  function v3HomeParts() {
+    const out = { decide: null, shop: null }; HOMEG = null;
+    try { const tm = thingsModel(); if (tm && tm.decisions.length) out.decide = `<div class="card kx-homecard">${Kit.Things.renderHome(tm)}</div>`; } catch (e) { console.error("home: decision", e); }
+    try { const gm = groceriesModel(); if (gm) { out.shop = Kit.Groceries.renderHome(gm, {}); HOMEG = gm; } } catch (e) { console.error("home: shop", e); }
+    return out;
+  }
+  function bindV3Home(v) { const el = $('.wcell[data-wid="shop"]', v); if (el && HOMEG) Kit.Groceries.bind(el, HOMEG, grocOpts(HOMEG)); }
 
   // ---------- drawers ----------
   let lastFocus = null;
@@ -1559,7 +1665,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   function go(target) {
     const [kind, ...rest] = String(target).split(":"); const key = rest.join(":");
     switch (kind) {
-      case "insights": case "goals": case "records": case "setup": case "home": case "activity": switchTab(kind); if (key === "save") setTimeout(() => { const el = $("#savecard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
+      case "insights": case "goals": case "things": case "tax": case "records": case "setup": case "home": case "activity": switchTab(kind); if (key === "save") setTimeout(() => { const el = $("#savecard"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       case "cat": openCategory(key); break;
       case "entry": openEntry(key); break;
       case "review": S.focusReview = true; switchTab("activity"); setTimeout(() => { const el = $("#reviewcard"); if (el) el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); const first = $("#rcards .rcard"); if (first && !phone()) first.focus({ preventScroll: true }); }, 80); break;
@@ -1579,6 +1685,7 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
       case "trace": openTrace(key); break;
       case "xp": openAction(key); break;
       case "safety": switchTab("goals"); break;
+      case "groceries": case "levers": switchTab(kind === "groceries" ? "insights" : "goals"); setTimeout(() => { const el = $(kind === "groceries" ? "#grochost" : "#leverhost"); el && !el.hidden && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       case "budget": case "networth": switchTab("insights"); setTimeout(() => { const el = $(kind === "networth" ? "#nwchart" : "#v-insights .grid"); el && el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); }, 80); break;
       default: break;
     }
@@ -1596,11 +1703,14 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $$(".gbar span[data-w]", root).forEach((s) => requestAnimationFrame(() => requestAnimationFrame(() => (s.style.width = s.dataset.w + "%"))));
     bindTips(root);
   }
-  function moveGlow() { const nav = $("nav.tabs"), on = $('nav.tabs button[aria-selected="true"]'), g = $(".tabglow"); if (!nav || !on || !g) return; g.style.left = on.offsetLeft + "px"; g.style.width = on.offsetWidth + "px"; }
+  function moveGlow() { const nav = $("nav.tabs"), on = $('nav.tabs button[aria-selected="true"]'), g = $(".tabglow"); if (g && !on) g.style.width = "0px"; if (!nav || !on || !g) return; g.style.left = on.offsetLeft + "px"; g.style.width = on.offsetWidth + "px"; }
   function switchTab(t, quiet) {
+    if (t === "records") t = "rec";   // the record is a page under Tax: the Tax tab stays lit while it shows
+    if (S.m && $(`nav.tabs button[data-tab="${t}"]`)?.hidden) t = "home";   // a dark view has no tab
+    $("#setupbtn")?.setAttribute("aria-pressed", String(t === "setup"));
     if (!$(`#v-${t}`)) return;
     const was = S.tab; S.tab = t;
-    $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+    $$("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === (t === "rec" ? "tax" : t))));
     $$("section.view").forEach((s) => s.classList.toggle("on", s.id === `v-${t}`));
     moveGlow(); closeDrawer(); showArrange();
     if (t === "home" && was !== "home" && S.m) { mountCanvas(); const lead = leadGoal(); if (lead && lead.status === "Reached" && !store.get("celebrated:" + lead.name)) { store.set("celebrated:" + lead.name, true); setTimeout(celebrate, 400); } }
@@ -1621,6 +1731,8 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     $("#trustpill").addEventListener("click", () => S.m && openTrust());
     $("#askbtn").addEventListener("click", () => S.m && openAsk());
     $("#topsearch").addEventListener("click", openSearch);
+    $("#setupbtn").addEventListener("click", () => switchTab("setup"));
+    $$(".v3back [data-go]").forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
     $("#scrim").addEventListener("click", closeDrawer);
     window.addEventListener("scroll", () => $("header.top").classList.toggle("scrolled", window.scrollY > 6), { passive: true });
     window.addEventListener("resize", () => { moveGlow(); if (S.grid && !moving()) { clearTimeout(S.resizeTm); S.resizeTm = setTimeout(renderHome, 150); } });   // heights changed: remount on the new geometry
