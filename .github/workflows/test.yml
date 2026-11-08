@@ -13,11 +13,11 @@ jobs:
         with: { node-version: "22" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: one app, two hosts (repository shape)
+      - name: one app, one host (repository shape)
         run: |
           python3 -m unittest discover -s tools -p 'test_check_shape.py' -v
           python3 tools/check_shape.py
-      - name: Shared brand sources are current and drive both hosts
+      - name: Shared brand sources are current and drive the page
         run: |
           python3 brand/generate_tokens.py --check
           python3 brand/build_brand.py --icons-only
@@ -32,10 +32,6 @@ jobs:
       - run: node --test tools/period-core.test.js
       - name: the JavaScript period core plans what Python plans
         run: python3 tools/period_parity.py --quiet
-      - name: offline native bundle and capability contract
-        run: |
-          python3 -m unittest discover -s tools -p 'test_native_build.py' -v
-          node --test src/hosts/native.test.js
       - name: the importer's promises (identity, fail loud, shapes, plan, verify)
         run: python3 -m unittest discover -s period-close -v
       - run: python3 -m py_compile build.py snapshot.py tools/grid_to_snapshot.py tools/v3_snapshot.py fixtures/make-v2-fixtures.py period-close/adapters.py period-close/simulate.py period-close/import_month.py period-close/writeplan.py period-close/verify.py period-close/pdftext.py period-close/pull_portals.py

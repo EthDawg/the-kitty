@@ -1,6 +1,5 @@
 /* The Kitty period core: the write plan. Exact ranges and values for update_values, and the comparisons a re-read goes through. Same
-   schema and same answers as period-close/writeplan.py and verify.py. Nothing here talks to a sheet. Runs in the page, in WKWebView
-   and in node. */
+   schema and same answers as period-close/writeplan.py and verify.py. Nothing here talks to a sheet. Runs in the page and in node. */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory(require("./period-text.js"));
   else root.KittyPeriodWritePlan = factory(root.KittyPeriodText);

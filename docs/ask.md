@@ -1,6 +1,10 @@
-# Ask the Kitty on iPhone
+# Ask the Kitty
 
-Tap the sparkle on Home, type a question, or try a suggested one. Each answer names its household view, source and period. In the demo “last month” means the month before the Sheet’s as-of date. In live mode, Ask uses the selected Sheet model that populated Home and Activity. It neither refreshes the Sheet silently nor writes to it.
+On the page, Ask is Claude. Tap the sparkle at the top; it shows only where the page can use Claude, and the first question asks you to allow “Use Claude” for the page. Claude answers from the numbers on the page through the read-only tools in [app.js](../src/app.js) (`TOOLS`), names what it looked at, and keeps nothing between questions. It neither refreshes the Sheet silently nor writes to it.
+
+## The model-free skills
+
+The read-only skills live in [ask-skills.js](../src/kit/ask-skills.js), the paraphrase router in [ask-routing.js](../src/kit/ask-routing.js), and a drawer over both in [ask-panel.js](../src/kit/ask-panel.js); arithmetic uses [the shared engine](../src/engine.js). Each answer names its household view, source and period. In the demo “last month” means the month before the Sheet’s as-of date.
 
 | Try it with the bundled Davies household | What to look for |
 | --- | --- |
@@ -11,14 +15,11 @@ Tap the sparkle on Home, type a question, or try a suggested one. Each answer na
 | If we cancelled all unused subscriptions, how much sooner could we reach our Emergency fund? | Including the gym marked Keep models $102.44/month. The estimate changes from June to May, one month sooner. No subscription or goal changes. |
 | When will the Japan trip be funded? | The Sheet already shows $12,090.25 against a $12,000 target. |
 | What bills are due next? | Scheduled bills with dates. Paydays are a separate kind of event; refunded charges are not forecast as recurring income. |
-| In Review: check past entries | Reads earlier categorised entries with the same normalised description on the same account. Shows evidence or says there is none. The category picker is a separate action. A guess cannot create a rule. |
 
-The read-only skills live in [ask-skills.js](../src/kit/ask-skills.js); arithmetic uses [the shared engine](../src/engine.js). Queries with a missing or ambiguous dimension never broaden silently to the whole household. Simple questions, person selection, comparisons and the savings scenario work without AI. Fully recognised paraphrases run immediately. For a bounded question such as “Where do we stand financially?”, the app puts cash and net worth side by side with their definitions; each opens its underlying calculation immediately. The production app has no model or provider dependency. An unfamiliar question gets a clarification, and a guess cannot produce a number. Answers are in memory for the current view only.
+Queries with a missing or ambiguous dimension never broaden silently to the whole household. Simple questions, person selection, comparisons and the savings scenario work without a model. Fully recognised paraphrases run immediately. For a bounded question such as “Where do we stand financially?”, the panel puts cash and net worth side by side with their definitions; each opens its underlying calculation immediately. An unfamiliar question gets a clarification, and a guess cannot produce a number. Answers are in memory for the current view only.
 
-For a deeper conversation, preview the **Share this answer** text first, then choose a destination in the system share sheet. No provider URL contains the question, figures, or Sheet identifier. No Google permission transfers. In the Davies demo, the clarification screen also offers its actual [Claude artifact](https://claude.ai/artifact/QH2gsDP8sHZmgMVKBtkwxn), which runs its own Ask and does not inherit the native question. A private household does not get that demo as its answer.
+The page’s Ask button does not open this panel; it asks Claude. The skills stay because they are checked against the Sheet’s own rows: an open-ended model should earn its place by matching these receipt-backed answers on real questions.
 
-There is no Claude/ChatGPT subscription sign-in in this build. The [ChatGPT feasibility probe](../tools/ask-provider-probe/README.md) separates a tested local OAuth callback from unproven consent and live inference. The [Apple on-device experiment](../tools/ask-apple-probe/README.md) can be run on an eligible Mac without a provider key. An open-ended external model should earn its place by outperforming these receipt-backed answers on real questions.
-
-**Verification:** `node --test tools/ask-skills.test.js` checks against independently summed source rows and contract records, including refunds, scope, partially elapsed months, and refusal cases. Run `OfflinePageTests/testAskAnswersFromEntriesAndPreservesTheFollowUpScope` for the iOS interaction, source and share-preview checks. Its two full-resolution fictional screenshots are attached to the Xcode test result; no household records are committed as evidence.
+**Verification:** `node --test tools/ask-skills.test.js tools/ask-routing.test.js` checks the skills against independently summed source rows and contract records, including refunds, scope, partially elapsed months, and refusal cases, and the router against safe and unsafe paraphrases.
 
 The public Davies schedule now shows the investment loan on 28 February and the home loan on 1 February. The [fictional Sheet formula and rollback](v2-loan-next-date.md) explain the source correction and when the next due date is unknown.

@@ -6,9 +6,9 @@ kit in light and dark with the motion pieces live.
 
 **Cat is the default.** The lucky cat (a maneki-neko) raises one paw to beckon good fortune and rests the other on a
 lucky coin. Households that would rather have a dog switch to the dog set, a shiba with the same calm face; nothing
-else about the page changes. `cat/` and `dog/` carry the same files so the `mascot` field in `tokens.json` can swap them. It chooses the illustrations, fortune cookie or biscuit, and primary iOS app icon for both builds. The other icon is offered under Setup → Appearance on iOS.
+else about the page changes. `cat/` and `dog/` carry the same files so the `mascot` field in `tokens.json` can swap them. It chooses the illustrations and the fortune cookie or biscuit.
 
-Edit theme values in `brand/tokens.json` and run `python3 brand/generate_tokens.py`. This writes the shared page CSS and native Swift colours; the Xcode resource preparation takes its launch colours and icons from the same sources. For a semantic icon change, edit the drawing in `build_brand.py` and run `python3 brand/build_brand.py --icons-only`. CI checks the generated files and rebuilds both hosts after a temporary colour, icon and mascot change.
+Edit theme values in `brand/tokens.json` and run `python3 brand/generate_tokens.py`. This writes the page CSS, `src/tokens.css`. For a semantic icon change, edit the drawing in `build_brand.py` and run `python3 brand/build_brand.py --icons-only`. CI checks the generated files and rebuilds the page after a temporary colour, icon and mascot change.
 
 | Asset | Where | Use |
 |---|---|---|

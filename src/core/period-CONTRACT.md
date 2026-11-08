@@ -1,7 +1,7 @@
 # Period core contract (stable names; additions only from here)
 
 Shared JS port of `period-close/`. One call: `KittyPeriod.plan(input)`, then the host writes, then `KittyPeriod.verify(plan, reread, opts)`.
-Pure UMD (`src/core/period-*.js`, entry `period-core.js`): `require` in Node, `window.KittyPeriod` in the page and WKWebView. Load order in a page:
+Pure UMD (`src/core/period-*.js`, entry `period-core.js`): `require` in Node, `window.KittyPeriod` in the page. Load order in a page:
 `period-text.js, period-adapters.js, period-writeplan.js, period-plan.js, period-core.js`. No file, network, clock or randomness inside.
 Same input gives the same bytes. `input.files` order never matters.
 
@@ -17,7 +17,7 @@ Same input gives the same bytes. `input.files` order never matters.
 `File`, either binding works; both reach one path `account/download_day/name`:
 ```
 { path: "ACC-CC/2027-03-01/activity.csv", ... }           // a tree walk; folder names are checked as Python checks them
-{ name: "activity.csv", account: "ACC-CC", download_day: "2027-03-01", ... }   // a native picker
+{ name: "activity.csv", account: "ACC-CC", download_day: "2027-03-01", ... }   // a file picker
   plus one of: bytes: Uint8Array                          // preferred: BOM, NUL and non-UTF-8 are checked here
                text: string, bom?: boolean                // host decoded; a leading U+FEFF is treated as bom
                rows: string[][], bom?: boolean            // host parsed cells, body and header (line numbers are row index + 1)

@@ -1,6 +1,6 @@
 /* The Kitty period core: adapters. The files a household receives, as normalised rows. Every reader fails loud with the same words as
    period-close/adapters.py and a stable code. A row's amount is integer cents, money in positive. balance stays the printed double,
-   so a closing check compares what the file said, not a rounding of it. Runs in the page, in WKWebView and in node. */
+   so a closing check compares what the file said, not a rounding of it. Runs in the page and in node. */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory(require("./period-text.js"));
   else root.KittyPeriodAdapters = factory(root.KittyPeriodText);

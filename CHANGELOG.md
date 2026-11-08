@@ -1,5 +1,11 @@
 # Changelog
 
+## One host — 8 November 2026
+- The iOS app and its native host are retired. The Kitty has one host, the Claude artifact page that `build.py` builds from `src/`; the household's Google Sheet still owns every number, and there is no server.
+- On a phone, the Kitty is the same web page added to the Home Screen (Setup shows how, for iPhone and Android).
+- Gone with it: `ios/`, its CI workflow, `build.py --host native` and the native shim, the Swift token output, the Ask provider probes, and the page's native-only paths (Google sign-in through Swift, the Sheet lock, the Home Screen icon chooser, deep links, the share sheet). The artifact page behaves as before.
+- The iOS work stays in git history, and the earlier SwiftUI branch on the `ios-swiftui-checkpoint` tag.
+
 ## 3.0 sheet version 3: receipts, choices, levers, tax years
 - Five new tabs (`CHANGES.md` version 3): Receipts and Receipt Lines, Decision Options, Goal Levers, Tax Returns. A page built for version 3 keeps each view dark until its tab exists.
 - New views, each written once as a shared module in `src/kit/` and used by any household page: Things (decision cards with every option costed on one horizon, things by group, a contract drawer), What moves the date (a lever board), Tax (this year so far, last year, history; each person and together), Groceries (this week's shop, price watch, bought before, receipts with their bank match).

@@ -1,4 +1,4 @@
-/* The Kitty period core: the one importer, shared by the page and the iOS WebView. plan(input) reads the host's files and the sheet and
+/* The Kitty period core: the one importer, for the page and node. plan(input) reads the host's files and the sheet and
    returns a deterministic write plan; verify(plan, reread, opts) compares a saved re-read with it. See period-CONTRACT.md. */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory(require("./period-plan.js"), require("./period-writeplan.js"), require("./period-adapters.js"), require("./period-text.js"));

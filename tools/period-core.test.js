@@ -384,7 +384,7 @@ test("verify: numbers read against planned text, and rows the plan does not know
 });
 
 const JSC = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/Current/Helpers/jsc";
-test("runs on JavaScriptCore, the engine under WKWebView", { skip: !fs.existsSync(JSC) }, () => {
+test("runs on JavaScriptCore, the engine under Safari", { skip: !fs.existsSync(JSC) }, () => {
   const load = SCRIPTS.map((s) => path.join(CORE, s));
   const script = `var self = this;\n${load.map((p) => `load(${JSON.stringify(p)});`).join("\n")}\nvar r = self.KittyPeriod.plan({ months: "2027-02", sheet: ${JSON.stringify(sheet())}, files: [{ path: "ACC-CC/2027-03-01/a.csv", text: ${JSON.stringify(CARD + card(2, "CAFÉ MAR 1234"))} }] });\nprint(JSON.stringify([r.status, r.proposed.transactions[0].amount_cents, r.proposed.transactions[0].merchant]));`;
   const file = path.join(require("os").tmpdir(), `kitty-jsc-${process.pid}.js`);

@@ -5,13 +5,6 @@ __pycache__/
 .env*
 logos/
 period-close/**/runs/
-ios/build/
-ios/Config.local.xcconfig
-ios/Kitty/Resources/
-ios/Kitty/Assets.xcassets/
-ios/evidence/
-*.xcuserstate
-xcuserdata/
 standard/.build/
 life/world/out/
 tools/kit-demo/out/

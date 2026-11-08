@@ -22,17 +22,16 @@
     ["Rules tab", "a new row naming a merchant and its category", "Activity, Make it a rule"],
     ["Subscriptions tab", "a service's Keep, Review or Cancel decision", "a subscription's drawer"],
   ];
-  const NATIVE = window.KITTY_HOST === "native";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (n, o) => E.fmt(n, o), fmt0 = (n) => E.fmt0(n), fmtS = (n) => E.fmtS(n);
-  const reduced = () => !!(NATIVE && window.KittyNative && window.KittyNative.environment.reduceMotion) || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const phone = () => window.innerWidth < 820;
   const ico = (id, cls) => `<svg class="${cls || "ic"}" aria-hidden="true"><use href="#${id}"/></svg>`;
 
   // ---------- per-viewer conveniences (never money data) ----------
-  let prefPrefix = "kitty:", readGeneration = 0;
+  const prefPrefix = "kitty:"; let readGeneration = 0;
   const store = {
     get(k, d) { try { const v = localStorage.getItem(prefPrefix + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(prefPrefix + k, JSON.stringify(v)); } catch (e) { /* private window */ } },
@@ -55,17 +54,16 @@
   // entrance animations only while the page is visible: a hidden tab pauses CSS animations at their first frame
   const setAnim = () => document.documentElement.classList.toggle("anim", document.visibilityState === "visible" && !FLAGS.has("noanim") && !reduced());
   setAnim(); document.addEventListener("visibilitychange", setAnim);
-  if (NATIVE) document.addEventListener("kitty:native-environment", setAnim);
   // every model goes through here so the per-render caches (merchant context, review queue) reset with it
   let CTX = null, REVIEW = null;
-  const setModel = (m) => { if (NATIVE && S.m && S.m !== m) { window.KittyAskPanel?.reset(); if ($("#drawer.on [data-native-ask], #drawer.on [data-ask-choose]")) closeDrawer(); } S.m = m; CTX = null; REVIEW = null; return m; };
+  const setModel = (m) => { S.m = m; CTX = null; REVIEW = null; return m; };
   const review = () => REVIEW || (REVIEW = E.review(S.m));
-  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, nativeAsk: NATIVE, cookie: ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
+  const ctx = () => CTX || (CTX = Kit.context(S.m, { reviewIds: review().byId, cookie: ART.cookie || "", logos: LOGOS, sampleOn: !!S.sample }));
   // the demo and a read-only sheet keep this visit's judgments in memory only: the sheet is never written and nothing is remembered
   const demoModel = () => { if (!SNAP) return null; const snap = Object.assign({}, SNAP, { decisions: (SNAP.decisions || []).concat(S.sessionDecisions), entries: Object.keys(S.sessionCats).length ? (SNAP.entries || []).map((e) => (S.sessionCats[e.entry_id] ? Object.assign({}, e, { category_id: S.sessionCats[e.entry_id] }) : e)) : SNAP.entries }); return applyLocalGoals(E.model(snap)); };
-  const sheetId = () => (NATIVE ? S.nativeSheet?.sheetID || DEMO_SHEET : S.prefs.sheet || DEMO_SHEET).trim();
+  const sheetId = () => (S.prefs.sheet || DEMO_SHEET).trim();
   const isDemoSheet = () => sheetId() === DEMO_SHEET;
-  const savePrefs = (patch) => { const at = Date.now(); Object.assign(S.prefs, patch); store.set("prefs", S.prefs); store.set("prefsSavedAt", at); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: at }).catch(() => { if (NATIVE) toast("Preferences could not be confirmed saved on this device."); }); };
+  const savePrefs = (patch) => { const at = Date.now(); Object.assign(S.prefs, patch); store.set("prefs", S.prefs); store.set("prefsSavedAt", at); if (S.dbDoc) S.dbDoc.set({ ...S.prefs, savedAt: at }).catch(() => {}); };
   const pref = (k, fallback) => { const v = S.prefs[k]; return v == null || v === "" ? fallback : v; };
   const today = () => (S.m ? S.m.asOf : new Date().toISOString().slice(0, 10));
   const greeting = () => pref("greeting", S.m && S.m.kitty.greeting_name ? S.m.kitty.greeting_name : "") || (S.m && S.m.people.length ? S.m.people.join(" and ") : S.m ? S.m.householdName.replace(/^The /, "") : "there");
@@ -97,7 +95,7 @@
   function errText(e, what) {
     const code = e && e.code;
     switch (code) {
-      case "needs_reauth": return NATIVE ? "Reconnect your Google Sheet in Setup." : "Google Sheets needs reconnecting. Open claude.ai Settings → Connectors, reconnect it, then reload.";
+      case "needs_reauth": return "Google Sheets needs reconnecting. Open claude.ai Settings → Connectors, reconnect it, then reload.";
       case "server_not_connected": return `This page reads a sheet through the Google Sheets connector. Add it in claude.ai Settings → Connectors, then reload.`;
       case "selection_required": return `You have more than one Google Sheets connector. Pick one when claude.ai asks, then reload.`;
       case "not_in_manifest": case "approval_required": case "consent_required": return `This page needs your OK to read Google Sheets.`;
@@ -190,7 +188,7 @@
     if (fatal.length) { S.liveErr = fatal[0][1]; setPill(S.mode === "live" ? "bad" : "demo", S.mode === "live" ? "Sheet unavailable" : "Demo data"); return false; }
     try {
       const knownV2 = isDemoSheet() && (SNAP?.kitty || []).some(r => r.key === "sheet_version" && String(r.value) === "2");
-      E.checkLiveLedger(grids, NATIVE || knownV2);
+      E.checkLiveLedger(grids, knownV2);
       const snap = E.fromConnector(grids);
       snap.fetchedAt = null;
       const m = E.model(snap);
@@ -365,7 +363,7 @@
     else if (S.mode === "local") setPill("demo", `Local copy · ${day(m.asOf)}`);
     else setPill("demo", `Demo · ${day(m.asOf)}`);
     document.title = `The ${m.householdName.replace(/^The /, "")} Kitty`;
-    $("#askbtn").hidden = !NATIVE && !S.sample;
+    $("#askbtn").hidden = !S.sample;
   }
   const period = () => E.window(S.period.kind, S.period.anchor || S.m.asOf);
   function periodBar(id) {
@@ -681,32 +679,7 @@
     catch (e) { console.error(e); toast("Couldn't write: " + errText(e, "the sheet")); return false; }
   }
   const catName = (id) => (S.m.catById[id] || {}).name || id;
-  const hasCategoryWriter = () => S.mode === "live" && S.nativeSheet?.canEdit === true && typeof S.mcp?.saveCategory === "function";
-  let categoryBusy = false;
-  async function verifiedCategory(id, cat) {
-    if (categoryBusy || S.loading || S.liveErr) { toast("Wait for a fresh Sheet read before saving."); return false; }
-    const host = S.mcp, n = entryRowNumber(id);
-    if (!n || !S.m.catById[cat]) { toast("Refresh before choosing a category."); return false; }
-    categoryBusy = true;
-    try {
-      const proof = await host.saveCategory(id, String(S.grids.entries[n-1]?.[7] ?? ""), cat);
-      if (S.mcp !== host) return false;
-      googlePicker.pending = null;
-      const ok = await loadLive(true);
-      if (host !== S.mcp) return false;
-      const row = entryRowNumber(id), decisions = S.m.decisions.filter(d => d.id === proof.decisionID);
-      if (!ok || !row || S.grids.entries[row-1][7] !== cat || decisions.length !== 1 ||
-          decisions[0].decision !== "categorise" || decisions[0].ref !== id || decisions[0].value !== cat) {
-        toast("Google verified the save. Refresh to check the dashboard.", 6000); return false;
-      }
-      toast(`${entryName(id)}: ${catName(cat)} · verified in Entries and Decisions`, 5000); return true;
-    } catch (e) {
-      if (host !== S.mcp) return false;
-      try { googlePicker.pending = await host.pendingCategory(); } catch (_) {}
-      renderNativeSetup(); toast(e.message || "The category save was not verified.", 7000); return false;
-    } finally { categoryBusy = false; }
-  }
-  const categorise = (id, cat) => hasCategoryWriter() ? verifiedCategory(id, cat) :
+  const categorise = (id, cat) =>
     act(async () => { await writeCategory(id, cat); await writeDecisions([["entry", id, "categorise", cat, ""]]); }, `${entryName(id)}: ${catName(cat)}`);
   const confirmEntry = (id) => act(() => writeDecisions([["entry", id, "confirm", (S.m.entryById[id] || {}).cat || "", ""]]), `${entryName(id)} confirmed`);
   const mergeDup = (id, of) => act(() => writeDecisions([["entry", id, "merge_duplicate", of, "same merchant, amount, account and day"]]), `${entryName(id)}: marked as a double`);
@@ -762,15 +735,6 @@
   }
   // the fortune cookie: Ask proposes a merchant and a category from the raw descriptor; the person decides. One open at a time, never on load.
   async function crackCookie(card, btn) {
-    if (NATIVE) {
-      const id=card.dataset.rid, e=S.m.entryById[id], evidence=window.KittyAsk.merchantEvidence(E,S.m,id);
-      if (!e || !evidence) return;
-      const category=evidence.category, count=evidence.matches.length;
-      openDrawer(`${h2("Review this merchant",esc(e.raw || e.desc))}<div class="plan"><h3>${category?esc(catName(category)):"Choose a category"}</h3><p>${category?`The same description appears in ${count} earlier ${count===1?"entry":"entries"} on this account, all filed under ${esc(catName(category))}.`:count?"Earlier entries with this description used different categories.":"There’s no earlier categorised entry with this description on this account."}</p>
-        ${evidence.matches.slice(0,3).map(k=>`<button class="pp" data-go="entry:${esc(k)}">See ${esc(entryLine(S.m.entryById[k]))}</button>`).join("")}
-        <button class="btn" data-ask-choose>Choose a category…</button><span class="plan-foot">This check hasn’t changed the entry or created a rule.</span></div>`);
-      $("[data-ask-choose]").onclick=()=>openCategoryPicker(id); return;
-    }
     if (!Motion) return;
     if (!S.sample) { toast("Claude isn't available in this view, so the cookie stays closed. Open the page in Claude."); return; }
     if (S.cookie && S.cookie !== btn) { S.cookie.classList.remove("open"); const sv = S.cookie.querySelector("svg"); if (sv) sv.classList.remove("open"); const old = S.cookie.closest(".rcard"); const os = old && $(".rslip", old); if (os) os.hidden = true; }
@@ -809,7 +773,7 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     openDrawer(`${h2(`Categorise ${Kit.nameOf(e)}`, `${esc(e.raw || "")} · ${E.fmtDay(e.date, { year: true })} · ${fmt(Math.abs(e.amount))}`)}
       <div class="searchbox" style="margin-top:12px">${ico("i-search")}<input id="catq" type="search" placeholder="Type to filter, Enter picks the first" autocomplete="off" aria-label="Filter categories"></div>
       <div class="catpick" id="catpick">${draw("")}</div>
-      <p class="sub" style="margin-top:10px">${hasCategoryWriter() ? "Choosing a category saves it to this entry and adds a decision in your Google Sheet. Kitty reads both back to verify the save." : canWriteSheet() ? "Writes the category to this row's cell on the Entries tab and a categorise row on Decisions." : "Kept on screen for this visit; the sheet is not written here."}</p>`);
+      <p class="sub" style="margin-top:10px">${canWriteSheet() ? "Writes the category to this row's cell on the Entries tab and a categorise row on Decisions." : "Kept on screen for this visit; the sheet is not written here."}</p>`);
     const q = $("#catq"), box = $("#catpick"); const bind = () => $$("[data-pickcat]", box).forEach((b) => b.addEventListener("click", () => { closeDrawer(); categorise(id, b.dataset.pickcat); }));
     bind(); q.addEventListener("input", () => { box.innerHTML = draw(q.value); bind(); });
     q.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { const first = $("[data-pickcat]", box); if (first) first.click(); } });
@@ -1008,159 +972,13 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
   function appearanceCard(m) {
     return `<div class="card" style="--i:4.5" id="lookcard"><div class="cardhead"><span class="q">Appearance</span><span class="sub">remembered with your other choices</span></div>
         <div class="cardtools"><span class="seg" role="group" aria-label="Theme">${[["system", "Match my device"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button data-theme-pick="${k}" aria-pressed="${(S.prefs.theme || "system") === k}">${l}</button>`).join("")}</span><span class="swatches">${["violet", "coral", "teal", "lime"].map((n) => `<button class="swatch" data-accent-pick="${n}" aria-pressed="${(pref("accent", m.kitty.accent) || "violet") === n}" aria-label="${n}" style="background:var(--swatch-${n});width:34px;height:34px"></button>`).join("")}</span></div>
-        ${NATIVE && window.KittyNative?.icon ? '<div class="cardtools"><span>Home Screen icon</span><span class="seg" role="group" aria-label="Home Screen icon"><button disabled data-icon-choice="cat">Cat</button><button disabled data-icon-choice="dog">Dog</button></span></div>' : ""}
       </div>`;
   }
   function bindAppearance(v) {
-    const icons = $$("[data-icon-choice]", v);
-    if (NATIVE && window.KittyNative?.icon && icons.length) {
-      const paint = r => icons.forEach(b => {
-        b.disabled = !r.supported;
-        b.setAttribute("aria-pressed", String((b.dataset.iconChoice !== (ART.set || "cat")) === r.alternate));
-      });
-      window.KittyNative.icon.status().then(paint).catch(() => {});
-      for (const b of icons) b.addEventListener("click", async () => {
-        icons.forEach(other => other.disabled = true);
-        try { paint(await window.KittyNative.icon.select(b.dataset.iconChoice !== ART.set)); }
-        catch (e) { toast("The Home Screen icon could not be changed."); window.KittyNative.icon.status().then(paint).catch(() => {}); }
-      });
-    }
     $$("[data-theme-pick]", v).forEach((b) => b.addEventListener("click", () => { savePrefs({ theme: b.dataset.themePick }); applyTheme(); renderSetup(); buzz(); }));
     $$("[data-accent-pick]", v).forEach((b) => b.addEventListener("click", async () => { savePrefs({ accent: b.dataset.accentPick }); applyAccent(); renderSetup(); if (canWriteSheet()) { try { await writeKitty("accent", b.dataset.accentPick); } catch (e) { /* stays local */ } } }));
   }
-  const googlePicker = { busy: "", verified: null, message: "", pending: null, attempted: false, canResume: false, checked: false, lockEnabled: false, privacyMessage:"", revision: 0 };
-  const verifiedDemo = v => v?.sheetID === DEMO_SHEET && v.sheetVersion === 2 &&
-    typeof v.title === "string" && v.title.trim() !== "" && typeof v.canEdit === "boolean";
-  async function syncGoogleStatus() {
-    if (!NATIVE || !S.m || googlePicker.busy) return;
-    googlePicker.checked = true;
-    const revision = ++googlePicker.revision;
-    try {
-      // Swift owns the result, so a WebKit page recreated during Google's return can recover it.
-      // This call reads only native in-memory state. It neither signs in nor opens a Sheet.
-      const status = await window.KittyNative.google.status();
-      if (revision !== googlePicker.revision || googlePicker.busy) return;
-      const checked = verifiedDemo(status?.verified) ? status.verified : null;
-      const canResume = status?.canResume === true || !!checked;
-      const lockEnabled = status?.lockEnabled === true;
-      if (!checked && !googlePicker.verified && canResume === googlePicker.canResume && lockEnabled === googlePicker.lockEnabled) return;
-      googlePicker.lockEnabled = lockEnabled;
-      googlePicker.canResume = canResume;
-      googlePicker.verified = checked;
-      if (checked) { googlePicker.attempted = true; googlePicker.message = ""; }
-      renderNativeSetup();
-    } catch (_) { /* A missing status reply is never verification. */ }
-  }
-  if (NATIVE) document.addEventListener("kitty:google-status", syncGoogleStatus);
-  function leaveNativeSheet() {
-    if (!S.nativeSheet) return;
-    ++readGeneration; prefPrefix = "kitty:"; googlePicker.pending = null;
-    Object.assign(S, { nativeSheet: null, mcp: null, grids: null, mode: "demo", loading: false, canWrite: false,
-      liveErr: null, err: {}, kittyRows: null, settingsRows: null, storedAt: null, unknownReadAge: false,
-      sessionDecisions: [], sessionCats: {}, chat: [], dbDoc: S.demoDbDoc, prefs: Object.assign({}, DEFAULT_PREFS, store.get("prefs", {})) });
-    closeDrawer(); setModel(demoModel()); renderAll();
-  }
-  async function openNativeSheet() {
-    if (googlePicker.busy) return;
-    googlePicker.revision++; googlePicker.busy = "open"; googlePicker.message = ""; renderNativeSetup();
-    try {
-      if (!S.nativeSheet || !S.mcp) {
-        const v = await window.KittyNative.google.open(DEMO_SHEET);
-        if (!verifiedDemo(v)) throw new Error("Google did not verify the selected v2 Sheet.");
-        const mcp = await window.claude.use("mcp");
-        if (!mcp) throw new Error("The Sheet connection was interrupted.");
-        googlePicker.verified = v; googlePicker.canResume = true; googlePicker.attempted = true;
-        S.demoDbDoc = S.dbDoc; S.nativeSheet = v; S.mcp = mcp; S.canWrite = false;
-        prefPrefix = "kitty:" + v.preferenceID + ":";
-        S.prefs = Object.assign({}, DEFAULT_PREFS, store.get("prefs", {})); S.sessionCats = {}; S.sessionDecisions = []; S.chat = [];
-        S.dbDoc = S.db?.doc("data/users/" + v.preferenceID + "/kitty") || null;
-        if (S.dbDoc) {
-          const saved = await S.dbDoc.get();
-          if (saved.exists) { const p = saved.data(); if (p?.savedAt > store.get("prefsSavedAt", 0)) Object.assign(S.prefs, p); }
-        }
-      }
-      if (!await loadLive(true)) throw new Error(errText(S.liveErr || { code: "invalid_response" }, "the selected Sheet"));
-      if (typeof S.mcp?.pendingCategory === "function") googlePicker.pending = await S.mcp.pendingCategory();
-    } catch (error) {
-      if (S.mode !== "live") { leaveNativeSheet(); await window.KittyNative.google.close().catch(() => {}); }
-      googlePicker.message = error.message || "The live Sheet could not be opened.";
-    } finally { googlePicker.busy = ""; renderNativeSetup(); }
-  }
-  async function chooseDemoSheet(disconnect = false) {
-    if (googlePicker.busy) return;
-    const clearDisplayPrefs = id => {
-      if (!/^native-[0-9a-f]{64}$/.test(id || "")) return;
-      try { const prefix = "kitty:" + id + ":"; for (const k of Object.keys(localStorage)) if (k.startsWith(prefix)) localStorage.removeItem(k); } catch (_) {}
-    };
-    if (disconnect) clearDisplayPrefs(S.nativeSheet?.preferenceID);
-    googlePicker.revision++; googlePicker.busy = disconnect ? "disconnect" : "choose"; googlePicker.message = ""; googlePicker.verified = null;
-    leaveNativeSheet();
-    googlePicker.attempted = true; renderNativeSetup();
-    try {
-      if (disconnect) {
-        const cleared = await window.KittyNative.google.disconnect(); clearDisplayPrefs(cleared?.clearedPreferenceID);
-        googlePicker.message = "Disconnected from Google."; googlePicker.attempted = false; googlePicker.canResume = false;
-      } else {
-        const result = await window.KittyNative.google.select(DEMO_SHEET);
-        if (!verifiedDemo(result))
-          throw new Error("Google did not confirm the selected v2 Sheet.");
-        googlePicker.verified = result; googlePicker.canResume = true;
-      }
-    } catch (error) { googlePicker.message = error.message || "Google Sheet selection was not confirmed."; }
-    finally { googlePicker.busy = ""; renderNativeSetup(); }
-  }
-  async function changePrivacy() {
-    if (googlePicker.busy) return;
-    const want = !googlePicker.lockEnabled; googlePicker.busy = "privacy"; googlePicker.privacyMessage = ""; renderNativeSetup();
-    try {
-      const result = await window.KittyNative.privacy.setEnabled(want);
-      if (result?.enabled !== want) throw new Error("The privacy setting was not confirmed.");
-      googlePicker.lockEnabled = want;
-    } catch (e) { googlePicker.privacyMessage = e.message || "The privacy setting did not change."; }
-    finally { googlePicker.busy = ""; renderNativeSetup(); }
-  }
-  function renderNativeSetup() {
-    const m = S.m, v = $("#v-setup");
-    const live = S.mode === "live" && !!S.nativeSheet;
-    v.innerHTML = `
-      <div class="card" id="nativeconnection"><div class="cardhead"><span class="q">Your Google Sheet</span></div>
-        <p>${live ? "The dashboard reads Digital Davies v2 directly from Google." : "Choose your Google account, then select <b>Digital Davies v2</b>. Open it here to read the live dashboard. This check changes no rows."}</p>
-        <div class="chips"><button class="btn sm" id="nativepick" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "choose" ? "Waiting for Google…" : "Choose demo Sheet"}</button>
-          ${googlePicker.canResume ? `<button class="btn sm" id="nativelive" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "open" ? "Reading Sheet…" : live ? "Refresh live Sheet" : "Open live Sheet"}</button>` : ""}
-          ${googlePicker.attempted || googlePicker.canResume ? `<button class="btn sm ghost" id="nativedisconnect" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.busy === "disconnect" ? "Disconnecting…" : "Disconnect Google"}</button>` : ""}</div>
-        <p role="status" aria-live="polite">${googlePicker.message ? esc(googlePicker.message) : googlePicker.busy === "open" ? "Reading the selected Sheet from Google…" : googlePicker.verified ? `<b>Verified in Google:</b> ${esc(googlePicker.verified.title)} · Kitty v2 · ${googlePicker.verified.canEdit ? "editor" : "viewer"}. No rows were changed.` : googlePicker.busy === "choose" ? "Finish choosing the Sheet in Google." : googlePicker.busy ? "Disconnecting from Google." : googlePicker.canResume ? "A saved Google connection is available. Open the Sheet to verify it again." : "Sheet not verified yet."}</p>
-      </div>
-      <div class="card"><div class="cardhead"><span class="q">The Kitty on your phone</span><span class="sub">${live ? "Live Sheet" : "Offline demo"}</span></div>
-        ${live ? `<div class="prose"><p>Home, Activity, Review, Insights and Goals use <b>${esc(S.nativeSheet.title)}</b>. The Sheet's as-of date is ${E.fmtDay(m.asOf, { year: true })}. ${hasCategoryWriter() ? "A category you choose in Review is saved to this Sheet and checked." : "You have read-only access here."}</p></div>` : `
-        <div class="prose"><p>Explore Home, Activity, Review, Insights and Goals using <b>${esc(m.householdName)}</b>, a fictional household. The bundled Sheet snapshot covers ${E.fmtDay(m.asOf, { year: true })}. It opens without a network connection.</p>
-        <p>The dashboard uses the bundled demo until you open the live Sheet. Your numbers belong in a Google Sheet you can open and keep.</p></div>`}
-        <div class="chips"><button class="btn sm" data-go="review">Open Review</button><button class="btn sm ghost" data-go="goals">Explore Goals</button></div>
-      </div>
-      ${live && googlePicker.pending ? `<div class="card"><b>A category save needs checking</b><p>${esc(googlePicker.pending.entry)} → ${esc(catName(googlePicker.pending.category))}. Kitty checks the original save before sending anything else.</p><button class="btn sm" id="nativecheckpending">Check this save</button></div>` : ""}
-      ${window.KittyNative?.privacy ? `<div class="card"><div class="cardhead"><span class="q">Lock your live Sheet</span></div><p>${googlePicker.lockEnabled ? "On. Leaving Kitty locks the live Sheet. Use Face ID, Touch ID or your device passcode to reopen it." : "Require Face ID, Touch ID or your passcode when you return to your live numbers. The fictional offline demo stays available."}</p><button id="nativelock" class="btn sm ghost" ${googlePicker.busy ? "disabled" : ""}>${googlePicker.lockEnabled ? "Turn off Sheet lock" : "Turn on Sheet lock"}</button><p role="status">${esc(googlePicker.privacyMessage)}</p></div>` : ""}
-      ${appearanceCard(m)}
-      <div class="card"><div class="cardhead"><span class="q">What stays on this device</span></div>
-        <div class="prose"><p>Display preferences and demo goal edits stay on this device. ${live && hasCategoryWriter() ? "Only a category you choose in Review writes to the Sheet in this build." : "Demo review decisions last for this visit and do not change the Google Sheet."}</p>
-        <p>${S.downloads ? "Activity can export its filtered rows as a CSV through the iOS file picker. A save is confirmed only after the picker finishes." : "Native file export is unavailable in this view."}</p>
-        <p>Text size and reduced motion follow your device settings.</p></div>
-      </div>
-      <div class="card"><div class="cardhead"><span class="q">About this preview</span></div>
-        <div class="prose"><p>Ask the Kitty can explain spending, savings goals and upcoming bills on this device. Tap the sparkle at the top. To share an answer, you choose its destination after previewing the text.</p>
-        <p>The household's Google Sheet remains the owner of its numbers. These links open online and need a connection:</p></div>
-        <div class="chips"><a class="btn sm ghost" href="https://docs.google.com/spreadsheets/d/${esc(DEMO_SHEET)}/edit" target="_blank" rel="noopener">Fictional demo Sheet</a>${/^https:\/\//.test(PAGE_URL) ? `<a class="btn sm ghost" href="${esc(PAGE_URL)}" target="_blank" rel="noopener">Public artifact</a>` : ""}
-          <a class="btn sm ghost" href="${REPO}/blob/main/docs/ios-support.md" target="_blank" rel="noopener">Get help</a></div>
-      </div>`;
-    $("#nativepick", v).addEventListener("click", () => chooseDemoSheet());
-    $("#nativelock", v)?.addEventListener("click", changePrivacy);
-    $("#nativecheckpending", v)?.addEventListener("click", () => verifiedCategory(googlePicker.pending.entry, googlePicker.pending.category));
-    $("#nativelive", v)?.addEventListener("click", openNativeSheet);
-    $("#nativedisconnect", v)?.addEventListener("click", () => chooseDemoSheet(true));
-    bindAppearance(v);
-    bindCommon(v);
-    if (!googlePicker.checked) void syncGoogleStatus();
-  }
   function renderSetup() {
-    if (NATIVE) { renderNativeSetup(); return; }
     const m = S.m, v = $("#v-setup"); const cc = S.setupCountry || pref("country", m.kitty.country || "AU");
     const country = SOURCES.countries.find((c) => c.code === cc) || SOURCES.countries[0];
     const sheetLink = `https://docs.google.com/spreadsheets/d/${sheetId()}/edit`;
@@ -1521,9 +1339,9 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
       ${diffs.length ? `<h3>Where the page reads the rows instead of the sheet</h3><p class="sub">Each of these sheet columns read the wrong rows. The page shows the figure from the rows, and the drawer for each shows both. CHANGES.md in the repository has the formula fixes.</p><ul class="difflist">${diffs.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>` : ""}
       ${(m.unreadable || []).length ? `<div class="secterr">These tabs could not be read and are shown as empty: ${esc(m.unreadable.join(", "))}.</div>` : ""}
       <h3>What was read</h3><div class="tablewrap"><table class="t"><thead><tr><th>Tab</th><th class="n">Rows</th><th>Feeds</th></tr></thead><tbody>${tabs.map(([k, name, n, err]) => `<tr><td>${esc(name)}</td><td class="n">${err ? (OPTIONAL.has(k) ? `<span class="tag">not in this sheet</span>` : `<span class="tag warn">error</span>`) : esc(String(n))}</td><td class="muted">${esc({ settings: "as-of date, targets", accounts: "every store of value", category_list: "names, groups, budgets", goals: "Goals, Home", subscriptions: "bills, leaks, upcoming", loans: "loan card, upcoming", assets: "the rental", metrics: "hero facts, tax", compliance: "what needs you", networth: "net worth chart", cashflow: "12-month bars, kept", budget: "budget pace", savings: "ways to save", mortgage: "rate scenarios", tax: "tax card", transactions: "activity, jar, flow, search", payslips: "pay day", kitty: "your settings", entries: "the ledger: balances, transfers", balances: "balance by month, the oracle", contracts: "subscriptions, leases, loan terms", decisions: "your judgments: review, worth it", rules: "descriptor to merchant and category; the cookie adds rows here", snapshot: "everything" }[k] || "")}</td></tr>`).join("")}</tbody></table></div>
-      <p class="sub" style="margin-top:12px">Nothing is cached in the sheet and nothing is stored by this page except your own preferences${S.dbDoc && !NATIVE ? " (on this device and in your Claude account)" : " (on this device)"}.</p>`);
+      <p class="sub" style="margin-top:12px">Nothing is cached in the sheet and nothing is stored by this page except your own preferences${S.dbDoc ? " (on this device and in your Claude account)" : " (on this device)"}.</p>`);
     const rb = $("#refreshbtn"); if (rb) rb.addEventListener("click", async () => { rb.disabled = true; const ok = await loadLive(true); toast(ok ? "Fresh read done" : "Couldn't read live: " + errText(S.liveErr || {})); if (ok) openTrust(); else rb.disabled = false; });
-    const db = $("#demobtn"); if (db) db.addEventListener("click", async () => { if (NATIVE) { await window.KittyNative.google.close(); leaveNativeSheet(); } else { ++readGeneration; setModel(demoModel()); S.mode = "demo"; renderAll(); } openTrust(); });
+    const db = $("#demobtn"); if (db) db.addEventListener("click", () => { ++readGeneration; setModel(demoModel()); S.mode = "demo"; renderAll(); openTrust(); });
   }
   // ----- editors: the three writes the page is allowed -----
   function localGoalRecalc(g, mm) { const m = mm || S.m; g.progress = g.target ? Math.min(1, (g.balance || 0) / g.target) : 0; g.monthsLeft = g.date && g.date > m.asOf ? E.monthsBetween(m.asOf, g.date) : 0; g.needPm = g.monthsLeft ? Math.max(0, g.target - (g.balance || 0)) / g.monthsLeft : Math.max(0, g.target - (g.balance || 0)); g.status = (g.balance || 0) >= g.target ? "Reached" : (g.savedPm || 0) >= g.needPm ? "On track" : "Behind"; }
@@ -1613,9 +1431,6 @@ Prefixes such as SQ, SP, TST, PAYPAL and PP name a payment processor, not the sh
     return `<div class="msg kit">${esc(c.text)}</div>`;
   }
   function openAsk() {
-    if (NATIVE) { window.KittyAskPanel.open({ E, model:()=>S.m, mode:()=>S.mode, drawer:()=>$("#drawer"), openDrawer,
-      go:target=>{ if (target==="home" || validGo(target)) { closeDrawer(); go(target); } }, bridge:()=>window.KittyNative.ask,
-      origin:()=>S.mode+":"+(S.nativeSheet?.session||"demo"), artifact:isDemoSheet()&&PAGE_URL.startsWith("https://claude.ai/artifact/")?PAGE_URL:null }); return; }
     openDrawer(`${h2("Ask the Kitty", `Claude answers from the numbers on this page, with your consent, and keeps nothing between questions. Today is ${E.fmtDay(S.m.asOf, { year: true })} for the household.`)}
       <div class="ask" style="margin-top:12px"><div class="msgs" id="msgs">${S.chat.map((c, i) => msgHTML(c, i === S.chat.length - 1)).join("") || `<div class="sugg">${SUGGEST.map((s) => `<button class="chip" data-sugg="${esc(s)}">${esc(s)}</button>`).join("")}</div>`}</div>
       <div class="askrow"><div class="searchbox">${ico("i-spark")}<input id="askq" type="text" placeholder="Ask about the money…" autocomplete="off" aria-label="Your question"></div><button class="btn" id="asksend" ${S.asking ? "disabled" : ""}>Ask</button></div>
@@ -1684,7 +1499,6 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
   // ---------- onboarding ----------
   const OB = { step: 0, dir: 1, greeting: "", country: "", lead: "", safety: null, accent: "", goalEdits: {} };
   function startOnboarding(again) {
-    if (NATIVE) { go("setup"); return; }
     const m = S.m; if (!m) return;
     OB.step = 0; OB.greeting = greeting() === m.householdName.replace(/^The /, "") ? "" : greeting(); OB.country = pref("country", m.kitty.country || "AU"); OB.lead = (leadGoal() || {}).name || ""; OB.safety = E.safety(m).target; OB.accent = pref("accent", m.kitty.accent) || "violet"; OB.again = !!again;
     const el = $("#onb"); el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Set up The Kitty");
@@ -1734,18 +1548,9 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
       }
     } else { savePrefs({ onboarded: true }); endOnboarding(); }
   }
-  // The local page forbids blob workers. Draw with the same library on its main canvas.
-  let nativeCelebration;
-  function celebrate() { if (reduced() || !window.confetti || isDemo()) return; try { const fire = NATIVE ? (nativeCelebration || (nativeCelebration = window.confetti.create(null, { resize: true, useWorker: false }))) : window.confetti; const colors = ["#5B3DF5", "#FF5CC8", "#D9F94B", "#0E9F9E"]; fire({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, zIndex: 90, disableForReducedMotion: true }); setTimeout(() => fire({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors, zIndex: 90 }), 200); setTimeout(() => fire({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors, zIndex: 90 }), 350); } catch (e) { /* ignore */ } }
+  function celebrate() { if (reduced() || !window.confetti || isDemo()) return; try { const fire = window.confetti; const colors = ["#5B3DF5", "#FF5CC8", "#D9F94B", "#0E9F9E"]; fire({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, zIndex: 90, disableForReducedMotion: true }); setTimeout(() => fire({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors, zIndex: 90 }), 200); setTimeout(() => fire({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors, zIndex: 90 }), 350); } catch (e) { /* ignore */ } }
 
   // ---------- wiring ----------
-  // Native deep links may select a public section, never an arbitrary drawer,
-  // command or URL. Review deliberately uses the existing review queue journey.
-  if (NATIVE) document.addEventListener("kitty:native-route", (event) => {
-    const route = event.detail && event.detail.route;
-    if (!S.settled || !S.m || typeof route !== "string" || !["home", "activity", "review", "insights", "goals", "setup"].includes(route)) return;
-    closeDrawer(); go(route);
-  });
   function go(target) {
     const [kind, ...rest] = String(target).split(":"); const key = rest.join(":");
     switch (kind) {
@@ -1834,18 +1639,16 @@ Rules: 2 to 4 facts (the numbers the answer rests on), 3 to 6 points, up to 4 ac
     S.sample = sample; S.downloads = downloads; S.user = user; S.db = db;
     if (user) { try { S.isOwner = await user.isOwner(); } catch (e) { S.isOwner = false; } try { const me = await user.me(); S.userName = (me && me.name) || ""; } catch (e) { S.userName = ""; } }
     if (db && user) { try { const id = await user.id(); if (id) { S.dbDoc = db.doc(`data/users/${id}/kitty`); const snap = await S.dbDoc.get(); if (snap.exists) { const d = snap.data() || {}; if ((d.savedAt || 0) > (store.get("prefsSavedAt", 0))) { Object.assign(S.prefs, d); store.set("prefs", S.prefs); } } } } catch (e) { S.dbDoc = null; } }
-    if (NATIVE && SNAP) setModel(demoModel()); // Native preference storage may be newer than WebKit's local cache.
-    S.canWrite = !NATIVE && (S.isOwner || !!S.prefs.sheet);
+    S.canWrite = S.isOwner || !!S.prefs.sheet;
     if (S.m) renderAll();
     if (window.__KIT_GALLERY__ && S.m) { switchTab("home", true); return; }
     if (mcp) { S.mcp = mcp; if (S.isOwner || S.prefs.sheet || !SNAP) { const ok = await loadLive(false); if (!ok && !SNAP) gate("Couldn't read the sheet", errText(S.liveErr || { code: "unknown" }) + ' <button class="lnk" data-open="trust">Details</button>'); } else renderHeader(); }
     else if (!SNAP) gate("This copy needs a connector", errText({ code: "no_mcp" }));
     S.settled = true; if (S.m) renderHome();
     // a stranger on the public demo gets the answer first: setup screens start only for a household's own sheet (or ?onb)
-    if (!NATIVE && S.m && !S.prefs.onboarded && !FLAGS.has("noonb") && !isDemo()) setTimeout(() => startOnboarding(false), 700);
+    if (S.m && !S.prefs.onboarded && !FLAGS.has("noonb") && !isDemo()) setTimeout(() => startOnboarding(false), 700);
     if (FLAGS.get("tab")) switchTab(FLAGS.get("tab"), true);
     if (FLAGS.has("onb")) startOnboarding(true);
-    if (NATIVE && S.m) document.dispatchEvent(new CustomEvent("kitty:app-ready"));
   }
   boot();
 })();

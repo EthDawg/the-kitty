@@ -1,7 +1,7 @@
 /* The Kitty period core: the plan. Turns the files a household downloaded and the sheet as it stands into a verified write plan, and
    nothing else: the same decisions as period-close/import_month.py, without its file system. Identity de-duplication, fail-loud gathering,
    transfers, loans, valuations, payslips, owner statements, policies, closing checks, IDs. See period-CONTRACT.md. Money is integer cents.
-   Runs in the page, in WKWebView and in node. */
+   Runs in the page and in node. */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory(require("./period-text.js"), require("./period-adapters.js"), require("./period-writeplan.js"));
   else root.KittyPeriodPlan = factory(root.KittyPeriodText, root.KittyPeriodAdapters, root.KittyPeriodWritePlan);

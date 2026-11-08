@@ -628,13 +628,12 @@ button.erow:hover,.erow:focus-visible{background:var(--surface2)}
 .dlist .d{display:flex;gap:8px;align-items:baseline}
 .dlist .d b{color:var(--ink)}
 
-/* Native Ask uses the shared drawer and the same type and colour tokens as the artifact. */
-.native-ask{margin-top:16px;gap:14px}.native-ask .searchbox{margin-right:0;min-width:0}.native-ask .searchbox input{min-width:0;width:100%}
-.native-ask [data-ask-output]:empty{display:none}.native-ask .ask-amount{font-family:var(--display);font-size:clamp(24px,7vw,36px);margin:0}
-.native-ask h3{margin:0}.native-ask .plan p{margin:0}.native-ask .plan-top{gap:8px}.native-ask summary{cursor:pointer;font-weight:650;padding:7px 0}
+/* The model-free Ask panel (src/kit/ask-panel.js) uses the shared drawer and the same type and colour tokens as the rest of the page. */
+.local-ask{margin-top:16px;gap:14px}.local-ask .searchbox{margin-right:0;min-width:0}.local-ask .searchbox input{min-width:0;width:100%}
+.local-ask [data-ask-output]:empty{display:none}.local-ask .ask-amount{font-family:var(--display);font-size:clamp(24px,7vw,36px);margin:0}
+.local-ask h3{margin:0}.local-ask .plan p{margin:0}.local-ask .plan-top{gap:8px}.local-ask summary{cursor:pointer;font-weight:650;padding:7px 0}
 .ask-facts{display:grid;gap:5px;margin:0}.ask-facts>div{display:flex;align-items:baseline;gap:12px;justify-content:space-between}.ask-facts dd{margin:0;font-variant-numeric:tabular-nums;font-weight:650}
-.ask-preview{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding:12px;background:var(--surface);border-radius:12px}
-.native-ask .ask-prompt{margin:0 0 8px;color:var(--ink2);line-height:1.35;overflow-wrap:anywhere}
+.local-ask .ask-prompt{margin:0 0 8px;color:var(--ink2);line-height:1.35;overflow-wrap:anywhere}
 
 /* ---------- records: the standard's view. A law's result is a word, a shape and a colour, never colour alone ---------- */
 .rec-top{display:grid;gap:8px;justify-items:start}

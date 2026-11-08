@@ -30,7 +30,6 @@ Next month, say "Bring my Kitty up to date." Install `skills/kitty/` in your har
 | `skills/kitty/page-bar.md` | Eighteen lines a page has to meet, distilled from 35 versions of a real one. |
 | `CHANGES.md` | Changes to the Sheet's shape, in sentences. A household's own harness applies them; nothing upstream writes to a Sheet. |
 | `src/`, `brand/`, `merchants/` | The page. It reads any Sheet in this shape through the viewer's own Google connector. |
-| `ios/` | The iPhone view of the same page. |
 | `FINDINGS.md` | The findings as plain text, for people and agents. |
 | `evidence/` | The one-shot runs across five models, the data model test, the move-in test and the page test, with protocols, scores and costs. |
 | `standard/eval/`, `standard/world/`, `life/`, `portals/`, `sources/` | The fictional families: seven blind households with sealed truth and scorers, the life generator, and parody bank sites serving their files. |

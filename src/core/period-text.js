@@ -1,6 +1,6 @@
 /* The Kitty period core: text. The small parts of Python's behaviour the importer's output depends on: whitespace, case folding,
    title case, repr, float parsing, round-half-even to cents, :,.2f rendering, the csv module's reader and ISO dates. Everything that
-   is money is an integer count of cents from here on. Pure functions; runs in the page, in WKWebView and in node. */
+   is money is an integer count of cents from here on. Pure functions; runs in the page and in node. */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
   else root.KittyPeriodText = factory();

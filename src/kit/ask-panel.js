@@ -1,5 +1,6 @@
-/* Ask on iPhone: each answer is a read of the current view. Only the system share
-   sheet can send the exact text the person previews. Nothing is saved to chat history. */
+/* Ask without a model: a drawer over the read-only skills (ask-skills.js) and the paraphrase router
+   (ask-routing.js). Each answer is a read of the current view, computed in the page; nothing is saved
+   to chat history. The artifact page's own Ask button asks Claude, so app.js does not open this panel. */
 (function(root){
   "use strict";
   const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -7,16 +8,16 @@
   let memory=null;
   root.KittyAskPanel={
     reset(){memory=null;},
-    open({E,model,mode,drawer,openDrawer,go,bridge,artifact,origin}){
-      const m=model(),K=root.KittyAsk, native=bridge(), headline=mode()==="live"?"Selected Google Sheet":"Fictional demo";
+    open({E,model,mode,drawer,openDrawer,go,artifact,origin}){
+      const m=model(),K=root.KittyAsk, headline=mode()==="live"?"Selected Google Sheet":"Fictional demo";
       if(!memory||memory.m!==m||memory.origin!==origin())memory={m,origin:origin(),last:null,question:""};
       const state=memory, source=state.origin;
       const exampleGoal=m.goals.find(g=>g.name!=="")?.name, grocery=m.cats.find(c=>c.id==="GROCERY"||c.id==="GROCERIES"||c.name.toLowerCase()==="groceries");
       const openGoal=m.goals.find(g=>Number.isFinite(g.target)&&Number.isFinite(g.balance)&&g.balance<g.target);
       const examples=[...(openGoal&&m.subs.some(s=>s.flag==="Unused"&&s.decision==="Review")?[["Put unused subscriptions toward a goal","Could our unused subscriptions help fund "+openGoal.name+"?"]]:[]),["Spending changes","What changed in our spending this month?"],...(grocery?[["Groceries last month","How much did we spend on "+grocery.name+" last month?"]]:[]),["Unused subscriptions","Which subscriptions haven’t we used?"],...(exampleGoal?[["Goal progress","When will the "+exampleGoal+" be funded?"]]:[]),["Upcoming bills","What bills are due next?"]];
       const base='<div class="eyebrow">Ask the Kitty</div><h2 id="local-ask-title">What’s on your mind?</h2><p class="sub">'+esc(headline)+' · As of '+esc(E.fmtDay(m.asOf,{year:true}))+'</p>';
-      openDrawer(base+'<section class="ask native-ask" data-native-ask><form class="askrow" data-ask-form><label class="searchbox"><input type="text" maxlength="800" autocomplete="off" enterkeyhint="go" aria-label="Your question" placeholder="Ask about your money…" data-ask-input></label><button class="btn" type="submit">Ask</button></form><section data-ask-output aria-live="polite" aria-atomic="true"></section><div data-ask-examples></div><div class="plan-foot" data-ask-footer>Kitty calculates on this device. Your questions stay here.</div></section>',false);
-      const host=drawer().querySelector("[data-native-ask]"), input=host.querySelector("[data-ask-input]"), content=host.querySelector("[data-ask-output]"), choices=host.querySelector("[data-ask-examples]");
+      openDrawer(base+'<section class="ask local-ask" data-local-ask><form class="askrow" data-ask-form><label class="searchbox"><input type="text" maxlength="800" autocomplete="off" enterkeyhint="go" aria-label="Your question" placeholder="Ask about your money…" data-ask-input></label><button class="btn" type="submit">Ask</button></form><section data-ask-output aria-live="polite" aria-atomic="true"></section><div data-ask-examples></div><div class="plan-foot" data-ask-footer>Kitty calculates on this device. Your questions stay here.</div></section>',false);
+      const host=drawer().querySelector("[data-local-ask]"), input=host.querySelector("[data-ask-input]"), content=host.querySelector("[data-ask-output]"), choices=host.querySelector("[data-ask-examples]");
       const current=()=>state.m===model()&&source===origin()&&host.isConnected&&drawer().classList.contains("on");
       let previous=state.last?.plan||null;
       const links=x=>x.map(l=>'<button type="button" class="pp" data-ask-go="'+esc(l.go)+'"><span class="txt">'+esc(l.label)+'</span><span aria-hidden="true">›</span></button>').join("");
@@ -30,20 +31,10 @@
         content.innerHTML='<p class="ask-prompt">'+esc(q)+'</p><article class="plan" data-ask-answer><div class="plan-top"><span class="eyebrow">'+esc(a.basis)+'</span><h3 class="ask-amount">'+esc(a.title)+'</h3><p class="sub">'+esc(a.detail)+'</p></div>'+facts+
           (a.links.length?'<details data-ask-evidence><summary>'+esc(["spending","receipts"].includes(a.plan.kind)?(a.rowCount>a.links.length?"See the latest "+a.links.length+" of "+a.rowCount+" entries":"See the entries"):"See the source")+'</summary><div class="plan-points">'+links(a.links)+'</div></details>':'')+
           (a.periods?'<div class="sugg">'+a.periods.map((p,i)=>btn("See "+p.label,'data-ask-period="'+i+'"')).join("")+'</div>':'')+
-          '<div class="plan-foot">'+esc(a.source)+'</div></article><div class="dacts"><button type="button" class="btn sm ghost" data-ask-share>Share this answer…</button></div>';
+          '<div class="plan-foot">'+esc(a.source)+'</div></article>';
         content.querySelectorAll("[data-ask-go]").forEach(b=>b.onclick=()=>{if(current())go(b.dataset.askGo);});
         content.querySelectorAll("[data-ask-period]").forEach(b=>b.onclick=()=>{const p=a.periods[Number(b.dataset.askPeriod)];if(current())answer("Spending in "+p.label,K.run(E,m,{...a.plan,kind:"spending",time:p.time}));});
-        content.querySelector("[data-ask-share]").onclick=()=>sharePreview(q,a);
         showChoices(a.plan.kind==="spending"?[["Compare with the month before","Compare that with the previous month"],["The month before","What about the month before?"]]:a.plan.kind==="goalScenario"?[...(!a.plan.filter?[["What if we cut all unused?","If we cancelled all unused subscriptions, how much sooner could we reach our "+a.plan.goal+"?"]]:[]),["See unused subscriptions","Which subscriptions haven’t we used?"],["See this goal","When will the "+a.plan.goal+" be funded?"],examples.find(x=>x[0]==="Spending changes")]:examples.filter(x=>x[1]!==q).slice(0,3));
-      }
-      function sharePreview(q,a){
-        if(!current())return;
-        const body=[q,headline+" · "+m.asOf,a.basis+": "+a.title,a.detail,...a.facts.map(f=>f.label+": "+f.value),a.source].join("\n");
-        content.innerHTML='<div class="plan"><h3>Share this answer</h3><p class="sub">Only the text below will go to the app you choose. No Sheet access or transaction rows are included.</p><pre class="ask-preview"></pre><div class="dacts"><button class="btn sm" data-ask-system-share>Choose an app…</button><button class="btn sm ghost" data-ask-back>Back</button></div><span role="status"></span></div>';
-        content.querySelector("pre").textContent=body;
-        content.querySelector("[data-ask-back]").onclick=()=>answer(q,a);
-        const button=content.querySelector("[data-ask-system-share]");
-        button.onclick=async()=>{if(!current()||button.disabled)return;button.disabled=true;try{await native.share(body);if(current())answer(q,a);}catch(_){if(current()){button.disabled=false;content.querySelector("[role=status]").textContent="Sharing isn’t available right now. Your answer is still here.";}}};
       }
       function clarify(why,options){drawer().querySelector("#local-ask-title").textContent="Ask the Kitty";content.innerHTML='<div class="plan" data-ask-clarify><h3>Let’s narrow that down</h3><p>'+esc(why||"Try a category and a month, a savings goal, or an upcoming bill.")+'</p>'+(options?'':deeper)+'</div>';showChoices(options||examples);}
       function ask(q){
