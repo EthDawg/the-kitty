@@ -45,7 +45,13 @@ Each drawer shows the sheet's figure beside the page's, and the trust drawer lis
 ## How it was checked
 
 - `node --test test.js test-v2.js tools/ask-skills.test.js tools/ask-routing.test.js test/kit-things-levers.test.js`: 113 pass. New tests cover the safety net, subscriptions, savings ideas, duplicates, needs order, formats and the rental one-off.
-- Every tab and 32 drawers screenshotted at 1280x900 and 390x844, light and dark: no console errors, no sideways scroll at 390px, no "Mon YY" date, no internal ID outside file names, nothing under 12px.
+- The page's Playwright specs (`portals/test/canvas.spec.js`, `ledger-read.spec.js`, `kit.spec.js`): 25 pass locally. The canvas tests now move other widgets, since Review is a line in What needs you, and open the demo with `?signals` to exercise the "new on Home" note the public demo no longer shows.
+- Every tab and 32 drawers and toggles screenshotted at 1280x900 and 390x844, light and dark: no console errors, no sideways scroll at 390px, no "Mon YY" date, no internal ID outside file names, nothing under 12px.
 - Light and dark contrast: no text element below AA on any tab (colours given as `color-mix` are not measured).
 - Layout shift at load: 0.0009 on desktop (was 0.032), 0.003 on a phone.
 - An empty sheet and a broken sheet (Subscriptions not a list, a nameless goal, Budget a string): no errors; each tab says what it cannot show.
+
+## Before this merges
+
+- The kit gallery's CI baselines (`docs/screenshots/kit/ci/*.png`) must be refreshed from a CI run: list amounts now carry cents, a row with no category offers no "Looks right", and the colours changed. Fonts differ on a Mac, so they cannot be made here. The local renders in `docs/screenshots/kit/` are current.
+- `tools/check_shape.py` fails on the top-level `test/` folder, which came with `v3/contract` (commit 9a30c8d), not this branch.
