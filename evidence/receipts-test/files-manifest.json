@@ -1,0 +1,664 @@
+{
+ "_about": "Which file is which receipt. Sealed: part of the answer key, never shown to a reader.",
+ "files": [
+  {
+   "receipt": "R0001",
+   "files": [
+    "IMG_6167.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0002",
+   "files": [
+    "eReceipt 090725-362.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0003",
+   "files": [
+    "IMG_1261.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0004",
+   "files": [
+    "Tax invoice 144396215.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0005",
+   "files": [
+    "Tax invoice 166995561.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0006",
+   "files": [
+    "IMG_6838.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0007",
+   "files": [
+    "IMG_1636.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0008",
+   "files": [
+    "Tax invoice 172874850.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0009",
+   "files": [
+    "IMG_6465.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0010",
+   "files": [
+    "eReceipt 090925-163.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0011",
+   "files": [
+    "IMG_2443.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0012",
+   "files": [
+    "IMG_8783.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0013",
+   "files": [
+    "IMG_8276.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0014",
+   "files": [
+    "Tax invoice 140052756.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0015",
+   "files": [
+    "Tax invoice 199817520.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0016",
+   "files": [
+    "IMG_3215.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0017",
+   "files": [
+    "IMG_4640.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0018",
+   "files": [
+    "Tax invoice 147809576.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0019",
+   "files": [
+    "IMG_1326.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0020",
+   "files": [
+    "IMG_4453.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0021",
+   "files": [
+    "IMG_6879.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0022",
+   "files": [
+    "eReceipt 021225-110.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0023",
+   "files": [
+    "IMG_2317.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0024",
+   "files": [
+    "IMG_6452.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0025",
+   "files": [
+    "IMG_9738.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0026",
+   "files": [
+    "Tax invoice 177431137.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0027",
+   "files": [
+    "IMG_2518.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0028",
+   "files": [
+    "IMG_4590.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0029",
+   "files": [
+    "Tax invoice 156885459.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0030",
+   "files": [
+    "IMG_8119.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0031",
+   "files": [
+    "IMG_4140.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0032",
+   "files": [
+    "IMG_4780.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0033",
+   "files": [
+    "IMG_7336.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0034",
+   "files": [
+    "eReceipt 030226-886.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0035",
+   "files": [
+    "IMG_7167.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0036",
+   "files": [
+    "IMG_9085.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0037",
+   "files": [
+    "IMG_4645.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0038",
+   "files": [
+    "IMG_5277.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0039",
+   "files": [
+    "IMG_3308.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0040",
+   "files": [
+    "Tax invoice 183194938.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0041",
+   "files": [
+    "eReceipt 050326-762.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0042",
+   "files": [
+    "IMG_7205.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0043",
+   "files": [
+    "IMG_9585.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0044",
+   "files": [
+    "Tax invoice 164845610.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0045",
+   "files": [
+    "Tax invoice 176803621.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0046",
+   "files": [
+    "IMG_3166.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0047",
+   "files": [
+    "IMG_7202.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0048",
+   "files": [
+    "IMG_9045.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0049",
+   "files": [
+    "Tax invoice 146315015.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0050",
+   "files": [
+    "IMG_7495.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0051",
+   "files": [
+    "IMG_3727.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0052",
+   "files": [
+    "IMG_3627.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0053",
+   "files": [
+    "IMG_1591.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0054",
+   "files": [
+    "eReceipt 240526-847.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0055",
+   "files": [
+    "Tax invoice 166418185.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0056",
+   "files": [
+    "IMG_6688.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0057",
+   "files": [
+    "eReceipt 100626-250.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0058",
+   "files": [
+    "IMG_6409.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0059",
+   "files": [
+    "Tax invoice 178858135.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0060",
+   "files": [
+    "IMG_2557.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0061",
+   "files": [
+    "Tax invoice 162830889.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0062",
+   "files": [
+    "IMG_3394.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0063",
+   "files": [
+    "Tax invoice 148745912.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0064",
+   "files": [
+    "Tax invoice 181972456.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0065",
+   "files": [
+    "IMG_1816.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0066",
+   "files": [
+    "IMG_3088.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0067",
+   "files": [
+    "IMG_6547.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0068",
+   "files": [
+    "Tax invoice 152364947.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0069",
+   "files": [
+    "eReceipt 010926-103.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0070",
+   "files": [
+    "eReceipt 030926-544.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0071",
+   "files": [
+    "IMG_4008.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0072",
+   "files": [
+    "IMG_2365.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0073",
+   "files": [
+    "IMG_5368.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0074",
+   "files": [
+    "IMG_8559.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0075",
+   "files": [
+    "IMG_8693.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0076",
+   "files": [
+    "IMG_8773.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0077",
+   "files": [
+    "IMG_8499.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0078",
+   "files": [
+    "IMG_7377.jpg",
+    "IMG_7378.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0079",
+   "files": [
+    "IMG_2433.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0080",
+   "files": [
+    "eReceipt 031126-675.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0081",
+   "files": [
+    "Tax invoice 159308498.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0082",
+   "files": [
+    "IMG_2588.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0083",
+   "files": [
+    "IMG_6869.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0084",
+   "files": [
+    "IMG_8999.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0085",
+   "files": [
+    "Tax invoice 140536868.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0086",
+   "files": [
+    "IMG_2693.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0087",
+   "files": [
+    "IMG_8274.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0088",
+   "files": [
+    "IMG_4351.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0089",
+   "files": [
+    "IMG_5558.jpg"
+   ],
+   "how": "photo, crumpled"
+  },
+  {
+   "receipt": "R0090",
+   "files": [
+    "eReceipt 020127-564.pdf"
+   ],
+   "how": "e-receipt pdf"
+  },
+  {
+   "receipt": "R0091",
+   "files": [
+    "Tax invoice 171788081.pdf"
+   ],
+   "how": "invoice pdf"
+  },
+  {
+   "receipt": "R0092",
+   "files": [
+    "IMG_1417.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0093",
+   "files": [
+    "IMG_1319.jpg"
+   ],
+   "how": "photo"
+  },
+  {
+   "receipt": "R0094",
+   "files": [
+    "IMG_6112.jpg"
+   ],
+   "how": "photo"
+  }
+ ]
+}
