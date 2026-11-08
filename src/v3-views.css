@@ -4,7 +4,10 @@ nav.tabs button[hidden]{display:none}
 #setupbtn .lbl{display:none}
 @media (min-width:820px){#setupbtn{order:3}}
 #setupbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-@media (min-width:1060px){#setupbtn{width:auto;padding:0 14px 0 11px}#setupbtn .lbl{display:inline;font-weight:600;font-size:14px}}
+/* six tabs, the data-date pill, three tools and Setup share one 1,120px bar. Setup and Search stay icons
+   (their names are in the tooltip and for screen readers) and the tabs tighten, so nothing runs past the column. */
+@media (min-width:1060px){nav.tabs button{padding:8px 10px}.topbar{gap:8px}}
+@media (min-width:1280px){#topsearch kbd{display:none}#topsearch:has(kbd){width:40px;padding:0}}
 .v3foot{padding:0 6px;margin:0}
 .v3lead{margin:-8px 0 14px}
 /* the lever board is a card of its own in the module; on Goals it sits inside the page's card */

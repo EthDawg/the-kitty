@@ -208,7 +208,8 @@ def render(root, host='artifact', v2=False, no_snapshot=False):
             if file.suffix.lower() in ('.svg', '.png'):
                 mime = 'image/svg+xml' if file.suffix.lower() == '.svg' else 'image/png'
                 logos[file.stem] = f'data:{mime};base64,' + base64.b64encode(file.read_bytes()).decode()
-    kit = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.js')
+    # module tests live beside their modules (src/kit/*.test.js) and never ship
+    kit = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.js' and not file.name.endswith('.test.js'))
     # the shared view modules' styles (src/kit/*.css, kx-* classes) and their illustrations (src/kit/art), bundled like their scripts
     kit_css = '\n'.join(file.read_text(encoding='utf-8') for file in sorted((src / 'kit').iterdir()) if file.suffix == '.css')
     kit_art = {file.stem: 'data:image/svg+xml;base64,' + base64.b64encode(file.read_bytes()).decode()
