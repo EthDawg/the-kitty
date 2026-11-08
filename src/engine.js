@@ -189,7 +189,14 @@
 
   // ---------- the model: typed, cross-linked ----------
   const by = (f) => (a, b) => (f(a) < f(b) ? -1 : f(a) > f(b) ? 1 : 0);
-  E.model = (snap) => {
+  E.model = (snapIn) => {
+    // A tab that is not a list of rows reads as empty and is named in m.unreadable, so one malformed tab never blanks the page.
+    const unreadable = [], snap = {};
+    for (const [k, v] of Object.entries(snapIn || {})) {
+      if (Array.isArray(v)) { const rows = v.filter((r) => r && typeof r === "object"); if (rows.length < v.length) unreadable.push(k); snap[k] = rows; }
+      else if (v != null && !["fetchedAt", "household", "mortgage_inputs", "source"].includes(k)) { unreadable.push(k); snap[k] = []; }
+      else snap[k] = v;
+    }
     const kitty = {}; for (const r of snap.kitty || []) if (r.key) kitty[r.key] = r.value == null ? "" : String(r.value);
     E.dateOrder = ["US", "PH", "CA"].includes(String(kitty.country || "").toUpperCase()) && kitty.date_order !== "dmy" ? "mdy" : kitty.date_order === "mdy" ? "mdy" : "dmy";
     const settings = {}; for (const r of snap.settings || []) if (r.setting) settings[r.setting] = r.value;
@@ -275,7 +282,7 @@
     const householdName = kitty.household_name || (settings.Household ? String(settings.Household).replace(/\s*\(.*\)\s*$/, "") : "This household");
     // a contract's keep-or-cancel decision: the latest Decisions row for it
     for (const d of decisions) if (d.refKind === "contract" && d.decision === "keep_or_cancel") { const c = contracts.find((x) => x.id === d.ref); if (c) c.decision = d.value; }
-    const m = { asOf, settings, kitty, sheetVersion, householdName, people, cats, catById, accounts, acctById, tx, entries, entryById, balances, contracts, decisions, rules, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, firstSeen, dupes, dupesExplained, source: snap.source || null, fetchedAt: snap.fetchedAt || null };
+    const m = { asOf, settings, kitty, sheetVersion, householdName, people, cats, catById, accounts, acctById, tx, entries, entryById, balances, contracts, decisions, rules, goals, subs, loans, assets, metrics, checks, networth, cashflow, cfcats, budget, savings, mortgage, tax, payslips, firstSeen, dupes, dupesExplained, unreadable, goalRows: (snap.goals || []).length, source: snap.source || null, fetchedAt: snap.fetchedAt || null };
     // every transaction carries its merchant resolution: the sheet's Rules first, then the dictionary, then a flagged fallback
     m.merMemo = new Map(); m.ruleIndex = null;
     for (const e of entries) if (e.kind === "transaction") { e.mer = E.merchant(e.raw || e.desc, m); const t = txById[e.id]; if (t) t.mer = e.mer; }
@@ -330,11 +337,14 @@
     }
     // the savings ideas built on those columns, rebuilt from the checked figures
     const lk = E.leaks(m), dupes = E.dupePairs(m), look = E.num(m.settings["Look-back for subscription price rises (months)"]) || 15;
-    const fix = (s, amount, shows) => { if (Math.abs((s.amount || 0) - amount) > 0.005) { s.sheet = { amount: s.amount, shows: s.shows }; s.amount = Math.round(amount * 100) / 100; if (shows) s.shows = shows; } };
+    const fix = (s, amount, shows, why) => { if (Math.abs((s.amount || 0) - amount) > 0.005) { s.sheet = { amount: s.amount, shows: s.shows, why }; s.amount = Math.round(amount * 100) / 100; if (shows) s.shows = shows; } };
+    const adj = m.subs.filter((x) => x.sheet && x.fixed.includes("lowest") && x.adjustments && x.adjustments.length).map((x) => x.service);
+    const refunded = m.subs.filter((x) => x.sheet && x.refundedOn && x.fixed.includes("annual")).map((x) => x.service);
+    const explained = E.dupePairs(m, m.dupesExplained);
     for (const s of m.savings) {
-      if (/price rise/i.test(s.title)) fix(s, lk.risesYear, lk.rises.length ? `${E.cap(E.words(lk.rises.length))} bill${lk.rises.length === 1 ? "" : "s"} you keep rose in price in the last ${look} months: ${lk.rises.map((x) => `${x.service} ${E.fmt(x.lowest, { cents: true })} to ${E.fmt(x.latest, { cents: true })}`).join(", ")}.` : "");
-      else if (/unused subscription/i.test(s.title)) fix(s, lk.unusedYear + lk.stillYear);
-      else if (/duplicate/i.test(s.title)) { fix(s, dupes.reduce((a, p) => a - p.b.amount, 0), `${E.cap(E.words(dupes.length))} pair${dupes.length === 1 ? "" : "s"} of identical charges on the same day, with no receipt or note on each.`); if (s.sheet) s.title = "Check charges that look doubled"; }
+      if (/price rise/i.test(s.title)) fix(s, lk.risesYear, lk.rises.length ? `${E.cap(E.words(lk.rises.length))} bill${lk.rises.length === 1 ? "" : "s"} you keep rose in price in the last ${look} months: ${lk.rises.map((x) => `${x.service} ${E.fmt(x.lowest, { cents: true })} to ${E.fmt(x.latest, { cents: true })}`).join(", ")}.` : "", adj.length ? `it read a premium adjustment on ${adj.join(" and ")} as a price` : "");
+      else if (/unused subscription/i.test(s.title)) fix(s, lk.unusedYear + lk.stillYear, "", refunded.length ? `it read the refund on ${refunded.join(" and ")} as a negative charge` : "");
+      else if (/duplicate/i.test(s.title)) { fix(s, dupes.reduce((a, p) => a - p.b.amount, 0), `${E.cap(E.words(dupes.length))} pair${dupes.length === 1 ? "" : "s"} of identical charges on the same day, with no receipt or note on each.`, explained.length ? `it counted ${explained.map((p) => `two ${p.b.desc} charges on ${E.fmtDay(p.b.date, { year: true })}, each with a receipt`).join(" and ")}` : ""); if (s.sheet) s.title = "Check charges that look doubled"; }
     }
     m.savings = m.savings.filter((s) => (s.amount || 0) >= 1).sort((a, b) => (b.amount || 0) - (a.amount || 0));
     m.savingsYear = m.savings.filter((s) => s.type === "Recurring").reduce((a, s) => a + (s.amount || 0), 0);
